@@ -1476,20 +1476,35 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
         "", "N/A").value_counts().head(8)
     c1_labels, c1_data = pad_empty_html(
         usr_counts_all.index.tolist(), usr_counts_all.values.tolist())
-    cfg1 = {"type": "doughnut", "data": {"labels": [sanitize_label(x) for x in c1_labels], "datasets": [{"data": c1_data, "backgroundColor": COLORFUL_PALETTE}]}, "options": {
-        "legend": {"display": True, "position": "right"}}}
+    # 🌟 MUDANÇA: Gráfico de Barras para Top Analistas REQs
+    cfg1 = {
+        "type": "horizontalBar",
+        "data": {
+            "labels": [sanitize_label(x) for x in c1_labels],
+            "datasets": [{"data": c1_data, "backgroundColor": COLORFUL_PALETTE}]
+        },
+        "options": get_hbar_opts(step_size=1, max_val=max(c1_data) if c1_data else 10)
+    }
     cfg1 = add_title_to_cfg(
         cfg1, f"TOTAL ABERTOS: {total_req_abertos_para_titulo}")
-    cfg1 = add_pie_formatter(cfg1, c1_data)
+    cfg1 = add_bar_formatter(cfg1, c1_data)
 
     inc_counts_all = inc_open_strict["Assigned to"].replace(
         "", "N/A").value_counts().head(8)
     c1b_labels, c1b_data = pad_empty_html(
         inc_counts_all.index.tolist(), inc_counts_all.values.tolist())
-    cfg1b = {"type": "doughnut", "data": {"labels": [sanitize_label(x) for x in c1b_labels], "datasets": [{"data": c1b_data, "backgroundColor": COLORFUL_PALETTE}]}, "options": {"legend": {"display": True, "position": "right"}}}
+    # 🌟 MUDANÇA: Gráfico de Barras para Top Analistas INCs
+    cfg1b = {
+        "type": "horizontalBar",
+        "data": {
+            "labels": [sanitize_label(x) for x in c1b_labels],
+            "datasets": [{"data": c1b_data, "backgroundColor": COLORFUL_PALETTE}]
+        },
+        "options": get_hbar_opts(step_size=1, max_val=max(c1b_data) if c1b_data else 10)
+    }
     cfg1b = add_title_to_cfg(
         cfg1b, f"TOTAL ABERTOS: {total_inc_abertos_para_titulo}")
-    cfg1b = add_pie_formatter(cfg1b, c1b_data)
+    cfg1b = add_bar_formatter(cfg1b, c1b_data)
 
     c3a_labels, c3a_data = pad_empty_html(
         buckets_req["Faixa"].tolist(), buckets_req["Qtd"].tolist())
@@ -1589,18 +1604,20 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
 
     # ---------------- LÓGICA E GRÁFICOS PTASK ----------------
     pizzas_items = [
-        build_card("1A. Top Analistas REQs",
-                   f'<img src="{qc_url_html(cfg1, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
-        build_card("1B. Top Analistas INCs",
-                   f'<img src="{qc_url_html(cfg1b, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
         build_card("REQs: Inside vs Outside SLA",
                    f'<img src="{qc_url_html(cfg_req_sla, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
         build_card("INCs: Inside vs Outside SLA",
                    f'<img src="{qc_url_html(cfg_inc_sla, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">')
     ]
 
-    # GRÁFICOS DE BARRAS: Agregando Agings, Status e os Solicitantes
+    # GRÁFICOS DE BARRAS: Agregando Agings, Status, Solicitantes e agora Analistas
     barras_items = [
+        # 🌟 Analistas movidos para a área de barras
+        build_card("Top Analistas REQs",
+                   f'<img src="{qc_url_html(cfg1, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        build_card("Top Analistas INCs",
+                   f'<img src="{qc_url_html(cfg1b, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        
         build_card("3A. Aging Detalhado (REQs)",
                    f'<img src="{qc_url_html(cfg3a, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
         build_card("3B. Aging Detalhado (INCs)",
@@ -1669,25 +1686,28 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
             "PTASK: Top Analistas", f'<img src="{qc_url_html(cfg_ptask_ass, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'))
 
     # ---------------- CONSTRUÇÃO EM BLOCOS HTML PRINCIPAIS (Para Outlook) ----------------
+    # 🌟 MUDANÇA: Reorganização da primeira linha de KPIs
     html_kpi_row1 = f"""
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px;">
         <tr>
             {build_kpi_card("📦", "Total (Abertos)", total_backlog_real, "REQ + INC Vigentes", ModernColors.PRIMARY_LIGHT, ModernColors.PRIMARY_DARK, "padding-right: 8px;", "20%")}
             {build_kpi_card("🛠️", "REQs (Abertos Suporte)", req_support_count, "exceto UAM", ModernColors.PRIMARY_LIGHT, ModernColors.PRIMARY_DARK, "padding-right: 8px; padding-left: 4px;", "20%")}
+            {build_kpi_card("🔐", "REQs (Acesso)", uam_count, "gestão de acessos", ModernColors.ACCENT_LIGHT, ModernColors.ACCENT, "padding-right: 4px; padding-left: 8px;", "20%")}
             {build_kpi_card("🚨", "INCs (Abertos Geral)", inc_count, "incidentes vigentes", ModernColors.WARNING_LIGHT, ModernColors.ORANGE, "padding-right: 4px; padding-left: 8px;", "20%")}
-            {build_kpi_card("📌", "Total de Backlog", total_backlog_real, "abertos pendentes", ModernColors.DANGER_LIGHT, ModernColors.DANGER, "padding-right: 4px; padding-left: 8px;", "20%")}
-            {build_kpi_card("📋", "Total de PTASKs", ptask_total, "Volume Geral (PTASK)", ModernColors.GRAY_LIGHT, ModernColors.PRIMARY_DARK, "padding-left: 8px;", "20%")}
+            {build_kpi_card("📌", "Total de Backlog", total_backlog_real, "abertos pendentes", ModernColors.DANGER_LIGHT, ModernColors.DANGER, "padding-left: 8px;", "20%")}
         </tr>
     </table>
     """
+    
+    # 🌟 MUDANÇA: Reorganização da segunda linha de KPIs (PTASKs e conversões)
     html_kpi_row2 = f"""
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px;">
         <tr>
-            {build_kpi_card("🔐", "REQs (Acesso)", uam_count, "gestão de acessos", ModernColors.ACCENT_LIGHT, ModernColors.ACCENT, "padding-right: 8px;", "20%")}
-            {build_kpi_card("🔄", "REQ → INC", len(req_to_inc_cur), "classificação incorreta", ModernColors.GRAY_LIGHT, ModernColors.GRAY_DARK, "padding-right: 8px; padding-left: 4px;", "20%")}
+            {build_kpi_card("📋", "Total de PTASKs", ptask_total, "Volume Geral (PTASK)", ModernColors.GRAY_LIGHT, ModernColors.PRIMARY_DARK, "padding-right: 8px;", "20%")}
+            {build_kpi_card("⏳", "PTASKs Abertos", ptask_open, "Pendentes Resolução", ModernColors.WARNING_LIGHT, ModernColors.ORANGE, "padding-right: 8px; padding-left: 4px;", "20%")}
+            {build_kpi_card("🔄", "REQ → INC", len(req_to_inc_cur), "classificação incorreta", ModernColors.GRAY_LIGHT, ModernColors.GRAY_DARK, "padding-right: 4px; padding-left: 8px;", "20%")}
             {build_kpi_card("🔄", "INC → REQ", len(inc_to_req_cur), "cancelado p/ reabrir", ModernColors.GRAY_LIGHT, ModernColors.GRAY_DARK, "padding-right: 4px; padding-left: 8px;", "20%")}
-            {build_kpi_card("⏱️", "MTTR Geral", f"{mttr_geral}d", "tempo de resolução", ModernColors.SUCCESS_LIGHT, ModernColors.SUCCESS, "padding-right: 4px; padding-left: 8px;", "20%")}
-            {build_kpi_card("⏳", "PTASKs Abertos", ptask_open, "Pendentes Resolução", ModernColors.WARNING_LIGHT, ModernColors.ORANGE, "padding-left: 8px;", "20%")}
+            {build_kpi_card("⏱️", "MTTR Geral", f"{mttr_geral}d", "tempo de resolução", ModernColors.SUCCESS_LIGHT, ModernColors.SUCCESS, "padding-left: 8px;", "20%")}
         </tr>
     </table>
     """
@@ -2012,6 +2032,3 @@ def main_simples(configs, q=None):
         import traceback
         log_q(q, f"\n❌ ERRO INESPERADO: {e}")
         log_q(q, traceback.format_exc())
-
-
-1
