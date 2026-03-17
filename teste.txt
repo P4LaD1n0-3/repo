@@ -586,7 +586,6 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
 
     net = op - (res + canc)
     
-    # REVERSE BALANCE CALCULATION (Viagem no Tempo)
     historico_net = net.values
     backlog_retro = np.zeros(len(historico_net))
     
@@ -1266,6 +1265,86 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
     return add_title_to_cfg(cfg, f"TOTAL ENTRADAS: {total_in} | SAÍDAS: {total_out}")
 
+
+def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancelados, label_cancelados):
+    l, a = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
+    ], df_monthly["Abertos"].tolist() if not df_monthly.empty else [])
+    _, f = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
+    ], df_monthly["Resolvidos"].tolist() if not df_monthly.empty else [])
+    _, c = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
+    ], df_monthly["Cancelados"].tolist() if not df_monthly.empty else [])
+    _, b = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
+    ], df_monthly["Backlog Acumulado"].tolist() if not df_monthly.empty else [])
+
+    max_val = max([max(a), max(f), max(c)]) if a and f and c and a[0] != 'Sem Dados' else 10
+    max_b = max(b) if b and b[0] != 'Sem Dados' else 10
+
+    cfg = {
+        "type": "bar",
+        "data": {
+            "labels": l,
+            "datasets": [
+                {
+                    "type": "line",
+                    "label": "Backlog (Acumulado)",
+                    "data": b,
+                    "fill": False,
+                    "borderColor": ModernColors.ORANGE,
+                    "backgroundColor": ModernColors.ORANGE,
+                    "borderWidth": 2,
+                    "yAxisID": "y2",
+                    "datalabels": {
+                        "display": True, "align": "top", "anchor": "center", "color": "#000", "font": {"weight": "bold"}
+                    }
+                },
+                {
+                    "type": "bar",
+                    "label": "Abertos",
+                    "data": a,
+                    "backgroundColor": cor_abertos,
+                    "yAxisID": "y1",
+                    "datalabels": {
+                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}
+                    }
+                },
+                {
+                    "type": "bar",
+                    "label": "Resolvidos",
+                    "data": f,
+                    "backgroundColor": cor_fechados,
+                    "yAxisID": "y1",
+                    "datalabels": {
+                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}
+                    }
+                },
+                {
+                    "type": "bar",
+                    "label": label_cancelados,
+                    "data": c,
+                    "backgroundColor": cor_cancelados,
+                    "yAxisID": "y1",
+                    "datalabels": {
+                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}
+                    }
+                }
+            ]
+        },
+        "options": {
+            "legend": {"display": True, "position": "bottom"},
+            "scales": {
+                "yAxes": [
+                    {"id": "y1", "position": "left", "ticks": {
+                        "beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.1}},
+                    {"id": "y2", "position": "right", "gridLines": {"drawOnChartArea": False}, "ticks": {
+                        "beginAtZero": True, "precision": 0, "suggestedMax": max_b * 1.2}}
+                ]
+            }
+        }
+    }
+    total_in = sum(a) if a and a[0] != 'Sem Dados' else 0
+    total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
+    return add_title_to_cfg(cfg, f"TOTAL ENTRADAS: {total_in} | SAÍDAS: {total_out}")
+
 # =============================================================================
 # GERAÇÃO DO NOVO RELATÓRIO HTML AVANÇADO
 # =============================================================================
@@ -1558,6 +1637,16 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
     cfg_inc_callers = add_title_to_cfg(
         cfg_inc_callers, f"TOTAL: {sum(c_i2r_d) if c_i2r_d and c_i2r_d[0] != 'Sem Dados' else 0}")
     cfg_inc_callers = add_bar_formatter(cfg_inc_callers, c_i2r_d)
+
+    cfg_monthly_req = build_monthly_backlog_cfg(
+        monthly_req, ModernColors.PRIMARY, ModernColors.PRIMARY_DARK, ModernColors.GRAY, "Closed Incomplete")
+    cfg_monthly_inc = build_monthly_backlog_cfg(
+        monthly_inc, ModernColors.INFO, ModernColors.SUCCESS, ModernColors.WARNING, "Canceled")
+
+    cfg_daily_trend_req = build_daily_trend_cfg(
+        daily_req_curr, ModernColors.PRIMARY, ModernColors.PRIMARY_DARK, ModernColors.GRAY, "Closed Incomplete")
+    cfg_daily_trend_inc = build_daily_trend_cfg(
+        daily_inc_curr, ModernColors.INFO, ModernColors.SUCCESS, ModernColors.WARNING, "Canceled")
 
     # ---------------- LÓGICA E GRÁFICOS PTASK ----------------
     pizzas_items = [
