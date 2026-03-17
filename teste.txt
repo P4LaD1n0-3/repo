@@ -912,47 +912,47 @@ def add_bar_formatter(cfg, data_array, is_stacked=False):
     Se o gráfico for empilhado (stacked), o cálculo da % usa o total da barra somada.
     """
     try:
-        # Se for stacked (como no gráfico misto), precisamos somar os arrays para achar o total geral real
         if is_stacked and isinstance(data_array, list) and len(data_array) > 0 and isinstance(data_array[0], list):
             totals_per_bar = [sum(x) for x in zip(*data_array)]
             total = sum(totals_per_bar)
+            bar_values = totals_per_bar
         else:
             numeric_data = [float(x) if str(x).replace('.','',1).isdigit() else 0 for x in data_array]
             total = sum(numeric_data)
+            bar_values = numeric_data
     except Exception:
-        numeric_data = [0 for _ in data_array] if not is_stacked else []
+        bar_values = [0 for _ in data_array] if not is_stacked else []
         total = 0
 
-    if not is_stacked:
-        formatted_strings = []
-        for val in numeric_data:
-            if total > 0 and val > 0:
-                pct = (val / total) * 100
-                pct_str = f"{int(pct)}%" if pct.is_integer() else f"{pct:.1f}%"
-                formatted_strings.append(f"{int(val)} ({pct_str})")
-            elif val == 0:
-                formatted_strings.append("")
-            else:
-                formatted_strings.append(str(int(val)))
+    formatted_strings = []
+    for val in bar_values:
+        if total > 0 and val > 0:
+            pct = (val / total) * 100
+            pct_str = f"{int(pct)}%" if pct.is_integer() else f"{pct:.1f}%"
+            formatted_strings.append(f"{int(val)} ({pct_str})")
+        elif val == 0:
+            formatted_strings.append("")
+        else:
+            formatted_strings.append(str(int(val)))
 
-        if "data" in cfg and "labels" in cfg["data"]:
-            orig_labels = cfg["data"]["labels"]
-            new_labels = []
-            for i, lbl in enumerate(orig_labels):
-                fs = formatted_strings[i] if i < len(formatted_strings) else ""
-                new_labels.append(f"{lbl} | {fs}" if fs else lbl)
-            cfg["data"]["labels"] = new_labels
+    if "data" in cfg and "labels" in cfg["data"]:
+        orig_labels = cfg["data"]["labels"]
+        new_labels = []
+        for i, lbl in enumerate(orig_labels):
+            fs = formatted_strings[i] if i < len(formatted_strings) else ""
+            new_labels.append(f"{lbl} | {fs}" if fs else lbl)
+        cfg["data"]["labels"] = new_labels
 
-    formatter_js = (
-        "function(value, context) { "
-        "  if (value === 0 || value === null) return ''; "
-        f"  var total = {total}; "
-        "  if (total === 0) return value; "
-        "  var pct = (value / total) * 100; "
-        "  var pctStr = (pct % 1 === 0 ? pct : pct.toFixed(1)) + '%'; "
-        "  return value + ' (' + pctStr + ')'; "
-        "}"
-    )
+    if is_stacked:
+        formatter_js = (
+            "function(value, context) { "
+            "  if (value === 0 || value === null) return ''; "
+            "  return value; "
+            "}"
+        )
+    else:
+        js_array_str = "[" + ", ".join(f"'{s}'" for s in formatted_strings) + "]"
+        formatter_js = f"function(value, context) {{ return {js_array_str}[context.dataIndex] || ''; }}"
 
     if "options" not in cfg:
         cfg["options"] = {}
@@ -966,10 +966,7 @@ def add_bar_formatter(cfg, data_array, is_stacked=False):
 
     if "scales" in cfg["options"] and "xAxes" in cfg["options"]["scales"] and len(cfg["options"]["scales"]["xAxes"]) > 0:
         if "ticks" in cfg["options"]["scales"]["xAxes"][0]:
-            if not is_stacked:
-                max_val = max(numeric_data) if numeric_data else 10
-            else:
-                max_val = max(totals_per_bar) if totals_per_bar else 10
+            max_val = max(bar_values) if bar_values else 10
             cfg["options"]["scales"]["xAxes"][0]["ticks"]["suggestedMax"] = max_val * 1.35
 
     return cfg
@@ -1573,8 +1570,8 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
     possible_req_states = ["Open", "Work in Progress", "Pending", "On Hold"]
     req_st_counts = req_open_strict["State"].replace("nan", "Nao Assinado").replace("", "N/A").value_counts()
     req_st_counts = req_st_counts.reindex(req_st_counts.index.union(possible_req_states), fill_value=0)
-    req_st_counts = req_st_counts[req_st_counts > 0].append(req_st_counts[req_st_counts == 0]).head(8)
-    
+    req_st_counts = pd.concat([req_st_counts[req_st_counts > 0], req_st_counts[req_st_counts == 0]]).head(8)
+
     c_rst_l, c_rst_d = pad_empty_html(
         req_st_counts.index.tolist(), req_st_counts.values.tolist())
     cfg_req_state = {"type": "horizontalBar", "data": {"labels": [sanitize_label(x) for x in c_rst_l], "datasets": [
@@ -1596,8 +1593,7 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
     possible_inc_states = ["New", "In Progress", "On Hold", "Assigned"]
     inc_st_counts = inc_open_strict["State"].replace("nan", "Nao Assinado").replace("", "N/A").value_counts()
     inc_st_counts = inc_st_counts.reindex(inc_st_counts.index.union(possible_inc_states), fill_value=0)
-    inc_st_counts = inc_st_counts[inc_st_counts > 0].append(inc_st_counts[inc_st_counts == 0]).head(8)
-    
+    inc_st_counts = pd.concat([inc_st_counts[inc_st_counts > 0], inc_st_counts[inc_st_counts == 0]]).head(8)
     c_ist_l, c_ist_d = pad_empty_html(
         inc_st_counts.index.tolist(), inc_st_counts.values.tolist())
     cfg_inc_state = {"type": "horizontalBar", "data": {"labels": [sanitize_label(x) for x in c_ist_l], "datasets": [
