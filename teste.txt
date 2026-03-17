@@ -550,7 +550,7 @@ def get_current_month_daily(df_daily):
     return filtered
 
 
-def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="REQ"):
+def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="REQ", real_backlog=0):
     if df is None or df.empty:
         return pd.DataFrame(columns=["Data", "Abertos", "Resolvidos", "Cancelados", "NetFlow", "Backlog Acumulado"])
 
@@ -585,7 +585,18 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
     canc = canceled_dates.value_counts().reindex(all_days_global, fill_value=0)
 
     net = op - (res + canc)
-    backlog = net.cumsum()
+    
+    # REVERSE BALANCE CALCULATION (Viagem no Tempo)
+    # Achar o estoque do passado de forma precisa baseado no painel de vigentes atual
+    historico_net = net.values
+    backlog_retro = np.zeros(len(historico_net))
+    
+    # Preenche de trás pra frente
+    # Backlog_Anterior = Backlog_Atual - NetFlow_Atual
+    current_bklg = real_backlog
+    for i in range(len(historico_net) - 1, -1, -1):
+        backlog_retro[i] = current_bklg
+        current_bklg = current_bklg - historico_net[i]
 
     df_out = pd.DataFrame({
         "Data": all_days_global,
@@ -593,7 +604,7 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
         "Resolvidos": res.values.astype(int),
         "Cancelados": canc.values.astype(int),
         "NetFlow": net.values.astype(int),
-        "Backlog Acumulado": backlog.values.astype(int)
+        "Backlog Acumulado": backlog_retro.astype(int)
     })
 
     if start_date and end_date:
@@ -604,8 +615,13 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
         df_month["Resolvidos"] = df_month["Resolvidos"].fillna(0)
         df_month["Cancelados"] = df_month["Cancelados"].fillna(0)
         df_month["NetFlow"] = df_month["NetFlow"].fillna(0)
-        df_month["Backlog Acumulado"] = [backlog[backlog.index <= dt].iloc[-1]
-                                         if not backlog[backlog.index <= dt].empty else 0 for dt in df_month["Data"]]
+        
+        # Propaga o backlog para frente preenchendo as quebras de data
+        b_series = df_month["Backlog Acumulado"]
+        b_series = b_series.ffill() 
+        b_series = b_series.bfill()
+        df_month["Backlog Acumulado"] = b_series.fillna(0)
+        
         df_out = df_month.copy()
 
     df_out["Data"] = df_out["Data"].dt.strftime("%d/%m/%Y")
@@ -615,7 +631,7 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
     return df_out
 
 
-def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="REQ"):
+def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="REQ", real_backlog=0):
     if df is None or df.empty:
         return pd.DataFrame(columns=["Mês", "Abertos", "Resolvidos", "Cancelados", "NetFlow", "Backlog Acumulado"])
 
@@ -626,7 +642,7 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
 
     opened_months = d["Opened"].dropna().dt.to_period('M').value_counts()
 
-    d_closed = d[d["Closed"].notna()].copy()
+    d_closed = d[d[ "Closed"].notna()].copy()
     d_closed["Closed_Month"] = d_closed["Closed"].dt.to_period('M')
 
     if ticket_type == "INC":
@@ -654,7 +670,19 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     df_out["Cancelados"] = canceled_months.reindex(all_months_index, fill_value=0).values.astype(int)
     
     df_out["NetFlow"] = df_out["Abertos"] - (df_out["Resolvidos"] + df_out["Cancelados"])
-    df_out["Backlog Acumulado"] = df_out["NetFlow"].cumsum()
+    
+    # REVERSE BALANCE CALCULATION (Viagem no Tempo)
+    # Achar o estoque do passado de forma precisa baseado no painel de vigentes atual
+    historico_net = df_out["NetFlow"].values
+    backlog_retro = np.zeros(len(historico_net))
+    
+    # Preenche de trás pra frente
+    current_bklg = real_backlog
+    for i in range(len(historico_net) - 1, -1, -1):
+        backlog_retro[i] = current_bklg
+        current_bklg = current_bklg - historico_net[i]
+
+    df_out["Backlog Acumulado"] = backlog_retro.astype(int)
 
     df_out.reset_index(inplace=True)
     df_out.rename(columns={"index": "Mês"}, inplace=True)
@@ -1427,17 +1455,17 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
         """
 
     daily_req = compute_daily_table_html(
-        req, start_date=start_date, end_date=end_date, ticket_type="REQ")
+        req, start_date=start_date, end_date=end_date, ticket_type="REQ", real_backlog=total_req_abertos_para_titulo)
     daily_inc = compute_daily_table_html(
-        inc, start_date=start_date, end_date=end_date, ticket_type="INC")
+        inc, start_date=start_date, end_date=end_date, ticket_type="INC", real_backlog=total_inc_abertos_para_titulo)
 
     daily_req_curr = get_current_month_daily(daily_req)
     daily_inc_curr = get_current_month_daily(daily_inc)
 
     monthly_req = compute_monthly_throughput_table_html(
-        req, MONTHS_LIMIT_THROUGHPUT, ticket_type="REQ")
+        req, MONTHS_LIMIT_THROUGHPUT, ticket_type="REQ", real_backlog=total_req_abertos_para_titulo)
     monthly_inc = compute_monthly_throughput_table_html(
-        inc, MONTHS_LIMIT_THROUGHPUT, ticket_type="INC")
+        inc, MONTHS_LIMIT_THROUGHPUT, ticket_type="INC", real_backlog=total_inc_abertos_para_titulo)
 
     # ---------------- GRÁFICOS E LÓGICAS (CONFIGURAÇÃO) ----------------
     
@@ -1984,3 +2012,6 @@ def main_simples(configs, q=None):
         import traceback
         log_q(q, f"\n❌ ERRO INESPERADO: {e}")
         log_q(q, traceback.format_exc())
+
+
+1
