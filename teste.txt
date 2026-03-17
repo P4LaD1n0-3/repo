@@ -1,0 +1,1986 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+ELITE MASTER V4.1 - Main Orchestrator + Dashboard HTML Export (ALTO CONTRASTE AZUL)
+Integra múltiplas análises em um ÚNICO Excel e exporta Dashboard HTML Avançado
+utilizando dados dinâmicos reais carregados das planilhas.
+Possui integração em tempo real com Tkinter UI através da Queue (q).
+"""
+
+import os
+import re
+import json
+import urllib.parse
+import urllib.request  # Necessário para geração de URLs curtas via POST
+import calendar
+from datetime import datetime
+import numpy as np
+import pandas as pd
+
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.chart import BarChart, LineChart, Reference
+from openpyxl.chart.marker import Marker
+from openpyxl.chart.label import DataLabelList
+from openpyxl.worksheet.hyperlink import Hyperlink
+from openpyxl.utils import get_column_letter
+import win32com.client  # pip install pywin32
+
+
+titulo = os.getenv("titulo")
+importance = os.getenv("importance")
+destinatario = os.getenv("destinatario")
+copia = os.getenv("copia")
+
+# ============================================================================
+# IMPORTAÇÕES DOS MÓDULOS EXTERNOS E SMTP
+# ============================================================================
+try:
+    from src.content.stagnation_analysis import create_stagnation_sheet
+    from src.content.classification_analysis import create_req_inc_unified_full_final_sheet
+    from src.content.aging import create_aging_sheet
+    from src.content.executive_summary import create_executive_summary_sheet
+    from src.content.temporal_analysis import create_temporal_analysis_sheet
+    from src.content.analysts_and_queues_analysis import create_analyst_analysis_sheet
+    from src.content.subject_analysis import create_subject_analysis_sheet
+    from src.content.prb_abertos import create_prb_abertos_sheet
+except ImportError:
+    def stub(*args, **kwargs): pass
+    create_stagnation_sheet = create_req_inc_unified_full_final_sheet = create_aging_sheet = stub
+    create_temporal_analysis_sheet = create_subject_analysis_sheet = stub
+    create_analyst_analysis_sheet = create_prb_abertos_sheet = stub
+
+try:
+    from src.smtp import MAIL_POST
+except ImportError:
+    class MAIL_POST:
+        def send_new_mail_priority(self, *args, **kwargs): pass
+
+# ============================================================================
+# CONFIGURAÇÕES DE CAMINHOS
+# ============================================================================
+SOURCE_FILE = 'path_temp/sc_task.xlsx'
+SOURCE_INCS = 'path_temp/incident.xlsx'
+SOURCE_PTASK = 'path_temp/problem_task.xlsx'
+
+OUTPUT_FILE = 'rel_master/relatorio_completo.xlsx'
+OUTPUT_HTML = 'rel_master/relatorio_email.html'
+
+
+class ModernColors:
+    PRIMARY_DARK = "#001B69"
+    PRIMARY = "#4A90E2"
+    PRIMARY_LIGHT = "#EBF5FB"
+    SUCCESS = "#27AE60"
+    SUCCESS_LIGHT = "#D5F4E6"
+    WARNING = "#F39C12"
+    WARNING_LIGHT = "#FCF3CF"
+    DANGER = "#E74C3C"
+    DANGER_LIGHT = "#FADBD8"
+    ORANGE = "#E67E22"
+    ORANGE_LIGHT = "#FDEBD0"
+    GRAY_DARK = "#1A365D"
+    GRAY = "#7F8C8D"
+    GRAY_LIGHT = "#ECF0F1"
+    WHITE = "#FFFFFF"
+    ACCENT = "#2B6CB0"
+    ACCENT_LIGHT = "#E2E8F0"
+    INFO = "#3182CE"
+    INFO_LIGHT = "#BEE3F8"
+    BACKGROUND = "#F5F6FA"
+
+
+# ============================================================================
+# FUNÇÃO AUXILIAR PARA LOG THREAD-SAFE
+# ============================================================================
+def log_q(q, msg):
+    if q:
+        q.put(msg)
+    else:
+        print(msg)
+
+
+# ============================================================================
+# HELPERS DE DADOS E TRATAMENTO DE EXCEÇÕES DE COLUNAS DUPLICADAS
+# ============================================================================
+def _pick_col(df, candidates):
+    for c in candidates:
+        if c in df.columns:
+            return c
+    df_cols_norm = {col.strip().lower(): col for col in df.columns}
+    for c in candidates:
+        key = c.strip().lower()
+        if key in df_cols_norm:
+            return df_cols_norm[key]
+    return None
+
+
+def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    if df is None:
+        return df
+    d = df.copy()
+    d.columns = [(" ".join(str(c).replace("\ufffd", "").split())).strip()
+                 for c in d.columns]
+    if d.columns.duplicated().any():
+        d = d.loc[:, ~d.columns.duplicated()].copy()
+    return d
+
+
+def _ensure_dir(path):
+    folder = os.path.dirname(path)
+    if folder and not os.path.exists(folder):
+        os.makedirs(folder, exist_ok=True)
+
+
+def _normalize_status_bin(df, state_col):
+    if state_col and state_col in df.columns:
+        s = df[state_col].astype(str).fillna("").str.strip().str.lower()
+        closed_mask = (
+            s.str.contains("closed", na=False) | s.str.contains("fech", na=False) |
+            s.str.contains("resolv", na=False) | s.str.contains("complete", na=False) |
+            s.str.contains("done", na=False) | s.str.contains(
+                "encerr", na=False)
+        )
+        df["Status_Bin"] = closed_mask.map(
+            lambda x: "Fechado" if x else "Aberto")
+        return df
+    if "Closed" not in df.columns:
+        df["Closed"] = pd.NaT
+    df["Status_Bin"] = df["Closed"].apply(
+        lambda x: "Fechado" if pd.notna(x) else "Aberto")
+    return df
+
+
+def _ensure_identity_cols_common(df):
+    number_col = _pick_col(df, ["Number", "Número", "Ticket", "ID", "Task"])
+    if "Number" not in df.columns:
+        df["Number"] = df[number_col].astype(
+            str).fillna("") if number_col else ""
+
+    requester_col = _pick_col(
+        df, ["Requester", "Requested for", "Solicitante", "Caller"])
+    df["Requester"] = df[requester_col].astype(
+        str).fillna("—") if requester_col else "—"
+
+    ag_col = _pick_col(
+        df, ["Assignment group", "Assignment Group", "Grupo", "Grupo de Atribuição"])
+    df["Assignment group"] = df[ag_col].astype(
+        str).fillna("") if ag_col else ""
+
+    asg_col = _pick_col(
+        df, ["Assigned to", "AssignedTo", "Analista", "Assignee"])
+    df["Assigned to"] = df[asg_col].astype(str).fillna("") if asg_col else ""
+
+    wn_col = _pick_col(df, ["Work notes", "Notas de trabalho"])
+    if "Work notes" not in df.columns:
+        df["Work notes"] = df[wn_col] if wn_col else None
+
+    ac_col = _pick_col(df, ["Additional comments", "Comentários adicionais"])
+    if "Additional comments" not in df.columns:
+        df["Additional comments"] = df[ac_col] if ac_col else None
+
+    if "State" not in df.columns:
+        state_col = _pick_col(df, ["Status", "Estado"])
+        df["State"] = df[state_col] if state_col else None
+
+    return df
+
+
+def load_prepare_reqs(source_file, label="REQs", now=None, q=None):
+    log_q(q, f"\n📂 [{label}] Carregando dados de: {source_file}")
+    if not os.path.exists(source_file):
+        raise FileNotFoundError(f"❌ Arquivo não encontrado: {source_file}")
+
+    df = pd.read_excel(source_file)
+    if df.columns.duplicated().any():
+        df = df.loc[:, ~df.columns.duplicated()]
+    log_q(q, f"   ✓ {len(df)} registros carregados")
+
+    opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created"])
+    closed_col = _pick_col(
+        df, ["Resolved", "Resolved at", "ResolvedAt", "Closed", "Close", "Data Fechamento"])
+    state_col = _pick_col(
+        df, ["State", "Status", "Estado", "Status Bin", "Status_Bin"])
+
+    df["Opened"] = pd.to_datetime(
+        df[opened_col], errors="coerce") if opened_col else pd.NaT
+    df["Closed"] = pd.to_datetime(
+        df[closed_col], errors="coerce") if closed_col else pd.NaT
+    df = _normalize_status_bin(df, state_col)
+
+    now = now or datetime.now()
+    df["Aging_Timedelta"] = df.apply(lambda x: (
+        x["Closed"] - x["Opened"]) if pd.notna(x["Closed"]) else (now - x["Opened"]), axis=1)
+    df["Aging"] = (df["Aging_Timedelta"].dt.total_seconds() /
+                   (24 * 3600)).fillna(0).astype(int)
+
+    required_cols = {"Priority": "Moderada", "Category": "Geral",
+                     "Subcategory": "Geral", "Severity": "3 - Low"}
+    for col, default_val in required_cols.items():
+        if col not in df.columns:
+            df[col] = default_val
+
+    return _ensure_identity_cols_common(df)
+
+
+def load_prepare_incs(source_file, label="INCs", now=None, q=None):
+    log_q(q, f"\n📂 [{label}] Carregando dados de: {source_file}")
+    if not os.path.exists(source_file):
+        raise FileNotFoundError(f"❌ Arquivo não encontrado: {source_file}")
+
+    df = pd.read_excel(source_file)
+    if df.columns.duplicated().any():
+        df = df.loc[:, ~df.columns.duplicated()]
+    log_q(q, f"   ✓ {len(df)} registros carregados")
+
+    opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created"])
+    closed_col = _pick_col(
+        df, ["Resolved", "Resolved at", "ResolvedAt", "Closed", "Close", "Data Fechamento"])
+    state_col = _pick_col(
+        df, ["State", "Status", "Estado", "Status Bin", "Status_Bin"])
+
+    df["Opened"] = pd.to_datetime(
+        df[opened_col], errors="coerce") if opened_col else pd.NaT
+    df["Closed"] = pd.to_datetime(
+        df[closed_col], errors="coerce") if closed_col else pd.NaT
+    df = _normalize_status_bin(df, state_col)
+
+    now = now or datetime.now()
+    df["Aging_Timedelta"] = df.apply(lambda x: (
+        x["Closed"] - x["Opened"]) if pd.notna(x["Closed"]) else (now - x["Opened"]), axis=1)
+    df["Aging"] = (df["Aging_Timedelta"].dt.total_seconds() /
+                   (24 * 3600)).fillna(0).astype(int)
+
+    required_cols = {"Priority": "2 - High", "Category": "Incidente",
+                     "Subcategory": "Incidente", "Severity": "1 - Critical"}
+    for col, default_val in required_cols.items():
+        if col not in df.columns:
+            df[col] = default_val
+
+    return _ensure_identity_cols_common(df)
+
+
+def load_prepare_ptask(source_file, sla_days, now=None, q=None):
+    log_q(q, f"\n📂 [PTASK/PRB] Carregando dados de: {source_file}")
+    if not os.path.exists(source_file):
+        log_q(
+            q, f"   ⚠️ Arquivo de PTASK não encontrado: {source_file}. Gerando base vazia.")
+        return pd.DataFrame()
+
+    df = pd.read_excel(source_file)
+    df = _normalize_columns(df)
+    now_dt = now or datetime.now()
+    log_q(q, f"   ✓ {len(df)} registros carregados (PTASK/PRB)")
+
+    opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created"])
+    closed_col = _pick_col(
+        df, ["Resolved", "Resolved at", "Closed", "Close", "Data Fechamento"])
+    state_col = _pick_col(df, ["State", "Status", "Estado"])
+    assigned_col = _pick_col(
+        df, ["Assigned to", "AssignedTo", "Analista", "Assignee"])
+    rca_status_col = _pick_col(df, ["RCA Status", "Status RCA"])
+
+    df["Opened"] = pd.to_datetime(
+        df[opened_col], errors="coerce") if opened_col else pd.NaT
+    df["Closed"] = pd.to_datetime(
+        df[closed_col], errors="coerce") if closed_col else pd.NaT
+    df["Assigned to"] = df[assigned_col].astype(str).fillna("—").replace(
+        "", "—").replace("nan", "—") if assigned_col else "—"
+    df["RCA Status"] = df[rca_status_col].astype(str).fillna(
+        "N/A").replace("nan", "N/A") if rca_status_col else "N/A"
+
+    if state_col:
+        s = df[state_col].astype(str).fillna("").str.strip().str.lower()
+        closed_mask = s.isin(["closed", "complete", "completed", "resolvido",
+                              "fechado"]) | s.str.contains("clos|complet|resolv", regex=True)
+        df["State_Bin"] = np.where(closed_mask, "Complete", "Open")
+    else:
+        df["State_Bin"] = np.where(df["Closed"].notna(), "Complete", "Open")
+
+    opened_dt_safe = df["Opened"]
+    closed_dt_safe = df["Closed"].fillna(now_dt)
+
+    aging_td = closed_dt_safe - opened_dt_safe
+    df["Aging_Days"] = aging_td.dt.total_seconds() / (24*3600)
+    df["Aging_Days"] = df["Aging_Days"].fillna(0).astype(int)
+
+    df["SLA_Status"] = np.where(
+        df["Aging_Days"] <= sla_days, "Inside SLA", "Outside SLA")
+
+    return df
+
+
+# ============================================================================
+# LÓGICA DE CÁLCULO E MÉTRICAS PARA O DASHBOARD HTML AVANÇADO E REGRAS DE ABERTOS
+# ============================================================================
+def _is_access_ticket_html(assignment_group_value):
+    if assignment_group_value is None or pd.isna(assignment_group_value):
+        return False
+    return "access" in str(assignment_group_value).strip().lower()
+
+
+def _get_only_open_reqs(df):
+    if df.empty:
+        return df
+    state_col = _pick_col(df, ["State", "Status", "Estado"])
+    if state_col:
+        s = df[state_col].astype(str).str.strip().str.lower()
+        mask = ~(s.isin(["closed complete", "closed incomplete"]) | s.str.contains(
+            "closed complet|closed incomplet", na=False))
+        return df[mask].copy()
+    return df
+
+
+def _get_only_open_incs(df):
+    if df.empty:
+        return df
+    state_col = _pick_col(df, ["State", "Status", "Estado"])
+    if state_col:
+        s = df[state_col].astype(str).str.strip().str.lower()
+        mask = ~(s.isin(["resolved", "canceled", "cancelled", "closed"])
+                 | s.str.contains("resolv|cancel|clos", na=False))
+        return df[mask].copy()
+    return df
+
+
+def normalize_ticket_df_html(df, ticket_type_label="REQ"):
+    df = df.copy()
+    df = _normalize_columns(df)
+    state_col = _pick_col(
+        df, ["State", "StatusBin", "Status_Bin", "Status", "Status Bin", "Estado"])
+    opened_col = _pick_col(df, ["Opened", "Open", "OpenedAt",
+                                "Data Abertura", "Created", "Criado em", "Creation date"])
+    closed_col = _pick_col(
+        df, ["Resolved", "Resolved at", "Closed", "Close", "ClosedAt", "Data Fechamento"])
+    priority_col = _pick_col(
+        df, ["Priority", "PriorityTech", "Priority_Tech", "PriorityUser", "Priority_User", "Prioridade"])
+    ag_col = _pick_col(df, ["Assignment group", "Assignment Group",
+                            "Grupo", "Grupo de Atribuição", "Grupo de atribuicao"])
+    asg_col = _pick_col(
+        df, ["Assigned to", "AssignedTo", "Analista", "Assignee"])
+    number_col = _pick_col(df, ["Number", "Número", "Ticket", "ID", "Task"])
+    category_col = _pick_col(df, ["Category", "Categoria"])
+
+    df["Opened"] = pd.to_datetime(
+        df[opened_col], errors="coerce") if opened_col else pd.NaT
+    df["Closed"] = pd.to_datetime(
+        df[closed_col], errors="coerce") if closed_col else pd.NaT
+    df["Priority"] = df[priority_col].astype(
+        str).fillna("N/A") if priority_col else "N/A"
+    df["Assignment group"] = df[ag_col].astype(
+        str).fillna("").replace("", "—") if ag_col else "—"
+    df["Assigned to"] = df[asg_col].astype(str).fillna(
+        "").replace("", "—") if asg_col else "—"
+    df["Number"] = df[number_col].astype(str).fillna("") if number_col else ""
+    df["Category"] = df[category_col].astype(str).fillna("Geral") if category_col else (
+        "Incidente" if str(ticket_type_label).upper() == "INC" else "Geral")
+    df["State"] = df[state_col].astype(
+        str).fillna("N/A") if state_col else "N/A"
+    return df
+
+
+def extract_inc_from_close_notes_html(text):
+    if pd.isna(text) or str(text).strip() == "":
+        return None
+    matches = re.findall(r"\bINC[\s\-]?(\d{6,12})\b", str(text), re.IGNORECASE)
+    return f"INC{matches[0]}" if matches else None
+
+
+def extract_req_from_close_notes_html(text):
+    if pd.isna(text) or str(text).strip() == "":
+        return None
+    matches = re.findall(r"\bREQ[\s\-]?(\d{6,12})\b", str(text), re.IGNORECASE)
+    return f"REQ{matches[0]}" if matches else None
+
+
+def extract_ritm_from_close_notes_html(text):
+    if pd.isna(text) or str(text).strip() == "":
+        return None
+    matches = re.findall(
+        r"\bRITM[\s\-]?(\d{6,12})\b", str(text), re.IGNORECASE)
+    return f"RITM{matches[0]}" if matches else None
+
+
+def build_month_window_html(dfs, months_limit=None):
+    opened_months, closed_months = [], []
+    for df in dfs:
+        if df is None or df.empty:
+            continue
+        mo = pd.to_datetime(df["Opened"], errors="coerce").dropna()
+        mc = pd.to_datetime(df["Closed"], errors="coerce").dropna()
+        if not mo.empty:
+            opened_months.extend([mo.min(), mo.max()])
+        if not mc.empty:
+            closed_months.extend([mc.min(), mc.max()])
+
+    valid_dates = [d for d in (opened_months + closed_months) if pd.notna(d)]
+    if not valid_dates:
+        now_dt = datetime.now()
+        start = pd.Timestamp(year=now_dt.year, month=now_dt.month, day=1)
+        return pd.DatetimeIndex([]), {"periodo_inicio": "N/A", "periodo_fim": "N/A", "janela": "N/A", "meses_calculado": 0, "start_date": start, "end_date": pd.Timestamp(now_dt)}
+
+    month_start = min(valid_dates).replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_end = max(valid_dates).replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    all_months = pd.date_range(month_start, month_end, freq="MS")
+
+    if months_limit is not None:
+        try:
+            months_limit = int(months_limit)
+            if months_limit > 0 and len(all_months) > months_limit:
+                all_months = all_months[-months_limit:]
+        except:
+            pass
+
+    if len(all_months) == 0:
+        now_dt = datetime.now()
+        start = pd.Timestamp(year=now_dt.year, month=now_dt.month, day=1)
+        return pd.DatetimeIndex([]), {"periodo_inicio": "N/A", "periodo_fim": "N/A", "janela": "N/A", "meses_calculado": 0, "start_date": start, "end_date": pd.Timestamp(now_dt)}
+
+    final_start = pd.Timestamp(
+        year=all_months[0].year, month=all_months[0].month, day=1)
+    final_end = pd.Timestamp(year=all_months[-1].year, month=all_months[-1].month,
+                             day=calendar.monthrange(all_months[-1].year, all_months[-1].month)[1])
+
+    meta = {
+        "periodo_inicio": all_months[0].strftime("%Y-%m"),
+        "periodo_fim": all_months[-1].strftime("%Y-%m"),
+        "janela": f"{all_months[0].strftime('%m/%Y')} → {all_months[-1].strftime('%m/%Y')}" if len(all_months) > 1 else all_months[0].strftime('%m/%Y'),
+        "meses_calculado": int(len(all_months)),
+        "start_date": final_start,
+        "end_date": final_end
+    }
+    return all_months, meta
+
+
+def compute_open_backlog_metrics_html(df, sla_days, ticket_type="REQ"):
+    now = pd.Timestamp(datetime.now())
+
+    if ticket_type == "REQ":
+        open_df = _get_only_open_reqs(df)
+    else:
+        open_df = _get_only_open_incs(df)
+
+    open_df["Opened_dt"] = pd.to_datetime(open_df["Opened"], errors="coerce")
+    open_df = open_df[open_df["Opened_dt"].notna()].copy()
+    open_df["AGING_OPEN"] = (now - open_df["Opened_dt"]).dt.days
+    open_df["AGING_OPEN"] = pd.to_numeric(
+        open_df["AGING_OPEN"], errors="coerce").fillna(0).astype(int).clip(lower=0)
+    open_df["SLA_BREACH_OPEN"] = open_df["AGING_OPEN"] > int(sla_days)
+
+    total_open = int(len(open_df))
+    breach_open = int(open_df["SLA_BREACH_OPEN"].sum()) if total_open else 0
+
+    if ticket_type == "REQ":
+        bins = [-1, 3, 5, 7, 10, 20, 30, np.inf]
+        labels = ["1-3 dias", "3-5 dias", "5-7 dias",
+                  "7-10 dias", "10 dias +", "20 dias +", "30 dias +"]
+    else:
+        bins = [-1, 3, 5, 7, np.inf]
+        labels = ["1-3 dias", "3-5 dias", "5-7 dias", "7+ dias"]
+
+    if total_open > 0:
+        open_df["AgingBin"] = pd.cut(
+            open_df["AGING_OPEN"], bins=bins, labels=labels, include_lowest=False, right=True)
+        bucket_counts = open_df.groupby(
+            "AgingBin").size().reindex(labels, fill_value=0)
+    else:
+        bucket_counts = pd.Series(
+            index=labels, data=np.zeros(len(labels), dtype=int))
+
+    bucket_total = int(bucket_counts.sum())
+    bucket_pct = ((bucket_counts / bucket_total * 100)
+                  if bucket_total > 0 else 0).round(1)
+    buckets_df = pd.DataFrame(
+        {"Faixa": labels, "Qtd": bucket_counts.values.astype(int), "%": bucket_pct.values})
+
+    kpis = {
+        "open_total": total_open,
+        "open_breach": breach_open,
+        "mttr_mean": round(float(open_df["AGING_OPEN"].mean()) if total_open else 0.0, 1),
+    }
+    return kpis, buckets_df, None, open_df
+
+
+def compute_closed_metrics_html(df, ticket_type="REQ"):
+    d = df.copy()
+    if ticket_type == "REQ":
+        state_col = _pick_col(d, ["State", "Status", "Estado"])
+        if state_col:
+            s = d[state_col].astype(str).str.strip().str.lower()
+            closed_df = d[(s.isin(["closed complete", "closed incomplete"]) | s.str.contains(
+                "closed complet|closed incomplet", na=False)) & (d["Opened"].notna())].copy()
+        else:
+            closed_df = d[(d["Closed"].notna()) & (d["Opened"].notna())].copy()
+    else:
+        state_col = _pick_col(d, ["State", "Status", "Estado"])
+        if state_col:
+            s = d[state_col].astype(str).str.strip().str.lower()
+            closed_df = d[(s.isin(["resolved", "canceled", "cancelled", "closed"]) | s.str.contains(
+                "resolv|cancel|clos", na=False)) & (d["Opened"].notna())].copy()
+        else:
+            closed_df = d[(d["Closed"].notna()) & (d["Opened"].notna())].copy()
+
+    if len(closed_df) == 0:
+        return {"closed_total": 0, "mttr_mean": 0.0}
+
+    closed_dt_safe = pd.to_datetime(closed_df["Closed"]).fillna(
+        pd.Timestamp(datetime.now()))
+    closed_df["AGING_CLOSED"] = (
+        closed_dt_safe - pd.to_datetime(closed_df["Opened"])).dt.days
+    closed_df["AGING_CLOSED"] = pd.to_numeric(
+        closed_df["AGING_CLOSED"], errors="coerce").fillna(0).astype(int).clip(lower=0)
+
+    return {
+        "closed_total": len(closed_df),
+        "mttr_mean": round(float(closed_df["AGING_CLOSED"].mean()), 1),
+    }
+
+
+def get_current_month_daily(df_daily):
+    if df_daily.empty:
+        return df_daily
+    d = df_daily.copy()
+    d["_dt"] = pd.to_datetime(d["Data"], format="%d/%m/%Y")
+    max_month = d["_dt"].dt.to_period("M").max()
+    filtered = d[d["_dt"].dt.to_period("M") == max_month].drop(
+        columns=["_dt"]).copy()
+    return filtered
+
+
+def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="REQ"):
+    if df is None or df.empty:
+        return pd.DataFrame(columns=["Data", "Abertos", "Resolvidos", "Cancelados", "NetFlow", "Backlog Acumulado"])
+
+    d = df.copy().reset_index(drop=True)
+    d["State_Lower"] = d["State"].astype(str).str.lower().str.strip() if "State" in d.columns else ""
+    opened_dates = pd.to_datetime(d["Opened"], errors="coerce").dropna().dt.floor("D")
+
+    d_closed = d[d["Closed"].notna()].copy()
+    d_closed["Closed_Date"] = pd.to_datetime(d_closed["Closed"], errors="coerce").dt.floor("D")
+
+    if ticket_type == "INC":
+        mask_canceled = d_closed["State_Lower"].isin(["canceled", "cancelled"]) | d_closed["State_Lower"].str.contains(r"\bcancel", regex=True)
+        mask_resolved = d_closed["State_Lower"].isin(["resolved", "closed"]) | d_closed["State_Lower"].str.contains("resolv|clos", regex=True)
+        mask_resolved = mask_resolved & ~mask_canceled
+    else:
+        mask_canceled = d_closed["State_Lower"].isin(["closed incomplete"]) | d_closed["State_Lower"].str.contains("closed incomplet", regex=False)
+        mask_resolved = d_closed["State_Lower"].isin(["closed complete"]) | d_closed["State_Lower"].str.contains("closed complet", regex=False)
+
+    resolved_dates = d_closed[mask_resolved]["Closed_Date"]
+    canceled_dates = d_closed[mask_canceled]["Closed_Date"]
+
+    if opened_dates.empty and resolved_dates.empty and canceled_dates.empty:
+        return pd.DataFrame(columns=["Data", "Abertos", "Resolvidos", "Cancelados", "NetFlow", "Backlog Acumulado"])
+
+    valid_dts = [dt for dt in [opened_dates.min(), resolved_dates.min(), canceled_dates.min()] if pd.notna(dt)]
+    min_dt = min(valid_dts) if valid_dts else start_date
+    max_dt = end_date if end_date else datetime.now()
+
+    all_days_global = pd.date_range(min_dt, max_dt, freq="D")
+    op = opened_dates.value_counts().reindex(all_days_global, fill_value=0)
+    res = resolved_dates.value_counts().reindex(all_days_global, fill_value=0)
+    canc = canceled_dates.value_counts().reindex(all_days_global, fill_value=0)
+
+    net = op - (res + canc)
+    backlog = net.cumsum()
+
+    df_out = pd.DataFrame({
+        "Data": all_days_global,
+        "Abertos": op.values.astype(int),
+        "Resolvidos": res.values.astype(int),
+        "Cancelados": canc.values.astype(int),
+        "NetFlow": net.values.astype(int),
+        "Backlog Acumulado": backlog.values.astype(int)
+    })
+
+    if start_date and end_date:
+        full_month_range = pd.date_range(start_date, end_date, freq="D")
+        df_month = pd.DataFrame({"Data": full_month_range})
+        df_month = pd.merge(df_month, df_out, on="Data", how="left")
+        df_month["Abertos"] = df_month["Abertos"].fillna(0)
+        df_month["Resolvidos"] = df_month["Resolvidos"].fillna(0)
+        df_month["Cancelados"] = df_month["Cancelados"].fillna(0)
+        df_month["NetFlow"] = df_month["NetFlow"].fillna(0)
+        df_month["Backlog Acumulado"] = [backlog[backlog.index <= dt].iloc[-1]
+                                         if not backlog[backlog.index <= dt].empty else 0 for dt in df_month["Data"]]
+        df_out = df_month.copy()
+
+    df_out["Data"] = df_out["Data"].dt.strftime("%d/%m/%Y")
+    for c in ["Abertos", "Resolvidos", "Cancelados", "NetFlow", "Backlog Acumulado"]:
+        df_out[c] = df_out[c].astype(int)
+
+    return df_out
+
+
+def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="REQ"):
+    if df is None or df.empty:
+        return pd.DataFrame(columns=["Mês", "Abertos", "Resolvidos", "Cancelados", "NetFlow", "Backlog Acumulado"])
+
+    d = df.copy()
+    d["Opened"] = pd.to_datetime(d["Opened"], errors="coerce")
+    d["Closed"] = pd.to_datetime(d["Closed"], errors="coerce")
+    d["State_Lower"] = d["State"].astype(str).str.lower().str.strip() if "State" in d.columns else ""
+
+    opened_months = d["Opened"].dropna().dt.to_period('M').value_counts()
+
+    d_closed = d[d["Closed"].notna()].copy()
+    d_closed["Closed_Month"] = d_closed["Closed"].dt.to_period('M')
+
+    if ticket_type == "INC":
+        mask_canceled = d_closed["State_Lower"].isin(["canceled", "cancelled"]) | d_closed["State_Lower"].str.contains(r"\bcancel", regex=True)
+        mask_resolved = d_closed["State_Lower"].isin(["resolved", "closed"]) | d_closed["State_Lower"].str.contains("resolv|clos", regex=True)
+        mask_resolved = mask_resolved & ~mask_canceled
+    else:
+        mask_canceled = d_closed["State_Lower"].isin(["closed incomplete"]) | d_closed["State_Lower"].str.contains("closed incomplet", regex=False)
+        mask_resolved = d_closed["State_Lower"].isin(["closed complete"]) | d_closed["State_Lower"].str.contains("closed complet", regex=False)
+
+    resolved_months = d_closed[mask_resolved]["Closed_Month"].value_counts()
+    canceled_months = d_closed[mask_canceled]["Closed_Month"].value_counts()
+
+    all_months_index = opened_months.index.union(resolved_months.index).union(canceled_months.index).sort_values()
+
+    if len(all_months_index) == 0:
+        return pd.DataFrame(columns=["Mês", "Abertos", "Resolvidos", "Cancelados", "NetFlow", "Backlog Acumulado"])
+
+    if months_limit and len(all_months_index) > months_limit:
+        all_months_index = all_months_index[-months_limit:]
+
+    df_out = pd.DataFrame(index=all_months_index)
+    df_out["Abertos"] = opened_months.reindex(all_months_index, fill_value=0).values.astype(int)
+    df_out["Resolvidos"] = resolved_months.reindex(all_months_index, fill_value=0).values.astype(int)
+    df_out["Cancelados"] = canceled_months.reindex(all_months_index, fill_value=0).values.astype(int)
+    
+    df_out["NetFlow"] = df_out["Abertos"] - (df_out["Resolvidos"] + df_out["Cancelados"])
+    df_out["Backlog Acumulado"] = df_out["NetFlow"].cumsum()
+
+    df_out.reset_index(inplace=True)
+    df_out.rename(columns={"index": "Mês"}, inplace=True)
+    df_out["Mês"] = df_out["Mês"].dt.strftime("%b/%Y").str.upper()
+
+    return df_out
+
+
+def _extract_conversions_html(df, source_type="REQ", start_date=None, end_date=None):
+    if df is None or len(df) == 0:
+        return pd.DataFrame()
+    d = df.copy().reset_index(drop=True)
+    col_opened = _pick_col(d, ["Opened", "Open", "OpenedAt",
+                               "Data Abertura", "Created", "Criado em", "Creation date"])
+
+    if start_date and end_date and col_opened and col_opened in d.columns:
+        d["_TEMP_DT"] = pd.to_datetime(d[col_opened], errors="coerce")
+        d = d[d["_TEMP_DT"].notna()].copy()
+        if not d.empty:
+            d = d[(d["_TEMP_DT"] >= start_date) & (
+                d["_TEMP_DT"] <= end_date)].copy()
+
+    if d.empty:
+        return pd.DataFrame()
+
+    col_number = _pick_col(
+        d, ["Number", "number", "Ticket", "RITM", "INC", "Incident", "ID"])
+    col_caller = _pick_col(
+        d, ["Requester", "Requested for", "Caller", "Solicitante", "Opened by", "Requestor"])
+    col_assignee = _pick_col(
+        d, ["Assigned to", "Assigned To", "AssignedTo", "Analista", "Assignee"])
+    col_group = _pick_col(
+        d, ["Assignment group", "Assignment Group", "AssignmentGroup", "Grupo"])
+    col_state = _pick_col(
+        d, ["State", "Status", "StatusBin", "Status_Bin", "Estado"])
+    col_close_notes = _pick_col(
+        d, ["Close notes", "Close Notes", "close_notes"])
+    col_add_details = _pick_col(
+        d, ["Additional Details", "Description", "Descricao"])
+    col_work_notes = _pick_col(d, ["Work notes", "work_notes"])
+
+    def _safe_str(c): return d[c].fillna("").astype(
+        str) if c and c in d.columns else pd.Series([""]*len(d), index=d.index)
+
+    comb = _safe_str(col_close_notes) + " | " + \
+        _safe_str(col_add_details) + " | " + _safe_str(col_work_notes)
+    state_str = _safe_str(col_state).str.lower().str.strip()
+
+    if source_type == "REQ":
+        col_reason = _pick_col(d, ["Reason", "reason", "REASON", "Motivo"])
+        reason_str = _safe_str(col_reason).str.strip()
+        mask = (state_str == "closed incomplete") & (reason_str.str.contains(
+            r"INCORRECT[\s_\-]?CLASSIFICATION", case=False, na=False, regex=True))
+        d_filt = d[mask].copy()
+        if d_filt.empty:
+            return pd.DataFrame()
+        extracted = comb[mask].apply(
+            extract_inc_from_close_notes_html).fillna("⚠️ Não encontrado")
+        target_col, out_id, final_reason_col, final_reason_vals = "INC Vinculado", "RITM", "Reason", _safe_str(col_reason)[
+            mask]
+    else:
+        col_cc = _pick_col(
+            d, ["Close code", "Cdigo de fechamento", "close_code"])
+        cc_str = _safe_str(col_cc).str.lower().str.strip()
+        mask = cc_str.isin(["cancelled", "canceled"]) | cc_str.str.contains(
+            r"\bcancel", na=False, regex=True)
+        d_filt = d[mask].copy()
+        if d_filt.empty:
+            return pd.DataFrame()
+        reqs = comb[mask].apply(extract_req_from_close_notes_html)
+        ritms = comb[mask].apply(extract_ritm_from_close_notes_html)
+        extracted = reqs.fillna(ritms).fillna("⚠️ Não encontrado")
+        target_col, out_id, final_reason_col, final_reason_vals = "REQ/RITM Vinculado", "INC", "Close code", _safe_str(col_cc)[
+            mask]
+
+    out = pd.DataFrame()
+    out[out_id] = _safe_str(col_number)[mask]
+    out["Solicitante"] = _safe_str(col_caller)[mask]
+    out["Analista"] = _safe_str(col_assignee)[mask]
+    out["Grupo"] = _safe_str(col_group)[mask]
+    out[target_col] = extracted.values
+    out[final_reason_col] = final_reason_vals.values
+    out["State"] = _safe_str(col_state)[mask]
+
+    if col_opened and col_opened in d.columns:
+        out["Opened"] = d[col_opened][mask]
+
+    return out
+
+
+def get_mom_conversion_stats_html(df_r2i, df_i2r, months_limit=2):
+    if df_r2i.empty and df_i2r.empty:
+        return pd.DataFrame()
+
+    r2i_counts = pd.to_datetime(df_r2i['Opened'], errors='coerce').dt.to_period(
+        'M').value_counts() if not df_r2i.empty and 'Opened' in df_r2i else pd.Series()
+    i2r_counts = pd.to_datetime(df_i2r['Opened'], errors='coerce').dt.to_period(
+        'M').value_counts() if not df_i2r.empty and 'Opened' in df_i2r else pd.Series()
+
+    stats = pd.DataFrame({'REQ -> INC (Classif. Incorreta)': r2i_counts,
+                          'INC -> REQ (Cancelamentos)': i2r_counts}).fillna(0).astype(int)
+    stats.index = stats.index.astype(str)
+    stats = stats.sort_index().tail(months_limit).reset_index()
+    stats.rename(columns={'index': 'Mês Referência'}, inplace=True)
+    return stats
+
+
+def get_top_callers_html(conv_df, top_n=10):
+    if conv_df.empty or "Solicitante" not in conv_df.columns:
+        return pd.DataFrame()
+    return conv_df["Solicitante"].replace("", "N/A").value_counts().head(top_n).reset_index(name="Quantidade").rename(columns={"index": "Solicitante"})
+
+
+def compute_consolidated_html(df_reqs, df_incs):
+    a = df_reqs.copy()
+    b = df_incs.copy()
+    if a.columns.duplicated().any():
+        a = a.loc[:, ~a.columns.duplicated()].copy()
+    if b.columns.duplicated().any():
+        b = b.loc[:, ~b.columns.duplicated()].copy()
+    a["TicketType"] = "REQ"
+    b["TicketType"] = "INC"
+    return pd.concat([a, b], ignore_index=True)
+
+# =============================================================================
+# QUICKCHART & HTML BUILDERS COM SUPORTE A URL CURTA E LABELS DE % EM PYTHON
+# =============================================================================
+
+def get_short_qc_url(cfg, width, height, q=None):
+    """
+    Envia a configuração via POST para a API do QuickChart para gerar uma URL CURTA.
+    Isso impede que o Outlook quebre a imagem ao responder o e-mail.
+    """
+    url = "https://quickchart.io/chart/create"
+    payload = {
+        "chart": cfg,
+        "width": width,
+        "height": height,
+        "format": "png"
+    }
+    try:
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(url, data=data, headers={
+                                     'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req) as response:
+            res = json.loads(response.read().decode('utf-8'))
+            if res.get("success"):
+                return res.get("url")
+    except Exception as e:
+        log_q(
+            q, f"⚠️ Aviso: Falha ao gerar URL curta do gráfico (Fallback ativado). Erro: {e}")
+
+    # Fallback
+    return f"https://quickchart.io/chart?w={width}&h={height}&c={urllib.parse.quote(json.dumps(cfg))}"
+
+
+def qc_url_html(cfg, q=None):
+    return get_short_qc_url(cfg, 500, 300, q)
+
+
+def qc_url_wide_html(cfg, q=None):
+    return get_short_qc_url(cfg, 1000, 300, q)
+
+
+def pad_empty_html(labels, data):
+    if not labels or len(labels) == 0:
+        return ["Sem Dados"], [0]
+    return labels, data
+
+
+def sanitize_label(text, limit=20):
+    if pd.isna(text):
+        return "N/A"
+    clean = re.sub(r'[^a-zA-Z0-9À-ÿ \-]', '', str(text)).strip()
+    return clean[:limit] + "..." if len(clean) > limit else clean
+
+
+def add_title_to_cfg(cfg, title_text):
+    if "options" not in cfg:
+        cfg["options"] = {}
+    cfg["options"]["title"] = {
+        "display": True,
+        "text": title_text,
+        "fontSize": 14,
+        "fontColor": "#001B69",
+        "fontFamily": "sans-serif"
+    }
+    return cfg
+
+
+def add_pie_formatter(cfg, data_array=None):
+    """
+    CORREÇÃO ABSOLUTA: 
+    Converte o gráfico para o motor 'outlabels' do QuickChart.
+    Garante a exibição do Valor Absoluto e Porcentagem usando tags nativas (%v e %p),
+    completamente imune a bloqueios de Javascript na API.
+    """
+    # 1. MUDANÇA CRÍTICA: O plugin de strings só funciona se alterarmos o tipo do gráfico
+    chart_type = str(cfg.get("type", "")).lower()
+    if "doughnut" in chart_type:
+        cfg["type"] = "outlabeledDoughnut"
+    else:
+        cfg["type"] = "outlabeledPie"
+
+    if "options" not in cfg:
+        cfg["options"] = {}
+    if "plugins" not in cfg["options"]:
+        cfg["options"]["plugins"] = {}
+
+    # 2. Matamos o datalabels (o plugin que insiste em mostrar int e bloqueia nosso JS)
+    cfg["options"]["plugins"]["datalabels"] = {
+        "display": False
+    }
+
+    # 3. Ligamos o renderizador nativo. O QuickChart calculará sozinho a matemática.
+    # %v = Valor exato numérico | %p = Porcentagem calculada
+    cfg["options"]["plugins"]["outlabels"] = {
+        "display": True,
+        "text": "%v (%p)",
+        "color": "#ffffff",
+        # Cria uma linha direcional apontando para a fatia (evita sobreposição)
+        "stretch": 25,
+        "borderRadius": 4,
+        "font": {
+            "resizable": True,
+            "minSize": 11,
+            "maxSize": 14,
+            "weight": "bold"
+        }
+    }
+
+    return cfg
+
+
+def add_bar_formatter(cfg, data_array):
+    """
+    Garante a exibição do Número + Porcentagem nos gráficos de barra horizontais.
+    Usa JavaScript na barra (se suportado pela API) e injeta nos Rótulos (Eixo Y)
+    como um fallback garantido 100% à prova de bloqueios de segurança.
+    """
+    try:
+        numeric_data = [float(x) if str(x).replace('.','',1).isdigit() else 0 for x in data_array]
+        total = sum(numeric_data)
+    except Exception:
+        numeric_data = [0 for _ in data_array]
+        total = 0
+
+    formatted_strings = []
+    for val in numeric_data:
+        if total > 0 and val > 0:
+            pct = (val / total) * 100
+            pct_str = f"{int(pct)}%" if pct.is_integer() else f"{pct:.1f}%"
+            formatted_strings.append(f"{int(val)} ({pct_str})")
+        elif val == 0:
+            formatted_strings.append("")
+        else:
+            formatted_strings.append(str(int(val)))
+
+    # Injeção Garantida via Rótulos de Eixo: O HTML vai exibir o nome e a porcentagem ao lado.
+    if "data" in cfg and "labels" in cfg["data"]:
+        orig_labels = cfg["data"]["labels"]
+        new_labels = []
+        for i, lbl in enumerate(orig_labels):
+            fs = formatted_strings[i] if i < len(formatted_strings) else ""
+            new_labels.append(f"{lbl} | {fs}" if fs else lbl)
+        cfg["data"]["labels"] = new_labels
+
+    # Tentativa de injeção JS via Datalabels (Aplica na barra em APIs que não barram scripts)
+    js_array_str = "[" + ", ".join(f"'{s}'" for s in formatted_strings) + "]"
+    formatter_js = f"function(value, context) {{ return {js_array_str}[context.dataIndex] || ''; }}"
+
+    if "options" not in cfg:
+        cfg["options"] = {}
+    if "plugins" not in cfg["options"]:
+        cfg["options"]["plugins"] = {}
+    if "datalabels" not in cfg["options"]["plugins"]:
+        cfg["options"]["plugins"]["datalabels"] = {}
+
+    cfg["options"]["plugins"]["datalabels"]["formatter"] = formatter_js
+    cfg["options"]["plugins"]["datalabels"]["display"] = True
+
+    # Aumenta a margem do eixo X para não cortar o texto caso a barra preencha toda a largura
+    if "scales" in cfg["options"] and "xAxes" in cfg["options"]["scales"] and len(cfg["options"]["scales"]["xAxes"]) > 0:
+        if "ticks" in cfg["options"]["scales"]["xAxes"][0]:
+            max_val = max(numeric_data) if numeric_data else 10
+            cfg["options"]["scales"]["xAxes"][0]["ticks"]["suggestedMax"] = max_val * 1.35
+
+    return cfg
+
+
+def get_hbar_opts(step_size=None, max_val=0):
+    opts = {
+        "legend": {"display": False},
+        "layout": {"padding": {"right": 50}},
+        "plugins": {
+            "datalabels": {
+                "display": True,
+                "color": "#333333",
+                "anchor": "end",
+                "align": "right",
+                "offset": 4,
+                "font": {"weight": "bold", "size": 12},
+                "clip": False
+            }
+        },
+        "scales": {
+            "xAxes": [{"ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.2}}],
+            "yAxes": [{"ticks": {"autoSkip": False}}]
+        }
+    }
+    if step_size:
+        opts["scales"]["xAxes"][0]["ticks"]["stepSize"] = step_size
+    return opts
+
+
+def build_kpi_card(icon, title, value, sub, bg_color, val_color, pad_style="padding-right: 10px;", width="20%"):
+    return f"""
+    <td width="{width}" valign="top" style="{pad_style}">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid {ModernColors.PRIMARY_DARK}; border-radius: 4px; text-align: center; background-color: {bg_color}; border-collapse: separate;">
+            <tr><td style="font-family: 'Calibri', Arial, sans-serif; font-size: 11px; color: {ModernColors.GRAY_DARK}; font-weight: bold; background-color: {ModernColors.GRAY_LIGHT}; padding: 8px; border-bottom: 1px solid {ModernColors.PRIMARY_DARK}; text-align: left; text-transform: uppercase;">{icon} {title}</td></tr>
+            <tr><td style="font-family: 'Calibri', Arial, sans-serif; font-size: 32px; font-weight: bold; color: {val_color}; padding: 15px 0;">{value}</td></tr>
+            <tr><td style="font-family: 'Calibri', Arial, sans-serif; font-size: 10px; color: {ModernColors.GRAY_DARK}; padding-bottom: 12px;">{sub}</td></tr>
+        </table>
+    </td>
+    """
+
+
+def build_section_title(text, bg_color=ModernColors.PRIMARY_DARK, margin_top="35px"):
+    return f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: {margin_top}; margin-bottom: 15px;">
+        <tr><td style="font-family: 'Calibri', Arial, sans-serif; font-size: 14px; font-weight: bold; color: #FFFFFF; background-color: {bg_color}; padding: 12px; border-radius: 4px; text-transform: uppercase;">
+            {text}
+        </td></tr>
+    </table>
+    """
+
+
+def build_grid_dynamic(items, cols=4):
+    if not items:
+        return ""
+    html = '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">'
+    for i in range(0, len(items), cols):
+        html += '<tr>'
+        row_items = items[i:i+cols]
+        for j in range(cols):
+            content = row_items[j] if j < len(row_items) else ""
+            html += f'<td width="{100//cols}%" valign="top" style="padding: 5px;">{content}</td>'
+        html += '</tr>'
+    html += '</table>'
+    return html
+
+
+def build_grid2(left_content, right_content):
+    return f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+        <tr>
+            <td width="50%" valign="top" style="padding-right: 10px;">{left_content}</td>
+            <td width="50%" valign="top" style="padding-left: 10px;">{right_content}</td>
+        </tr>
+    </table>
+    """
+
+
+def build_card(title, content):
+    return f"""
+    <table width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #eeeeee; border-radius: 6px; padding: 12px; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-collapse: separate;">
+        <tr><td valign="top" style="font-family: 'Calibri', Arial, sans-serif; color: #585858; font-size: 14px; font-weight: bold; text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid #f4f4f4; text-align: left; height: 20px;">
+            {title}
+        </td></tr>
+        <tr><td valign="top" style="padding-top: 15px; text-align: center;">
+            {content}
+        </td></tr>
+    </table>
+    """
+
+
+def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_totals=True):
+    if df is None or df.empty:
+        return f"<div style='padding: 15px; color: {ModernColors.SUCCESS}; background-color: {ModernColors.SUCCESS_LIGHT}; text-align: center; font-weight: bold; border: 1px solid {ModernColors.SUCCESS}; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Sem dados aplicáveis para o período.</div>"
+
+    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 12px; font-family: Calibri, Arial, sans-serif; margin: 0 auto;'>"
+    html += "<thead><tr>"
+    for col in df.columns:
+        html += f"<th style='background-color: {header_bg}; color: #fff; padding: 8px; border: 1px solid #ddd; text-align: center;'>{col}</th>"
+    html += "</tr></thead><tbody>"
+
+    for i, row in df.iterrows():
+        bg = ModernColors.GRAY_LIGHT if zebra and i % 2 == 0 else ModernColors.WHITE
+        html += f"<tr style='background-color: {bg};'>"
+        for j, val in enumerate(row):
+            v_str = str(val)
+            color = ModernColors.ORANGE if "⚠️" in v_str else ModernColors.GRAY_DARK
+            font_weight = "bold" if ("⚠️" in v_str or j == 0) else "normal"
+
+            if "Aging" in df.columns and j == list(df.columns).index("Aging"):
+                try:
+                    if int(val) >= 30:
+                        color = "#ffffff"
+                        bg_cell = ModernColors.DANGER
+                        font_weight = "bold"
+                    else:
+                        bg_cell = "transparent"
+                except:
+                    bg_cell = "transparent"
+            else:
+                bg_cell = ModernColors.WARNING_LIGHT if "⚠️" in v_str else "transparent"
+
+            align = "left" if j == 0 else "center"
+            html += f"<td style='padding: 8px; border: 1px solid #ddd; text-align: {align}; color: {color}; font-weight: {font_weight}; background-color: {bg_cell};'>{v_str}</td>"
+        html += "</tr>"
+    html += "</tbody>"
+
+    if show_totals:
+        html += f"<tfoot style='background-color: {ModernColors.GRAY_LIGHT}; font-weight: bold; color: {ModernColors.PRIMARY_DARK}; border-top: 2px solid {ModernColors.PRIMARY_DARK};'><tr>"
+        for j, col_name in enumerate(df.columns):
+            col_lower = str(col_name).strip().lower()
+            if j == 0:
+                val = "TOTAL"
+                align = "left"
+            elif "backlog acumulado" in col_lower:
+                last_val = df.iloc[-1][col_name]
+                val = int(last_val) if pd.notna(last_val) else 0
+                align = "center"
+            elif pd.api.types.is_numeric_dtype(df[col_name]):
+                if "%" in col_lower or col_name == "%":
+                    val = "100.0"
+                else:
+                    val = int(df[col_name].sum()) if sum(df[col_name]) == int(
+                        sum(df[col_name])) else round(df[col_name].sum(), 1)
+                align = "center"
+            else:
+                val = "—"
+                align = "center"
+            html += f"<td style='padding: 8px; border: 1px solid #ddd; text-align: {align};'>{val}</td>"
+        html += "</tr></tfoot>"
+
+    html += "</table>"
+    return html
+
+
+def build_full_monthly_table_html(df, title):
+    if df.empty:
+        return f"<div style='padding: 15px; font-family: Calibri, sans-serif; background-color: {ModernColors.SUCCESS_LIGHT}; color: {ModernColors.SUCCESS}; border: 1px solid {ModernColors.SUCCESS}; text-align: center; font-weight: bold;'>✅ Sem dados em {title}</div>"
+
+    html = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; font-size: 13px; font-family: 'Calibri', Arial, sans-serif;">
+        <thead>
+            <tr style="background-color: {ModernColors.GRAY_LIGHT};">
+                <th style="padding:8px; border:1px solid #ddd; text-align:left;">Mês</th>
+                <th style="padding:8px; border:1px solid #ddd; text-align:center;">Abertos</th>
+                <th style="padding:8px; border:1px solid #ddd; text-align:center;">Resolvidos</th>
+                <th style="padding:8px; border:1px solid #ddd; text-align:center;">Cancelados</th>
+                <th style="padding:8px; border:1px solid #ddd; text-align:center;">Saldo (Throughput)</th>
+                <th style="padding:8px; border:1px solid #ddd; text-align:center;">Backlog Acumulado</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
+    for i, r in df.iterrows():
+        d1, a1, f1, c1_val, s1, b1 = r["Mês"], r["Abertos"], r["Resolvidos"], r["Cancelados"], r["NetFlow"], r["Backlog Acumulado"]
+        c1 = ModernColors.PRIMARY_DARK if s1 > 0 else (
+            ModernColors.PRIMARY if s1 < 0 else ModernColors.GRAY_DARK)
+        sign1 = "+" if s1 > 0 else ""
+        bg_tr = "#fcfcfc" if i % 2 == 0 else "#ffffff"
+
+        html += f"""<tr style="background-color: {bg_tr};">
+            <td style="padding:8px; border:1px solid #ddd; text-align:left;">{d1}</td>
+            <td style="padding:8px; border:1px solid #ddd; text-align:center;">{a1}</td>
+            <td style="padding:8px; border:1px solid #ddd; text-align:center;">{f1}</td>
+            <td style="padding:8px; border:1px solid #ddd; text-align:center;">{c1_val}</td>
+            <td style="color: {c1}; font-weight: bold; padding:8px; border:1px solid #ddd; text-align:center;">{sign1}{s1}</td>
+            <td style="padding:8px; border:1px solid #ddd; text-align:center; font-weight:bold;">{b1}</td>
+        </tr>"""
+
+    tot_abertos = df["Abertos"].sum()
+    tot_fechados = df["Resolvidos"].sum()
+    tot_cancelados = df["Cancelados"].sum()
+    tot_saldo = df["NetFlow"].sum()
+    last_backlog = df["Backlog Acumulado"].iloc[-1] if not df.empty else 0
+    c_tot = ModernColors.PRIMARY_DARK if tot_saldo > 0 else (
+        ModernColors.PRIMARY if tot_saldo < 0 else ModernColors.GRAY_DARK)
+    sign_tot = "+" if tot_saldo > 0 else ""
+
+    html += f"""
+        <tr style="background-color: {ModernColors.GRAY_LIGHT}; border-top: 2px solid {ModernColors.PRIMARY_DARK};">
+            <td style="text-align: right; padding: 10px 15px; font-weight: bold; color: {ModernColors.PRIMARY_DARK}; border:1px solid #ddd; font-size: 14px;">TOTAIS:</td>
+            <td style="font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size: 14px;">{tot_abertos}</td>
+            <td style="font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size: 14px;">{tot_fechados}</td>
+            <td style="font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size: 14px;">{tot_cancelados}</td>
+            <td style="color: {c_tot}; font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size:14px;">{sign_tot}{tot_saldo}</td>
+            <td style="font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size: 14px;">{last_backlog}</td>
+        </tr>
+        </tbody>
+    </table>"""
+    return build_card(title, html)
+
+
+def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, label_cancelados):
+    l, a = pad_empty_html(df_daily["Data"].str[:5].tolist() if not df_daily.empty else [
+    ], df_daily["Abertos"].tolist() if not df_daily.empty else [])
+    _, f = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [
+    ], df_daily["Resolvidos"].tolist() if not df_daily.empty else [])
+    _, c = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [
+    ], df_daily["Cancelados"].tolist() if not df_daily.empty else [])
+    _, b = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [
+    ], df_daily["Backlog Acumulado"].tolist() if not df_daily.empty else [])
+
+    max_val = max([max(a), max(f), max(c)]) if a and f and c and a[0] != 'Sem Dados' else 10
+    max_b = max(b) if b and b[0] != 'Sem Dados' else 10
+
+    cfg = {
+        "type": "bar",
+        "data": {
+            "labels": l,
+            "datasets": [
+                {
+                    "type": "line",
+                    "label": "Backlog (Acumulado)",
+                    "data": b,
+                    "fill": False,
+                    "borderColor": ModernColors.ORANGE,
+                    "backgroundColor": ModernColors.ORANGE,
+                    "borderWidth": 2,
+                    "yAxisID": "y2",
+                    "datalabels": {
+                        "display": True, "align": "top", "anchor": "center", "color": "#000", "font": {"weight": "bold", "size": 9}
+                    }
+                },
+                {
+                    "type": "bar",
+                    "label": "Abertos",
+                    "data": a,
+                    "backgroundColor": cor_abertos,
+                    "yAxisID": "y1",
+                    "datalabels": {
+                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}
+                    }
+                },
+                {
+                    "type": "bar",
+                    "label": "Resolvidos",
+                    "data": f,
+                    "backgroundColor": cor_fechados,
+                    "yAxisID": "y1",
+                    "datalabels": {
+                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}
+                    }
+                },
+                {
+                    "type": "bar",
+                    "label": label_cancelados,
+                    "data": c,
+                    "backgroundColor": cor_cancelados,
+                    "yAxisID": "y1",
+                    "datalabels": {
+                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}
+                    }
+                }
+            ]
+        },
+        "options": {
+            "legend": {"display": True, "position": "bottom"},
+            "scales": {
+                "yAxes": [
+                    {"id": "y1", "position": "left", "ticks": {
+                        "beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.1}},
+                    {"id": "y2", "position": "right", "gridLines": {"drawOnChartArea": False}, "ticks": {
+                        "beginAtZero": True, "precision": 0, "suggestedMax": max_b * 1.2}}
+                ]
+            }
+        }
+    }
+    total_in = sum(a) if a and a[0] != 'Sem Dados' else 0
+    total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
+    return add_title_to_cfg(cfg, f"TOTAL ENTRADAS: {total_in} | SAÍDAS: {total_out}")
+
+
+def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancelados, label_cancelados):
+    l, a = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
+    ], df_monthly["Abertos"].tolist() if not df_monthly.empty else [])
+    _, f = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
+    ], df_monthly["Resolvidos"].tolist() if not df_monthly.empty else [])
+    _, c = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
+    ], df_monthly["Cancelados"].tolist() if not df_monthly.empty else [])
+    _, b = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
+    ], df_monthly["Backlog Acumulado"].tolist() if not df_monthly.empty else [])
+
+    max_val = max([max(a), max(f), max(c)]) if a and f and c and a[0] != 'Sem Dados' else 10
+    max_b = max(b) if b and b[0] != 'Sem Dados' else 10
+
+    cfg = {
+        "type": "bar",
+        "data": {
+            "labels": l,
+            "datasets": [
+                {
+                    "type": "line",
+                    "label": "Backlog (Acumulado)",
+                    "data": b,
+                    "fill": False,
+                    "borderColor": ModernColors.ORANGE,
+                    "backgroundColor": ModernColors.ORANGE,
+                    "borderWidth": 2,
+                    "yAxisID": "y2",
+                    "datalabels": {
+                        "display": True, "align": "top", "anchor": "center", "color": "#000", "font": {"weight": "bold"}
+                    }
+                },
+                {
+                    "type": "bar",
+                    "label": "Abertos",
+                    "data": a,
+                    "backgroundColor": cor_abertos,
+                    "yAxisID": "y1",
+                    "datalabels": {
+                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}
+                    }
+                },
+                {
+                    "type": "bar",
+                    "label": "Resolvidos",
+                    "data": f,
+                    "backgroundColor": cor_fechados,
+                    "yAxisID": "y1",
+                    "datalabels": {
+                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}
+                    }
+                },
+                {
+                    "type": "bar",
+                    "label": label_cancelados,
+                    "data": c,
+                    "backgroundColor": cor_cancelados,
+                    "yAxisID": "y1",
+                    "datalabels": {
+                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}
+                    }
+                }
+            ]
+        },
+        "options": {
+            "legend": {"display": True, "position": "bottom"},
+            "scales": {
+                "yAxes": [
+                    {"id": "y1", "position": "left", "ticks": {
+                        "beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.1}},
+                    {"id": "y2", "position": "right", "gridLines": {"drawOnChartArea": False}, "ticks": {
+                        "beginAtZero": True, "precision": 0, "suggestedMax": max_b * 1.2}}
+                ]
+            }
+        }
+    }
+    total_in = sum(a) if a and a[0] != 'Sem Dados' else 0
+    total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
+    return add_title_to_cfg(cfg, f"TOTAL ENTRADAS: {total_in} | SAÍDAS: {total_out}")
+
+# =============================================================================
+# GERAÇÃO DO NOVO RELATÓRIO HTML AVANÇADO
+# =============================================================================
+
+def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output_path):
+    log_q(
+        q, f"\n🌐 Construindo Relatório HTML Avançado (Alto Contraste Azul) em: {output_path}")
+
+    # Extração das variáveis dinâmicas de "configs"
+    SLA_DAYS_REQS = int(configs.get("sla_days_reqs", 10))
+    SLA_DAYS_INCS = int(configs.get("sla_days_incs", 7))
+    SLA_DAYS_PTASK = int(configs.get("sla_days_ptask", 10))
+    ETA_DATE = configs.get("eta_date", "")
+    MONTHS_LIMIT_HTML = int(configs.get("months_limit_html", 2))
+    MONTHS_LIMIT_OFFENDERS = int(configs.get("months_limit_offenders", 2))
+    MONTHS_LIMIT_THROUGHPUT = int(configs.get("months_limit_throughput", 6))
+
+    ENABLE_DAILY_CHARTS = configs.get("enable_daily_charts", True)
+    ENABLE_OFFENDERS = configs.get("enable_offenders", True)
+    ENABLE_MOM_COMPARISON = configs.get("enable_mom_comparison", True)
+
+    req = normalize_ticket_df_html(df_reqs, "REQ")
+    inc = normalize_ticket_df_html(df_incs, "INC")
+
+    # Base estrita de chamados REALMENTE Abertos e Vigentes
+    req_open_strict = _get_only_open_reqs(req)
+    inc_open_strict = _get_only_open_incs(inc)
+
+    req["IS_ACCESS"] = req["Assignment group"].apply(_is_access_ticket_html)
+
+    uam_count = len(_get_only_open_reqs(req[req["IS_ACCESS"]]))
+    req_support_count = len(_get_only_open_reqs(req[~req["IS_ACCESS"]]))
+    inc_count = len(inc_open_strict)
+    total_backlog_real = req_support_count + uam_count + inc_count
+
+    total_req_abertos_para_titulo = req_support_count + uam_count
+    total_inc_abertos_para_titulo = inc_count
+
+    all_months, meta = build_month_window_html([req, inc], MONTHS_LIMIT_HTML)
+    start_date = meta.get("start_date")
+    end_date = meta.get("end_date")
+    now_floor = pd.Timestamp(datetime.now()).floor('D')
+
+    if end_date and end_date > now_floor:
+        end_date = now_floor
+
+    if MONTHS_LIMIT_HTML == 1 and start_date:
+        janela = f"{start_date.strftime('%m/%Y')}"
+    elif start_date and end_date:
+        janela = f"{start_date.strftime('%m/%Y')} a {end_date.strftime('%m/%Y')}"
+    else:
+        janela = "N/A"
+
+    meses_exibido = meta.get("meses_calculado", MONTHS_LIMIT_HTML)
+    badge_meses = f"{meses_exibido} MÊS(ES) ANALISADOS"
+    mes_vigente_str = janela
+
+    # ⚠️ REGRAS DE OFENSORES (Restrito exclusivamente ao Mês Vigente)
+    now_for_off = datetime.now()
+    start_current_month = pd.Timestamp(
+        year=now_for_off.year, month=now_for_off.month, day=1)
+    end_current_month = pd.Timestamp(now_for_off)
+
+    # Extrações de ofensores respeitando o MÊS VIGENTE
+    req_to_inc_cur = _extract_conversions_html(
+        req, "REQ", start_current_month, end_current_month)
+    inc_to_req_cur = _extract_conversions_html(
+        inc, "INC", start_current_month, end_current_month)
+
+    total_conv_req_inc_geral = _extract_conversions_html(req, "REQ")
+    total_conv_inc_req_geral = _extract_conversions_html(inc, "INC")
+
+    kpi_req, buckets_req, _, open_req_b = compute_open_backlog_metrics_html(
+        req, SLA_DAYS_REQS, ticket_type="REQ")
+    kpi_inc, buckets_inc, _, open_inc_b = compute_open_backlog_metrics_html(
+        inc, SLA_DAYS_INCS, ticket_type="INC")
+
+    closed_tot_req = compute_closed_metrics_html(req, ticket_type="REQ")
+    closed_tot_inc = compute_closed_metrics_html(inc, ticket_type="INC")
+    mttr_geral = round(
+        (closed_tot_req["mttr_mean"] + closed_tot_inc["mttr_mean"]) / 2, 1)
+
+    ptask_total = 0
+    ptask_open = 0
+    if df_ptask is not None and not df_ptask.empty:
+        ptask_total = len(df_ptask)
+        ptask_open = len(df_ptask[df_ptask['State_Bin'] == 'Open'])
+
+    req_aging_table_df = open_req_b[open_req_b["AGING_OPEN"] >= 20].copy()
+    if not req_aging_table_df.empty:
+        req_aging_table_df = req_aging_table_df.sort_values(
+            by="AGING_OPEN", ascending=False)
+        req_aging_table_df["ETA"] = ETA_DATE
+        req_aging_table_df["Opened_Str"] = req_aging_table_df["Opened"].dt.strftime(
+            '%d/%m/%Y').fillna("-")
+        req_aging_table_df = req_aging_table_df[[
+            "Number", "Assigned to", "Requester", "State", "Opened_Str", "AGING_OPEN", "ETA"]]
+        req_aging_table_df.columns = [
+            "Request item", "Assigned to", "Requester", "State", "Opened", "Aging", "ETA"]
+        html_req_aging_table = f"""
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+            <tr><td width="100%" valign="top">
+                {build_card("⚠️ REQs CRÍTICOS (AGING 20+ E 30+ DIAS)", build_html_table_html(req_aging_table_df, ModernColors.DANGER, show_totals=False))}
+            </td></tr>
+        </table>
+        """
+    else:
+        html_req_aging_table = f"""
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+            <tr><td width="100%" valign="top">
+                {build_card("⚠️ REQs CRÍTICOS (AGING 20+ E 30+ DIAS)", "<div style='padding: 15px; color: #27AE60; font-weight: bold;'>✅ Nenhum REQ com mais de 20 dias de aging pendente.</div>")}
+            </td></tr>
+        </table>
+        """
+
+    daily_req = compute_daily_table_html(
+        req, start_date=start_date, end_date=end_date, ticket_type="REQ")
+    daily_inc = compute_daily_table_html(
+        inc, start_date=start_date, end_date=end_date, ticket_type="INC")
+
+    daily_req_curr = get_current_month_daily(daily_req)
+    daily_inc_curr = get_current_month_daily(daily_inc)
+
+    monthly_req = compute_monthly_throughput_table_html(
+        req, MONTHS_LIMIT_THROUGHPUT, ticket_type="REQ")
+    monthly_inc = compute_monthly_throughput_table_html(
+        inc, MONTHS_LIMIT_THROUGHPUT, ticket_type="INC")
+
+    # ---------------- GRÁFICOS E LÓGICAS (CONFIGURAÇÃO) ----------------
+    
+    # PALETA COLORIDA (Aplicada a REQs e INCs agora)
+    COLORFUL_PALETTE = [ModernColors.WARNING, ModernColors.ORANGE, ModernColors.DANGER, ModernColors.PRIMARY, ModernColors.ACCENT, ModernColors.INFO, ModernColors.GRAY, ModernColors.PRIMARY_DARK]
+
+    usr_counts_all = req_open_strict["Assigned to"].replace(
+        "", "N/A").value_counts().head(8)
+    c1_labels, c1_data = pad_empty_html(
+        usr_counts_all.index.tolist(), usr_counts_all.values.tolist())
+    cfg1 = {"type": "doughnut", "data": {"labels": [sanitize_label(x) for x in c1_labels], "datasets": [{"data": c1_data, "backgroundColor": COLORFUL_PALETTE}]}, "options": {
+        "legend": {"display": True, "position": "right"}}}
+    cfg1 = add_title_to_cfg(
+        cfg1, f"TOTAL ABERTOS: {total_req_abertos_para_titulo}")
+    cfg1 = add_pie_formatter(cfg1, c1_data)
+
+    inc_counts_all = inc_open_strict["Assigned to"].replace(
+        "", "N/A").value_counts().head(8)
+    c1b_labels, c1b_data = pad_empty_html(
+        inc_counts_all.index.tolist(), inc_counts_all.values.tolist())
+    cfg1b = {"type": "doughnut", "data": {"labels": [sanitize_label(x) for x in c1b_labels], "datasets": [{"data": c1b_data, "backgroundColor": COLORFUL_PALETTE}]}, "options": {"legend": {"display": True, "position": "right"}}}
+    cfg1b = add_title_to_cfg(
+        cfg1b, f"TOTAL ABERTOS: {total_inc_abertos_para_titulo}")
+    cfg1b = add_pie_formatter(cfg1b, c1b_data)
+
+    c3a_labels, c3a_data = pad_empty_html(
+        buckets_req["Faixa"].tolist(), buckets_req["Qtd"].tolist())
+    cfg3a = {"type": "horizontalBar", "data": {"labels": c3a_labels, "datasets": [
+        {"data": c3a_data, "backgroundColor": "#1D4ED8"}]}, "options": get_hbar_opts(max_val=max(c3a_data) if c3a_data else 10)}
+    cfg3a = add_title_to_cfg(
+        cfg3a, f"TOTAL ABERTOS: {total_req_abertos_para_titulo}")
+    cfg3a = add_bar_formatter(cfg3a, c3a_data)
+
+    c3b_labels, c3b_data = pad_empty_html(
+        buckets_inc["Faixa"].tolist(), buckets_inc["Qtd"].tolist())
+    cfg3b = {"type": "horizontalBar", "data": {"labels": c3b_labels, "datasets": [
+        {"data": c3b_data, "backgroundColor": "#60A5FA"}]}, "options": get_hbar_opts(max_val=max(c3b_data) if c3b_data else 10)}
+    cfg3b = add_title_to_cfg(
+        cfg3b, f"TOTAL ABERTOS: {total_inc_abertos_para_titulo}")
+    cfg3b = add_bar_formatter(cfg3b, c3b_data)
+
+    req_sla_counts = open_req_b["SLA_BREACH_OPEN"].value_counts()
+    in_req = req_sla_counts.get(False, 0)
+    out_req = req_sla_counts.get(True, 0)
+    cfg_req_sla = {"type": "pie", "data": {"labels": ["Inside SLA", "Outside SLA"], "datasets": [{"data": [int(in_req), int(out_req)], "backgroundColor": [
+        ModernColors.SUCCESS, ModernColors.DANGER]}]}, "options": {}}
+    cfg_req_sla = add_title_to_cfg(
+        cfg_req_sla, f"TOTAL ABERTOS: {total_req_abertos_para_titulo}")
+    cfg_req_sla = add_pie_formatter(cfg_req_sla, [int(in_req), int(out_req)])
+
+    req_st_counts = req_open_strict["State"].replace(
+        "", "N/A").value_counts().head(8)
+    c_rst_l, c_rst_d = pad_empty_html(
+        req_st_counts.index.tolist(), req_st_counts.values.tolist())
+    cfg_req_state = {"type": "horizontalBar", "data": {"labels": [sanitize_label(x) for x in c_rst_l], "datasets": [
+        {"data": c_rst_d, "backgroundColor": ModernColors.PRIMARY}]}, "options": get_hbar_opts(step_size=1, max_val=max(c_rst_d) if c_rst_d else 10)}
+    cfg_req_state = add_title_to_cfg(
+        cfg_req_state, f"TOTAL ABERTOS: {total_req_abertos_para_titulo}")
+    cfg_req_state = add_bar_formatter(cfg_req_state, c_rst_d)
+
+    inc_sla_counts = open_inc_b["SLA_BREACH_OPEN"].value_counts()
+    in_inc = inc_sla_counts.get(False, 0)
+    out_inc = inc_sla_counts.get(True, 0)
+    cfg_inc_sla = {"type": "pie", "data": {"labels": ["Inside SLA", "Outside SLA"], "datasets": [{"data": [int(in_inc), int(out_inc)], "backgroundColor": [
+        ModernColors.SUCCESS, ModernColors.DANGER]}]}, "options": {}}
+    cfg_inc_sla = add_title_to_cfg(
+        cfg_inc_sla, f"TOTAL ABERTOS: {total_inc_abertos_para_titulo}")
+    cfg_inc_sla = add_pie_formatter(cfg_inc_sla, [int(in_inc), int(out_inc)])
+
+    inc_st_counts = inc_open_strict["State"].replace(
+        "", "N/A").value_counts().head(8)
+    c_ist_l, c_ist_d = pad_empty_html(
+        inc_st_counts.index.tolist(), inc_st_counts.values.tolist())
+    cfg_inc_state = {"type": "horizontalBar", "data": {"labels": [sanitize_label(x) for x in c_ist_l], "datasets": [
+        {"data": c_ist_d, "backgroundColor": ModernColors.INFO}]}, "options": get_hbar_opts(step_size=1, max_val=max(c_ist_d) if c_ist_d else 10)}
+    cfg_inc_state = add_title_to_cfg(
+        cfg_inc_state, f"TOTAL ABERTOS: {total_inc_abertos_para_titulo}")
+    cfg_inc_state = add_bar_formatter(cfg_inc_state, c_ist_d)
+
+    # CONFIG DOS GRÁFICOS DE SOLICITANTES (Mês Vigente)
+    top_req_callers = get_top_callers_html(req_to_inc_cur, top_n=10)
+    top_inc_callers = get_top_callers_html(inc_to_req_cur, top_n=10)
+
+    c_r2i_l, c_r2i_d = pad_empty_html(top_req_callers["Solicitante"].tolist() if not top_req_callers.empty else [
+    ], top_req_callers["Quantidade"].tolist() if not top_req_callers.empty else [])
+    cfg_req_callers = {
+        "type": "horizontalBar",
+        "data": {
+            "labels": [sanitize_label(x) for x in c_r2i_l],
+            "datasets": [{"data": c_r2i_d, "backgroundColor": ModernColors.DANGER}]
+        },
+        "options": get_hbar_opts(step_size=1, max_val=max(c_r2i_d) if c_r2i_d else 10)
+    }
+    cfg_req_callers = add_title_to_cfg(
+        cfg_req_callers, f"TOTAL: {sum(c_r2i_d) if c_r2i_d and c_r2i_d[0] != 'Sem Dados' else 0}")
+    cfg_req_callers = add_bar_formatter(cfg_req_callers, c_r2i_d)
+
+    c_i2r_l, c_i2r_d = pad_empty_html(top_inc_callers["Solicitante"].tolist() if not top_inc_callers.empty else [
+    ], top_inc_callers["Quantidade"].tolist() if not top_inc_callers.empty else [])
+    cfg_inc_callers = {
+        "type": "horizontalBar",
+        "data": {
+            "labels": [sanitize_label(x) for x in c_i2r_l],
+            "datasets": [{"data": c_i2r_d, "backgroundColor": ModernColors.WARNING}]
+        },
+        "options": get_hbar_opts(step_size=1, max_val=max(c_i2r_d) if c_i2r_d else 10)
+    }
+    cfg_inc_callers = add_title_to_cfg(
+        cfg_inc_callers, f"TOTAL: {sum(c_i2r_d) if c_i2r_d and c_i2r_d[0] != 'Sem Dados' else 0}")
+    cfg_inc_callers = add_bar_formatter(cfg_inc_callers, c_i2r_d)
+
+    cfg_monthly_req = build_monthly_backlog_cfg(
+        monthly_req, ModernColors.PRIMARY, ModernColors.PRIMARY_DARK, ModernColors.GRAY, "Closed Incomplete")
+    cfg_monthly_inc = build_monthly_backlog_cfg(
+        monthly_inc, ModernColors.INFO, ModernColors.SUCCESS, ModernColors.WARNING, "Canceled")
+
+    cfg_daily_trend_req = build_daily_trend_cfg(
+        daily_req_curr, ModernColors.PRIMARY, ModernColors.PRIMARY_DARK, ModernColors.GRAY, "Closed Incomplete")
+    cfg_daily_trend_inc = build_daily_trend_cfg(
+        daily_inc_curr, ModernColors.INFO, ModernColors.SUCCESS, ModernColors.WARNING, "Canceled")
+
+    # ---------------- LÓGICA E GRÁFICOS PTASK ----------------
+    pizzas_items = [
+        build_card("1A. Top Analistas REQs",
+                   f'<img src="{qc_url_html(cfg1, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        build_card("1B. Top Analistas INCs",
+                   f'<img src="{qc_url_html(cfg1b, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        build_card("REQs: Inside vs Outside SLA",
+                   f'<img src="{qc_url_html(cfg_req_sla, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        build_card("INCs: Inside vs Outside SLA",
+                   f'<img src="{qc_url_html(cfg_inc_sla, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">')
+    ]
+
+    # GRÁFICOS DE BARRAS: Agregando Agings, Status e os Solicitantes
+    barras_items = [
+        build_card("3A. Aging Detalhado (REQs)",
+                   f'<img src="{qc_url_html(cfg3a, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        build_card("3B. Aging Detalhado (INCs)",
+                   f'<img src="{qc_url_html(cfg3b, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        build_card("REQs: Status (Abertos)",
+                   f'<img src="{qc_url_html(cfg_req_state, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        build_card("INCs: Status (Abertos)",
+                   f'<img src="{qc_url_html(cfg_inc_state, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        build_card("TOP SOLICITANTES (REQ → INC) (MÊS VIGENTE)",
+                   f'<img src="{qc_url_html(cfg_req_callers, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        build_card("TOP SOLICITANTES (INC → REQ) (MÊS VIGENTE)",
+                   f'<img src="{qc_url_html(cfg_inc_callers, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">')
+    ]
+
+    if df_ptask is not None and not df_ptask.empty:
+        ptask_sla_counts = df_ptask["SLA_Status"].value_counts()
+        ptask_state_counts = df_ptask["State_Bin"].value_counts()
+        ptask_assignee_counts = df_ptask["Assigned to"].replace(
+            "—", "N/A").value_counts().head(10)
+        ptask_rca_counts = df_ptask["RCA Status"].replace(
+            "—", "N/A").value_counts().head(5)
+
+        l_sla, d_sla = pad_empty_html(
+            ptask_sla_counts.index.tolist(), ptask_sla_counts.values.tolist())
+        colors_sla = [ModernColors.SUCCESS if "Inside" in str(
+            l) else ModernColors.DANGER for l in l_sla]
+        cfg_ptask_sla = {"type": "pie", "data": {"labels": l_sla, "datasets": [
+            {"data": d_sla, "backgroundColor": colors_sla}]}, "options": {}}
+        cfg_ptask_sla = add_title_to_cfg(
+            cfg_ptask_sla, f"TOTAL: {sum(d_sla) if d_sla and d_sla[0] != 'Sem Dados' else 0}")
+        cfg_ptask_sla = add_pie_formatter(cfg_ptask_sla, d_sla)
+
+        l_state, d_state = pad_empty_html(
+            ptask_state_counts.index.tolist(), ptask_state_counts.values.tolist())
+        colors_state = [ModernColors.PRIMARY_DARK if "Complete" in str(
+            l) else ModernColors.WARNING for l in l_state]
+        cfg_ptask_state = {"type": "doughnut", "data": {"labels": l_state, "datasets": [
+            {"data": d_state, "backgroundColor": colors_state}]}, "options": {}}
+        cfg_ptask_state = add_title_to_cfg(
+            cfg_ptask_state, f"TOTAL: {sum(d_state) if d_state and d_state[0] != 'Sem Dados' else 0}")
+        cfg_ptask_state = add_pie_formatter(cfg_ptask_state, d_state)
+
+        l_ass, d_ass = pad_empty_html(
+            ptask_assignee_counts.index.tolist(), ptask_assignee_counts.values.tolist())
+        cfg_ptask_ass = {"type": "horizontalBar", "data": {"labels": [sanitize_label(x) for x in l_ass], "datasets": [
+            {"data": d_ass, "backgroundColor": ModernColors.INFO}]}, "options": get_hbar_opts(step_size=1, max_val=max(d_ass) if d_ass else 10)}
+        cfg_ptask_ass = add_title_to_cfg(
+            cfg_ptask_ass, f"TOTAL: {sum(d_ass) if d_ass and d_ass[0] != 'Sem Dados' else 0}")
+        cfg_ptask_ass = add_bar_formatter(cfg_ptask_ass, d_ass)
+
+        l_rca, d_rca = pad_empty_html(
+            ptask_rca_counts.index.tolist(), ptask_rca_counts.values.tolist())
+        cfg_ptask_rca = {"type": "pie", "data": {"labels": [sanitize_label(x) for x in l_rca], "datasets": [{"data": d_rca, "backgroundColor": [
+            ModernColors.PRIMARY, ModernColors.ACCENT, ModernColors.ORANGE, ModernColors.GRAY, ModernColors.DANGER]}]}, "options": {}}
+        cfg_ptask_rca = add_title_to_cfg(
+            cfg_ptask_rca, f"TOTAL: {sum(d_rca) if d_rca and d_rca[0] != 'Sem Dados' else 0}")
+        cfg_ptask_rca = add_pie_formatter(cfg_ptask_rca, d_rca)
+
+        pizzas_items.append(build_card("PTASK: Inside vs Outside SLA",
+                            f'<img src="{qc_url_html(cfg_ptask_sla, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'))
+        pizzas_items.append(build_card("PTASK: Complete vs Open",
+                            f'<img src="{qc_url_html(cfg_ptask_state, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'))
+        pizzas_items.append(build_card(
+            "PTASK: Status do RCA", f'<img src="{qc_url_html(cfg_ptask_rca, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'))
+        barras_items.append(build_card(
+            "PTASK: Top Analistas", f'<img src="{qc_url_html(cfg_ptask_ass, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'))
+
+    # ---------------- CONSTRUÇÃO EM BLOCOS HTML PRINCIPAIS (Para Outlook) ----------------
+    html_kpi_row1 = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px;">
+        <tr>
+            {build_kpi_card("📦", "Total (Abertos)", total_backlog_real, "REQ + INC Vigentes", ModernColors.PRIMARY_LIGHT, ModernColors.PRIMARY_DARK, "padding-right: 8px;", "20%")}
+            {build_kpi_card("🛠️", "REQs (Abertos Suporte)", req_support_count, "exceto UAM", ModernColors.PRIMARY_LIGHT, ModernColors.PRIMARY_DARK, "padding-right: 8px; padding-left: 4px;", "20%")}
+            {build_kpi_card("🚨", "INCs (Abertos Geral)", inc_count, "incidentes vigentes", ModernColors.WARNING_LIGHT, ModernColors.ORANGE, "padding-right: 4px; padding-left: 8px;", "20%")}
+            {build_kpi_card("📌", "Total de Backlog", total_backlog_real, "abertos pendentes", ModernColors.DANGER_LIGHT, ModernColors.DANGER, "padding-right: 4px; padding-left: 8px;", "20%")}
+            {build_kpi_card("📋", "Total de PTASKs", ptask_total, "Volume Geral (PTASK)", ModernColors.GRAY_LIGHT, ModernColors.PRIMARY_DARK, "padding-left: 8px;", "20%")}
+        </tr>
+    </table>
+    """
+    html_kpi_row2 = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px;">
+        <tr>
+            {build_kpi_card("🔐", "REQs (Acesso)", uam_count, "gestão de acessos", ModernColors.ACCENT_LIGHT, ModernColors.ACCENT, "padding-right: 8px;", "20%")}
+            {build_kpi_card("🔄", "REQ → INC", len(req_to_inc_cur), "classificação incorreta", ModernColors.GRAY_LIGHT, ModernColors.GRAY_DARK, "padding-right: 8px; padding-left: 4px;", "20%")}
+            {build_kpi_card("🔄", "INC → REQ", len(inc_to_req_cur), "cancelado p/ reabrir", ModernColors.GRAY_LIGHT, ModernColors.GRAY_DARK, "padding-right: 4px; padding-left: 8px;", "20%")}
+            {build_kpi_card("⏱️", "MTTR Geral", f"{mttr_geral}d", "tempo de resolução", ModernColors.SUCCESS_LIGHT, ModernColors.SUCCESS, "padding-right: 4px; padding-left: 8px;", "20%")}
+            {build_kpi_card("⏳", "PTASKs Abertos", ptask_open, "Pendentes Resolução", ModernColors.WARNING_LIGHT, ModernColors.ORANGE, "padding-left: 8px;", "20%")}
+        </tr>
+    </table>
+    """
+
+    grid_pizzas = build_grid_dynamic(pizzas_items, cols=4)
+    grid_barras = build_grid_dynamic(barras_items, cols=4)
+
+    html_monthly_trend_section = build_grid2(
+        build_card(f"2A. REQS: ENTRADA X SAÍDA X BACKLOG ACUMULADO",
+                   f'<img src="{qc_url_wide_html(cfg_monthly_req, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        build_card(f"2B. INCS: ENTRADA X SAÍDA X BACKLOG ACUMULADO",
+                   f'<img src="{qc_url_wide_html(cfg_monthly_inc, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">')
+    )
+
+    if ENABLE_DAILY_CHARTS:
+        html_daily_trend_section = f"""
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+            <tr><td width="100%" valign="top" style="padding-bottom: 20px;">
+                {build_card(f"REQs: ENTRADA X SAÍDA ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE)", f'<img src="{qc_url_wide_html(cfg_daily_trend_req, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">')}
+            </td></tr>
+            <tr><td width="100%" valign="top">
+                {build_card(f"INCs: ENTRADA X SAÍDA ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE)", f'<img src="{qc_url_wide_html(cfg_daily_trend_inc, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">')}
+            </td></tr>
+        </table>
+        """
+    else:
+        html_daily_trend_section = ""
+
+    # ---------------- TABELAS DE OFENSORES ----------------
+    html_offenders_section = ""
+    if ENABLE_OFFENDERS or ENABLE_MOM_COMPARISON:
+        html_offenders_section += build_section_title(
+            "🔄 ANÁLISE DE OFENSORES E CONVERSÕES (REQ ↔ INC)", ModernColors.GRAY_DARK)
+
+        if ENABLE_OFFENDERS:
+            # Tabelas de Grupos Ofensores EXCLUSIVAMENTE do Mês Vigente
+            top_r2i = req_to_inc_cur['Grupo'].value_counts().head(5).reset_index(
+            ) if not req_to_inc_cur.empty else pd.DataFrame(columns=['Grupo', 'Volume'])
+            top_r2i.columns = ['Grupo Ofensor (REQ->INC)', 'Volume']
+
+            top_i2r = inc_to_req_cur['Grupo'].value_counts().head(5).reset_index(
+            ) if not inc_to_req_cur.empty else pd.DataFrame(columns=['Grupo', 'Volume'])
+            top_i2r.columns = ['Grupo Ofensor (INC->REQ)', 'Volume']
+
+            html_offenders_section += build_grid2(
+                build_card("4A. GRUPOS OFENSORES REQ → INC (CLASSIFICAÇÃO - MÊS VIGENTE)",
+                           build_html_table_html(top_r2i, ModernColors.DANGER)),
+                build_card("5B. GRUPOS OFENSORES INC → REQ (CANCELAMENTOS - MÊS VIGENTE)",
+                           build_html_table_html(top_i2r, ModernColors.WARNING))
+            )
+
+        if ENABLE_MOM_COMPARISON:
+            mom_df = get_mom_conversion_stats_html(
+                total_conv_req_inc_geral, total_conv_inc_req_geral, MONTHS_LIMIT_HTML)
+            html_offenders_section += f"""
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+                <tr><td width="100%" valign="top">
+                    {build_card("6. COMPARAÇÃO MÊS A MÊS (CONVERSÕES CRUZADAS GERAIS)", build_html_table_html(mom_df, ModernColors.GRAY_DARK))}
+                </td></tr>
+            </table>
+            """
+
+    grid_monthly_tables = build_grid2(build_full_monthly_table_html(
+        monthly_req, f"THROUGHPUT - REQs"), build_full_monthly_table_html(monthly_inc, f"THROUGHPUT - INCs"))
+
+    # MONTAGEM FINAL DO HTML
+    html_template = f"""
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head><meta charset="UTF-8"></head>
+    <body style="font-family: 'Calibri', Arial, sans-serif; background-color: {ModernColors.BACKGROUND}; margin: 0; padding: 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" align="center" style="max-width: 1400px; background-color: {ModernColors.WHITE}; border-radius: 8px; border: 1px solid #ddd;">
+            <tr>
+                <td style="background-color: {ModernColors.PRIMARY_DARK}; color: {ModernColors.WHITE}; padding: 25px; border-radius: 8px 8px 0 0;">
+                    <h2 style="margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase; font-family: 'Calibri', Arial, sans-serif;">PAINEL EXECUTIVO — REQs x INCs (Cards + Gráficos)</h2>
+                    <p style="margin: 0; color: {ModernColors.GRAY_DARK}; font-size: 13px; background-color: {ModernColors.GRAY_LIGHT}; padding: 8px; border-radius: 4px; display: inline-block; font-weight: bold; font-family: 'Calibri', Arial, sans-serif;">Recorte: {janela} | Base: {badge_meses} | Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} | SLA REQ={SLA_DAYS_REQS}d | SLA INC={SLA_DAYS_INCS}d</p>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 20px;">
+                    {build_section_title("📊 KPIs GERAIS VIGENTES E DESEMPENHO", ModernColors.PRIMARY_DARK, "0px")}
+                    {html_kpi_row1}
+                    {html_kpi_row2}
+                    
+                    {html_req_aging_table}
+
+                    {build_section_title("💡 DISTRIBUIÇÃO E SLAS (GRÁFICOS PIZZA E ROSCA)", "#0B1E40")}
+                    {grid_pizzas}
+
+                    {build_section_title("💡 STATUS E AGING DOS VIGENTES E SOLICITANTES (GRÁFICOS DE BARRAS)", "#0B1E40")}
+                    {grid_barras}
+                    
+                    {build_section_title("📈 1. TABELAS EVOLUÇÃO E TENDÊNCIA ACUMULADOS MESES (REQ X INC)", ModernColors.PRIMARY_DARK)}
+                    {html_monthly_trend_section}
+                    
+                    {build_section_title("📈 2. TABELAS EVOLUÇÃO E TENDÊNCIA DIÁRIA MÊS VIGENTE (REQ X INC)", ModernColors.PRIMARY_DARK) if ENABLE_DAILY_CHARTS else ""}
+                    {html_daily_trend_section}
+                    
+                    {html_offenders_section}
+
+                    {build_section_title(f"📅 TABELA ACOMPANHAMENTO MENSAL: ABERTOS X RESOLVIDOS X BACKLOG", ModernColors.PRIMARY)}
+                    {grid_monthly_tables}
+                </td>
+            </tr>
+            <tr>
+                <td style="text-align:center; padding: 20px; font-size:11px; color:#888; border-top: 1px solid #ddd; font-family: 'Calibri', Arial, sans-serif;">
+                    Dashboard {datetime.now().strftime('%d/%m/%Y')}
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(html_template)
+    log_q(q, f"✅ Arquivo HTML Avançado gerado com sucesso!")
+
+# ============================================================================
+# EXPORTAÇÃO EXCEL (DADOS BRUTOS & RESUMO MANTIDOS DO ORQUESTRADOR)
+# ============================================================================
+
+
+def create_raw_data_sheet(wb, df, sheet_name, q=None):
+    log_q(q, f"   Criando aba: {sheet_name}...")
+    ws = wb.create_sheet(sheet_name)
+    if df.empty:
+        ws.append(["Nenhum dado encontrado"])
+        return
+    df_export = df.copy()
+    for col in df_export.select_dtypes(include=['datetime64[ns, UTC]', 'datetimetz']).columns:
+        df_export[col] = df_export[col].dt.tz_localize(None)
+    for col in df_export.columns:
+        if df_export[col].apply(lambda x: isinstance(x, (list, dict))).any():
+            df_export[col] = df_export[col].astype(str)
+    df_export = df_export.fillna("")
+
+    headers = list(df_export.columns)
+    ws.append(headers)
+    header_fill = PatternFill(start_color="2C3E50",
+                              end_color="2C3E50", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+
+    for row in df_export.itertuples(index=False, name=None):
+        ws.append(row)
+    ws.auto_filter.ref = ws.dimensions
+    ws.freeze_panes = "A2"
+
+
+def create_executive_summary_sheet(wb, df_reqs, df_incs=None, sla_days_reqs=10, sla_days_incs=7):
+    ws = wb.create_sheet("RESUMO EXECUTIVO")
+    ws.cell(row=1, column=1,
+            value="Painel Executivo OK (ver código nativo para detalhes visuais no Excel)")
+
+
+# ============================================================================
+# ENVIO DE EMAIL INTERATIVO COM OPÇÃO DE ANEXO
+# ============================================================================
+def enviar_email_relatorio(html_content, caminho_anexo="", q=None):
+    log_q(q, "\n--- Preparando envio de E-mail via Outlook ---")
+
+    # Tratamento Rigoroso: Evita TypeError caso os.getenv retorne None
+    safe_destinatario = str(destinatario) if destinatario else ""
+    safe_copia = str(copia) if copia else ""
+    safe_titulo = str(titulo) if titulo else "Relatório diário de tickets - Data: "
+    
+    try:
+        safe_importance = int(importance) if importance else 2
+    except (ValueError, TypeError):
+        safe_importance = 2
+
+    try:
+        log_q(q, "Instanciando cliente de E-mail...")
+        outlook = win32com.client.Dispatch("outlook.application")
+
+        mail = outlook.CreateItem(0)
+        
+        if safe_destinatario:
+            mail.To = safe_destinatario
+        else:
+            log_q(q, "⚠️ Aviso: Variável 'destinatario' está vazia. O envio pode falhar.")
+            
+        mail.Importance = safe_importance
+        mail.Subject = safe_titulo + f"{datetime.now().strftime('%d/%m/%Y')}"
+        mail.HTMLBody = html_content
+
+        if safe_copia:
+            mail.CC = safe_copia
+
+        # Checagem de segurança dupla para o anexo
+        if caminho_anexo and os.path.exists(caminho_anexo):
+            absolute_path = os.path.abspath(caminho_anexo)
+            mail.Attachments.Add(absolute_path)
+
+        mail.Send()
+        
+        if caminho_anexo and os.path.exists(caminho_anexo):
+            log_q(q, f"✅ E-mail enviado com sucesso (com anexo: {caminho_anexo})!")
+        else:
+            log_q(q, "✅ E-mail enviado com sucesso (sem anexo)!")
+
+    except Exception as e:
+        log_q(q, f"❌ Erro crítico ao enviar e-mail. Erro: {e}")
+
+
+# ============================================================================
+# MAIN SIMPLES COM AS VARIÁVEIS DINÂMICAS INJETADAS
+# ============================================================================
+def main_simples(configs, q=None):
+    RUN_AT = datetime.now()
+
+    log_q(q, "\n" + "=" * 80)
+    log_q(q, "🚀 ELITE MASTER V4.1 - GERAÇÃO DE RELATÓRIO EXCEL + DASHBOARD HTML AVANÇADO (BLUE)")
+    log_q(q, "=" * 80)
+
+    try:
+        _ensure_dir(OUTPUT_FILE)
+        _ensure_dir(OUTPUT_HTML)
+
+        # Extraindo SLAs das configs dinâmicas
+        sla_reqs = int(configs.get("sla_days_reqs", 10))
+        sla_incs = int(configs.get("sla_days_incs", 7))
+        sla_ptask = int(configs.get("sla_days_ptask", 10))
+
+        # CARREGAMENTO DINÂMICO
+        df_reqs = load_prepare_reqs(SOURCE_FILE, "REQs", now=RUN_AT, q=q)
+        df_incs = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
+
+        # CARREGAMENTO: PTASK
+        df_ptask = load_prepare_ptask(SOURCE_PTASK, sla_ptask, now=RUN_AT, q=q)
+
+        df_reqs_clean = df_reqs.loc[:, ~df_reqs.columns.duplicated()].copy()
+        df_incs_clean = df_incs.loc[:, ~df_incs.columns.duplicated()].copy()
+
+        # ⚠️ CRIAÇÃO DA BASE BRUTA DINÂMICA UNIFICADA PARA ANEXO
+        dynamic_date_str = RUN_AT.strftime("%d_%m_%Y")
+        RAW_DATA_ATTACHMENT = os.path.join(os.path.dirname(
+            OUTPUT_FILE) or ".", f"Base_Bruta_Consolidada_{dynamic_date_str}.xlsx")
+
+        log_q(
+            q, f"\n💾 Gerando anexo de dados brutos unificados: {RAW_DATA_ATTACHMENT}")
+        with pd.ExcelWriter(RAW_DATA_ATTACHMENT, engine='openpyxl') as writer:
+            if not df_reqs.empty:
+                df_reqs.to_excel(writer, sheet_name='REQs', index=False)
+            if not df_incs.empty:
+                df_incs.to_excel(writer, sheet_name='INCs', index=False)
+            if not df_ptask.empty:
+                df_ptask.to_excel(writer, sheet_name='PTASK', index=False)
+
+        # GERAÇÃO DO EXCEL (Se Escolhido no App)
+        modo = configs.get("tipo_relatorio", "simples")
+        if modo == 'completo':
+            log_q(q, f"\n📝 Criando workbook Excel Completo...")
+            wb = openpyxl.Workbook()
+            wb.remove(wb.active)
+
+            create_executive_summary_sheet(
+                wb, df_reqs, df_incs=df_incs, sla_days_reqs=sla_reqs, sla_days_incs=sla_incs)
+            create_temporal_analysis_sheet(wb, df_reqs, df_incs=df_incs, sla_days_reqs=sla_reqs,
+                                           sla_days_incs=sla_incs, meses_extracao_override=None)
+            create_subject_analysis_sheet(wb, df_reqs)
+
+            if configs.get("enable_prb_abertos", True):
+                create_prb_abertos_sheet(wb, df_reqs, df_incs)
+
+            create_stagnation_sheet(wb, df_reqs=df_reqs, df_incs=df_incs,
+                                    sla_days_reqs=sla_reqs, sla_days_incs=sla_incs)
+            create_req_inc_unified_full_final_sheet(wb, df_reqs, df_incs)
+            create_aging_sheet(wb, df_reqs, df_incs=df_incs, sla_days_reqs=sla_reqs,
+                               sla_days_incs=sla_incs, top_n_detail=200)
+            create_analyst_analysis_sheet(wb, df_reqs, df_incs=df_incs, top_n_analysts=20, sla_days_reqs=sla_reqs,
+                                          sla_days_incs=sla_incs, months_limit=12, meses_extracao_override=None)
+
+            create_raw_data_sheet(wb, df_reqs, "DADOS_BRUTOS_REQs", q=q)
+            create_raw_data_sheet(wb, df_incs, "DADOS_BRUTOS_INCs", q=q)
+
+            if not df_ptask.empty:
+                create_raw_data_sheet(wb, df_ptask, "DADOS_BRUTOS_PTASK", q=q)
+
+            log_q(q, f"\n💾 Salvando relatório Excel em: {OUTPUT_FILE}")
+            wb.save(OUTPUT_FILE)
+        else:
+            log_q(
+                q, "\n⏩ Pulando a geração do Excel completo (Modo Apenas HTML selecionado).")
+
+        # HTML
+        generate_advanced_html_report(
+            df_reqs, df_incs, df_ptask, configs, q, OUTPUT_HTML)
+
+        log_q(q, "\n" + "=" * 80)
+        log_q(q, "✅ ROTINA CONCLUÍDA COM SUCESSO!")
+        log_q(q, "=" * 80)
+        log_q(q, f"\n📊 RESULTADOS:")
+
+        if modo == 'completo':
+            log_q(q, f"   📁 Relatório Excel Geral: {OUTPUT_FILE}")
+
+        log_q(q, f"   📎 Arquivo Bruto Gerado (Anexo): {RAW_DATA_ATTACHMENT}")
+        log_q(q, f"   📧 Dashboard HTML:  {OUTPUT_HTML}")
+        log_q(
+            q, f"   📈 Registros processados: REQs={len(df_reqs)}, INCs={len(df_incs)}, PTASK={len(df_ptask) if not df_ptask.empty else 0}")
+
+        # ENVIO AUTOMÁTICO DE E-MAIL
+        try:
+            with open(OUTPUT_HTML, 'r', encoding='utf-8') as f:
+                html_content_to_send = f.read()
+
+            caminho_anexo_email = RAW_DATA_ATTACHMENT if configs.get(
+                "attach_excel_to_email") else ""
+            enviar_email_relatorio(html_content_to_send,
+                                   caminho_anexo=caminho_anexo_email, q=q)
+
+        except Exception as e:
+            log_q(q, f"⚠️  Falha no processo de envio: {e}")
+
+    except FileNotFoundError as e:
+        log_q(q, f"\n❌ ERRO: {e}")
+    except Exception as e:
+        import traceback
+        log_q(q, f"\n❌ ERRO INESPERADO: {e}")
+        log_q(q, traceback.format_exc())
