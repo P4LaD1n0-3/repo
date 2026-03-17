@@ -587,12 +587,9 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
     net = op - (res + canc)
     
     # REVERSE BALANCE CALCULATION (Viagem no Tempo)
-    # Achar o estoque do passado de forma precisa baseado no painel de vigentes atual
     historico_net = net.values
     backlog_retro = np.zeros(len(historico_net))
     
-    # Preenche de trás pra frente
-    # Backlog_Anterior = Backlog_Atual - NetFlow_Atual
     current_bklg = real_backlog
     for i in range(len(historico_net) - 1, -1, -1):
         backlog_retro[i] = current_bklg
@@ -616,7 +613,6 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
         df_month["Cancelados"] = df_month["Cancelados"].fillna(0)
         df_month["NetFlow"] = df_month["NetFlow"].fillna(0)
         
-        # Propaga o backlog para frente preenchendo as quebras de data
         b_series = df_month["Backlog Acumulado"]
         b_series = b_series.ffill() 
         b_series = b_series.bfill()
@@ -671,12 +667,9 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     
     df_out["NetFlow"] = df_out["Abertos"] - (df_out["Resolvidos"] + df_out["Cancelados"])
     
-    # REVERSE BALANCE CALCULATION (Viagem no Tempo)
-    # Achar o estoque do passado de forma precisa baseado no painel de vigentes atual
     historico_net = df_out["NetFlow"].values
     backlog_retro = np.zeros(len(historico_net))
     
-    # Preenche de trás pra frente
     current_bklg = real_backlog
     for i in range(len(historico_net) - 1, -1, -1):
         backlog_retro[i] = current_bklg
@@ -793,7 +786,7 @@ def get_mom_conversion_stats_html(df_r2i, df_i2r, months_limit=2):
 def get_top_callers_html(conv_df, top_n=10):
     if conv_df.empty or "Solicitante" not in conv_df.columns:
         return pd.DataFrame()
-    return conv_df["Solicitante"].replace("", "N/A").value_counts().head(top_n).reset_index(name="Quantidade").rename(columns={"index": "Solicitante"})
+    return conv_df["Solicitante"].replace("nan", "Nao Assinado").replace("", "N/A").value_counts().head(top_n).reset_index(name="Quantidade").rename(columns={"index": "Solicitante"})
 
 
 def compute_consolidated_html(df_reqs, df_incs):
@@ -855,8 +848,10 @@ def pad_empty_html(labels, data):
 
 def sanitize_label(text, limit=20):
     if pd.isna(text):
-        return "N/A"
+        return "Nao Assinado"
     clean = re.sub(r'[^a-zA-Z0-9À-ÿ \-]', '', str(text)).strip()
+    if clean.lower() == "nan" or clean == "":
+        return "Nao Assinado"
     return clean[:limit] + "..." if len(clean) > limit else clean
 
 
@@ -880,7 +875,6 @@ def add_pie_formatter(cfg, data_array=None):
     Garante a exibição do Valor Absoluto e Porcentagem usando tags nativas (%v e %p),
     completamente imune a bloqueios de Javascript na API.
     """
-    # 1. MUDANÇA CRÍTICA: O plugin de strings só funciona se alterarmos o tipo do gráfico
     chart_type = str(cfg.get("type", "")).lower()
     if "doughnut" in chart_type:
         cfg["type"] = "outlabeledDoughnut"
@@ -892,18 +886,14 @@ def add_pie_formatter(cfg, data_array=None):
     if "plugins" not in cfg["options"]:
         cfg["options"]["plugins"] = {}
 
-    # 2. Matamos o datalabels (o plugin que insiste em mostrar int e bloqueia nosso JS)
     cfg["options"]["plugins"]["datalabels"] = {
         "display": False
     }
 
-    # 3. Ligamos o renderizador nativo. O QuickChart calculará sozinho a matemática.
-    # %v = Valor exato numérico | %p = Porcentagem calculada
     cfg["options"]["plugins"]["outlabels"] = {
         "display": True,
         "text": "%v (%p)",
         "color": "#ffffff",
-        # Cria uma linha direcional apontando para a fatia (evita sobreposição)
         "stretch": 25,
         "borderRadius": 4,
         "font": {
@@ -917,42 +907,53 @@ def add_pie_formatter(cfg, data_array=None):
     return cfg
 
 
-def add_bar_formatter(cfg, data_array):
+def add_bar_formatter(cfg, data_array, is_stacked=False):
     """
     Garante a exibição do Número + Porcentagem nos gráficos de barra horizontais.
-    Usa JavaScript na barra (se suportado pela API) e injeta nos Rótulos (Eixo Y)
-    como um fallback garantido 100% à prova de bloqueios de segurança.
+    Se o gráfico for empilhado (stacked), o cálculo da % usa o total da barra somada.
     """
     try:
-        numeric_data = [float(x) if str(x).replace('.','',1).isdigit() else 0 for x in data_array]
-        total = sum(numeric_data)
+        # Se for stacked (como no gráfico misto), precisamos somar os arrays para achar o total geral real
+        if is_stacked and isinstance(data_array, list) and len(data_array) > 0 and isinstance(data_array[0], list):
+            totals_per_bar = [sum(x) for x in zip(*data_array)]
+            total = sum(totals_per_bar)
+        else:
+            numeric_data = [float(x) if str(x).replace('.','',1).isdigit() else 0 for x in data_array]
+            total = sum(numeric_data)
     except Exception:
-        numeric_data = [0 for _ in data_array]
+        numeric_data = [0 for _ in data_array] if not is_stacked else []
         total = 0
 
-    formatted_strings = []
-    for val in numeric_data:
-        if total > 0 and val > 0:
-            pct = (val / total) * 100
-            pct_str = f"{int(pct)}%" if pct.is_integer() else f"{pct:.1f}%"
-            formatted_strings.append(f"{int(val)} ({pct_str})")
-        elif val == 0:
-            formatted_strings.append("")
-        else:
-            formatted_strings.append(str(int(val)))
+    if not is_stacked:
+        formatted_strings = []
+        for val in numeric_data:
+            if total > 0 and val > 0:
+                pct = (val / total) * 100
+                pct_str = f"{int(pct)}%" if pct.is_integer() else f"{pct:.1f}%"
+                formatted_strings.append(f"{int(val)} ({pct_str})")
+            elif val == 0:
+                formatted_strings.append("")
+            else:
+                formatted_strings.append(str(int(val)))
 
-    # Injeção Garantida via Rótulos de Eixo: O HTML vai exibir o nome e a porcentagem ao lado.
-    if "data" in cfg and "labels" in cfg["data"]:
-        orig_labels = cfg["data"]["labels"]
-        new_labels = []
-        for i, lbl in enumerate(orig_labels):
-            fs = formatted_strings[i] if i < len(formatted_strings) else ""
-            new_labels.append(f"{lbl} | {fs}" if fs else lbl)
-        cfg["data"]["labels"] = new_labels
+        if "data" in cfg and "labels" in cfg["data"]:
+            orig_labels = cfg["data"]["labels"]
+            new_labels = []
+            for i, lbl in enumerate(orig_labels):
+                fs = formatted_strings[i] if i < len(formatted_strings) else ""
+                new_labels.append(f"{lbl} | {fs}" if fs else lbl)
+            cfg["data"]["labels"] = new_labels
 
-    # Tentativa de injeção JS via Datalabels (Aplica na barra em APIs que não barram scripts)
-    js_array_str = "[" + ", ".join(f"'{s}'" for s in formatted_strings) + "]"
-    formatter_js = f"function(value, context) {{ return {js_array_str}[context.dataIndex] || ''; }}"
+    formatter_js = (
+        "function(value, context) { "
+        "  if (value === 0 || value === null) return ''; "
+        f"  var total = {total}; "
+        "  if (total === 0) return value; "
+        "  var pct = (value / total) * 100; "
+        "  var pctStr = (pct % 1 === 0 ? pct : pct.toFixed(1)) + '%'; "
+        "  return value + ' (' + pctStr + ')'; "
+        "}"
+    )
 
     if "options" not in cfg:
         cfg["options"] = {}
@@ -964,16 +965,18 @@ def add_bar_formatter(cfg, data_array):
     cfg["options"]["plugins"]["datalabels"]["formatter"] = formatter_js
     cfg["options"]["plugins"]["datalabels"]["display"] = True
 
-    # Aumenta a margem do eixo X para não cortar o texto caso a barra preencha toda a largura
     if "scales" in cfg["options"] and "xAxes" in cfg["options"]["scales"] and len(cfg["options"]["scales"]["xAxes"]) > 0:
         if "ticks" in cfg["options"]["scales"]["xAxes"][0]:
-            max_val = max(numeric_data) if numeric_data else 10
+            if not is_stacked:
+                max_val = max(numeric_data) if numeric_data else 10
+            else:
+                max_val = max(totals_per_bar) if totals_per_bar else 10
             cfg["options"]["scales"]["xAxes"][0]["ticks"]["suggestedMax"] = max_val * 1.35
 
     return cfg
 
 
-def get_hbar_opts(step_size=None, max_val=0):
+def get_hbar_opts(step_size=None, max_val=0, is_stacked=False):
     opts = {
         "legend": {"display": False},
         "layout": {"padding": {"right": 50}},
@@ -982,19 +985,23 @@ def get_hbar_opts(step_size=None, max_val=0):
                 "display": True,
                 "color": "#333333",
                 "anchor": "end",
-                "align": "right",
-                "offset": 4,
+                "align": "right" if not is_stacked else "center",
+                "offset": 4 if not is_stacked else 0,
                 "font": {"weight": "bold", "size": 12},
                 "clip": False
             }
         },
         "scales": {
-            "xAxes": [{"ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.2}}],
-            "yAxes": [{"ticks": {"autoSkip": False}}]
+            "xAxes": [{"stacked": is_stacked, "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.2}}],
+            "yAxes": [{"stacked": is_stacked, "ticks": {"autoSkip": False}}]
         }
     }
     if step_size:
         opts["scales"]["xAxes"][0]["ticks"]["stepSize"] = step_size
+    if is_stacked:
+        opts["legend"]["display"] = True
+        opts["legend"]["position"] = "bottom"
+        opts["plugins"]["datalabels"]["color"] = "#FFFFFF"
     return opts
 
 
@@ -1259,86 +1266,6 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
     return add_title_to_cfg(cfg, f"TOTAL ENTRADAS: {total_in} | SAÍDAS: {total_out}")
 
-
-def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancelados, label_cancelados):
-    l, a = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
-    ], df_monthly["Abertos"].tolist() if not df_monthly.empty else [])
-    _, f = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
-    ], df_monthly["Resolvidos"].tolist() if not df_monthly.empty else [])
-    _, c = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
-    ], df_monthly["Cancelados"].tolist() if not df_monthly.empty else [])
-    _, b = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
-    ], df_monthly["Backlog Acumulado"].tolist() if not df_monthly.empty else [])
-
-    max_val = max([max(a), max(f), max(c)]) if a and f and c and a[0] != 'Sem Dados' else 10
-    max_b = max(b) if b and b[0] != 'Sem Dados' else 10
-
-    cfg = {
-        "type": "bar",
-        "data": {
-            "labels": l,
-            "datasets": [
-                {
-                    "type": "line",
-                    "label": "Backlog (Acumulado)",
-                    "data": b,
-                    "fill": False,
-                    "borderColor": ModernColors.ORANGE,
-                    "backgroundColor": ModernColors.ORANGE,
-                    "borderWidth": 2,
-                    "yAxisID": "y2",
-                    "datalabels": {
-                        "display": True, "align": "top", "anchor": "center", "color": "#000", "font": {"weight": "bold"}
-                    }
-                },
-                {
-                    "type": "bar",
-                    "label": "Abertos",
-                    "data": a,
-                    "backgroundColor": cor_abertos,
-                    "yAxisID": "y1",
-                    "datalabels": {
-                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}
-                    }
-                },
-                {
-                    "type": "bar",
-                    "label": "Resolvidos",
-                    "data": f,
-                    "backgroundColor": cor_fechados,
-                    "yAxisID": "y1",
-                    "datalabels": {
-                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}
-                    }
-                },
-                {
-                    "type": "bar",
-                    "label": label_cancelados,
-                    "data": c,
-                    "backgroundColor": cor_cancelados,
-                    "yAxisID": "y1",
-                    "datalabels": {
-                        "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}
-                    }
-                }
-            ]
-        },
-        "options": {
-            "legend": {"display": True, "position": "bottom"},
-            "scales": {
-                "yAxes": [
-                    {"id": "y1", "position": "left", "ticks": {
-                        "beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.1}},
-                    {"id": "y2", "position": "right", "gridLines": {"drawOnChartArea": False}, "ticks": {
-                        "beginAtZero": True, "precision": 0, "suggestedMax": max_b * 1.2}}
-                ]
-            }
-        }
-    }
-    total_in = sum(a) if a and a[0] != 'Sem Dados' else 0
-    total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
-    return add_title_to_cfg(cfg, f"TOTAL ENTRADAS: {total_in} | SAÍDAS: {total_out}")
-
 # =============================================================================
 # GERAÇÃO DO NOVO RELATÓRIO HTML AVANÇADO
 # =============================================================================
@@ -1469,42 +1396,74 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
 
     # ---------------- GRÁFICOS E LÓGICAS (CONFIGURAÇÃO) ----------------
     
-    # PALETA COLORIDA (Aplicada a REQs e INCs agora)
     COLORFUL_PALETTE = [ModernColors.WARNING, ModernColors.ORANGE, ModernColors.DANGER, ModernColors.PRIMARY, ModernColors.ACCENT, ModernColors.INFO, ModernColors.GRAY, ModernColors.PRIMARY_DARK]
 
-    usr_counts_all = req_open_strict["Assigned to"].replace(
-        "", "N/A").value_counts().head(8)
+    # Lógica Analistas Isolados (REQs)
+    usr_counts_all = req_open_strict["Assigned to"].replace("nan", "Nao Assinado").replace("", "N/A").value_counts().head(8)
     c1_labels, c1_data = pad_empty_html(
         usr_counts_all.index.tolist(), usr_counts_all.values.tolist())
-    # 🌟 MUDANÇA: Gráfico de Barras para Top Analistas REQs
     cfg1 = {
         "type": "horizontalBar",
         "data": {
             "labels": [sanitize_label(x) for x in c1_labels],
             "datasets": [{"data": c1_data, "backgroundColor": COLORFUL_PALETTE}]
         },
-        "options": get_hbar_opts(step_size=1, max_val=max(c1_data) if c1_data else 10)
+        "options": get_hbar_opts(step_size=1, max_val=max(c1_data) if c1_data and str(c1_data[0]).replace('.','',1).isdigit() else 10)
     }
     cfg1 = add_title_to_cfg(
-        cfg1, f"TOTAL ABERTOS: {total_req_abertos_para_titulo}")
+        cfg1, f"TOTAL ABERTOS (REQs): {total_req_abertos_para_titulo}")
     cfg1 = add_bar_formatter(cfg1, c1_data)
 
-    inc_counts_all = inc_open_strict["Assigned to"].replace(
-        "", "N/A").value_counts().head(8)
+    # Lógica Analistas Isolados (INCs)
+    inc_counts_all = inc_open_strict["Assigned to"].replace("nan", "Nao Assinado").replace("", "N/A").value_counts().head(8)
     c1b_labels, c1b_data = pad_empty_html(
         inc_counts_all.index.tolist(), inc_counts_all.values.tolist())
-    # 🌟 MUDANÇA: Gráfico de Barras para Top Analistas INCs
     cfg1b = {
         "type": "horizontalBar",
         "data": {
             "labels": [sanitize_label(x) for x in c1b_labels],
             "datasets": [{"data": c1b_data, "backgroundColor": COLORFUL_PALETTE}]
         },
-        "options": get_hbar_opts(step_size=1, max_val=max(c1b_data) if c1b_data else 10)
+        "options": get_hbar_opts(step_size=1, max_val=max(c1b_data) if c1b_data and str(c1b_data[0]).replace('.','',1).isdigit() else 10)
     }
     cfg1b = add_title_to_cfg(
-        cfg1b, f"TOTAL ABERTOS: {total_inc_abertos_para_titulo}")
+        cfg1b, f"TOTAL ABERTOS (INCs): {total_inc_abertos_para_titulo}")
     cfg1b = add_bar_formatter(cfg1b, c1b_data)
+
+    # 🌟 NOVO: Gráfico Misto Bicolor (REQ + INC) empilhado
+    df_req_misto = req_open_strict.copy()
+    df_req_misto["Tipo_Grafico"] = "REQ"
+    df_inc_misto = inc_open_strict.copy()
+    df_inc_misto["Tipo_Grafico"] = "INC"
+    df_misto_total = pd.concat([df_req_misto, df_inc_misto])
+    df_misto_total["Assigned to"] = df_misto_total["Assigned to"].replace("nan", "Nao Assinado").replace("", "N/A")
+    
+    misto_counts = df_misto_total.groupby(["Assigned to", "Tipo_Grafico"]).size().unstack(fill_value=0)
+    misto_counts["Total"] = misto_counts.sum(axis=1)
+    misto_counts = misto_counts.sort_values(by="Total", ascending=False).head(10)
+    
+    if not misto_counts.empty:
+        l_misto = [sanitize_label(x) for x in misto_counts.index.tolist()]
+        d_req_misto = misto_counts["REQ"].tolist() if "REQ" in misto_counts.columns else [0]*len(l_misto)
+        d_inc_misto = misto_counts["INC"].tolist() if "INC" in misto_counts.columns else [0]*len(l_misto)
+    else:
+        l_misto, d_req_misto = pad_empty_html([], [])
+        d_inc_misto = [0]
+
+    max_misto = max([r + i for r, i in zip(d_req_misto, d_inc_misto)]) if d_req_misto and str(d_req_misto[0]).isdigit() else 10
+    cfg_misto = {
+        "type": "horizontalBar",
+        "data": {
+            "labels": l_misto,
+            "datasets": [
+                {"label": "REQs", "data": d_req_misto, "backgroundColor": ModernColors.PRIMARY_DARK},
+                {"label": "INCs", "data": d_inc_misto, "backgroundColor": ModernColors.ORANGE}
+            ]
+        },
+        "options": get_hbar_opts(step_size=1, max_val=max_misto, is_stacked=True)
+    }
+    cfg_misto = add_title_to_cfg(cfg_misto, f"TOTAL DE TICKETS POR ANALISTA (REQ + INC): {total_backlog_real}")
+    cfg_misto = add_bar_formatter(cfg_misto, [d_req_misto, d_inc_misto], is_stacked=True)
 
     c3a_labels, c3a_data = pad_empty_html(
         buckets_req["Faixa"].tolist(), buckets_req["Qtd"].tolist())
@@ -1531,12 +1490,16 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
         cfg_req_sla, f"TOTAL ABERTOS: {total_req_abertos_para_titulo}")
     cfg_req_sla = add_pie_formatter(cfg_req_sla, [int(in_req), int(out_req)])
 
-    req_st_counts = req_open_strict["State"].replace(
-        "", "N/A").value_counts().head(8)
+    # 🌟 OBRIGAÇÃO DE STATUS NULOS REQ
+    possible_req_states = ["Open", "Work in Progress", "Pending", "On Hold"]
+    req_st_counts = req_open_strict["State"].replace("nan", "Nao Assinado").replace("", "N/A").value_counts()
+    req_st_counts = req_st_counts.reindex(req_st_counts.index.union(possible_req_states), fill_value=0)
+    req_st_counts = req_st_counts[req_st_counts > 0].append(req_st_counts[req_st_counts == 0]).head(8)
+    
     c_rst_l, c_rst_d = pad_empty_html(
         req_st_counts.index.tolist(), req_st_counts.values.tolist())
     cfg_req_state = {"type": "horizontalBar", "data": {"labels": [sanitize_label(x) for x in c_rst_l], "datasets": [
-        {"data": c_rst_d, "backgroundColor": ModernColors.PRIMARY}]}, "options": get_hbar_opts(step_size=1, max_val=max(c_rst_d) if c_rst_d else 10)}
+        {"data": c_rst_d, "backgroundColor": ModernColors.PRIMARY}]}, "options": get_hbar_opts(step_size=1, max_val=max(c_rst_d) if c_rst_d and str(c_rst_d[0]).replace('.','',1).isdigit() else 10)}
     cfg_req_state = add_title_to_cfg(
         cfg_req_state, f"TOTAL ABERTOS: {total_req_abertos_para_titulo}")
     cfg_req_state = add_bar_formatter(cfg_req_state, c_rst_d)
@@ -1550,12 +1513,16 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
         cfg_inc_sla, f"TOTAL ABERTOS: {total_inc_abertos_para_titulo}")
     cfg_inc_sla = add_pie_formatter(cfg_inc_sla, [int(in_inc), int(out_inc)])
 
-    inc_st_counts = inc_open_strict["State"].replace(
-        "", "N/A").value_counts().head(8)
+    # 🌟 OBRIGAÇÃO DE STATUS NULOS INC
+    possible_inc_states = ["New", "In Progress", "On Hold", "Assigned"]
+    inc_st_counts = inc_open_strict["State"].replace("nan", "Nao Assinado").replace("", "N/A").value_counts()
+    inc_st_counts = inc_st_counts.reindex(inc_st_counts.index.union(possible_inc_states), fill_value=0)
+    inc_st_counts = inc_st_counts[inc_st_counts > 0].append(inc_st_counts[inc_st_counts == 0]).head(8)
+    
     c_ist_l, c_ist_d = pad_empty_html(
         inc_st_counts.index.tolist(), inc_st_counts.values.tolist())
     cfg_inc_state = {"type": "horizontalBar", "data": {"labels": [sanitize_label(x) for x in c_ist_l], "datasets": [
-        {"data": c_ist_d, "backgroundColor": ModernColors.INFO}]}, "options": get_hbar_opts(step_size=1, max_val=max(c_ist_d) if c_ist_d else 10)}
+        {"data": c_ist_d, "backgroundColor": ModernColors.INFO}]}, "options": get_hbar_opts(step_size=1, max_val=max(c_ist_d) if c_ist_d and str(c_ist_d[0]).replace('.','',1).isdigit() else 10)}
     cfg_inc_state = add_title_to_cfg(
         cfg_inc_state, f"TOTAL ABERTOS: {total_inc_abertos_para_titulo}")
     cfg_inc_state = add_bar_formatter(cfg_inc_state, c_ist_d)
@@ -1572,7 +1539,7 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
             "labels": [sanitize_label(x) for x in c_r2i_l],
             "datasets": [{"data": c_r2i_d, "backgroundColor": ModernColors.DANGER}]
         },
-        "options": get_hbar_opts(step_size=1, max_val=max(c_r2i_d) if c_r2i_d else 10)
+        "options": get_hbar_opts(step_size=1, max_val=max(c_r2i_d) if c_r2i_d and str(c_r2i_d[0]).replace('.','',1).isdigit() else 10)
     }
     cfg_req_callers = add_title_to_cfg(
         cfg_req_callers, f"TOTAL: {sum(c_r2i_d) if c_r2i_d and c_r2i_d[0] != 'Sem Dados' else 0}")
@@ -1586,21 +1553,11 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
             "labels": [sanitize_label(x) for x in c_i2r_l],
             "datasets": [{"data": c_i2r_d, "backgroundColor": ModernColors.WARNING}]
         },
-        "options": get_hbar_opts(step_size=1, max_val=max(c_i2r_d) if c_i2r_d else 10)
+        "options": get_hbar_opts(step_size=1, max_val=max(c_i2r_d) if c_i2r_d and str(c_i2r_d[0]).replace('.','',1).isdigit() else 10)
     }
     cfg_inc_callers = add_title_to_cfg(
         cfg_inc_callers, f"TOTAL: {sum(c_i2r_d) if c_i2r_d and c_i2r_d[0] != 'Sem Dados' else 0}")
     cfg_inc_callers = add_bar_formatter(cfg_inc_callers, c_i2r_d)
-
-    cfg_monthly_req = build_monthly_backlog_cfg(
-        monthly_req, ModernColors.PRIMARY, ModernColors.PRIMARY_DARK, ModernColors.GRAY, "Closed Incomplete")
-    cfg_monthly_inc = build_monthly_backlog_cfg(
-        monthly_inc, ModernColors.INFO, ModernColors.SUCCESS, ModernColors.WARNING, "Canceled")
-
-    cfg_daily_trend_req = build_daily_trend_cfg(
-        daily_req_curr, ModernColors.PRIMARY, ModernColors.PRIMARY_DARK, ModernColors.GRAY, "Closed Incomplete")
-    cfg_daily_trend_inc = build_daily_trend_cfg(
-        daily_inc_curr, ModernColors.INFO, ModernColors.SUCCESS, ModernColors.WARNING, "Canceled")
 
     # ---------------- LÓGICA E GRÁFICOS PTASK ----------------
     pizzas_items = [
@@ -1610,9 +1567,12 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
                    f'<img src="{qc_url_html(cfg_inc_sla, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">')
     ]
 
-    # GRÁFICOS DE BARRAS: Agregando Agings, Status, Solicitantes e agora Analistas
+    # GRÁFICOS DE BARRAS: Agregando Agings, Status, Solicitantes e Analistas
     barras_items = [
-        # 🌟 Analistas movidos para a área de barras
+        # 🌟 O gráfico misto inserido em PRIMEIRO lugar
+        build_card("TOP ANALISTAS (REQs + INCs)",
+                   f'<img src="{qc_url_html(cfg_misto, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
+        
         build_card("Top Analistas REQs",
                    f'<img src="{qc_url_html(cfg1, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'),
         build_card("Top Analistas INCs",
@@ -1636,9 +1596,7 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
         ptask_sla_counts = df_ptask["SLA_Status"].value_counts()
         ptask_state_counts = df_ptask["State_Bin"].value_counts()
         ptask_assignee_counts = df_ptask["Assigned to"].replace(
-            "—", "N/A").value_counts().head(10)
-        ptask_rca_counts = df_ptask["RCA Status"].replace(
-            "—", "N/A").value_counts().head(5)
+            "nan", "Nao Assinado").replace("—", "N/A").value_counts().head(10)
 
         l_sla, d_sla = pad_empty_html(
             ptask_sla_counts.index.tolist(), ptask_sla_counts.values.tolist())
@@ -1663,30 +1621,19 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
         l_ass, d_ass = pad_empty_html(
             ptask_assignee_counts.index.tolist(), ptask_assignee_counts.values.tolist())
         cfg_ptask_ass = {"type": "horizontalBar", "data": {"labels": [sanitize_label(x) for x in l_ass], "datasets": [
-            {"data": d_ass, "backgroundColor": ModernColors.INFO}]}, "options": get_hbar_opts(step_size=1, max_val=max(d_ass) if d_ass else 10)}
+            {"data": d_ass, "backgroundColor": ModernColors.INFO}]}, "options": get_hbar_opts(step_size=1, max_val=max(d_ass) if d_ass and str(d_ass[0]).replace('.','',1).isdigit() else 10)}
         cfg_ptask_ass = add_title_to_cfg(
             cfg_ptask_ass, f"TOTAL: {sum(d_ass) if d_ass and d_ass[0] != 'Sem Dados' else 0}")
         cfg_ptask_ass = add_bar_formatter(cfg_ptask_ass, d_ass)
-
-        l_rca, d_rca = pad_empty_html(
-            ptask_rca_counts.index.tolist(), ptask_rca_counts.values.tolist())
-        cfg_ptask_rca = {"type": "pie", "data": {"labels": [sanitize_label(x) for x in l_rca], "datasets": [{"data": d_rca, "backgroundColor": [
-            ModernColors.PRIMARY, ModernColors.ACCENT, ModernColors.ORANGE, ModernColors.GRAY, ModernColors.DANGER]}]}, "options": {}}
-        cfg_ptask_rca = add_title_to_cfg(
-            cfg_ptask_rca, f"TOTAL: {sum(d_rca) if d_rca and d_rca[0] != 'Sem Dados' else 0}")
-        cfg_ptask_rca = add_pie_formatter(cfg_ptask_rca, d_rca)
 
         pizzas_items.append(build_card("PTASK: Inside vs Outside SLA",
                             f'<img src="{qc_url_html(cfg_ptask_sla, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'))
         pizzas_items.append(build_card("PTASK: Complete vs Open",
                             f'<img src="{qc_url_html(cfg_ptask_state, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'))
-        pizzas_items.append(build_card(
-            "PTASK: Status do RCA", f'<img src="{qc_url_html(cfg_ptask_rca, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'))
         barras_items.append(build_card(
             "PTASK: Top Analistas", f'<img src="{qc_url_html(cfg_ptask_ass, q)}" width="100%" style="max-width:100%; display:block; margin:0 auto;">'))
 
     # ---------------- CONSTRUÇÃO EM BLOCOS HTML PRINCIPAIS (Para Outlook) ----------------
-    # 🌟 MUDANÇA: Reorganização da primeira linha de KPIs
     html_kpi_row1 = f"""
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px;">
         <tr>
@@ -1699,7 +1646,6 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
     </table>
     """
     
-    # 🌟 MUDANÇA: Reorganização da segunda linha de KPIs (PTASKs e conversões)
     html_kpi_row2 = f"""
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px;">
         <tr>
