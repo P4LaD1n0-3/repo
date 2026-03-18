@@ -51,6 +51,7 @@ class ModernColors:
     DANGER = "#D81B60"         # Magenta/Rosa Escuro (Fora do SLA / Perigo)
     ORANGE = "#F57C00"         # Laranja Mudo para Linhas
     GRAY_DARK = "#283593"      # Cinza-Azulado Escuro
+    GRAY = "#7F8C8D"           # Cinza (Usado para Cancelados)
     GRAY_LIGHT = "#E8EAF6"     # Fundo de Tabelas
     WHITE = "#FFFFFF"
     INFO = "#0288D1"           # Azul Ciano
@@ -375,7 +376,7 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
     resolved_dates = d_closed[mask_resolved]["Closed_Date"]
     canceled_dates = d_closed[mask_canceled]["Closed_Date"]
     
-    # SLA Perdido (Informacional)
+    # Lógica de SLA Perdido Diário (apenas informacional)
     mask_sla_breach = mask_resolved & (d_closed["Aging"] > sla_days)
     sla_breach_dates = d_closed[mask_sla_breach]["Closed_Date"]
 
