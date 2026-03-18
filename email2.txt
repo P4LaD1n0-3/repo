@@ -38,24 +38,29 @@ OUTPUT_FILE = 'rel_master/relatorio_completo_layout2.xlsx'
 OUTPUT_HTML = 'rel_master/relatorio_email2.html'
 
 # ============================================================================
-# NOVA PALETA DE CORES (Tons de Azul e Roxo)
+# NOVA PALETA DE CORES (Cores Escuras com Alto Contraste)
 # ============================================================================
 class ModernColors:
-    PRIMARY_DARK = "#1A237E"   # Azul Marinho Escuro (UAMs)
-    PRIMARY = "#3F51B5"        # Azul Royal (REQs)
-    PRIMARY_LIGHT = "#C5CAE9"  # Azul Claro
-    ACCENT_DARK = "#4A148C"    # Roxo Escuro (INCs)
-    ACCENT = "#7B1FA2"         # Roxo
-    ACCENT_LIGHT = "#E1BEE7"   # Roxo Claro
-    SUCCESS = "#00897B"        # Verde-água/Teal (Dentro do SLA)
-    DANGER = "#D81B60"         # Magenta/Rosa Escuro (Fora do SLA / Perigo)
-    ORANGE = "#F57C00"         # Laranja Mudo para Linhas
-    GRAY_DARK = "#283593"      # Cinza-Azulado Escuro
-    GRAY = "#7F8C8D"           # Cinza (Usado para Cancelados)
-    GRAY_LIGHT = "#E8EAF6"     # Fundo de Tabelas
+    PRIMARY_DARK = "#0A192F"   # Azul Marinho Muito Escuro (Quase preto)
+    PRIMARY = "#1E3A8A"        # Azul Escuro Intenso
+    PRIMARY_LIGHT = "#DBEAFE"  # Fundo Azul Suave
+    ACCENT_DARK = "#3B0764"    # Roxo Muito Escuro
+    ACCENT = "#581C87"         # Roxo Intenso
+    ACCENT_LIGHT = "#F3E8FF"   # Fundo Roxo Suave
+    SUCCESS = "#064E3B"        # Verde Muito Escuro
+    SUCCESS_LIGHT = "#D1FAE5"  # Fundo Verde Suave
+    WARNING = "#78350F"        # Laranja/Marrom Escuro
+    WARNING_LIGHT = "#FEF3C7"  # Fundo Amarelo Suave
+    DANGER = "#7F1D1D"         # Vermelho Muito Escuro
+    DANGER_LIGHT = "#FEE2E2"   # Fundo Vermelho Suave
+    ORANGE = "#9A3412"         # Laranja Forte
+    ORANGE_LIGHT = "#FFEDD5"
+    GRAY_DARK = "#1E293B"      # Cinza Chumbo
+    GRAY = "#475569"           # Cinza Médio
+    GRAY_LIGHT = "#F1F5F9"     # Cinza Muito Claro
     WHITE = "#FFFFFF"
-    INFO = "#0288D1"           # Azul Ciano
-    BACKGROUND = "#F4F6F9"
+    INFO = "#0C4A6E"           # Ciano Escuro
+    BACKGROUND = "#F8FAFC"     # Fundo Geral
 
 
 # ============================================================================
