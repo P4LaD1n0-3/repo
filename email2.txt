@@ -37,26 +37,24 @@ SOURCE_PTASK = 'path_temp/problem_task.xlsx'
 OUTPUT_FILE = 'rel_master/relatorio_completo_layout2.xlsx'
 OUTPUT_HTML = 'rel_master/relatorio_email2.html'
 
-
+# ============================================================================
+# NOVA PALETA DE CORES (Tons de Azul e Roxo)
+# ============================================================================
 class ModernColors:
-    PRIMARY_DARK = "#001B69"
-    PRIMARY = "#4A90E2"
-    PRIMARY_LIGHT = "#EBF5FB"
-    SUCCESS = "#27AE60"
-    SUCCESS_LIGHT = "#D5F4E6"
-    WARNING = "#F39C12"
-    WARNING_LIGHT = "#FCF3CF"
-    DANGER = "#E74C3C"
-    DANGER_LIGHT = "#FADBD8"
-    ORANGE = "#E67E22"
-    ORANGE_LIGHT = "#FDEBD0"
-    GRAY_DARK = "#1A365D"
-    GRAY = "#7F8C8D"
-    GRAY_LIGHT = "#ECF0F1"
+    PRIMARY_DARK = "#1A237E"   # Azul Marinho Escuro (UAMs)
+    PRIMARY = "#3F51B5"        # Azul Royal (REQs)
+    PRIMARY_LIGHT = "#C5CAE9"  # Azul Claro
+    ACCENT_DARK = "#4A148C"    # Roxo Escuro (INCs)
+    ACCENT = "#7B1FA2"         # Roxo
+    ACCENT_LIGHT = "#E1BEE7"   # Roxo Claro
+    SUCCESS = "#00897B"        # Verde-água/Teal (Dentro do SLA)
+    DANGER = "#D81B60"         # Magenta/Rosa Escuro (Fora do SLA / Perigo)
+    ORANGE = "#F57C00"         # Laranja Mudo para Linhas
+    GRAY_DARK = "#283593"      # Cinza-Azulado Escuro
+    GRAY_LIGHT = "#E8EAF6"     # Fundo de Tabelas
     WHITE = "#FFFFFF"
-    ACCENT = "#2B6CB0"
-    INFO = "#3182CE"
-    BACKGROUND = "#F5F6FA"
+    INFO = "#0288D1"           # Azul Ciano
+    BACKGROUND = "#F4F6F9"
 
 
 # ============================================================================
@@ -182,7 +180,7 @@ def load_prepare_incs(source_file, label="INCs", now=None, q=None):
 
 
 # ============================================================================
-# LÓGICA DE CÁLCULO E MÉTRICAS PARA O DASHBOARD HTML AVANÇADO E REGRAS DE ABERTOS
+# LÓGICA DE CÁLCULO E MÉTRICAS PARA O DASHBOARD HTML AVANÇADO
 # ============================================================================
 def _is_access_ticket_html(assignment_group_value):
     if assignment_group_value is None or pd.isna(assignment_group_value):
@@ -377,7 +375,7 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
     resolved_dates = d_closed[mask_resolved]["Closed_Date"]
     canceled_dates = d_closed[mask_canceled]["Closed_Date"]
     
-    # Lógica de SLA Perdido Diário (apenas informacional)
+    # SLA Perdido (Informacional)
     mask_sla_breach = mask_resolved & (d_closed["Aging"] > sla_days)
     sla_breach_dates = d_closed[mask_sla_breach]["Closed_Date"]
 
@@ -457,7 +455,7 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     resolved_months = d_closed[mask_resolved]["Closed_Month"].value_counts()
     canceled_months = d_closed[mask_canceled]["Closed_Month"].value_counts()
     
-    # Lógica de SLA Perdido Mensal (apenas informacional)
+    # SLA Perdido Mensal (Informacional)
     mask_sla_breach = mask_resolved & (d_closed["Aging"] > sla_days)
     sla_breach_months = d_closed[mask_sla_breach]["Closed_Month"].value_counts()
 
@@ -637,7 +635,7 @@ def get_hbar_opts(step_size=None, max_val=0, is_stacked=False):
                 "anchor": "end" if not is_stacked else "center",
                 "align": "right" if not is_stacked else "center",
                 "offset": 4 if not is_stacked else 0,
-                "font": {"weight": "bold", "size": 12},
+                "font": {"weight": "bold", "size": 11},
                 "clip": False
             }
         },
@@ -666,7 +664,7 @@ def build_section_title(text, bg_color=ModernColors.PRIMARY_DARK, margin_top="35
 def build_card(title, content):
     return f"""
     <table width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #eeeeee; border-radius: 6px; padding: 12px; background-color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-collapse: separate; margin-bottom: 20px;">
-        <tr><td valign="top" style="font-family: 'Calibri', Arial, sans-serif; color: #585858; font-size: 14px; font-weight: bold; text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid #f4f4f4; text-align: left; height: 20px;">
+        <tr><td valign="top" style="font-family: 'Calibri', Arial, sans-serif; color: #585858; font-size: 13px; font-weight: bold; text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid #f4f4f4; text-align: left; height: 20px;">
             {title}
         </td></tr>
         <tr><td valign="top" style="padding-top: 15px; text-align: center;">
@@ -675,23 +673,14 @@ def build_card(title, content):
     </table>
     """
 
-def build_grid2(left_content, right_content):
+def build_grid4(col1, col2, col3, col4):
     return f"""
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
         <tr>
-            <td width="50%" valign="top" style="padding-right: 10px;">{left_content}</td>
-            <td width="50%" valign="top" style="padding-left: 10px;">{right_content}</td>
-        </tr>
-    </table>
-    """
-
-def build_grid3(col1, col2, col3):
-    return f"""
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
-        <tr>
-            <td width="33.3%" valign="top" style="padding-right: 10px;">{col1}</td>
-            <td width="33.3%" valign="top" style="padding-left: 5px; padding-right: 5px;">{col2}</td>
-            <td width="33.3%" valign="top" style="padding-left: 10px;">{col3}</td>
+            <td width="25%" valign="top" style="padding-right: 5px;">{col1}</td>
+            <td width="25%" valign="top" style="padding-left: 5px; padding-right: 5px;">{col2}</td>
+            <td width="25%" valign="top" style="padding-left: 5px; padding-right: 5px;">{col3}</td>
+            <td width="25%" valign="top" style="padding-left: 5px;">{col4}</td>
         </tr>
     </table>
     """
@@ -700,10 +689,10 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
     if df is None or df.empty:
         return f"<div style='padding: 15px; color: {ModernColors.SUCCESS}; background-color: {ModernColors.SUCCESS_LIGHT}; text-align: center; font-weight: bold; border: 1px solid {ModernColors.SUCCESS}; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Sem dados aplicáveis para o período.</div>"
 
-    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 12px; font-family: Calibri, Arial, sans-serif; margin: 0 auto;'>"
+    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; margin: 0 auto;'>"
     html += "<thead><tr>"
     for col in df.columns:
-        html += f"<th style='background-color: {header_bg}; color: #fff; padding: 8px; border: 1px solid #ddd; text-align: center;'>{col}</th>"
+        html += f"<th style='background-color: {header_bg}; color: #fff; padding: 6px; border: 1px solid #ddd; text-align: center;'>{col}</th>"
     html += "</tr></thead><tbody>"
 
     for i, row in df.iterrows():
@@ -724,11 +713,15 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
                         bg_cell = "transparent"
                 except:
                     bg_cell = "transparent"
+            elif "SLA X%" in df.columns and j == list(df.columns).index("SLA X%"):
+                color = ModernColors.DANGER
+                font_weight = "bold"
+                bg_cell = "transparent"
             else:
                 bg_cell = ModernColors.WARNING_LIGHT if "⚠️" in v_str else "transparent"
 
             align = "left" if j == 0 else "center"
-            html += f"<td style='padding: 8px; border: 1px solid #ddd; text-align: {align}; color: {color}; font-weight: {font_weight}; background-color: {bg_cell};'>{v_str}</td>"
+            html += f"<td style='padding: 6px; border: 1px solid #ddd; text-align: {align}; color: {color}; font-weight: {font_weight}; background-color: {bg_cell};'>{v_str}</td>"
         html += "</tr>"
     html += "</tbody>"
 
@@ -752,7 +745,7 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
             else:
                 val = "—"
                 align = "center"
-            html += f"<td style='padding: 8px; border: 1px solid #ddd; text-align: {align};'>{val}</td>"
+            html += f"<td style='padding: 6px; border: 1px solid #ddd; text-align: {align};'>{val}</td>"
         html += "</tr></tfoot>"
 
     html += "</table>"
@@ -763,16 +756,16 @@ def build_full_monthly_table_html(df, title):
         return f"<div style='padding: 15px; font-family: Calibri, sans-serif; background-color: {ModernColors.SUCCESS_LIGHT}; color: {ModernColors.SUCCESS}; border: 1px solid {ModernColors.SUCCESS}; text-align: center; font-weight: bold;'>✅ Sem dados em {title}</div>"
 
     html = f"""
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; font-size: 13px; font-family: 'Calibri', Arial, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; font-size: 11px; font-family: 'Calibri', Arial, sans-serif;">
         <thead>
             <tr style="background-color: {ModernColors.GRAY_LIGHT};">
-                <th style="padding:8px; border:1px solid #ddd; text-align:left;">Mês</th>
-                <th style="padding:8px; border:1px solid #ddd; text-align:center;">Abertos</th>
-                <th style="padding:8px; border:1px solid #ddd; text-align:center;">Resolvidos</th>
-                <th style="padding:8px; border:1px solid #ddd; text-align:center;">Cancelados</th>
-                <th style="padding:8px; border:1px solid #ddd; text-align:center;">SLA Perdido</th>
-                <th style="padding:8px; border:1px solid #ddd; text-align:center;">Saldo (Throughput)</th>
-                <th style="padding:8px; border:1px solid #ddd; text-align:center;">Backlog Acumulado</th>
+                <th style="padding:4px; border:1px solid #ddd; text-align:left;">Mês</th>
+                <th style="padding:4px; border:1px solid #ddd; text-align:center;">Abertos</th>
+                <th style="padding:4px; border:1px solid #ddd; text-align:center;">Resolvidos</th>
+                <th style="padding:4px; border:1px solid #ddd; text-align:center;">Cancelados</th>
+                <th style="padding:4px; border:1px solid #ddd; text-align:center;">Fora SLA</th>
+                <th style="padding:4px; border:1px solid #ddd; text-align:center;">Saldo</th>
+                <th style="padding:4px; border:1px solid #ddd; text-align:center;">Backlog</th>
             </tr>
         </thead>
         <tbody>
@@ -784,13 +777,13 @@ def build_full_monthly_table_html(df, title):
         bg_tr = "#fcfcfc" if i % 2 == 0 else "#ffffff"
 
         html += f"""<tr style="background-color: {bg_tr};">
-            <td style="padding:8px; border:1px solid #ddd; text-align:left;">{d1}</td>
-            <td style="padding:8px; border:1px solid #ddd; text-align:center;">{a1}</td>
-            <td style="padding:8px; border:1px solid #ddd; text-align:center;">{f1}</td>
-            <td style="padding:8px; border:1px solid #ddd; text-align:center;">{c1_val}</td>
-            <td style="padding:8px; border:1px solid #ddd; text-align:center; color: {ModernColors.DANGER}; font-weight:bold;">{sl1}</td>
-            <td style="color: {c1}; font-weight: bold; padding:8px; border:1px solid #ddd; text-align:center;">{sign1}{s1}</td>
-            <td style="padding:8px; border:1px solid #ddd; text-align:center; font-weight:bold;">{b1}</td>
+            <td style="padding:4px; border:1px solid #ddd; text-align:left;">{d1}</td>
+            <td style="padding:4px; border:1px solid #ddd; text-align:center;">{a1}</td>
+            <td style="padding:4px; border:1px solid #ddd; text-align:center;">{f1}</td>
+            <td style="padding:4px; border:1px solid #ddd; text-align:center;">{c1_val}</td>
+            <td style="padding:4px; border:1px solid #ddd; text-align:center; color: {ModernColors.DANGER}; font-weight:bold;">{sl1}</td>
+            <td style="color: {c1}; font-weight: bold; padding:4px; border:1px solid #ddd; text-align:center;">{sign1}{s1}</td>
+            <td style="padding:4px; border:1px solid #ddd; text-align:center; font-weight:bold;">{b1}</td>
         </tr>"""
 
     tot_a = df["Abertos"].sum()
@@ -804,13 +797,13 @@ def build_full_monthly_table_html(df, title):
 
     html += f"""
         <tr style="background-color: {ModernColors.GRAY_LIGHT}; border-top: 2px solid {ModernColors.PRIMARY_DARK};">
-            <td style="text-align: right; padding: 10px 15px; font-weight: bold; color: {ModernColors.PRIMARY_DARK}; border:1px solid #ddd; font-size: 14px;">TOTAIS:</td>
-            <td style="font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size: 14px;">{tot_a}</td>
-            <td style="font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size: 14px;">{tot_f}</td>
-            <td style="font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size: 14px;">{tot_c}</td>
-            <td style="font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size: 14px; color: {ModernColors.DANGER};">{tot_sl}</td>
-            <td style="color: {c_tot}; font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size:14px;">{sign_tot}{tot_s}</td>
-            <td style="font-weight: bold; text-align:center; padding:8px; border:1px solid #ddd; font-size: 14px;">{last_b}</td>
+            <td style="text-align: right; padding: 4px; font-weight: bold; color: {ModernColors.PRIMARY_DARK}; border:1px solid #ddd; font-size: 11px;">TOTAIS:</td>
+            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px;">{tot_a}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px;">{tot_f}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px;">{tot_c}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px; color: {ModernColors.DANGER};">{tot_sl}</td>
+            <td style="color: {c_tot}; font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size:11px;">{sign_tot}{tot_s}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px;">{last_b}</td>
         </tr>
         </tbody>
     </table>"""
@@ -850,7 +843,7 @@ def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancela
     }
     total_in = sum(a) if a and a[0] != 'Sem Dados' else 0
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
-    return add_title_to_cfg(cfg, f"TOTAL ENTRADAS: {total_in} | SAÍDAS: {total_out}")
+    return add_title_to_cfg(cfg, f"VISÃO ANUAL - TOTAL ENTRADAS: {total_in} | SAÍDAS: {total_out}")
 
 def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, label_cancelados):
     l, a = pad_empty_html(df_daily["Data"].str[:5].tolist() if not df_daily.empty else [], df_daily["Abertos"].tolist() if not df_daily.empty else [])
@@ -972,13 +965,18 @@ def main_simples(configs, q=None):
                 df_critical = df_critical.sort_values(by="AGING_OPEN", ascending=False).head(50)
                 df_critical["Opened_Str"] = df_critical["Opened"].dt.strftime('%d/%m/%Y').fillna("-")
                 df_critical["ETA"] = ETA_DATE
+                
+                # CÁLCULO DA NOVA COLUNA SLA X%
+                df_critical["SLA X%"] = ((df_critical["AGING_OPEN"] / sla_days) * 100).astype(int).astype(str) + "%"
+                
                 for col in ["Number", "Assigned to", "Requester", "State"]:
                     if col not in df_critical.columns:
                         df_critical[col] = "N/A"
-                df_critical = df_critical[["Number", "Assigned to", "Requester", "State", "Opened_Str", "AGING_OPEN", "ETA"]]
-                df_critical.columns = ["Ticket", "Assigned to", "Requester", "State", "Opened", "Aging", "ETA"]
+                        
+                df_critical = df_critical[["Number", "Assigned to", "Requester", "State", "Opened_Str", "AGING_OPEN", "SLA X%", "ETA"]]
+                df_critical.columns = ["Ticket", "Assigned to", "Requester", "State", "Opened", "Aging", "SLA X%", "ETA"]
             else:
-                df_critical = pd.DataFrame(columns=["Ticket", "Assigned to", "Requester", "State", "Opened", "Aging", "ETA"])
+                df_critical = pd.DataFrame(columns=["Ticket", "Assigned to", "Requester", "State", "Opened", "Aging", "SLA X%", "ETA"])
 
             return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla
 
@@ -1008,7 +1006,7 @@ def main_simples(configs, q=None):
             cfg_mensal = build_monthly_backlog_cfg(df_m, color_main, ModernColors.SUCCESS, ModernColors.GRAY, label_canc)
             cfg_diario = build_daily_trend_cfg(df_d, color_main, ModernColors.SUCCESS, ModernColors.GRAY, label_canc)
             
-            tabela_throughput = build_full_monthly_table_html(df_m, "TABELA DE THROUGHPUT ACUMULADO")
+            tabela_throughput = build_full_monthly_table_html(df_m, "TABELA DE THROUGHPUT")
             tabela_sla_critica = build_html_table_html(df_sla, ModernColors.DANGER, show_totals=False)
 
             labels_a, data_a = pad_empty_html(df_a["Analista"].tolist(), df_a["Volume"].tolist())
@@ -1020,7 +1018,7 @@ def main_simples(configs, q=None):
                 },
                 "options": get_hbar_opts(max_val=max(data_a) if data_a and str(data_a[0]).replace('.','',1).isdigit() else 10)
             }
-            cfg_analistas = add_title_to_cfg(cfg_analistas, "TOP ANALISTAS - VIGENTES ABERTOS")
+            cfg_analistas = add_title_to_cfg(cfg_analistas, f"TOP ANALISTAS (TOTAL: {sum(data_a) if data_a and str(data_a[0]).isdigit() else 0})")
             cfg_analistas = add_bar_formatter(cfg_analistas, data_a)
 
             labels_ag, data_ag = pad_empty_html(df_ag["Faixa"].tolist(), df_ag["Qtd"].tolist())
@@ -1032,7 +1030,7 @@ def main_simples(configs, q=None):
                 },
                 "options": get_hbar_opts(max_val=max(data_ag) if data_ag and str(data_ag[0]).replace('.','',1).isdigit() else 10)
             }
-            cfg_aging = add_title_to_cfg(cfg_aging, "DISTRIBUIÇÃO DE AGING")
+            cfg_aging = add_title_to_cfg(cfg_aging, f"DISTRIBUIÇÃO AGING (TOTAL: {sum(data_ag) if data_ag and str(data_ag[0]).isdigit() else 0})")
             cfg_aging = add_bar_formatter(cfg_aging, data_ag)
 
             total_sla = in_sla + out_sla
@@ -1044,38 +1042,37 @@ def main_simples(configs, q=None):
                 },
                 "options": {}
             }
-            cfg_sla_pie = add_title_to_cfg(cfg_sla_pie, f"SLA (%): {total_sla} ABERTOS")
+            cfg_sla_pie = add_title_to_cfg(cfg_sla_pie, f"SLA (%) - TOTAL: {total_sla}")
             cfg_sla_pie = add_pie_formatter(cfg_sla_pie, [in_sla, out_sla])
 
+            # LAYOUT AJUSTADO: Gráfico Diário (Tela Cheia), Gráfico Anual (Tela Cheia), Linha de 4 itens
             return f"""
             {build_section_title(titulo, color_main)}
             {mttr_badge}
             
             {build_card("1. ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE)", f'<img src="{qc_url_wide_html(cfg_diario, q)}" width="100%">')}
             
-            {build_grid2(
-                build_card("2. VISÃO MENSAL/ANUAL", f'<img src="{qc_url_html(cfg_mensal, q)}" width="100%">'),
-                build_card("TABELA DE THROUGHPUT", tabela_throughput)
+            {build_card("2. VISÃO MENSAL / ANUAL", f'<img src="{qc_url_wide_html(cfg_mensal, q)}" width="100%">')}
+            
+            {build_grid4(
+                build_card("3. TABELA DE THROUGHPUT", tabela_throughput),
+                build_card("4. VOLUME POR ANALISTA", f'<img src="{qc_url_html(cfg_analistas, q)}" width="100%">'),
+                build_card("5. MATURIDADE (AGING)", f'<img src="{qc_url_html(cfg_aging, q)}" width="100%">'),
+                build_card("6. STATUS DE SLA", f'<img src="{qc_url_html(cfg_sla_pie, q)}" width="100%">')
             )}
             
-            {build_grid3(
-                build_card("3. VOLUME POR ANALISTA", f'<img src="{qc_url_html(cfg_analistas, q)}" width="100%">'),
-                build_card("4. MATURIDADE (AGING)", f'<img src="{qc_url_html(cfg_aging, q)}" width="100%">'),
-                build_card("5. STATUS DE SLA", f'<img src="{qc_url_html(cfg_sla_pie, q)}" width="100%">')
-            )}
-            
-            {build_card("⚠️ CHAMADOS ACIMA DO SLA PENDENTES", tabela_sla_critica)}
+            {build_card(f"⚠️ CHAMADOS ACIMA DO SLA PENDENTES (TOTAL: {len(df_sla)})", tabela_sla_critica)}
             <br><br>
             """
 
         log_q(q, "Renderizando Seção 1: INCs...")
-        SESSAO_INCS = montar_bloco_html("🚨 SESSÃO INCs (INCIDENTES GERAIS)", ModernColors.ORANGE, inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, is_inc=True)
+        SESSAO_INCS = montar_bloco_html("🚨 SESSÃO INCs (INCIDENTES GERAIS)", ModernColors.ACCENT_DARK, inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, is_inc=True)
         
         log_q(q, "Renderizando Seção 2: REQs...")
         SESSAO_REQS = montar_bloco_html("🛠️ SESSÃO REQs (SUPORTE GERAL)", ModernColors.PRIMARY, req_m, req_d, req_a, req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, is_inc=False)
         
         log_q(q, "Renderizando Seção 3: UAMs...")
-        SESSAO_UAMS = montar_bloco_html("🔐 SESSÃO UAMs (ACESSOS)", ModernColors.ACCENT, uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, is_inc=False)
+        SESSAO_UAMS = montar_bloco_html("🔐 SESSÃO UAMs (ACESSOS)", ModernColors.PRIMARY_DARK, uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, is_inc=False)
 
         meses_exibido = meta.get("meses_calculado", MONTHS_LIMIT_HTML)
         janela = meta.get("janela", "N/A")
