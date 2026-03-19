@@ -42,24 +42,24 @@ OUTPUT_HTML = 'rel_master/relatorio_email2.html'
 # ============================================================================
 class ModernColors:
     PRIMARY_DARK = "#001871"   # Azul Escuro Oficial Solicitado (Títulos, Separadores, Barras Abertos)
-    PRIMARY = "#1E3A8A"        # Azul Escuro Forte (REQs)
+    PRIMARY = "#1E3A8A"        # Azul Escuro Forte (Usado para Barras de Aging)
     PRIMARY_LIGHT = "#E3F2FD"  # Fundo Azul Claro
     ACCENT_DARK = "#0F172A"    # Azul-Cinza Escuro (INCs)
-    ACCENT = "#2563EB"         # Azul Royal (Gráficos)
-    ACCENT_LIGHT = "#93C5FD"   # Azul Claro (Cancelados)
-    SUCCESS = "#00C853"        # Verde Esmeralda Vivo (Dentro do SLA)
+    ACCENT = "#2563EB"         # Azul Royal (Usado para Encerrados/Resolvidos e SLA no prazo)
+    ACCENT_LIGHT = "#93C5FD"   # Azul Claro (Usado para Cancelados)
+    SUCCESS = "#00C853"        # (Descontinuado nos gráficos a pedido)
     SUCCESS_LIGHT = "#B9F6CA"  
-    WARNING = "#FF8F00"        # Laranja Âmbar Vivo
+    WARNING = "#FF8F00"        
     WARNING_LIGHT = "#FFECB3"  
-    DANGER = "#D50000"         # Vermelho Sangue Vivo (Fora do SLA / Perigo)
+    DANGER = "#D50000"         # (Descontinuado nos gráficos a pedido)
     DANGER_LIGHT = "#FFCDD2"   
     ORANGE = "#FF8C00"         # Laranja Clássico Vibrante para Linhas de Backlog
     ORANGE_LIGHT = "#FFE0B2"   
     GRAY_DARK = "#334155"      # Cinza Chumbo Forte e Vivo
-    GRAY = "#94A3B8"           # Cinza Metálico (Usado para Cancelados)
+    GRAY = "#94A3B8"           
     GRAY_LIGHT = "#F8FAFC"     # Fundo de Tabelas Moderno
     WHITE = "#FFFFFF"
-    INFO = "#00B0FF"           # Azul Ciano Vivo
+    INFO = "#0284C7"           # Azul Ciano 
     BACKGROUND = "#F1F5F9"
 
 
@@ -659,7 +659,7 @@ def get_hbar_opts(step_size=None, max_val=0, is_stacked=False):
             }
         },
         "scales": {
-            "xAxes": [{"stacked": is_stacked, "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.2}}],
+            "xAxes": [{"stacked": is_stacked, "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.35}}],
             "yAxes": [{"stacked": is_stacked, "ticks": {"autoSkip": False}}]
         }
     }
@@ -704,13 +704,13 @@ def build_grid2(left_content, right_content):
 
 def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_totals=True, lbl_resolved="Encerrados"):
     if df is None or df.empty:
-        return f"<div style='padding: 15px; color: {ModernColors.SUCCESS}; background-color: {ModernColors.SUCCESS_LIGHT}; text-align: center; font-weight: bold; border: 1px solid {ModernColors.SUCCESS}; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Sem dados aplicáveis para o período.</div>"
+        return f"<div style='padding: 15px; color: {ModernColors.PRIMARY_DARK}; background-color: {ModernColors.PRIMARY_LIGHT}; text-align: center; font-weight: bold; border: 1px solid {ModernColors.PRIMARY_DARK}; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Sem dados aplicáveis para o período.</div>"
 
     html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
     html += "<thead><tr>"
     for col in df.columns:
         display_col = lbl_resolved if col == "Encerrados" else col
-        html += f"<th style='background-color: {header_bg}; color: #fff; padding: 6px; border: 1px solid #ddd; text-align: center;'>{display_col}</th>"
+        html += f"<th style='background-color: {header_bg}; color: #fff; padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{display_col}</th>"
     html += "</tr></thead><tbody>"
 
     for i, row in df.iterrows():
@@ -718,28 +718,28 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
         html += f"<tr style='background-color: {bg};'>"
         for j, val in enumerate(row):
             v_str = str(val)
-            color = ModernColors.ORANGE if "⚠️" in v_str else ModernColors.GRAY_DARK
-            font_weight = "bold" if ("⚠️" in v_str or j == 0) else "normal"
+            color = ModernColors.PRIMARY_DARK
+            font_weight = "bold" if j == 0 else "normal"
 
             if "Aging" in df.columns and j == list(df.columns).index("Aging"):
                 try:
                     if int(val) >= 30:
                         color = "#ffffff"
-                        bg_cell = ModernColors.DANGER
+                        bg_cell = ModernColors.PRIMARY_DARK
                         font_weight = "bold"
                     else:
                         bg_cell = "transparent"
                 except:
                     bg_cell = "transparent"
             elif "PRB" in df.columns and j == list(df.columns).index("PRB"):
-                color = ModernColors.DANGER if str(val).strip() != "N/A" else ModernColors.GRAY_DARK
-                font_weight = "bold"
+                color = ModernColors.PRIMARY_DARK if str(val).strip() != "N/A" else ModernColors.GRAY
+                font_weight = "bold" if str(val).strip() != "N/A" else "normal"
                 bg_cell = "transparent"
             else:
-                bg_cell = ModernColors.WARNING_LIGHT if "⚠️" in v_str else "transparent"
+                bg_cell = "transparent"
 
             align = "left" if j == 0 else "center"
-            html += f"<td style='padding: 6px; border: 1px solid #ddd; text-align: {align}; color: {color}; font-weight: {font_weight}; background-color: {bg_cell};'>{v_str}</td>"
+            html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align}; color: {color}; font-weight: {font_weight}; background-color: {bg_cell};'>{v_str}</td>"
         html += "</tr>"
     html += "</tbody>"
 
@@ -763,7 +763,7 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
             else:
                 val = "—"
                 align = "center"
-            html += f"<td style='padding: 6px; border: 1px solid #ddd; text-align: {align};'>{val}</td>"
+            html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align};'>{val}</td>"
         html += "</tr></tfoot>"
 
     html += "</table>"
@@ -771,20 +771,20 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
 
 def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
     if df.empty:
-        return f"<div style='padding: 15px; font-family: Calibri, sans-serif; background-color: {ModernColors.SUCCESS_LIGHT}; color: {ModernColors.SUCCESS}; border: 1px solid {ModernColors.SUCCESS}; text-align: center; font-weight: bold;'>✅ Sem dados em {title}</div>"
+        return f"<div style='padding: 15px; font-family: Calibri, sans-serif; background-color: {ModernColors.PRIMARY_LIGHT}; color: {ModernColors.PRIMARY_DARK}; border: 1px solid {ModernColors.PRIMARY_DARK}; text-align: center; font-weight: bold;'>✅ Sem dados em {title}</div>"
 
     html = f"""
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; font-size: 11px; font-family: 'Calibri', Arial, sans-serif; white-space: nowrap;">
         <thead>
             <tr style="background-color: {ModernColors.GRAY_LIGHT};">
-                <th style="padding:4px; border:1px solid #ddd; text-align:left;">Mês</th>
-                <th style="padding:4px; border:1px solid #ddd; text-align:center;">Abertos</th>
-                <th style="padding:4px; border:1px solid #ddd; text-align:center;">{lbl_resolved}</th>
-                <th style="padding:4px; border:1px solid #ddd; text-align:center;">Cancelados</th>
-                <th style="padding:4px; border:1px solid #ddd; text-align:center;">Saldo</th>
-                <th style="padding:4px; border:1px solid #ddd; text-align:center;">Backlog</th>
-                <th style="padding:4px; border:1px solid #ddd; text-align:center;">SLA Perdido</th>
-                <th style="padding:4px; border:1px solid #ddd; text-align:center;">% Estourado</th>
+                <th style="padding:4px 6px; border:1px solid #ddd; text-align:left;">Mês</th>
+                <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">Abertos</th>
+                <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">{lbl_resolved}</th>
+                <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">Cancelados</th>
+                <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">Saldo</th>
+                <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">Backlog</th>
+                <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">SLA Perdido</th>
+                <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">% Estourado</th>
             </tr>
         </thead>
         <tbody>
@@ -804,14 +804,14 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
         bg_tr = "#fcfcfc" if i % 2 == 0 else "#ffffff"
 
         html += f"""<tr style="background-color: {bg_tr};">
-            <td style="padding:4px; border:1px solid #ddd; text-align:left;">{d1}</td>
-            <td style="padding:4px; border:1px solid #ddd; text-align:center;">{a1}</td>
-            <td style="padding:4px; border:1px solid #ddd; text-align:center;">{f1}</td>
-            <td style="padding:4px; border:1px solid #ddd; text-align:center;">{c1_val}</td>
-            <td style="color: {c1}; font-weight: bold; padding:4px; border:1px solid #ddd; text-align:center;">{sign1}{s1}</td>
-            <td style="padding:4px; border:1px solid #ddd; text-align:center; font-weight:bold;">{b1}</td>
-            <td style="padding:4px; border:1px solid #ddd; text-align:center; color: {ModernColors.DANGER}; font-weight:bold;">{sl1}</td>
-            <td style="padding:4px; border:1px solid #ddd; text-align:center; color: {ModernColors.DANGER}; font-weight:bold;">{pct_est}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:left;">{d1}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center;">{a1}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center;">{f1}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center;">{c1_val}</td>
+            <td style="color: {c1}; font-weight: bold; padding:4px 6px; border:1px solid #ddd; text-align:center;">{sign1}{s1}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold;">{b1}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; color: {ModernColors.PRIMARY_DARK}; font-weight:bold;">{sl1}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; color: {ModernColors.PRIMARY_DARK}; font-weight:bold;">{pct_est}</td>
         </tr>"""
 
     tot_a = df["Abertos"].sum()
@@ -826,14 +826,14 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
 
     html += f"""
         <tr style="background-color: {ModernColors.GRAY_LIGHT}; border-top: 2px solid {ModernColors.PRIMARY_DARK};">
-            <td style="text-align: right; padding: 4px; font-weight: bold; color: {ModernColors.PRIMARY_DARK}; border:1px solid #ddd; font-size: 11px;">TOTAIS:</td>
-            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px;">{tot_a}</td>
-            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px;">{tot_f}</td>
-            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px;">{tot_c}</td>
-            <td style="color: {c_tot}; font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size:11px;">{sign_tot}{tot_s}</td>
-            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px;">{last_b}</td>
-            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px; color: {ModernColors.DANGER};">{tot_sl}</td>
-            <td style="font-weight: bold; text-align:center; padding:4px; border:1px solid #ddd; font-size: 11px; color: {ModernColors.DANGER};">{tot_est_pct}</td>
+            <td style="text-align: right; padding: 4px 6px; font-weight: bold; color: {ModernColors.PRIMARY_DARK}; border:1px solid #ddd; font-size: 11px;">TOTAIS:</td>
+            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">{tot_a}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">{tot_f}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">{tot_c}</td>
+            <td style="color: {c_tot}; font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size:11px;">{sign_tot}{tot_s}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">{last_b}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px; color: {ModernColors.PRIMARY_DARK};">{tot_sl}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px; color: {ModernColors.PRIMARY_DARK};">{tot_est_pct}</td>
         </tr>
         </tbody>
     </table>"""
@@ -876,7 +876,7 @@ def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancela
             "scales": {
                 "xAxes": [{"stacked": True}],
                 "yAxes": [
-                    {"id": "y1", "stacked": True, "position": "left", "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.35}},
+                    {"id": "y1", "stacked": True, "position": "left", "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.45}},
                     {"id": "y2", "position": "right", "gridLines": {"drawOnChartArea": False}, "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_b * 1.2}}
                 ]
             }
@@ -923,7 +923,7 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
             "scales": {
                 "xAxes": [{"stacked": True}],
                 "yAxes": [
-                    {"id": "y1", "stacked": True, "position": "left", "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.35}},
+                    {"id": "y1", "stacked": True, "position": "left", "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.45}},
                     {"id": "y2", "position": "right", "gridLines": {"drawOnChartArea": False}, "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_b * 1.2}}
                 ]
             }
@@ -1088,11 +1088,11 @@ def main_simples(configs, q=None):
             )
 
             label_canc = "Cancelados"
-            cfg_mensal = build_monthly_backlog_cfg(df_m, "#001871", ModernColors.PRIMARY_LIGHT, ModernColors.INFO, label_canc, ModernColors.ORANGE, lbl_resolved)
-            cfg_diario = build_daily_trend_cfg(df_d, "#001871", ModernColors.PRIMARY_LIGHT, ModernColors.INFO, label_canc, ModernColors.ORANGE, lbl_resolved)
+            cfg_mensal = build_monthly_backlog_cfg(df_m, "#001871", ModernColors.ACCENT, ModernColors.ACCENT_LIGHT, label_canc, ModernColors.ORANGE, lbl_resolved)
+            cfg_diario = build_daily_trend_cfg(df_d, "#001871", ModernColors.ACCENT, ModernColors.ACCENT_LIGHT, label_canc, ModernColors.ORANGE, lbl_resolved)
             
             tabela_throughput = build_full_monthly_table_html(df_m, "TABELA DE THROUGHPUT ACUMULADO", lbl_resolved)
-            tabela_sla_critica = build_html_table_html(df_sla, ModernColors.DANGER, show_totals=False)
+            tabela_sla_critica = build_html_table_html(df_sla, ModernColors.PRIMARY_DARK, show_totals=False)
 
             # Gráfico de Analistas Empilhado (Abertos vs Fechados)
             if not df_a.empty:
@@ -1109,7 +1109,7 @@ def main_simples(configs, q=None):
                     "labels": labels_a,
                     "datasets": [
                         {"label": "Abertos (Atuais)", "data": data_a_abertos, "backgroundColor": "#001871"},
-                        {"label": f"{lbl_resolved} (Mês)", "data": data_a_fechados, "backgroundColor": ModernColors.PRIMARY_LIGHT}
+                        {"label": f"{lbl_resolved} (Mês)", "data": data_a_fechados, "backgroundColor": ModernColors.ACCENT}
                     ]
                 },
                 "options": get_hbar_opts(max_val=max(df_a["Total"].tolist()) if not df_a.empty else 10, is_stacked=True)
@@ -1122,7 +1122,7 @@ def main_simples(configs, q=None):
                 "type": "horizontalBar",
                 "data": {
                     "labels": labels_ag,
-                    "datasets": [{"data": data_ag, "backgroundColor": ModernColors.DANGER}]
+                    "datasets": [{"data": data_ag, "backgroundColor": ModernColors.PRIMARY}]
                 },
                 "options": get_hbar_opts(max_val=max(data_ag) if data_ag and str(data_ag[0]).replace('.','',1).isdigit() else 10)
             }
@@ -1134,7 +1134,7 @@ def main_simples(configs, q=None):
                 "type": "pie",
                 "data": {
                     "labels": ["Inside SLA", "Outside SLA"],
-                    "datasets": [{"data": [in_sla, out_sla], "backgroundColor": [ModernColors.SUCCESS, ModernColors.DANGER]}]
+                    "datasets": [{"data": [in_sla, out_sla], "backgroundColor": [ModernColors.ACCENT, ModernColors.PRIMARY_DARK]}]
                 },
                 "options": {}
             }
@@ -1177,13 +1177,13 @@ def main_simples(configs, q=None):
             """
 
         log_q(q, "Renderizando Seção 1: INCs...")
-        SESSAO_INCS = montar_bloco_html("🚨 SESSÃO INCs (INCIDENTES GERAIS)", ModernColors.ACCENT_DARK, inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_out_c_pct, is_inc=True)
+        SESSAO_INCS = montar_bloco_html("🚨 SESSÃO INCs (INCIDENTES GERAIS)", ModernColors.PRIMARY_DARK, inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_out_c_pct, is_inc=True)
         
         log_q(q, "Renderizando Seção 2: REQs...")
         SESSAO_REQS = montar_bloco_html("🛠️ SESSÃO REQs (SUPORTE GERAL)", ModernColors.PRIMARY, req_m, req_d, req_a, req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_out_c_pct, is_inc=False)
         
         log_q(q, "Renderizando Seção 3: UAMs...")
-        SESSAO_UAMS = montar_bloco_html("🔐 SESSÃO UAMs (ACESSOS)", ModernColors.PRIMARY_DARK, uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_out_c_pct, is_inc=False)
+        SESSAO_UAMS = montar_bloco_html("🔐 SESSÃO UAMs (ACESSOS)", ModernColors.ACCENT_DARK, uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_out_c_pct, is_inc=False)
 
         meses_exibido = meta.get("meses_calculado", MONTHS_LIMIT_HTML)
 
