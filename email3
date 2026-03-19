@@ -682,6 +682,7 @@ def build_grid2(left_content, right_content):
     </table>
     """
 
+
 def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_totals=True):
     if df is None or df.empty:
         return f"<div style='padding: 15px; color: {ModernColors.SUCCESS}; background-color: {ModernColors.SUCCESS_LIGHT}; text-align: center; font-weight: bold; border: 1px solid {ModernColors.SUCCESS}; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Sem dados aplicáveis para o período.</div>"
@@ -948,7 +949,14 @@ def main_simples(configs, q=None):
 
             df_a = pd.DataFrame({"Abertos (Atuais)": abertos_counts, "Fechados (Mês)": fechados_counts}).fillna(0).astype(int)
             df_a["Total"] = df_a["Abertos (Atuais)"] + df_a["Fechados (Mês)"]
-            df_a = df_a.sort_values(by="Total", ascending=False).head(10).reset_index().rename(columns={"index": "Analista"})
+            df_a = df_a.sort_values(by="Total", ascending=False).head(10)
+            
+            # --- CORREÇÃO DO KEYERROR ---
+            df_a.index.name = "Analista"
+            df_a = df_a.reset_index()
+            if df_a.empty:
+                df_a = pd.DataFrame(columns=["Analista", "Abertos (Atuais)", "Fechados (Mês)", "Total"])
+            # ----------------------------
 
             # Lógica de SLA Card dos Fechados
             if not closed_this_month.empty:
@@ -987,9 +995,9 @@ def main_simples(configs, q=None):
                         df_critical[col] = "N/A"
                         
                 df_critical = df_critical[["Number", "Assignment group", "Assigned to", "Requester", "State", "Opened_Str", "AGING_OPEN", "PRB", "SLA X%", "ETA"]]
-                df_critical.columns = ["Ticket", "Grupo", "Analista", "Solicitante", "Status", "Abertura", "Aging (Dias)", "PRB", "SLA X%", "ETA"]
+                df_critical.columns = ["Ticket", "Grupo", "Analista", "Solicitante", "Status", "Abertura", "Aging", "PRB", "SLA X%", "ETA"]
             else:
-                df_critical = pd.DataFrame(columns=["Ticket", "Grupo", "Analista", "Solicitante", "Status", "Abertura", "Aging (Dias)", "PRB", "SLA X%", "ETA"])
+                df_critical = pd.DataFrame(columns=["Ticket", "Grupo", "Analista", "Solicitante", "Status", "Abertura", "Aging", "PRB", "SLA X%", "ETA"])
 
             return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla, in_sla_closed, out_sla_pct
 
@@ -1025,7 +1033,7 @@ def main_simples(configs, q=None):
             cfg_mensal = build_monthly_backlog_cfg(df_m, color_main, ModernColors.SUCCESS, ModernColors.GRAY, label_canc)
             cfg_diario = build_daily_trend_cfg(df_d, color_main, ModernColors.SUCCESS, ModernColors.GRAY, label_canc)
             
-            tabela_throughput = build_full_monthly_table_html(df_m, "TABELA DE THROUGHPUT")
+            tabela_throughput = build_full_monthly_table_html(df_m, "TABELA DE THROUGHPUT ACUMULADO")
             tabela_sla_critica = build_html_table_html(df_sla, ModernColors.DANGER, show_totals=False)
 
             # Gráfico de Analistas Empilhado (Abertos vs Fechados)
@@ -1087,7 +1095,7 @@ def main_simples(configs, q=None):
             {build_card("2. VISÃO MENSAL / ANUAL", f'<img src="{qc_url_wide_html(cfg_mensal, q)}" width="100%">')}
             
             {build_grid2(
-                build_card("3. TABELA DE THROUGHPUT", tabela_throughput),
+                build_card("3. TABELA DE THROUGHPUT ACUMULADO", tabela_throughput),
                 build_card("4. VOLUME E PRODUTIVIDADE POR ANALISTA", f'<img src="{qc_url_html(cfg_analistas, q)}" width="100%">')
             )}
             
