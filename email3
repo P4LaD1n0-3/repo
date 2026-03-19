@@ -714,6 +714,10 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
                 color = ModernColors.DANGER if str(val).strip() != "N/A" else ModernColors.GRAY_DARK
                 font_weight = "bold"
                 bg_cell = "transparent"
+            elif "SLA X%" in df.columns and j == list(df.columns).index("SLA X%"):
+                color = ModernColors.DANGER
+                font_weight = "bold"
+                bg_cell = "transparent"
             else:
                 bg_cell = ModernColors.WARNING_LIGHT if "⚠️" in v_str else "transparent"
 
@@ -802,7 +806,7 @@ def build_full_monthly_table_html(df, title):
     </table>"""
     return html
 
-def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancelados):
+def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancelados, label_cancelados):
     l, a = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [], df_monthly["Abertos"].tolist() if not df_monthly.empty else [])
     _, f = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [], df_monthly["Resolvidos"].tolist() if not df_monthly.empty else [])
     _, c = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [], df_monthly["Cancelados"].tolist() if not df_monthly.empty else [])
@@ -817,9 +821,9 @@ def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancela
             "labels": l,
             "datasets": [
                 {"type": "line", "label": "Backlog (Acumulado)", "data": b, "fill": False, "borderColor": ModernColors.ORANGE, "backgroundColor": ModernColors.ORANGE, "borderWidth": 2, "yAxisID": "y2", "datalabels": {"display": True, "align": "top", "anchor": "center", "color": "#000", "font": {"weight": "bold"}}},
-                {"type": "bar", "label": "Abertos", "data": a, "backgroundColor": cor_abertos, "yAxisID": "y1", "stack": "Stack 0", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}},
+                {"type": "bar", "label": "Abertos", "data": a, "backgroundColor": cor_abertos, "yAxisID": "y1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}},
                 {"type": "bar", "label": "Resolvidos", "data": f, "backgroundColor": cor_fechados, "yAxisID": "y1", "stack": "Stack 1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}},
-                {"type": "bar", "label": "Cancelados", "data": c, "backgroundColor": cor_cancelados, "yAxisID": "y1", "stack": "Stack 1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}}
+                {"type": "bar", "label": label_cancelados, "data": c, "backgroundColor": cor_cancelados, "yAxisID": "y1", "stack": "Stack 1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}}
             ]
         },
         "options": {
@@ -837,7 +841,7 @@ def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancela
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
     return add_title_to_cfg(cfg, f"VISÃO ANUAL - TOTAL ENTRADAS: {total_in} | SAÍDAS (ENCERRADOS): {total_out}")
 
-def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados):
+def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, label_cancelados):
     l, a = pad_empty_html(df_daily["Data"].str[:5].tolist() if not df_daily.empty else [], df_daily["Abertos"].tolist() if not df_daily.empty else [])
     _, f = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [], df_daily["Resolvidos"].tolist() if not df_daily.empty else [])
     _, c = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [], df_daily["Cancelados"].tolist() if not df_daily.empty else [])
@@ -852,9 +856,9 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados):
             "labels": l,
             "datasets": [
                 {"type": "line", "label": "Backlog (Acumulado)", "data": b, "fill": False, "borderColor": ModernColors.ORANGE, "backgroundColor": ModernColors.ORANGE, "borderWidth": 2, "yAxisID": "y2", "datalabels": {"display": True, "align": "top", "anchor": "center", "color": "#000", "font": {"weight": "bold", "size": 9}}},
-                {"type": "bar", "label": "Abertos", "data": a, "backgroundColor": cor_abertos, "yAxisID": "y1", "stack": "Stack 0", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}},
+                {"type": "bar", "label": "Abertos", "data": a, "backgroundColor": cor_abertos, "yAxisID": "y1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}},
                 {"type": "bar", "label": "Resolvidos", "data": f, "backgroundColor": cor_fechados, "yAxisID": "y1", "stack": "Stack 1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}},
-                {"type": "bar", "label": "Cancelados", "data": c, "backgroundColor": cor_cancelados, "yAxisID": "y1", "stack": "Stack 1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}}
+                {"type": "bar", "label": label_cancelados, "data": c, "backgroundColor": cor_cancelados, "yAxisID": "y1", "stack": "Stack 1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}}
             ]
         },
         "options": {
@@ -975,14 +979,17 @@ def main_simples(configs, q=None):
                 df_critical["Opened_Str"] = df_critical["Opened"].dt.strftime('%d/%m/%Y').fillna("-")
                 df_critical["ETA"] = ETA_DATE
                 
+                # CÁLCULO DA NOVA COLUNA SLA X%
+                df_critical["SLA X%"] = ((df_critical["AGING_OPEN"] / sla_days) * 100).astype(int).astype(str) + "%"
+                
                 for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "PRB"]:
                     if col not in df_critical.columns:
                         df_critical[col] = "N/A"
                         
-                df_critical = df_critical[["Number", "Assignment group", "Assigned to", "Requester", "State", "Opened_Str", "AGING_OPEN", "PRB", "ETA"]]
-                df_critical.columns = ["Ticket", "Grupo", "Analista", "Solicitante", "Status", "Abertura", "Aging (Dias)", "PRB", "ETA"]
+                df_critical = df_critical[["Number", "Assignment group", "Assigned to", "Requester", "State", "Opened_Str", "AGING_OPEN", "PRB", "SLA X%", "ETA"]]
+                df_critical.columns = ["Ticket", "Grupo", "Analista", "Solicitante", "Status", "Abertura", "Aging (Dias)", "PRB", "SLA X%", "ETA"]
             else:
-                df_critical = pd.DataFrame(columns=["Ticket", "Grupo", "Analista", "Solicitante", "Status", "Abertura", "Aging (Dias)", "PRB", "ETA"])
+                df_critical = pd.DataFrame(columns=["Ticket", "Grupo", "Analista", "Solicitante", "Status", "Abertura", "Aging (Dias)", "PRB", "SLA X%", "ETA"])
 
             return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla, in_sla_closed, out_sla_pct
 
@@ -1080,7 +1087,7 @@ def main_simples(configs, q=None):
             {build_card("2. VISÃO MENSAL / ANUAL", f'<img src="{qc_url_wide_html(cfg_mensal, q)}" width="100%">')}
             
             {build_grid2(
-                build_card("3. TABELA DE THROUGHPUT ACUMULADO", tabela_throughput),
+                build_card("3. TABELA DE THROUGHPUT", tabela_throughput),
                 build_card("4. VOLUME E PRODUTIVIDADE POR ANALISTA", f'<img src="{qc_url_html(cfg_analistas, q)}" width="100%">')
             )}
             
