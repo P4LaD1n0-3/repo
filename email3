@@ -46,24 +46,24 @@ OUTPUT_HTML = 'rel_master/relatorio_email2.html'
 # ============================================================================
 class ModernColors:
     PRIMARY_DARK = "#001871"   # Azul Escuro Oficial Solicitado (Títulos, Separadores, Barras Abertos)
-    PRIMARY = "#1E3A8A"        # Azul Escuro Forte (REQs)
-    PRIMARY_LIGHT = "#0284C7"  # Fundo Azul Claro
+    PRIMARY = "#1E3A8A"        # Azul Escuro Forte (Usado para Barras de Aging)
+    PRIMARY_LIGHT = "#3B82F6"  # Azul Claro
     ACCENT_DARK = "#0F172A"    # Azul-Cinza Escuro (INCs)
-    ACCENT = "#2563EB"         # Azul Royal Vivo (Gráficos: Resolvidos e SLA no Prazo)
-    ACCENT_LIGHT = "#93C5FD"   # Azul Claro (Cancelados)
-    SUCCESS = "#00C853"        # Verde Esmeralda Vivo (Apenas HTML Texto)
+    ACCENT = "#2563EB"         # Azul Royal (Usado para Encerrados/Resolvidos e SLA no prazo)
+    ACCENT_LIGHT = "#93C5FD"   # Azul Claro (Usado para Cancelados)
+    SUCCESS = "#00C853"        # (Descontinuado nos gráficos a pedido)
     SUCCESS_LIGHT = "#B9F6CA"
     WARNING = "#FF8F00"
     WARNING_LIGHT = "#FFECB3"
-    DANGER = "#D50000"         # Vermelho Intenso (Gráficos e Alertas CRÍTICOS)
+    DANGER = "#DC2626"         # (Descontinuado nos gráficos a pedido)
     DANGER_LIGHT = "#FFCDD2"
     ORANGE = "#FF8C00"         # Laranja Clássico Vibrante para Linhas de Backlog
     ORANGE_LIGHT = "#FFE0B2"
     GRAY_DARK = "#334155"      # Cinza Chumbo Forte e Vivo
-    GRAY = "#94A3B8"           # Cinza Metálico (SLA Fora do prazo em gráficos)
-    GRAY_LIGHT = "#F8FAFC"     # Fundo de Tabelas e Cards Discretos
+    GRAY = "#94A3B8"
+    GRAY_LIGHT = "#F8FAFC"     # Fundo de Tabelas Moderno
     WHITE = "#FFFFFF"
-    INFO = "#CC00FF"           # Azul Ciano Vivo
+    INFO = "#0284C7"           # Azul Ciano
     BACKGROUND = "#F1F5F9"
 
 
@@ -272,16 +272,15 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
     asg_col = _pick_col(
         df, ["Assigned to", "AssignedTo", "Analista", "Assignee"])
     number_col = _pick_col(df, ["Number", "Número", "Ticket", "ID", "Task"])
-
+    
     prb_col = _pick_col(df, ["PRB", "Problem", "Problem ID", "Problema"])
-    short_desc_col = _pick_col(
-        df, ["Short description", "Descrição Curta", "Description", "Descrição"])
+    short_desc_col = _pick_col(df, ["Short description", "Descrição Curta", "Description", "Descrição"])
 
     def extract_prb(row):
         prb_val = ""
         if prb_col and prb_col in row:
             prb_val = str(row[prb_col]).strip()
-
+        
         if prb_val and prb_val.upper() not in ["NAN", "N/A", "NONE", ""]:
             match_prb = re.search(r'(PRB\d+)', prb_val, re.IGNORECASE)
             if match_prb:
@@ -291,11 +290,11 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
         sd_val = ""
         if short_desc_col and short_desc_col in row:
             sd_val = str(row[short_desc_col])
-
+            
         match = re.search(r'(PRB\d+)', sd_val, re.IGNORECASE)
         if match:
             return match.group(1).upper()
-
+            
         return "N/A"
 
     df["Opened"] = pd.to_datetime(
@@ -310,7 +309,7 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
     df["State"] = df[state_col].astype(
         str).fillna("N/A") if state_col else "N/A"
     df["PRB"] = df.apply(extract_prb, axis=1)
-
+    
     return df
 
 
@@ -548,7 +547,7 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
 
 def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="REQ", real_backlog=0, sla_days=0):
     if df is None or df.empty:
-        return pd.DataFrame(columns=["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado", "SLA no Prazo", "% no Prazo"])
+        return pd.DataFrame(columns=["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado", "% no Prazo"])
 
     d = df.copy()
     d["Opened"] = pd.to_datetime(d["Opened"], errors="coerce")
@@ -588,7 +587,7 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
         resolved_months.index).union(canceled_months.index).sort_values()
 
     if len(all_months_index) == 0:
-        return pd.DataFrame(columns=["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado", "SLA no Prazo", "% no Prazo"])
+        return pd.DataFrame(columns=["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado", "% no Prazo"])
 
     if months_limit and len(all_months_index) > months_limit:
         all_months_index = all_months_index[-months_limit:]
@@ -603,9 +602,9 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     df_out["SLA no Prazo"] = sla_ok_months.reindex(
         all_months_index, fill_value=0).values.astype(int)
 
-    # CORREÇÃO APLICADA AQUI: Divisão segura para evitar o erro IntCastingNaNError
-    pct_no_prazo = (df_out["SLA no Prazo"] / df_out["Encerrados"].replace(0, np.nan)) * 100
-    df_out["% no Prazo"] = pct_no_prazo.fillna(0).astype(int).astype(str) + "%"
+    # Porcentagem Positiva (Dentro do SLA)
+    df_out["% no Prazo"] = np.where(df_out["Encerrados"] > 0, (
+        df_out["SLA no Prazo"] / df_out["Encerrados"] * 100).astype(int), 0).astype(str) + "%"
 
     df_out["Saldo"] = df_out["Abertos"] - \
         (df_out["Encerrados"] + df_out["Cancelados"])
@@ -623,7 +622,7 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     df_out.rename(columns={"index": "Mês"}, inplace=True)
     df_out["Mês"] = df_out["Mês"].dt.strftime("%b/%Y").str.upper()
 
-    return df_out[["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado", "SLA no Prazo", "% no Prazo"]]
+    return df_out[["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado", "% no Prazo"]]
 
 
 # =============================================================================
@@ -645,14 +644,14 @@ def get_chart_cid(cfg, width, height, q=None):
                                      'Content-Type': 'application/json'})
         with urllib.request.urlopen(req) as response:
             img_data = response.read()
-
+            
             cid = f"chart_{uuid.uuid4().hex}.png"
             temp_path = os.path.join(os.path.dirname(OUTPUT_FILE) or ".", cid)
             _ensure_dir(temp_path)
-
+            
             with open(temp_path, "wb") as f:
                 f.write(img_data)
-
+            
             IMAGE_ATTACHMENTS.append((temp_path, cid))
             return f"cid:{cid}"
     except Exception as e:
@@ -932,7 +931,6 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
                 <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">Cancelados</th>
                 <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">Saldo</th>
                 <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">Backlog</th>
-                <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">SLA no Prazo</th>
                 <th style="padding:4px 6px; border:1px solid #ddd; text-align:center;">% no Prazo</th>
             </tr>
         </thead>
@@ -945,7 +943,6 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
         c1_val = r["Cancelados"]
         s1 = r["Saldo"]
         b1 = r["Backlog Acumulado"]
-        sl1 = r["SLA no Prazo"]
         pct_est = r["% no Prazo"]
 
         c1 = ModernColors.PRIMARY_DARK if s1 > 0 else (
@@ -960,8 +957,7 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
             <td style="padding:4px 6px; border:1px solid #ddd; text-align:center;">{c1_val}</td>
             <td style="color: {c1}; font-weight: bold; padding:4px 6px; border:1px solid #ddd; text-align:center;">{sign1}{s1}</td>
             <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold;">{b1}</td>
-            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; color: {ModernColors.SUCCESS}; font-weight:bold;">{sl1}</td>
-            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; color: {ModernColors.SUCCESS}; font-weight:bold;">{pct_est}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold;">{pct_est}</td>
         </tr>"""
 
     tot_a = df["Abertos"].sum()
@@ -983,8 +979,7 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
             <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">{tot_c}</td>
             <td style="color: {c_tot}; font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size:11px;">{sign_tot}{tot_s}</td>
             <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">{last_b}</td>
-            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px; color: {ModernColors.SUCCESS};">{tot_sl}</td>
-            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px; color: {ModernColors.SUCCESS};">{tot_est_pct}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">{tot_est_pct}</td>
         </tr>
         </tbody>
     </table>"""
@@ -1113,7 +1108,7 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
 # ============================================================================
 
 
-def main_simples2(configs, q=None):
+def main_simples(configs, q=None):
     global IMAGE_ATTACHMENTS
     IMAGE_ATTACHMENTS = []
 
@@ -1245,13 +1240,13 @@ def main_simples2(configs, q=None):
                     '%d/%m/%Y').fillna("-")
 
                 if is_inc:
-                    for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "On hold reason", "PRB"]:
+                    for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "PRB"]:
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
                     df_critical = df_critical[[
-                        "Number", "Assigned to", "Requester", "Assignment group", "State", "On hold reason", "Opened_Str", "AGING_OPEN", "PRB"]]
+                        "Number", "Assigned to", "Requester", "Assignment group", "State", "Opened_Str", "AGING_OPEN", "PRB"]]
                     df_critical.columns = [
-                        "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Motivo Espera", "Abertura", "Aging", "PRB"]
+                        "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging", "PRB"]
                 else:
                     for col in ["Number", "Assignment group", "Assigned to", "Requester", "State"]:
                         if col not in df_critical.columns:
@@ -1263,7 +1258,7 @@ def main_simples2(configs, q=None):
             else:
                 if is_inc:
                     df_critical = pd.DataFrame(columns=[
-                                               "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Motivo Espera", "Abertura", "Aging", "PRB"])
+                                               "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging", "PRB"])
                 else:
                     df_critical = pd.DataFrame(columns=[
                                                "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"])
