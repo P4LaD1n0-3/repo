@@ -602,9 +602,10 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     df_out["SLA no Prazo"] = sla_ok_months.reindex(
         all_months_index, fill_value=0).values.astype(int)
 
-    # Porcentagem Positiva (Dentro do SLA)
-    df_out["% no Prazo"] = np.where(df_out["Encerrados"] > 0, (
-        df_out["SLA no Prazo"] / df_out["Encerrados"] * 100).astype(int), 0).astype(str) + "%"
+    # Porcentagem Positiva (Dentro do SLA) - Tratado para evitar IntCastingNaNError
+    calc_pct = (df_out["SLA no Prazo"] / df_out["Encerrados"] * 100)
+    calc_pct = calc_pct.replace([np.inf, -np.inf], np.nan).fillna(0)
+    df_out["% no Prazo"] = calc_pct.astype(int).astype(str) + "%"
 
     df_out["Saldo"] = df_out["Abertos"] - \
         (df_out["Encerrados"] + df_out["Cancelados"])
