@@ -138,9 +138,6 @@ def _ensure_identity_cols_common(df):
     asg_col = _pick_col(df, ["Assigned to", "AssignedTo", "Analista", "Assignee"])
     df["Assigned to"] = df[asg_col].astype(str).fillna("") if asg_col else ""
 
-    prb_col = _pick_col(df, ["Problem", "PRB", "Problema", "Problem ID"])
-    df["PRB"] = df[prb_col].astype(str).fillna("N/A") if prb_col else "N/A"
-
     if "State" not in df.columns:
         state_col = _pick_col(df, ["Status", "Estado"])
         df["State"] = df[state_col] if state_col else None
@@ -161,13 +158,13 @@ def load_prepare_reqs(source_file, label="REQs", now=None, q=None):
     closed_col = _pick_col(df, ["Resolved", "Resolved at", "ResolvedAt", "Closed", "Close", "Data Fechamento"])
     state_col = _pick_col(df, ["State", "Status", "Estado", "Status Bin", "Status_Bin"])
 
-    df["Opened"] = pd.to_datetime(df[opened_col], errors="coerce") if opened_col else pd.NaT
-    df["Closed"] = pd.to_datetime(df[closed_col], errors="coerce") if closed_col else pd.NaT
+    df["Opened"] = pd.to_datetime(df[opened_col], errors="coerce", dayfirst=True) if opened_col else pd.NaT
+    df["Closed"] = pd.to_datetime(df[closed_col], errors="coerce", dayfirst=True) if closed_col else pd.NaT
     df = _normalize_status_bin(df, state_col)
 
     now = now or datetime.now()
     df["Aging_Timedelta"] = df.apply(lambda x: (x["Closed"] - x["Opened"]) if pd.notna(x["Closed"]) else (now - x["Opened"]), axis=1)
-    df["Aging"] = (df["Aging_Timedelta"].dt.total_seconds() / (24 * 3600)).fillna(0).astype(int)
+    df["Aging"] = (df["Aging_Timedelta"].dt.total_seconds() / (24 * 3600)).fillna(0).astype(int).abs()
 
     return _ensure_identity_cols_common(df)
 
@@ -185,13 +182,13 @@ def load_prepare_incs(source_file, label="INCs", now=None, q=None):
     closed_col = _pick_col(df, ["Resolved", "Resolved at", "ResolvedAt", "Closed", "Close", "Data Fechamento"])
     state_col = _pick_col(df, ["State", "Status", "Estado", "Status Bin", "Status_Bin"])
 
-    df["Opened"] = pd.to_datetime(df[opened_col], errors="coerce") if opened_col else pd.NaT
-    df["Closed"] = pd.to_datetime(df[closed_col], errors="coerce") if closed_col else pd.NaT
+    df["Opened"] = pd.to_datetime(df[opened_col], errors="coerce", dayfirst=True) if opened_col else pd.NaT
+    df["Closed"] = pd.to_datetime(df[closed_col], errors="coerce", dayfirst=True) if closed_col else pd.NaT
     df = _normalize_status_bin(df, state_col)
 
     now = now or datetime.now()
     df["Aging_Timedelta"] = df.apply(lambda x: (x["Closed"] - x["Opened"]) if pd.notna(x["Closed"]) else (now - x["Opened"]), axis=1)
-    df["Aging"] = (df["Aging_Timedelta"].dt.total_seconds() / (24 * 3600)).fillna(0).astype(int)
+    df["Aging"] = (df["Aging_Timedelta"].dt.total_seconds() / (24 * 3600)).fillna(0).astype(int).abs()
 
     return _ensure_identity_cols_common(df)
 
@@ -236,6 +233,7 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
     
     prb_col = _pick_col(df, ["PRB", "Problem", "Problem ID", "Problema"])
     short_desc_col = _pick_col(df, ["Short description", "Descrição Curta", "Description", "Descrição"])
+    on_hold_col = _pick_col(df, ["On hold reason", "Motivo de espera", "On Hold Reason"])
 
     def extract_prb(row):
         prb_val = ""
@@ -258,13 +256,14 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
             
         return "N/A"
 
-    df["Opened"] = pd.to_datetime(df[opened_col], errors="coerce") if opened_col else pd.NaT
-    df["Closed"] = pd.to_datetime(df[closed_col], errors="coerce") if closed_col else pd.NaT
+    df["Opened"] = pd.to_datetime(df[opened_col], errors="coerce", dayfirst=True) if opened_col else pd.NaT
+    df["Closed"] = pd.to_datetime(df[closed_col], errors="coerce", dayfirst=True) if closed_col else pd.NaT
     df["Assignment group"] = df[ag_col].astype(str).fillna("").replace("", "—") if ag_col else "—"
     df["Assigned to"] = df[asg_col].astype(str).fillna("").replace("", "—") if asg_col else "—"
     df["Number"] = df[number_col].astype(str).fillna("") if number_col else ""
     df["State"] = df[state_col].astype(str).fillna("N/A") if state_col else "N/A"
     df["PRB"] = df.apply(extract_prb, axis=1)
+    df["On hold reason"] = df[on_hold_col].astype(str).fillna("").replace("nan", "") if on_hold_col else ""
     
     return df
 
@@ -273,8 +272,8 @@ def build_month_window_html(dfs, months_limit=None):
     for df in dfs:
         if df is None or df.empty:
             continue
-        mo = pd.to_datetime(df["Opened"], errors="coerce").dropna()
-        mc = pd.to_datetime(df["Closed"], errors="coerce").dropna()
+        mo = pd.to_datetime(df["Opened"], errors="coerce", dayfirst=True).dropna()
+        mc = pd.to_datetime(df["Closed"], errors="coerce", dayfirst=True).dropna()
         if not mo.empty:
             opened_months.extend([mo.min(), mo.max()])
         if not mc.empty:
@@ -325,10 +324,10 @@ def compute_open_backlog_metrics_html(df, sla_days, ticket_type="REQ"):
     else:
         open_df = _get_only_open_incs(df)
 
-    open_df["Opened_dt"] = pd.to_datetime(open_df["Opened"], errors="coerce")
+    open_df["Opened_dt"] = pd.to_datetime(open_df["Opened"], errors="coerce", dayfirst=True)
     open_df = open_df[open_df["Opened_dt"].notna()].copy()
     open_df["AGING_OPEN"] = (now - open_df["Opened_dt"]).dt.days
-    open_df["AGING_OPEN"] = pd.to_numeric(open_df["AGING_OPEN"], errors="coerce").fillna(0).astype(int).clip(lower=0)
+    open_df["AGING_OPEN"] = pd.to_numeric(open_df["AGING_OPEN"], errors="coerce").fillna(0).astype(int).abs()
     open_df["SLA_BREACH_OPEN"] = open_df["AGING_OPEN"] > int(sla_days)
 
     total_open = int(len(open_df))
@@ -378,9 +377,9 @@ def compute_closed_metrics_html(df, ticket_type="REQ"):
     if len(closed_df) == 0:
         return {"closed_total": 0, "mttr_mean": 0.0}
 
-    closed_dt_safe = pd.to_datetime(closed_df["Closed"]).fillna(pd.Timestamp(datetime.now()))
-    closed_df["AGING_CLOSED"] = (closed_dt_safe - pd.to_datetime(closed_df["Opened"])).dt.days
-    closed_df["AGING_CLOSED"] = pd.to_numeric(closed_df["AGING_CLOSED"], errors="coerce").fillna(0).astype(int).clip(lower=0)
+    closed_dt_safe = pd.to_datetime(closed_df["Closed"], errors="coerce", dayfirst=True).fillna(pd.Timestamp(datetime.now()))
+    closed_df["AGING_CLOSED"] = (closed_dt_safe - pd.to_datetime(closed_df["Opened"], errors="coerce", dayfirst=True)).dt.days
+    closed_df["AGING_CLOSED"] = pd.to_numeric(closed_df["AGING_CLOSED"], errors="coerce").fillna(0).astype(int).abs()
 
     return {
         "closed_total": len(closed_df),
@@ -402,12 +401,12 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
 
     d = df.copy().reset_index(drop=True)
     d["State_Lower"] = d["State"].astype(str).str.lower().str.strip() if "State" in d.columns else ""
-    opened_dates = pd.to_datetime(d["Opened"], errors="coerce").dropna().dt.floor("D")
+    opened_dates = pd.to_datetime(d["Opened"], errors="coerce", dayfirst=True).dropna().dt.floor("D")
 
     d_closed = d[d["Closed"].notna()].copy()
-    d_closed["Closed_Date"] = pd.to_datetime(d_closed["Closed"], errors="coerce").dt.floor("D")
-    d_closed["Opened_Date"] = pd.to_datetime(d_closed["Opened"], errors="coerce").dt.floor("D")
-    d_closed["Aging_Resolved"] = (d_closed["Closed_Date"] - d_closed["Opened_Date"]).dt.days
+    d_closed["Closed_Date"] = pd.to_datetime(d_closed["Closed"], errors="coerce", dayfirst=True).dt.floor("D")
+    d_closed["Opened_Date"] = pd.to_datetime(d_closed["Opened"], errors="coerce", dayfirst=True).dt.floor("D")
+    d_closed["Aging_Resolved"] = (d_closed["Closed_Date"] - d_closed["Opened_Date"]).dt.days.fillna(0).astype(int).abs()
 
     if ticket_type == "INC":
         mask_canceled = d_closed["State_Lower"].isin(["canceled", "cancelled"]) | d_closed["State_Lower"].str.contains(r"\bcancel", regex=True)
@@ -419,7 +418,7 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
 
     resolved_dates = d_closed[mask_resolved]["Closed_Date"]
     canceled_dates = d_closed[mask_canceled]["Closed_Date"]
-
+    
     mask_sla_breach = mask_resolved & (d_closed["Aging_Resolved"] > sla_days)
     sla_breach_dates = d_closed[mask_sla_breach]["Closed_Date"]
 
@@ -437,7 +436,7 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
     sla_b = sla_breach_dates.value_counts().reindex(all_days_global, fill_value=0)
 
     net = op - (res + canc)
-
+    
     historico_net = net.values
     backlog_retro = np.zeros(len(historico_net))
     current_bklg = real_backlog
@@ -474,23 +473,22 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
 
     return df_out
 
-
 def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="REQ", real_backlog=0, sla_days=0):
     if df is None or df.empty:
         return pd.DataFrame(columns=["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado", "SLA no Prazo", "% no Prazo"])
 
     d = df.copy()
-    d["Opened"] = pd.to_datetime(d["Opened"], errors="coerce")
-    d["Closed"] = pd.to_datetime(d["Closed"], errors="coerce")
+    d["Opened"] = pd.to_datetime(d["Opened"], errors="coerce", dayfirst=True)
+    d["Closed"] = pd.to_datetime(d["Closed"], errors="coerce", dayfirst=True)
     d["State_Lower"] = d["State"].astype(str).str.lower().str.strip() if "State" in d.columns else ""
 
     opened_months = d["Opened"].dropna().dt.to_period('M').value_counts()
 
-    d_closed = d[d["Closed"].notna()].copy()
+    d_closed = d[d[ "Closed"].notna()].copy()
     d_closed["Closed_Month"] = d_closed["Closed"].dt.to_period('M')
     d_closed["Opened_Date"] = d_closed["Opened"].dt.floor("D")
     d_closed["Closed_Date"] = d_closed["Closed"].dt.floor("D")
-    d_closed["Aging_Resolved"] = (d_closed["Closed_Date"] - d_closed["Opened_Date"]).dt.days
+    d_closed["Aging_Resolved"] = (d_closed["Closed_Date"] - d_closed["Opened_Date"]).dt.days.fillna(0).astype(int).abs()
 
     if ticket_type == "INC":
         mask_canceled = d_closed["State_Lower"].isin(["canceled", "cancelled"]) | d_closed["State_Lower"].str.contains(r"\bcancel", regex=True)
@@ -502,7 +500,7 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
 
     resolved_months = d_closed[mask_resolved]["Closed_Month"].value_counts()
     canceled_months = d_closed[mask_canceled]["Closed_Month"].value_counts()
-
+    
     # Lógica de SLA NO PRAZO Mensal
     mask_sla_ok = mask_resolved & (d_closed["Aging_Resolved"] <= sla_days)
     sla_ok_months = d_closed[mask_sla_ok]["Closed_Month"].value_counts()
@@ -521,14 +519,15 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     df_out["Cancelados"] = canceled_months.reindex(all_months_index, fill_value=0).values.astype(int)
     df_out["SLA no Prazo"] = sla_ok_months.reindex(all_months_index, fill_value=0).values.astype(int)
 
-    # Porcentagem Positiva (Dentro do SLA)
-    df_out["% no Prazo"] = np.where(df_out["Encerrados"] > 0, (df_out["SLA no Prazo"] / df_out["Encerrados"] * 100).astype(int), 0).astype(str) + "%"
-
+    # CORREÇÃO: Previne erros matemáticos garantindo que divisões por zero se tornem NaN e sejam tratadas
+    pct_no_prazo = (df_out["SLA no Prazo"] / df_out["Encerrados"].replace(0, np.nan)) * 100
+    df_out["% no Prazo"] = pct_no_prazo.fillna(0).astype(int).astype(str) + "%"
+    
     df_out["Saldo"] = df_out["Abertos"] - (df_out["Encerrados"] + df_out["Cancelados"])
-
+    
     historico_net = df_out["Saldo"].values
     backlog_retro = np.zeros(len(historico_net))
-
+    
     current_bklg = real_backlog
     for i in range(len(historico_net) - 1, -1, -1):
         backlog_retro[i] = current_bklg
@@ -539,13 +538,11 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     df_out.rename(columns={"index": "Mês"}, inplace=True)
     df_out["Mês"] = df_out["Mês"].dt.strftime("%b/%Y").str.upper()
 
-    return df_out[["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado", "SLA no Prazo", "% no Prazo"]]
-
+    return df_out[["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado", "% no Prazo"]]
 
 # =============================================================================
-# QUICKCHART & HTML BUILDERS
+# QUICKCHART & HTML BUILDERS 
 # =============================================================================
-
 
 def get_chart_cid(cfg, width, height, q=None):
     """
@@ -575,20 +572,16 @@ def get_chart_cid(cfg, width, height, q=None):
         # Tenta fallback para URL direta curta se falhar
         return f"https://quickchart.io/chart?w={width}&h={height}&c={urllib.parse.quote(json.dumps(cfg))}"
 
-
 def qc_url_html(cfg, q=None):
     return get_chart_cid(cfg, 500, 300, q)
 
-
 def qc_url_wide_html(cfg, q=None):
     return get_chart_cid(cfg, 1000, 300, q)
-
 
 def pad_empty_html(labels, data):
     if not labels or len(labels) == 0:
         return ["Sem Dados"], [0]
     return labels, data
-
 
 def sanitize_label(text, limit=20):
     if pd.isna(text):
@@ -597,7 +590,6 @@ def sanitize_label(text, limit=20):
     if clean.lower() == "nan" or clean == "":
         return "Nao Assinado"
     return clean[:limit] + "..." if len(clean) > limit else clean
-
 
 def add_title_to_cfg(cfg, title_text):
     if "options" not in cfg:
@@ -610,7 +602,6 @@ def add_title_to_cfg(cfg, title_text):
         "fontFamily": "sans-serif"
     }
     return cfg
-
 
 def add_pie_formatter(cfg, data_array=None):
     chart_type = str(cfg.get("type", "")).lower()
@@ -643,7 +634,6 @@ def add_pie_formatter(cfg, data_array=None):
     }
     return cfg
 
-
 def add_bar_formatter(cfg, data_array, is_stacked=False):
     """Garante porcentagem e anula valores iguais a zero para ocultar os rótulos de ponta."""
     try:
@@ -652,7 +642,7 @@ def add_bar_formatter(cfg, data_array, is_stacked=False):
             total = sum(totals_per_bar)
             bar_values = totals_per_bar
         else:
-            numeric_data = [float(x) if str(x).replace('.', '', 1).isdigit() else 0 for x in data_array]
+            numeric_data = [float(x) if str(x).replace('.','',1).isdigit() else 0 for x in data_array]
             total = sum(numeric_data)
             bar_values = numeric_data
     except Exception:
@@ -666,7 +656,7 @@ def add_bar_formatter(cfg, data_array, is_stacked=False):
             pct_str = f"{int(pct)}%" if pct.is_integer() else f"{pct:.1f}%"
             formatted_strings.append(f"{int(val)} ({pct_str})")
         else:
-            formatted_strings.append("")
+            formatted_strings.append("") 
 
     if "data" in cfg and "labels" in cfg["data"]:
         orig_labels = cfg["data"]["labels"]
@@ -697,7 +687,6 @@ def add_bar_formatter(cfg, data_array, is_stacked=False):
 
     return cfg
 
-
 def get_hbar_opts(step_size=None, max_val=0, is_stacked=False):
     opts = {
         "legend": {"display": False},
@@ -726,7 +715,6 @@ def get_hbar_opts(step_size=None, max_val=0, is_stacked=False):
         opts["plugins"]["datalabels"]["color"] = "#FFFFFF"
     return opts
 
-
 def build_section_title(text, bg_color=ModernColors.PRIMARY_DARK, margin_top="35px"):
     return f"""
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: {margin_top}; margin-bottom: 10px;">
@@ -735,7 +723,6 @@ def build_section_title(text, bg_color=ModernColors.PRIMARY_DARK, margin_top="35
         </td></tr>
     </table>
     """
-
 
 def build_card(title, content):
     return f"""
@@ -749,7 +736,6 @@ def build_card(title, content):
     </table>
     """
 
-
 def build_grid2(left_content, right_content):
     return f"""
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
@@ -759,7 +745,6 @@ def build_grid2(left_content, right_content):
         </tr>
     </table>
     """
-
 
 def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_totals=True, lbl_resolved="Encerrados"):
     if df is None or df.empty:
@@ -828,7 +813,6 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
     html += "</table>"
     return html
 
-
 def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
     if df.empty:
         return f"<div style='padding: 15px; font-family: Calibri, sans-serif; background-color: {ModernColors.PRIMARY_LIGHT}; color: {ModernColors.PRIMARY_DARK}; border: 1px solid {ModernColors.PRIMARY_DARK}; text-align: center; font-weight: bold;'>✅ Sem dados em {title}</div>"
@@ -877,11 +861,10 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
     tot_c = df["Cancelados"].sum()
     tot_s = df["Saldo"].sum()
     last_b = df["Backlog Acumulado"].iloc[-1] if not df.empty else 0
-    tot_sl = df.get("SLA no Prazo", pd.Series([0])).sum()
+    
     c_tot = ModernColors.PRIMARY_DARK if tot_s > 0 else (
         ModernColors.PRIMARY if tot_s < 0 else ModernColors.GRAY_DARK)
     sign_tot = "+" if tot_s > 0 else ""
-    tot_est_pct = f"{int((tot_sl / tot_f) * 100)}%" if tot_f > 0 else "0%"
 
     html += f"""
         <tr style="background-color: {ModernColors.GRAY_LIGHT}; border-top: 2px solid {ModernColors.PRIMARY_DARK};">
@@ -891,22 +874,17 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
             <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">{tot_c}</td>
             <td style="color: {c_tot}; font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size:11px;">{sign_tot}{tot_s}</td>
             <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">{last_b}</td>
-            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">{tot_est_pct}</td>
+            <td style="font-weight: bold; text-align:center; padding:4px 6px; border:1px solid #ddd; font-size: 11px;">—</td>
         </tr>
         </tbody>
     </table>"""
     return html
 
-
 def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancelados, label_cancelados, cor_backlog, lbl_resolved="Encerrados"):
-    l, a = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
-    ], df_monthly["Abertos"].tolist() if not df_monthly.empty else [])
-    _, f = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
-    ], df_monthly["Encerrados"].tolist() if not df_monthly.empty else [])
-    _, c = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
-    ], df_monthly["Cancelados"].tolist() if not df_monthly.empty else [])
-    _, b = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [
-    ], df_monthly["Backlog Acumulado"].tolist() if not df_monthly.empty else [])
+    l, a = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [], df_monthly["Abertos"].tolist() if not df_monthly.empty else [])
+    _, f = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [], df_monthly["Encerrados"].tolist() if not df_monthly.empty else [])
+    _, c = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [], df_monthly["Cancelados"].tolist() if not df_monthly.empty else [])
+    _, b = pad_empty_html(df_monthly["Mês"].tolist() if not df_monthly.empty else [], df_monthly["Backlog Acumulado"].tolist() if not df_monthly.empty else [])
 
     a_clean = hide_zeros(a)
     f_clean = hide_zeros(f)
@@ -914,14 +892,13 @@ def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancela
 
     if a and f and c and a[0] != 'Sem Dados':
         try:
-            stack_heights = [
-                float(a[i] or 0) + float(f[i] or 0) + float(c[i] or 0) for i in range(len(a))]
+            stack_heights = [float(a[i] or 0) + float(f[i] or 0) + float(c[i] or 0) for i in range(len(a))]
             max_val = max(stack_heights)
         except:
             max_val = 10
     else:
         max_val = 10
-
+        
     max_b = max(b) if b and b[0] != 'Sem Dados' else 10
 
     cfg = {
@@ -929,14 +906,10 @@ def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancela
         "data": {
             "labels": l,
             "datasets": [
-                {"type": "line", "label": "Backlog (Acumulado)", "data": b, "fill": False, "borderColor": cor_backlog, "backgroundColor": cor_backlog, "borderWidth": 3, "yAxisID": "y2", "datalabels": {
-                    "display": True, "align": "top", "anchor": "center", "color": cor_backlog, "font": {"weight": "bold"}}},
-                {"type": "bar", "label": "Abertos", "data": a_clean, "backgroundColor": cor_abertos, "yAxisID": "y1", "datalabels": {
-                    "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}},
-                {"type": "bar", "label": lbl_resolved, "data": f_clean, "backgroundColor": cor_fechados, "yAxisID": "y1", "stack": "Stack 1",
-                    "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}},
-                {"type": "bar", "label": label_cancelados, "data": c_clean, "backgroundColor": cor_cancelados, "yAxisID": "y1", "stack": "Stack 1",
-                    "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}}
+                {"type": "line", "label": "Backlog (Acumulado)", "data": b, "fill": False, "borderColor": cor_backlog, "backgroundColor": cor_backlog, "borderWidth": 3, "yAxisID": "y2", "datalabels": {"display": True, "align": "top", "anchor": "center", "color": "#000000", "font": {"weight": "bold"}}},
+                {"type": "bar", "label": "Abertos", "data": a_clean, "backgroundColor": cor_abertos, "yAxisID": "y1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}},
+                {"type": "bar", "label": lbl_resolved, "data": f_clean, "backgroundColor": cor_fechados, "yAxisID": "y1", "stack": "Stack 1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}},
+                {"type": "bar", "label": label_cancelados, "data": c_clean, "backgroundColor": cor_cancelados, "yAxisID": "y1", "stack": "Stack 1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}}
             ]
         },
         "options": {
@@ -944,10 +917,8 @@ def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancela
             "scales": {
                 "xAxes": [{"stacked": True}],
                 "yAxes": [
-                    {"id": "y1", "stacked": True, "position": "left", "ticks": {
-                        "beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.45}},
-                    {"id": "y2", "position": "right", "gridLines": {"drawOnChartArea": False}, "ticks": {
-                        "beginAtZero": True, "precision": 0, "suggestedMax": max_b * 1.2}}
+                    {"id": "y1", "stacked": True, "position": "left", "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.45}},
+                    {"id": "y2", "position": "right", "gridLines": {"drawOnChartArea": False}, "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_b * 1.2}}
                 ]
             }
         }
@@ -956,16 +927,11 @@ def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancela
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
     return add_title_to_cfg(cfg, f"VISÃO ANUAL - TOTAL ENTRADAS: {total_in} | SAÍDAS ({lbl_resolved.upper()} + CANCELADOS): {total_out}")
 
-
 def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, label_cancelados, cor_backlog, lbl_resolved="Encerrados"):
-    l, a = pad_empty_html(df_daily["Data"].str[:5].tolist() if not df_daily.empty else [
-    ], df_daily["Abertos"].tolist() if not df_daily.empty else [])
-    _, f = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [
-    ], df_daily["Encerrados"].tolist() if not df_daily.empty else [])
-    _, c = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [
-    ], df_daily["Cancelados"].tolist() if not df_daily.empty else [])
-    _, b = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [
-    ], df_daily["Backlog Acumulado"].tolist() if not df_daily.empty else [])
+    l, a = pad_empty_html(df_daily["Data"].str[:5].tolist() if not df_daily.empty else [], df_daily["Abertos"].tolist() if not df_daily.empty else [])
+    _, f = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [], df_daily["Encerrados"].tolist() if not df_daily.empty else [])
+    _, c = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [], df_daily["Cancelados"].tolist() if not df_daily.empty else [])
+    _, b = pad_empty_html(df_daily["Data"].tolist() if not df_daily.empty else [], df_daily["Backlog Acumulado"].tolist() if not df_daily.empty else [])
 
     a_clean = hide_zeros(a)
     f_clean = hide_zeros(f)
@@ -973,14 +939,13 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
 
     if a and f and c and a[0] != 'Sem Dados':
         try:
-            stack_heights = [
-                float(a[i] or 0) + float(f[i] or 0) + float(c[i] or 0) for i in range(len(a))]
+            stack_heights = [float(a[i] or 0) + float(f[i] or 0) + float(c[i] or 0) for i in range(len(a))]
             max_val = max(stack_heights)
         except:
             max_val = 10
     else:
         max_val = 10
-
+        
     max_b = max(b) if b and b[0] != 'Sem Dados' else 10
 
     cfg = {
@@ -988,14 +953,10 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
         "data": {
             "labels": l,
             "datasets": [
-                {"type": "line", "label": "Backlog (Acumulado)", "data": b, "fill": False, "borderColor": cor_backlog, "backgroundColor": cor_backlog, "borderWidth": 3, "yAxisID": "y2", "datalabels": {
-                    "display": True, "align": "top", "anchor": "center", "color": cor_backlog, "font": {"weight": "bold", "size": 9}}},
-                {"type": "bar", "label": "Abertos", "data": a_clean, "backgroundColor": cor_abertos, "yAxisID": "y1", "datalabels": {
-                    "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}},
-                {"type": "bar", "label": lbl_resolved, "data": f_clean, "backgroundColor": cor_fechados, "yAxisID": "y1", "stack": "Stack 1",
-                    "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}},
-                {"type": "bar", "label": label_cancelados, "data": c_clean, "backgroundColor": cor_cancelados, "yAxisID": "y1", "stack": "Stack 1",
-                    "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}}
+                {"type": "line", "label": "Backlog (Acumulado)", "data": b, "fill": False, "borderColor": cor_backlog, "backgroundColor": cor_backlog, "borderWidth": 3, "yAxisID": "y2", "datalabels": {"display": True, "align": "top", "anchor": "center", "color": "#000000", "font": {"weight": "bold", "size": 9}}},
+                {"type": "bar", "label": "Abertos", "data": a_clean, "backgroundColor": cor_abertos, "yAxisID": "y1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}},
+                {"type": "bar", "label": lbl_resolved, "data": f_clean, "backgroundColor": cor_fechados, "yAxisID": "y1", "stack": "Stack 1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}},
+                {"type": "bar", "label": label_cancelados, "data": c_clean, "backgroundColor": cor_cancelados, "yAxisID": "y1", "stack": "Stack 1", "datalabels": {"display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}}
             ]
         },
         "options": {
@@ -1003,10 +964,8 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
             "scales": {
                 "xAxes": [{"stacked": True}],
                 "yAxes": [
-                    {"id": "y1", "stacked": True, "position": "left", "ticks": {
-                        "beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.45}},
-                    {"id": "y2", "position": "right", "gridLines": {"drawOnChartArea": False}, "ticks": {
-                        "beginAtZero": True, "precision": 0, "suggestedMax": max_b * 1.2}}
+                    {"id": "y1", "stacked": True, "position": "left", "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_val * 1.45}},
+                    {"id": "y2", "position": "right", "gridLines": {"drawOnChartArea": False}, "ticks": {"beginAtZero": True, "precision": 0, "suggestedMax": max_b * 1.2}}
                 ]
             }
         }
@@ -1018,12 +977,10 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
 # ============================================================================
 # ORQUESTRADOR DE CRIAÇÃO DO RELATÓRIO 2 (COM DADOS REAIS DO EXCEL)
 # ============================================================================
-
-
 def main_simples(configs, q=None):
     global IMAGE_ATTACHMENTS
     IMAGE_ATTACHMENTS = []
-
+    
     log_q(q, "\n" + "=" * 80)
     log_q(q, "🚀 GERANDO RELATÓRIO 2 (NOVO LAYOUT MONOCROMÁTICO) COM DADOS REAIS")
     log_q(q, "=" * 80)
@@ -1031,26 +988,24 @@ def main_simples(configs, q=None):
     try:
         _ensure_dir(OUTPUT_FILE)
         _ensure_dir(OUTPUT_HTML)
-
+        
         SLA_DAYS_REQS = int(configs.get("sla_days_reqs", 10))
         SLA_DAYS_INCS = int(configs.get("sla_days_incs", 7))
         MONTHS_LIMIT_HTML = int(configs.get("months_limit_html", 2))
-        MONTHS_LIMIT_THROUGHPUT = int(
-            configs.get("months_limit_throughput", 6))
-
+        MONTHS_LIMIT_THROUGHPUT = int(configs.get("months_limit_throughput", 6))
+        
         RUN_AT = datetime.now()
 
         # 1. Carrega os Dados Reais
         df_reqs = load_prepare_reqs(SOURCE_FILE, "REQs", now=RUN_AT, q=q)
         df_incs = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
-
+        
         # 2. Normaliza os tickets para o HTML
         req = normalize_ticket_df_html(df_reqs, "REQ")
         inc = normalize_ticket_df_html(df_incs, "INC")
 
         # 3. Segregação: INC, REQ (Suporte) e UAM (Acessos)
-        req["IS_ACCESS"] = req["Assignment group"].apply(
-            _is_access_ticket_html)
+        req["IS_ACCESS"] = req["Assignment group"].apply(_is_access_ticket_html)
         req_support = req[~req["IS_ACCESS"]].copy()
         req_uam = req[req["IS_ACCESS"]].copy()
 
@@ -1062,8 +1017,7 @@ def main_simples(configs, q=None):
         req_support_count = len(req_sup_open_strict)
         uam_count = len(uam_open_strict)
 
-        all_months, meta = build_month_window_html(
-            [req, inc], MONTHS_LIMIT_HTML)
+        all_months, meta = build_month_window_html([req, inc], MONTHS_LIMIT_HTML)
         start_date = meta.get("start_date")
         end_date = meta.get("end_date")
         now_floor = pd.Timestamp(datetime.now()).floor('D')
@@ -1074,59 +1028,43 @@ def main_simples(configs, q=None):
         # FUNÇÃO INTERNA PARA PROCESSAR UMA SESSÃO
         # ========================================================================
         def process_section(df_full, df_open, ticket_type, sla_days, real_backlog, is_inc=False):
-            df_m = compute_monthly_throughput_table_html(
-                df_full, MONTHS_LIMIT_THROUGHPUT, ticket_type=ticket_type, real_backlog=real_backlog, sla_days=sla_days)
-
-            df_d_full = compute_daily_table_html(
-                df_full, start_date=start_date, end_date=end_date, ticket_type=ticket_type, real_backlog=real_backlog, sla_days=sla_days)
+            df_m = compute_monthly_throughput_table_html(df_full, MONTHS_LIMIT_THROUGHPUT, ticket_type=ticket_type, real_backlog=real_backlog, sla_days=sla_days)
+            
+            df_d_full = compute_daily_table_html(df_full, start_date=start_date, end_date=end_date, ticket_type=ticket_type, real_backlog=real_backlog, sla_days=sla_days)
             df_d = get_current_month_daily(df_d_full)
 
-            mttr_dict = compute_closed_metrics_html(
-                df_full, ticket_type=ticket_type)
+            mttr_dict = compute_closed_metrics_html(df_full, ticket_type=ticket_type)
             mttr_val = mttr_dict["mttr_mean"]
 
-            _, df_ag, _, open_df = compute_open_backlog_metrics_html(
-                df_full, sla_days, ticket_type=ticket_type)
+            _, df_ag, _, open_df = compute_open_backlog_metrics_html(df_full, sla_days, ticket_type=ticket_type)
 
             # Lógica de Fechados no Mês Vigente vs Abertos por Analista
             current_month_period = pd.Timestamp(datetime.now()).to_period('M')
-            closed_this_month = df_full[(df_full["Closed"].notna()) & (
-                pd.to_datetime(df_full["Closed"]).dt.to_period('M') == current_month_period)].copy()
+            closed_this_month = df_full[(df_full["Closed"].notna()) & (pd.to_datetime(df_full["Closed"]).dt.to_period('M') == current_month_period)].copy()
 
-            abertos_counts = df_open["Assigned to"].replace(
-                "nan", "Nao Assinado").replace("", "N/A").value_counts()
-            fechados_counts = closed_this_month["Assigned to"].replace(
-                "nan", "Nao Assinado").replace("", "N/A").value_counts()
+            abertos_counts = df_open["Assigned to"].replace("nan", "Nao Assinado").replace("", "N/A").value_counts()
+            fechados_counts = closed_this_month["Assigned to"].replace("nan", "Nao Assinado").replace("", "N/A").value_counts()
 
-            df_a = pd.DataFrame({"Abertos (Atuais)": abertos_counts,
-                                "Fechados (Mês)": fechados_counts}).fillna(0).astype(int)
+            df_a = pd.DataFrame({"Abertos (Atuais)": abertos_counts, "Fechados (Mês)": fechados_counts}).fillna(0).astype(int)
             df_a["Total"] = df_a["Abertos (Atuais)"] + df_a["Fechados (Mês)"]
             df_a = df_a.sort_values(by="Total", ascending=False).head(10)
-
+            
             df_a.index.name = "Analista"
             df_a = df_a.reset_index()
             if df_a.empty:
-                df_a = pd.DataFrame(
-                    columns=["Analista", "Abertos (Atuais)", "Fechados (Mês)", "Total"])
+                df_a = pd.DataFrame(columns=["Analista", "Abertos (Atuais)", "Fechados (Mês)", "Total"])
 
             # Lógica de SLA Card dos Fechados (Calculado estritamente Resolvido - Aberto)
             if not closed_this_month.empty:
-                closed_this_month["Opened_Date"] = pd.to_datetime(
-                    closed_this_month["Opened"], errors="coerce").dt.floor("D")
-                closed_this_month["Closed_Date"] = pd.to_datetime(
-                    closed_this_month["Closed"], errors="coerce").dt.floor("D")
-                closed_this_month["Aging_Resolved_Days"] = (
-                    closed_this_month["Closed_Date"] - closed_this_month["Opened_Date"]).dt.days
-
-                in_sla_closed = (
-                    closed_this_month["Aging_Resolved_Days"] <= sla_days).sum()
-                out_sla_closed = (
-                    closed_this_month["Aging_Resolved_Days"] > sla_days).sum()
+                closed_this_month["Opened_Date"] = pd.to_datetime(closed_this_month["Opened"], errors="coerce", dayfirst=True).dt.floor("D")
+                closed_this_month["Closed_Date"] = pd.to_datetime(closed_this_month["Closed"], errors="coerce", dayfirst=True).dt.floor("D")
+                closed_this_month["Aging_Resolved_Days"] = (closed_this_month["Closed_Date"] - closed_this_month["Opened_Date"]).dt.days.fillna(0).astype(int).abs()
+                
+                in_sla_closed = (closed_this_month["Aging_Resolved_Days"] <= sla_days).sum()
+                out_sla_closed = (closed_this_month["Aging_Resolved_Days"] > sla_days).sum()
                 total_closed_month = in_sla_closed + out_sla_closed
-
-                # CÁLCULO POSITIVO DA PORCENTAGEM (DENTRO DO SLA)
-                in_sla_pct = int(
-                    (in_sla_closed / total_closed_month * 100)) if total_closed_month > 0 else 0
+                
+                in_sla_pct = int((in_sla_closed / total_closed_month * 100)) if total_closed_month > 0 else 0
             else:
                 in_sla_closed, out_sla_closed, in_sla_pct = 0, 0, 0
 
@@ -1140,40 +1078,31 @@ def main_simples(configs, q=None):
 
             # Tabela Crítica
             if "SLA_BREACH_OPEN" in open_df.columns:
-                df_critical = open_df[open_df["SLA_BREACH_OPEN"]
-                                      == True].copy()
+                df_critical = open_df[open_df["SLA_BREACH_OPEN"] == True].copy()
             else:
                 df_critical = pd.DataFrame()
 
             if not df_critical.empty:
-                df_critical = df_critical.sort_values(
-                    by="AGING_OPEN", ascending=False).head(50)
-                df_critical["Opened_Str"] = df_critical["Opened"].dt.strftime(
-                    '%d/%m/%Y').fillna("-")
-
+                df_critical = df_critical.sort_values(by="AGING_OPEN", ascending=False).head(50)
+                df_critical["Opened_Str"] = df_critical["Opened"].dt.strftime('%d/%m/%Y').fillna("-")
+                
                 if is_inc:
-                    for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "PRB"]:
+                    for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "On hold reason", "PRB"]:
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
-                    df_critical = df_critical[[
-                        "Number", "Assigned to", "Requester", "Assignment group", "State", "Opened_Str", "AGING_OPEN", "PRB"]]
-                    df_critical.columns = [
-                        "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging", "PRB"]
+                    df_critical = df_critical[["Number", "Assigned to", "Requester", "Assignment group", "State", "On hold reason", "Opened_Str", "AGING_OPEN", "PRB"]]
+                    df_critical.columns = ["Ticket", "Analista", "Solicitante", "Grupo", "Status", "Motivo Espera", "Abertura", "Aging", "PRB"]
                 else:
                     for col in ["Number", "Assignment group", "Assigned to", "Requester", "State"]:
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
-                    df_critical = df_critical[[
-                        "Number", "Assigned to", "Requester", "Assignment group", "State", "Opened_Str", "AGING_OPEN"]]
-                    df_critical.columns = [
-                        "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"]
+                    df_critical = df_critical[["Number", "Assigned to", "Requester", "Assignment group", "State", "Opened_Str", "AGING_OPEN"]]
+                    df_critical.columns = ["Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"]
             else:
                 if is_inc:
-                    df_critical = pd.DataFrame(columns=[
-                                               "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging", "PRB"])
+                    df_critical = pd.DataFrame(columns=["Ticket", "Analista", "Solicitante", "Grupo", "Status", "Motivo Espera", "Abertura", "Aging", "PRB"])
                 else:
-                    df_critical = pd.DataFrame(columns=[
-                                               "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"])
+                    df_critical = pd.DataFrame(columns=["Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"])
 
             return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla, in_sla_closed, out_sla_closed, in_sla_pct
 
@@ -1229,9 +1158,9 @@ def main_simples(configs, q=None):
 
             label_canc = "Cancelados"
             cfg_mensal = build_monthly_backlog_cfg(
-                df_m, "#001871", ModernColors.PRIMARY_LIGHT, ModernColors.INFO, label_canc, ModernColors.DANGER, lbl_resolved)
+                df_m, "#001871", "#3B82F6", "#DC2626", label_canc, ModernColors.ORANGE, lbl_resolved)
             cfg_diario = build_daily_trend_cfg(
-                df_d, "#001871", ModernColors.PRIMARY_LIGHT, ModernColors.INFO, label_canc, ModernColors.DANGER, lbl_resolved)
+                df_d, "#001871", "#3B82F6", "#DC2626", label_canc, ModernColors.ORANGE, lbl_resolved)
 
             tabela_throughput = build_full_monthly_table_html(
                 df_m, "TABELA DE THROUGHPUT ACUMULADO", lbl_resolved)
@@ -1256,7 +1185,7 @@ def main_simples(configs, q=None):
                         {"label": "Abertos (Atuais)", "data": data_a_abertos,
                          "backgroundColor": "#001871"},
                         {"label": f"{lbl_resolved} (Mês)", "data": data_a_fechados,
-                         "backgroundColor": ModernColors.PRIMARY_LIGHT}
+                         "backgroundColor": "#3B82F6"}
                     ]
                 },
                 "options": get_hbar_opts(max_val=max(df_a["Total"].tolist()) if not df_a.empty else 10, is_stacked=True)
@@ -1272,7 +1201,7 @@ def main_simples(configs, q=None):
                 "type": "horizontalBar",
                 "data": {
                     "labels": labels_ag,
-                    "datasets": [{"data": data_ag, "backgroundColor": ModernColors.PRIMARY}]
+                    "datasets": [{"data": data_ag, "backgroundColor": "#1E3A8A"}]
                 },
                 "options": get_hbar_opts(max_val=max(data_ag) if data_ag and str(data_ag[0]).replace('.', '', 1).isdigit() else 10)
             }
@@ -1285,7 +1214,7 @@ def main_simples(configs, q=None):
                 "type": "pie",
                 "data": {
                     "labels": ["SLA Cumprido", "SLA Estourado"],
-                    "datasets": [{"data": [in_sla, out_sla], "backgroundColor": [ModernColors.PRIMARY_LIGHT, ModernColors.PRIMARY_DARK]}]
+                    "datasets": [{"data": [in_sla, out_sla], "backgroundColor": ["#2563EB", "#94A3B8"]}]
                 },
                 "options": {}
             }
