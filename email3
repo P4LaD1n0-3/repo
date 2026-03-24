@@ -51,17 +51,17 @@ class ModernColors:
     ACCENT_DARK = "#0F172A"    # Azul-Cinza Escuro (INCs)
     ACCENT = "#2563EB"         # Azul Royal Vivo (Gráficos: Resolvidos e SLA no Prazo)
     ACCENT_LIGHT = "#93C5FD"   # Azul Claro (Cancelados)
-    SUCCESS = "#00C853"        # Verde Esmeralda Vivo (Usado para Encerrados/SLA no Prazo)
+    SUCCESS = "#00C853"        # Verde Esmeralda Vivo (Apenas HTML Texto)
     SUCCESS_LIGHT = "#B9F6CA"  
-    WARNING = "#FF8F00"        # Laranja Âmbar Vivo (Usado para Aging >= 10 dias)
+    WARNING = "#FF8F00"        # Laranja Âmbar Vivo (Usado para Aging >= 10 dias / Tabela Auxiliar)
     WARNING_LIGHT = "#FFECB3"  
-    DANGER = "#D50000"         # Vermelho Intenso (Gráficos, Cancelados e Aging >= 30 dias)
+    DANGER = "#D50000"         # Vermelho Intenso (Gráficos e Alertas CRÍTICOS)
     DANGER_LIGHT = "#FFCDD2"   
     ORANGE = "#FF8C00"         # Laranja Clássico Vibrante para Linhas de Backlog
     ORANGE_LIGHT = "#FFE0B2"   
     GRAY_DARK = "#334155"      # Cinza Chumbo Forte e Vivo
-    GRAY = "#94A3B8"           # Cinza Metálico
-    GRAY_LIGHT = "#F8FAFC"     # Fundo de Tabelas Moderno
+    GRAY = "#94A3B8"           # Cinza Metálico (SLA Fora do prazo em gráficos)
+    GRAY_LIGHT = "#F8FAFC"     # Fundo de Tabelas e Cards Discretos
     WHITE = "#FFFFFF"
     INFO = "#0284C7"           # Azul Ciano Vivo
     BACKGROUND = "#F1F5F9"
@@ -180,16 +180,16 @@ def load_prepare_reqs(source_file, label="REQs", now=None, q=None):
         df, ["State", "Status", "Estado", "Status Bin", "Status_Bin"])
 
     df["Opened"] = pd.to_datetime(
-        df[opened_col], errors="coerce") if opened_col else pd.NaT
+        df[opened_col], errors="coerce", dayfirst=True) if opened_col else pd.NaT
     df["Closed"] = pd.to_datetime(
-        df[closed_col], errors="coerce") if closed_col else pd.NaT
+        df[closed_col], errors="coerce", dayfirst=True) if closed_col else pd.NaT
     df = _normalize_status_bin(df, state_col)
 
     now = now or datetime.now()
     df["Aging_Timedelta"] = df.apply(lambda x: (
         x["Closed"] - x["Opened"]) if pd.notna(x["Closed"]) else (now - x["Opened"]), axis=1)
     df["Aging"] = (df["Aging_Timedelta"].dt.total_seconds() /
-                   (24 * 3600)).fillna(0).astype(int)
+                   (24 * 3600)).fillna(0).astype(int).abs()
 
     return _ensure_identity_cols_common(df)
 
@@ -211,16 +211,16 @@ def load_prepare_incs(source_file, label="INCs", now=None, q=None):
         df, ["State", "Status", "Estado", "Status Bin", "Status_Bin"])
 
     df["Opened"] = pd.to_datetime(
-        df[opened_col], errors="coerce") if opened_col else pd.NaT
+        df[opened_col], errors="coerce", dayfirst=True) if opened_col else pd.NaT
     df["Closed"] = pd.to_datetime(
-        df[closed_col], errors="coerce") if closed_col else pd.NaT
+        df[closed_col], errors="coerce", dayfirst=True) if closed_col else pd.NaT
     df = _normalize_status_bin(df, state_col)
 
     now = now or datetime.now()
     df["Aging_Timedelta"] = df.apply(lambda x: (
         x["Closed"] - x["Opened"]) if pd.notna(x["Closed"]) else (now - x["Opened"]), axis=1)
     df["Aging"] = (df["Aging_Timedelta"].dt.total_seconds() /
-                   (24 * 3600)).fillna(0).astype(int)
+                   (24 * 3600)).fillna(0).astype(int).abs()
 
     return _ensure_identity_cols_common(df)
 
@@ -277,32 +277,37 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
     short_desc_col = _pick_col(
         df, ["Short description", "Descrição Curta", "Description", "Descrição"])
     on_hold_col = _pick_col(df, ["On hold reason", "Motivo de espera", "On Hold Reason"])
+    
+    # NOVA COLUNA: Comentários adicionais para a tabela auxiliar
+    add_comments_col = _pick_col(df, ["Additional comments", "Comentários Adicionais", "Comments", "Comentários"])
 
     def extract_prb(row):
-        prb_val = ""
-        if prb_col and prb_col in row:
-            prb_val = str(row[prb_col]).strip()
-
+        # 1. Verifica coluna "Problem"
+        prb_val = str(row[prb_col]).strip() if prb_col and pd.notna(row.get(prb_col)) else ""
         if prb_val and prb_val.upper() not in ["NAN", "N/A", "NONE", ""]:
             match_prb = re.search(r'(PRB\d+)', prb_val, re.IGNORECASE)
             if match_prb:
                 return match_prb.group(1).upper()
             return prb_val
 
-        sd_val = ""
-        if short_desc_col and short_desc_col in row:
-            sd_val = str(row[short_desc_col])
+        # 2. Verifica coluna "Short description"
+        sd_val = str(row[short_desc_col]) if short_desc_col and pd.notna(row.get(short_desc_col)) else ""
+        match_sd = re.search(r'(PRB\d+)', sd_val, re.IGNORECASE)
+        if match_sd:
+            return match_sd.group(1).upper()
 
-        match = re.search(r'(PRB\d+)', sd_val, re.IGNORECASE)
-        if match:
-            return match.group(1).upper()
+        # 3. Verifica coluna "Additional comments"
+        ac_val = str(row[add_comments_col]) if add_comments_col and pd.notna(row.get(add_comments_col)) else ""
+        match_ac = re.search(r'(PRB\d+)', ac_val, re.IGNORECASE)
+        if match_ac:
+            return match_ac.group(1).upper()
 
         return "N/A"
 
     df["Opened"] = pd.to_datetime(
-        df[opened_col], errors="coerce") if opened_col else pd.NaT
+        df[opened_col], errors="coerce", dayfirst=True) if opened_col else pd.NaT
     df["Closed"] = pd.to_datetime(
-        df[closed_col], errors="coerce") if closed_col else pd.NaT
+        df[closed_col], errors="coerce", dayfirst=True) if closed_col else pd.NaT
     df["Assignment group"] = df[ag_col].astype(
         str).fillna("").replace("", "—") if ag_col else "—"
     df["Assigned to"] = df[asg_col].astype(str).fillna(
@@ -310,8 +315,12 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
     df["Number"] = df[number_col].astype(str).fillna("") if number_col else ""
     df["State"] = df[state_col].astype(
         str).fillna("N/A") if state_col else "N/A"
+    
+    # Aplica o super filtro de PRB
     df["PRB"] = df.apply(extract_prb, axis=1)
+    
     df["On hold reason"] = df[on_hold_col].astype(str).fillna("").replace("nan", "") if on_hold_col else ""
+    df["Additional_Comments"] = df[add_comments_col].astype(str).fillna("").replace("nan", "") if add_comments_col else "Sem comentários"
 
     return df
 
@@ -321,8 +330,8 @@ def build_month_window_html(dfs, months_limit=None):
     for df in dfs:
         if df is None or df.empty:
             continue
-        mo = pd.to_datetime(df["Opened"], errors="coerce").dropna()
-        mc = pd.to_datetime(df["Closed"], errors="coerce").dropna()
+        mo = pd.to_datetime(df["Opened"], errors="coerce", dayfirst=True).dropna()
+        mc = pd.to_datetime(df["Closed"], errors="coerce", dayfirst=True).dropna()
         if not mo.empty:
             opened_months.extend([mo.min(), mo.max()])
         if not mc.empty:
@@ -378,11 +387,11 @@ def compute_open_backlog_metrics_html(df, sla_days, ticket_type="REQ"):
     else:
         open_df = _get_only_open_incs(df)
 
-    open_df["Opened_dt"] = pd.to_datetime(open_df["Opened"], errors="coerce")
+    open_df["Opened_dt"] = pd.to_datetime(open_df["Opened"], errors="coerce", dayfirst=True)
     open_df = open_df[open_df["Opened_dt"].notna()].copy()
     open_df["AGING_OPEN"] = (now - open_df["Opened_dt"]).dt.days
     open_df["AGING_OPEN"] = pd.to_numeric(
-        open_df["AGING_OPEN"], errors="coerce").fillna(0).astype(int).clip(lower=0)
+        open_df["AGING_OPEN"], errors="coerce").fillna(0).astype(int).clip(lower=0).abs()
     open_df["SLA_BREACH_OPEN"] = open_df["AGING_OPEN"] > int(sla_days)
 
     total_open = int(len(open_df))
@@ -441,12 +450,12 @@ def compute_closed_metrics_html(df, ticket_type="REQ"):
     if len(closed_df) == 0:
         return {"closed_total": 0, "mttr_mean": 0.0}
 
-    closed_dt_safe = pd.to_datetime(closed_df["Closed"]).fillna(
+    closed_dt_safe = pd.to_datetime(closed_df["Closed"], errors="coerce", dayfirst=True).fillna(
         pd.Timestamp(datetime.now()))
     closed_df["AGING_CLOSED"] = (
-        closed_dt_safe - pd.to_datetime(closed_df["Opened"])).dt.days
+        closed_dt_safe - pd.to_datetime(closed_df["Opened"], errors="coerce", dayfirst=True)).dt.days
     closed_df["AGING_CLOSED"] = pd.to_numeric(
-        closed_df["AGING_CLOSED"], errors="coerce").fillna(0).astype(int).clip(lower=0)
+        closed_df["AGING_CLOSED"], errors="coerce").fillna(0).astype(int).clip(lower=0).abs()
 
     return {
         "closed_total": len(closed_df),
@@ -473,15 +482,15 @@ def compute_daily_table_html(df, start_date=None, end_date=None, ticket_type="RE
     d["State_Lower"] = d["State"].astype(
         str).str.lower().str.strip() if "State" in d.columns else ""
     opened_dates = pd.to_datetime(
-        d["Opened"], errors="coerce").dropna().dt.floor("D")
+        d["Opened"], errors="coerce", dayfirst=True).dropna().dt.floor("D")
 
     d_closed = d[d["Closed"].notna()].copy()
     d_closed["Closed_Date"] = pd.to_datetime(
-        d_closed["Closed"], errors="coerce").dt.floor("D")
+        d_closed["Closed"], errors="coerce", dayfirst=True).dt.floor("D")
     d_closed["Opened_Date"] = pd.to_datetime(
-        d_closed["Opened"], errors="coerce").dt.floor("D")
+        d_closed["Opened"], errors="coerce", dayfirst=True).dt.floor("D")
     d_closed["Aging_Resolved"] = (
-        d_closed["Closed_Date"] - d_closed["Opened_Date"]).dt.days
+        d_closed["Closed_Date"] - d_closed["Opened_Date"]).dt.days.fillna(0).astype(int).abs()
 
     if ticket_type == "INC":
         mask_canceled = d_closed["State_Lower"].isin(
@@ -553,8 +562,8 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
         return pd.DataFrame(columns=["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado", "SLA no Prazo", "% no Prazo"])
 
     d = df.copy()
-    d["Opened"] = pd.to_datetime(d["Opened"], errors="coerce")
-    d["Closed"] = pd.to_datetime(d["Closed"], errors="coerce")
+    d["Opened"] = pd.to_datetime(d["Opened"], errors="coerce", dayfirst=True)
+    d["Closed"] = pd.to_datetime(d["Closed"], errors="coerce", dayfirst=True)
     d["State_Lower"] = d["State"].astype(
         str).str.lower().str.strip() if "State" in d.columns else ""
 
@@ -565,7 +574,7 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     d_closed["Opened_Date"] = d_closed["Opened"].dt.floor("D")
     d_closed["Closed_Date"] = d_closed["Closed"].dt.floor("D")
     d_closed["Aging_Resolved"] = (
-        d_closed["Closed_Date"] - d_closed["Opened_Date"]).dt.days
+        d_closed["Closed_Date"] - d_closed["Opened_Date"]).dt.days.fillna(0).astype(int).abs()
 
     if ticket_type == "INC":
         mask_canceled = d_closed["State_Lower"].isin(
@@ -605,8 +614,9 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     df_out["SLA no Prazo"] = sla_ok_months.reindex(
         all_months_index, fill_value=0).values.astype(int)
 
-    # Porcentagem Positiva (Dentro do SLA) - Corrigido erro NaN
-    pct_no_prazo = (df_out["SLA no Prazo"] / df_out["Encerrados"].replace(0, np.nan)) * 100
+    # Divisão segura para evitar o erro IntCastingNaNError
+    pct_no_prazo = (df_out["SLA no Prazo"] /
+                    df_out["Encerrados"].replace(0, np.nan)) * 100
     df_out["% no Prazo"] = pct_no_prazo.fillna(0).astype(int).astype(str) + "%"
 
     df_out["Saldo"] = df_out["Abertos"] - \
@@ -1024,7 +1034,7 @@ def build_monthly_backlog_cfg(df_monthly, cor_abertos, cor_fechados, cor_cancela
             "labels": l,
             "datasets": [
                 {"type": "line", "label": "Backlog (Acumulado)", "data": b, "fill": False, "borderColor": cor_backlog, "backgroundColor": cor_backlog, "borderWidth": 3, "yAxisID": "y2", "datalabels": {
-                    "display": True, "align": "top", "anchor": "center", "color": cor_backlog, "font": {"weight": "bold"}}},
+                    "display": True, "align": "top", "anchor": "center", "color": "#000000", "font": {"weight": "bold"}}},
                 {"type": "bar", "label": "Abertos", "data": a_clean, "backgroundColor": cor_abertos, "yAxisID": "y1", "datalabels": {
                     "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold"}}},
                 {"type": "bar", "label": lbl_resolved, "data": f_clean, "backgroundColor": cor_fechados, "yAxisID": "y1", "stack": "Stack 1",
@@ -1083,7 +1093,7 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
             "labels": l,
             "datasets": [
                 {"type": "line", "label": "Backlog (Acumulado)", "data": b, "fill": False, "borderColor": cor_backlog, "backgroundColor": cor_backlog, "borderWidth": 3, "yAxisID": "y2", "datalabels": {
-                    "display": True, "align": "top", "anchor": "center", "color": cor_backlog, "font": {"weight": "bold", "size": 9}}},
+                    "display": True, "align": "top", "anchor": "center", "color": "#000000", "font": {"weight": "bold", "size": 9}}},
                 {"type": "bar", "label": "Abertos", "data": a_clean, "backgroundColor": cor_abertos, "yAxisID": "y1", "datalabels": {
                     "display": True, "align": "center", "anchor": "center", "color": "#fff", "font": {"weight": "bold", "size": 9}}},
                 {"type": "bar", "label": lbl_resolved, "data": f_clean, "backgroundColor": cor_fechados, "yAxisID": "y1", "stack": "Stack 1",
@@ -1232,10 +1242,10 @@ def main_simples(configs, q=None):
             else:
                 in_sla, out_sla = 0, 0
 
-            # Tabela Crítica
+            # Tabela Crítica + Tabela Auxiliar de Sem PRB (apenas INCs)
+            df_missing_prb = pd.DataFrame()
             if "SLA_BREACH_OPEN" in open_df.columns:
-                df_critical = open_df[open_df["SLA_BREACH_OPEN"]
-                                      == True].copy()
+                df_critical = open_df[open_df["SLA_BREACH_OPEN"] == True].copy()
             else:
                 df_critical = pd.DataFrame()
 
@@ -1246,9 +1256,18 @@ def main_simples(configs, q=None):
                     '%d/%m/%Y').fillna("-")
 
                 if is_inc:
-                    for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "On hold reason", "PRB"]:
+                    for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "On hold reason", "PRB", "Additional_Comments"]:
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
+                    
+                    # Cria tabela auxiliar de INCs sem PRB ANTES de limpar as colunas
+                    mask_missing_prb = df_critical["PRB"] == "N/A"
+                    if mask_missing_prb.any():
+                        df_missing_prb = df_critical[mask_missing_prb][["Number", "Assigned to", "Additional_Comments"]].copy()
+                        # Truncar comentário em 150 caracteres
+                        df_missing_prb["Additional_Comments"] = df_missing_prb["Additional_Comments"].apply(lambda x: (str(x)[:150] + '...') if len(str(x)) > 150 else str(x))
+                        df_missing_prb.columns = ["Ticket", "Analista", "Último Comentário Registrado"]
+                    
                     df_critical = df_critical[[
                         "Number", "Assigned to", "Requester", "Assignment group", "State", "On hold reason", "Opened_Str", "AGING_OPEN", "PRB"]]
                     df_critical.columns = [
@@ -1269,25 +1288,25 @@ def main_simples(configs, q=None):
                     df_critical = pd.DataFrame(columns=[
                                                "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"])
 
-            return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla, in_sla_closed, out_sla_closed, in_sla_pct
+            return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla, in_sla_closed, out_sla_closed, in_sla_pct, df_missing_prb
 
         log_q(q, "Processando dados reais de INCs...")
-        inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct = process_section(
+        inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct, inc_missing_prb_df = process_section(
             inc, inc_open_strict, "INC", SLA_DAYS_INCS, inc_count, is_inc=True)
 
         log_q(q, "Processando dados reais de REQs...")
-        req_m, req_d, req_a, req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_in_c_pct = process_section(
+        req_m, req_d, req_a, req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_in_c_pct, req_missing_prb_df = process_section(
             req_support, req_sup_open_strict, "REQ", SLA_DAYS_REQS, req_support_count, is_inc=False)
 
         log_q(q, "Processando dados reais de UAMs...")
-        uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct = process_section(
+        uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df = process_section(
             req_uam, uam_open_strict, "REQ", SLA_DAYS_REQS, uam_count, is_inc=False)
 
         # ========================================================================
         # FUNÇÃO INTERNA DE MONTAGEM HTML DA SESSÃO
         # ========================================================================
 
-        def montar_bloco_html(titulo, color_main, df_m, df_d, df_a, df_ag, df_sla, mttr_val, in_sla, out_sla, in_c, out_c_abs, in_c_pct, is_inc=False):
+        def montar_bloco_html(titulo, color_main, df_m, df_d, df_a, df_ag, df_sla, mttr_val, in_sla, out_sla, in_c, out_c_abs, in_c_pct, df_missing_prb=None, is_inc=False):
 
             lbl_resolved = "Resolvidos" if is_inc else "Encerrados"
 
@@ -1323,14 +1342,20 @@ def main_simples(configs, q=None):
 
             label_canc = "Cancelados"
             cfg_mensal = build_monthly_backlog_cfg(
-                df_m, "#001871", "#3B82F6", "#DC2626", label_canc, ModernColors.ORANGE, lbl_resolved)
+                df_m, "#001871", ModernColors.PRIMARY_LIGHT, ModernColors.INFO, label_canc, ModernColors.ORANGE, lbl_resolved)
             cfg_diario = build_daily_trend_cfg(
-                df_d, "#001871", "#3B82F6", "#DC2626", label_canc, ModernColors.ORANGE, lbl_resolved)
+                df_d, "#001871", ModernColors.PRIMARY_LIGHT, ModernColors.INFO, label_canc, ModernColors.ORANGE, lbl_resolved)
 
             tabela_throughput = build_full_monthly_table_html(
                 df_m, "TABELA DE THROUGHPUT ACUMULADO", lbl_resolved)
             tabela_sla_critica = build_html_table_html(
                 df_sla, ModernColors.PRIMARY_DARK, show_totals=False)
+
+            # Nova Tabela Auxiliar (Somente INCs Críticos sem PRB)
+            tabela_auxiliar_html = ""
+            if df_missing_prb is not None and not df_missing_prb.empty:
+                tabela_auxiliar_inner = build_html_table_html(df_missing_prb, ModernColors.WARNING, show_totals=False)
+                tabela_auxiliar_html = build_card(f"⚠️ INCIDENTES CRÍTICOS SEM PRB VINCULADO (TOTAL: {len(df_missing_prb)})", tabela_auxiliar_inner)
 
             # Gráfico de Analistas Empilhado (Abertos vs Fechados)
             if not df_a.empty:
@@ -1350,7 +1375,7 @@ def main_simples(configs, q=None):
                         {"label": "Abertos (Atuais)", "data": data_a_abertos,
                          "backgroundColor": "#001871"},
                         {"label": f"{lbl_resolved} (Mês)", "data": data_a_fechados,
-                         "backgroundColor": "#3B82F6"}
+                         "backgroundColor": ModernColors.PRIMARY_LIGHT}
                     ]
                 },
                 "options": get_hbar_opts(max_val=max(df_a["Total"].tolist()) if not df_a.empty else 10, is_stacked=True)
@@ -1366,7 +1391,7 @@ def main_simples(configs, q=None):
                 "type": "horizontalBar",
                 "data": {
                     "labels": labels_ag,
-                    "datasets": [{"data": data_ag, "backgroundColor": "#1E3A8A"}]
+                    "datasets": [{"data": data_ag, "backgroundColor": ModernColors.PRIMARY}]
                 },
                 "options": get_hbar_opts(max_val=max(data_ag) if data_ag and str(data_ag[0]).replace('.', '', 1).isdigit() else 10)
             }
@@ -1379,7 +1404,7 @@ def main_simples(configs, q=None):
                 "type": "pie",
                 "data": {
                     "labels": ["SLA Cumprido", "SLA Estourado"],
-                    "datasets": [{"data": [in_sla, out_sla], "backgroundColor": ["#3B82F6", "#DC2626"]}]
+                    "datasets": [{"data": [in_sla, out_sla], "backgroundColor": [ModernColors.PRIMARY_LIGHT, ModernColors.PRIMARY_DARK]}]
                 },
                 "options": {}
             }
@@ -1419,20 +1444,21 @@ def main_simples(configs, q=None):
             )}
             
             {build_card(f"⚠️ CHAMADOS ACIMA DO SLA PENDENTES (TOTAL: {len(df_sla)})", tabela_sla_critica)}
+            {tabela_auxiliar_html}
             <br><br>
             """
 
         log_q(q, "Renderizando Seção 1: INCs...")
         SESSAO_INCS = montar_bloco_html("🚨 SESSÃO INCs (INCIDENTES GERAIS)", ModernColors.PRIMARY_DARK, inc_m, inc_d, inc_a,
-                                        inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct, is_inc=True)
+                                        inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct, inc_missing_prb_df, is_inc=True)
 
         log_q(q, "Renderizando Seção 2: REQs...")
         SESSAO_REQS = montar_bloco_html("🛠️ SESSÃO REQs (SUPORTE GERAL)", ModernColors.PRIMARY, req_m, req_d, req_a,
-                                        req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_in_c_pct, is_inc=False)
+                                        req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_in_c_pct, req_missing_prb_df, is_inc=False)
 
         log_q(q, "Renderizando Seção 3: UAMs...")
         SESSAO_UAMS = montar_bloco_html("🔐 SESSÃO UAMs (ACESSOS)", ModernColors.ACCENT_DARK, uam_m, uam_d, uam_a,
-                                        uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, is_inc=False)
+                                        uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df, is_inc=False)
 
         meses_exibido = meta.get("meses_calculado", MONTHS_LIMIT_HTML)
 
