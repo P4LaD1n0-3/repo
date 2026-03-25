@@ -242,22 +242,33 @@ def load_prepare_ptasks(source_file, now=None, q=None):
     
     prob_col = _pick_col(df, ["Problem", "Problema"])
     num_col = _pick_col(df, ["Number", "Número", "Task"])
-    state_col = _pick_col(df, ["State", "Estado"])
-    prob_state_col = _pick_col(df, ["Problem State", "Problem.State", "Estado do Problema"])
-    asg_col = _pick_col(df, ["Assigned to", "Analista"])
     
-    # Busca expandida para RCA Status e Datas para não perder os dados
-    rca_status_col = _pick_col(df, ["RCA Status", "Status do RCA", "Status RCA", "RCA", "RCA_Status"])
-    due_date_col = _pick_col(df, ["Due date", "Data de vencimento", "Due Date PTASK", "Vencimento PTASK"])
-    rca_due_date_col = _pick_col(df, ["RCA Due Date", "Data de vencimento do RCA", "RCA Due", "Due date (RCA)", "RCA_Due_Date"])
+    # NOVAS BUSCAS AGRESSIVAS DE NOMES E DB FIELDS (SERVICENOW)
+    opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created", "Criado", "Criado em", "opened_at", "sys_created_on", "Abertura"])
+    state_col = _pick_col(df, ["State", "Estado", "Status", "state"])
+    prob_state_col = _pick_col(df, ["Problem State", "Problem.State", "Estado do Problema"])
+    asg_col = _pick_col(df, ["Assigned to", "Analista", "assigned_to"])
+    
+    rca_status_col = _pick_col(df, ["RCA Status", "Status do RCA", "Status RCA", "RCA", "RCA_Status", "u_rca_status", "rca_status"])
+    due_date_col = _pick_col(df, ["Due date", "Data de vencimento", "Due Date PTASK", "Vencimento PTASK", "due_date"])
+    rca_due_date_col = _pick_col(df, ["RCA Due Date", "Data de vencimento do RCA", "RCA Due", "Due date (RCA)", "RCA_Due_Date", "u_rca_due_date", "Target date", "RCA Target Date"])
 
     d = pd.DataFrame()
     d["Problem"] = df[prob_col].astype(str).fillna("N/A") if prob_col else "N/A"
     d["PTASK"] = df[num_col].astype(str).fillna("N/A") if num_col else "N/A"
-    d["PTASK State"] = df[state_col].astype(str).fillna("N/A") if state_col else "N/A"
-    d["Problem State"] = df[prob_state_col].astype(str).fillna("N/A") if prob_state_col else "N/A"
-    d["Assigned to"] = df[asg_col].astype(str).fillna("N/A").replace("nan", "N/A").replace("", "N/A") if asg_col else "N/A"
-    d["RCA Status"] = df[rca_status_col].astype(str).fillna("N/A").replace("nan", "N/A") if rca_status_col else "N/A"
+    
+    # Tratamento da Data de Abertura ("Opened")
+    if opened_col:
+        d["Opened"] = pd.to_datetime(df[opened_col], errors='coerce', dayfirst=True)
+        d["Opened_Str"] = d["Opened"].dt.strftime('%d/%m/%Y').fillna("N/A")
+    else:
+        d["Opened"] = pd.NaT
+        d["Opened_Str"] = "N/A"
+
+    d["PTASK State"] = df[state_col].astype(str).replace(["nan", "None", "<NA>"], "N/A").fillna("N/A") if state_col else "N/A"
+    d["Problem State"] = df[prob_state_col].astype(str).replace(["nan", "None", "<NA>"], "N/A").fillna("N/A") if prob_state_col else "N/A"
+    d["Assigned to"] = df[asg_col].astype(str).replace(["nan", "None", "<NA>", ""], "N/A").fillna("N/A") if asg_col else "N/A"
+    d["RCA Status"] = df[rca_status_col].astype(str).replace(["nan", "None", "<NA>", ""], "N/A").fillna("N/A") if rca_status_col else "N/A"
     
     now_dt = now or datetime.now()
     now_ts = pd.Timestamp(now_dt)
@@ -1187,7 +1198,7 @@ def build_ptask_table_html(df):
     
     html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
     html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
-    cols = ["Problem", "PTASK", "Problem State", "PTASK State", "Analista", "RCA Status", "SLA RCA", "SLA PTASK"]
+    cols = ["Problem", "PTASK", "Abertura", "Problem State", "PTASK State", "Analista", "RCA Status", "SLA RCA", "SLA PTASK"]
     for c in cols:
         html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
     html += "</tr></thead><tbody>"
@@ -1220,6 +1231,7 @@ def build_ptask_table_html(df):
         
         html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
         html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['PTASK']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('Opened_Str', 'N/A')}</td>"
         html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Problem State']}</td>"
         html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['PTASK State']}</td>"
         html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
