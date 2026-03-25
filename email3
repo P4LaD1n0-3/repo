@@ -5,7 +5,7 @@ ELITE MASTER V4.1 - RELATÓRIO 2 (NOVO LAYOUT MONOCROMÁTICO AZUL)
 Integra múltiplas análises em um ÚNICO Excel e exporta Dashboard HTML Avançado
 utilizando DADOS REAIS carregados do ServiceNow.
 Separa rigorosamente em 3 Sessões: INCs, REQs (Suporte) e UAMs (Acessos).
-Adicionado processamento de PTASKs e RCAs.
+Nova Sessão global para todas as PTASKs Abertas.
 Exporta Dados Brutos para Anexo no E-mail.
 """
 
@@ -53,11 +53,11 @@ class ModernColors:
     ACCENT_DARK = "#0F172A"    # Azul-Cinza Escuro (INCs)
     ACCENT = "#2563EB"         # Azul Royal Vivo (Gráficos: Resolvidos e SLA no Prazo)
     ACCENT_LIGHT = "#93C5FD"   # Azul Claro (Cancelados)
-    SUCCESS = "#00C853"        # Verde Esmeralda Vivo (Apenas HTML Texto)
+    SUCCESS = "#00C853"        # Verde Esmeralda Vivo (SLA >= 98% e HTML Texto)
     SUCCESS_LIGHT = "#B9F6CA"  
-    WARNING = "#FF8F00"        # Laranja Âmbar Vivo (Usado para Aging >= 10 dias / Tabela Auxiliar)
+    WARNING = "#FF8F00"        # Laranja Âmbar Vivo (Usado secundariamente)
     WARNING_LIGHT = "#FFECB3"  
-    DANGER = "#D50000"         # Vermelho Intenso (Gráficos e Alertas CRÍTICOS)
+    DANGER = "#D50000"         # Vermelho Intenso (Gráficos, Alertas CRÍTICOS e SLA < 98%)
     DANGER_LIGHT = "#FFCDD2"   
     ORANGE = "#FF8C00"         # Laranja Clássico Vibrante para Linhas de Backlog
     ORANGE_LIGHT = "#FFE0B2"   
@@ -245,9 +245,11 @@ def load_prepare_ptasks(source_file, now=None, q=None):
     state_col = _pick_col(df, ["State", "Estado"])
     prob_state_col = _pick_col(df, ["Problem State", "Problem.State", "Estado do Problema"])
     asg_col = _pick_col(df, ["Assigned to", "Analista"])
-    rca_status_col = _pick_col(df, ["RCA Status", "Status do RCA"])
-    due_date_col = _pick_col(df, ["Due date", "Data de vencimento"])
-    rca_due_date_col = _pick_col(df, ["RCA Due Date", "Data de vencimento do RCA", "RCA Due", "Due date (RCA)"])
+    
+    # Busca expandida para RCA Status e Datas para não perder os dados
+    rca_status_col = _pick_col(df, ["RCA Status", "Status do RCA", "Status RCA", "RCA", "RCA_Status"])
+    due_date_col = _pick_col(df, ["Due date", "Data de vencimento", "Due Date PTASK", "Vencimento PTASK"])
+    rca_due_date_col = _pick_col(df, ["RCA Due Date", "Data de vencimento do RCA", "RCA Due", "Due date (RCA)", "RCA_Due_Date"])
 
     d = pd.DataFrame()
     d["Problem"] = df[prob_col].astype(str).fillna("N/A") if prob_col else "N/A"
@@ -909,7 +911,7 @@ def build_grid2(left_content, right_content):
     """
 
 
-def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_totals=True, lbl_resolved="Encerrados"):
+def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_totals=True, lbl_resolved="Encerrados", sla_days=10):
     if df is None or df.empty:
         return f"<div style='padding: 15px; color: {ModernColors.PRIMARY_DARK}; background-color: {ModernColors.PRIMARY_LIGHT}; text-align: center; font-weight: bold; border: 1px solid {ModernColors.PRIMARY_DARK}; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Sem dados aplicáveis para o período.</div>"
 
@@ -930,13 +932,10 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
 
             if "Aging" in df.columns and j == list(df.columns).index("Aging"):
                 try:
-                    if int(val) >= 30:
+                    # Lógica ajustada: Aging > SLA fica Vermelho (DANGER)
+                    if int(val) > sla_days:
                         color = "#ffffff"
                         bg_cell = ModernColors.DANGER
-                        font_weight = "bold"
-                    elif int(val) >= 10:
-                        color = "#ffffff"
-                        bg_cell = ModernColors.WARNING
                         font_weight = "bold"
                     else:
                         bg_cell = "transparent"
@@ -1011,6 +1010,19 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
         b1 = r["Backlog Acumulado"]
         pct_est = r["% no Prazo"]
 
+        # Lógica de Cor para SLA >= 98%
+        try:
+            pct_val = float(str(pct_est).replace('%', ''))
+            if pct_val >= 98:
+                bg_pct = ModernColors.SUCCESS
+                color_pct = "#FFFFFF"
+            else:
+                bg_pct = ModernColors.DANGER
+                color_pct = "#FFFFFF"
+        except:
+            bg_pct = "transparent"
+            color_pct = ModernColors.PRIMARY_DARK
+
         c1 = ModernColors.PRIMARY_DARK if s1 > 0 else (
             ModernColors.PRIMARY if s1 < 0 else ModernColors.GRAY_DARK)
         sign1 = "+" if s1 > 0 else ""
@@ -1023,7 +1035,7 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
             <td style="padding:4px 6px; border:1px solid #ddd; text-align:center;">{c1_val}</td>
             <td style="color: {c1}; font-weight: bold; padding:4px 6px; border:1px solid #ddd; text-align:center;">{sign1}{s1}</td>
             <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold;">{b1}</td>
-            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold;">{pct_est}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold; background-color:{bg_pct}; color:{color_pct};">{pct_est}</td>
         </tr>"""
 
     tot_a = df["Abertos"].sum()
@@ -1168,6 +1180,59 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
     return add_title_to_cfg(cfg, f"ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE) - TOTAL ENTRADAS: {total_in} | SAÍDAS ({lbl_resolved.upper()} + CANCELADOS): {total_out}")
 
+
+def build_ptask_table_html(df):
+    if df.empty:
+        return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) aberta localizada.</div>"
+    
+    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
+    html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
+    cols = ["Problem", "PTASK", "Problem State", "PTASK State", "Analista", "RCA Status", "SLA RCA", "SLA PTASK"]
+    for c in cols:
+        html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
+    html += "</tr></thead><tbody>"
+    
+    for i, row in df.iterrows():
+        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
+        html += f"<tr style='background-color: {bg};'>"
+        
+        sla_rca_val = row["SLA RCA (Dias)"]
+        if pd.isna(sla_rca_val):
+            txt_rca = "N/A"
+            col_rca = ModernColors.GRAY_DARK
+        elif sla_rca_val < 0:
+            txt_rca = f"Estourado ({abs(int(sla_rca_val))} dias)"
+            col_rca = ModernColors.DANGER
+        else:
+            txt_rca = f"No Prazo ({int(sla_rca_val)} dias)"
+            col_rca = ModernColors.SUCCESS
+            
+        sla_ptask_val = row["SLA PTASK (Dias)"]
+        if pd.isna(sla_ptask_val):
+            txt_ptask = "N/A"
+            col_ptask = ModernColors.GRAY_DARK
+        elif sla_ptask_val < 0:
+            txt_ptask = f"Estourado ({abs(int(sla_ptask_val))} dias)"
+            col_ptask = ModernColors.DANGER
+        else:
+            txt_ptask = f"No Prazo ({int(sla_ptask_val)} dias)"
+            col_ptask = ModernColors.SUCCESS
+        
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['PTASK']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Problem State']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['PTASK State']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Status']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_rca}; font-weight: bold;'>{txt_rca}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_ptask}; font-weight: bold;'>{txt_ptask}</td>"
+        
+        html += "</tr>"
+    
+    html += "</tbody></table>"
+    return html
+
+
 # ============================================================================
 # ORQUESTRADOR DE CRIAÇÃO DO RELATÓRIO 2 (COM DADOS REAIS DO EXCEL)
 # ============================================================================
@@ -1216,16 +1281,12 @@ def main_simples(configs, q=None):
         req_support_count = len(req_sup_open_strict)
         uam_count = len(uam_open_strict)
         
-        # Lógica de Filtragem PTASKs
-        df_ptask_filtered = pd.DataFrame()
+        # Filtro de PTASKs (GLOBAL - Todas as abertas)
         if not df_ptasks_raw.empty:
-            closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'fechado', 'cancelado', 'encerrado']
+            closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'fechado', 'cancelado', 'encerrado', 'resolved', 'resolvido']
             df_ptasks_open = df_ptasks_raw[~df_ptasks_raw['PTASK State'].str.lower().str.strip().isin(closed_states)].copy()
-            
-            prbs_in_incs = inc["PRB"].unique()
-            prbs_in_incs = [p for p in prbs_in_incs if p != "N/A" and str(p).strip() != ""]
-            
-            df_ptask_filtered = df_ptasks_open[df_ptasks_open["Problem"].isin(prbs_in_incs)].copy()
+        else:
+            df_ptasks_open = pd.DataFrame()
 
         all_months, meta = build_month_window_html(
             [req, inc], MONTHS_LIMIT_HTML)
@@ -1352,25 +1413,17 @@ def main_simples(configs, q=None):
 
             return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla, in_sla_closed, out_sla_closed, in_sla_pct, df_missing_prb
 
-        log_q(q, "Processando dados reais de INCs...")
-        inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct, inc_missing_prb_df = process_section(
-            inc, inc_open_strict, "INC", SLA_DAYS_INCS, inc_count, is_inc=True)
-
-        log_q(q, "Processando dados reais de REQs...")
-        req_m, req_d, req_a, req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_in_c_pct, req_missing_prb_df = process_section(
-            req_support, req_sup_open_strict, "REQ", SLA_DAYS_REQS, req_support_count, is_inc=False)
-
-        log_q(q, "Processando dados reais de UAMs...")
-        uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df = process_section(
-            req_uam, uam_open_strict, "REQ", SLA_DAYS_REQS, uam_count, is_inc=False)
 
         # ========================================================================
         # FUNÇÃO INTERNA DE MONTAGEM HTML DA SESSÃO
         # ========================================================================
 
-        def montar_bloco_html(titulo, color_main, df_m, df_d, df_a, df_ag, df_sla, mttr_val, in_sla, out_sla, in_c, out_c_abs, in_c_pct, df_missing_prb=None, df_ptasks_to_show=pd.DataFrame(), is_inc=False):
+        def montar_bloco_html(titulo, color_main, df_m, df_d, df_a, df_ag, df_sla, mttr_val, in_sla, out_sla, in_c, out_c_abs, in_c_pct, df_missing_prb=None, sla_days=10, is_inc=False):
 
             lbl_resolved = "Resolvidos" if is_inc else "Encerrados"
+            
+            # SLA de 98% fica verde, abaixo disso fica vermelho no card principal
+            color_pct_card = ModernColors.SUCCESS if in_c_pct >= 98 else ModernColors.DANGER
 
             mttr_html = f"""
             <table width="100%" height="100" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #f8fafc, #e2e8f0); border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
@@ -1390,7 +1443,7 @@ def main_simples(configs, q=None):
                         <div style="font-size: 20px; font-weight: bold; color: {ModernColors.GRAY_DARK}; margin: 0;">
                             <span style="color: {ModernColors.SUCCESS};">✅ {in_c} no Prazo</span> <span style="color: #cbd5e1; margin: 0 8px;">;</span> 
                             <span style="color: {ModernColors.DANGER};">❌ {out_c_abs} Fora</span><br>
-                            <span style="color: {ModernColors.PRIMARY_DARK}; font-size: 22px;">{in_c_pct}% Dentro do Prazo.</span>
+                            <span style="color: {color_pct_card}; font-size: 22px;">{in_c_pct}% Dentro do Prazo.</span>
                         </div>
                     </td>
                 </tr>
@@ -1411,73 +1464,12 @@ def main_simples(configs, q=None):
             tabela_throughput = build_full_monthly_table_html(
                 df_m, "TABELA DE THROUGHPUT ACUMULADO", lbl_resolved)
             tabela_sla_critica = build_html_table_html(
-                df_sla, ModernColors.PRIMARY_DARK, show_totals=False)
-            
-            def build_ptask_table_html(df):
-                if df.empty:
-                    return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) pendente vinculada aos Incidentes atuais.</div>"
-                
-                html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
-                html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
-                cols = ["Problem", "PTASK", "Problem State", "PTASK State", "Analista", "RCA Status", "SLA RCA", "SLA PTASK"]
-                for c in cols:
-                    html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
-                html += "</tr></thead><tbody>"
-                
-                for i, row in df.iterrows():
-                    bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
-                    html += f"<tr style='background-color: {bg};'>"
-                    
-                    sla_rca_val = row["SLA RCA (Dias)"]
-                    if pd.isna(sla_rca_val):
-                        txt_rca = "N/A"
-                        col_rca = ModernColors.GRAY_DARK
-                    elif sla_rca_val < 0:
-                        txt_rca = f"Estourado ({abs(int(sla_rca_val))} dias)"
-                        col_rca = ModernColors.DANGER
-                    else:
-                        txt_rca = f"No Prazo ({int(sla_rca_val)} dias)"
-                        col_rca = ModernColors.SUCCESS
-                        
-                    sla_ptask_val = row["SLA PTASK (Dias)"]
-                    if pd.isna(sla_ptask_val):
-                        txt_ptask = "N/A"
-                        col_ptask = ModernColors.GRAY_DARK
-                    elif sla_ptask_val < 0:
-                        txt_ptask = f"Estourado ({abs(int(sla_ptask_val))} dias)"
-                        col_ptask = ModernColors.DANGER
-                    else:
-                        txt_ptask = f"No Prazo ({int(sla_ptask_val)} dias)"
-                        col_ptask = ModernColors.SUCCESS
-                    
-                    html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
-                    html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['PTASK']}</td>"
-                    html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Problem State']}</td>"
-                    html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['PTASK State']}</td>"
-                    html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
-                    html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Status']}</td>"
-                    html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_rca}; font-weight: bold;'>{txt_rca}</td>"
-                    html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_ptask}; font-weight: bold;'>{txt_ptask}</td>"
-                    
-                    html += "</tr>"
-                
-                html += "</tbody></table>"
-                return html
-
-            # Sessão PTASK (somente renderiza se is_inc=True)
-            sessao_ptask_html = ""
-            if is_inc:
-                tabela_ptask_inner = build_ptask_table_html(df_ptasks_to_show)
-                sessao_ptask_html = f"""
-                {build_section_title("🧩 SESSÃO PTASK E RCA (VINCULADOS AOS INCIDENTES)", ModernColors.PRIMARY_DARK)}
-                {build_card(f"📋 LISTA DE PROBLEM TASKS ABERTAS (TOTAL: {len(df_ptasks_to_show)})", tabela_ptask_inner)}
-                <br><br>
-                """
+                df_sla, ModernColors.PRIMARY_DARK, show_totals=False, sla_days=sla_days)
 
             # Nova Tabela Auxiliar (Somente INCs Críticos sem PRB)
             tabela_auxiliar_html = ""
             if df_missing_prb is not None and not df_missing_prb.empty:
-                tabela_auxiliar_inner = build_html_table_html(df_missing_prb, ModernColors.WARNING, show_totals=False)
+                tabela_auxiliar_inner = build_html_table_html(df_missing_prb, ModernColors.WARNING, show_totals=False, sla_days=sla_days)
                 tabela_auxiliar_html = build_card(f"⚠️ INCIDENTES CRÍTICOS SEM PRB VINCULADO (TOTAL: {len(df_missing_prb)})", tabela_auxiliar_inner)
 
             # Gráfico de Analistas Empilhado (Abertos vs Fechados)
@@ -1511,12 +1503,14 @@ def main_simples(configs, q=None):
             labels_ag, data_ag = pad_empty_html(
                 df_ag["Faixa"].tolist(), df_ag["Qtd"].tolist())
                 
-            # Cores dinâmicas para o gráfico de aging (espelhando a tabela)
+            # Cores dinâmicas para o gráfico de aging - Prazos Estourados (acima do SLA) em VERMELHO
             colors_ag = []
             for lbl in labels_ag:
-                if "30" in lbl: colors_ag.append(ModernColors.DANGER)
-                elif "10" in lbl or "20" in lbl: colors_ag.append(ModernColors.WARNING)
-                else: colors_ag.append(ModernColors.PRIMARY)
+                # Se na label tiver indicação que passou do SLA correspondente
+                if ("10" in lbl and sla_days <= 10) or ("20" in lbl) or ("30" in lbl) or ("7+" in lbl and sla_days <= 7): 
+                    colors_ag.append(ModernColors.DANGER)
+                else: 
+                    colors_ag.append(ModernColors.PRIMARY)
                 
             cfg_aging = {
                 "type": "horizontalBar",
@@ -1553,7 +1547,7 @@ def main_simples(configs, q=None):
             </table>
             """
 
-            # LAYOUT FINAL
+            # LAYOUT FINAL DO BLOCO
             return f"""
             {build_section_title(titulo, color_main)}
             {cards_html}
@@ -1566,8 +1560,6 @@ def main_simples(configs, q=None):
                 build_card("3. TABELA DE THROUGHPUT ACUMULADO", tabela_throughput),
                 build_card("4. VOLUME E PRODUTIVIDADE POR ANALISTA", f'<img src="{qc_url_html(cfg_analistas, q)}" width="100%">')
             )}
-            
-            {sessao_ptask_html}
             
             {div_maturidade}
             
@@ -1593,15 +1585,22 @@ def main_simples(configs, q=None):
         uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df = process_section(
             req_uam, uam_open_strict, "REQ", SLA_DAYS_REQS, uam_count, is_inc=False)
 
-        # MONTAGEM FINAL DOS BLOCOS HTML (Passando df_ptask_filtered apenas para INC)
+        # MONTAGEM FINAL DOS BLOCOS HTML
         SESSAO_INCS = montar_bloco_html("🚨 SESSÃO INCs (INCIDENTES GERAIS)", ModernColors.PRIMARY_DARK, inc_m, inc_d, inc_a,
-                                        inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct, inc_missing_prb_df, df_ptask_filtered, is_inc=True)
+                                        inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct, inc_missing_prb_df, SLA_DAYS_INCS, is_inc=True)
 
         SESSAO_REQS = montar_bloco_html("🛠️ SESSÃO REQs (SUPORTE GERAL)", ModernColors.PRIMARY, req_m, req_d, req_a,
-                                        req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_in_c_pct, req_missing_prb_df, pd.DataFrame(), is_inc=False)
+                                        req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_in_c_pct, req_missing_prb_df, SLA_DAYS_REQS, is_inc=False)
 
         SESSAO_UAMS = montar_bloco_html("🔐 SESSÃO UAMs (ACESSOS)", ModernColors.ACCENT_DARK, uam_m, uam_d, uam_a,
-                                        uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df, pd.DataFrame(), is_inc=False)
+                                        uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df, SLA_DAYS_REQS, is_inc=False)
+
+        # NOVA SESSÃO GLOBAL PARA TODAS AS PTASKS
+        SESSAO_PTASKS = f"""
+        {build_section_title("🎯 SESSÃO PTASK E RCA (TODAS AS ABERTAS NO SISTEMA)", ModernColors.GRAY_DARK)}
+        {build_card(f"📋 LISTA GERAL DE PROBLEM TASKS ABERTAS (TOTAL: {len(df_ptasks_open)})", build_ptask_table_html(df_ptasks_open))}
+        <br><br>
+        """
 
         meses_exibido = meta.get("meses_calculado", MONTHS_LIMIT_HTML)
 
@@ -1616,7 +1615,7 @@ def main_simples(configs, q=None):
             <table width="100%" cellpadding="0" cellspacing="0" border="0" align="center" style="max-width: 1400px; background-color: {ModernColors.WHITE}; border-radius: 8px; border: 1px solid #ddd;">
                 <tr>
                     <td style="background-color: {ModernColors.PRIMARY_DARK}; color: {ModernColors.WHITE}; padding: 25px; border-radius: 8px 8px 0 0;">
-                        <h2 style="margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase;">PAINEL EXECUTIVO — REQs, INCs e UAMs (NOVO LAYOUT)</h2>
+                        <h2 style="margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase;">PAINEL EXECUTIVO — REQs, INCs, UAMs e PTASKs (NOVO LAYOUT)</h2>
                         <p style="margin: 0; color: {ModernColors.WHITE}; font-size: 13px; background-color: rgba(255,255,255,0.2); padding: 8px; border-radius: 4px; display: inline-block; font-weight: bold;">Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} | SLA REQ={SLA_DAYS_REQS}d | SLA INC={SLA_DAYS_INCS}d</p>
                     </td>
                 </tr>
@@ -1628,6 +1627,8 @@ def main_simples(configs, q=None):
                         {SESSAO_REQS}
                         <br><br>
                         {SESSAO_UAMS}
+                        <br><br>
+                        {SESSAO_PTASKS}
                     </td>
                 </tr>
                 <tr>
