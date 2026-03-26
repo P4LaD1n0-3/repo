@@ -289,15 +289,53 @@ def load_prepare_ptasks(source_file, now=None, q=None):
         
     return d
 
+
+# ============================================================================
+# LÓGICA RIGOROSA DE SEGREGAÇÃO DE UAM (ACESSOS)
+# ============================================================================
+def tag_uam_tickets(df):
+    """
+    Função super rigorosa que varre o DataFrame de REQs procurando evidências
+    de que o ticket é de Gestão de Acessos (UAM), blindando a sessão de suporte geral.
+    """
+    if df.empty:
+        df["IS_ACCESS"] = False
+        return df
+        
+    ag_col = _pick_col(df, ["Assignment group", "Assignment Group", "Grupo", "Grupo de Atribuição", "Grupo de atribuicao"])
+    sd_col = _pick_col(df, ["Short description", "Descrição Curta", "Description", "Descrição"])
+    cat_col = _pick_col(df, ["Category", "Categoria"])
+    item_col = _pick_col(df, ["Item", "Cat_item", "Cat Item", "Cat item", "Item Solicitado"])
+    
+    def check_row(row):
+        ag = str(row[ag_col]).lower() if ag_col and pd.notna(row[ag_col]) else ""
+        sd = str(row[sd_col]).lower() if sd_col and pd.notna(row[sd_col]) else ""
+        cat = str(row[cat_col]).lower() if cat_col and pd.notna(row[cat_col]) else ""
+        item = str(row[item_col]).lower() if item_col and pd.notna(row[item_col]) else ""
+        
+        # 1. Regra de Ouro: Pelo Grupo Resolvido (Várias variações em Português e Inglês)
+        kw_grupos = ["uam", "acesso", "access", "iam", "idm", "identity", "identidade", "security", "senha", "password", "perfil"]
+        if any(k in ag for k in kw_grupos):
+            return True
+            
+        # 2. Regra Secundária: Pela Categoria ou Item (muito comum em ServiceNow)
+        kw_cats = ["access", "acesso", "uam"]
+        if any(k in cat for k in kw_cats) or any(k in item for k in kw_cats):
+            return True
+            
+        # 3. Regra Terciária: Pelo título (Short description) contendo exatamente [UAM] ou frases explícitas
+        if re.search(r'\buam\b', sd) or "conceder acesso" in sd or "revogar acesso" in sd or "revoke access" in sd or "reset de senha" in sd:
+            return True
+            
+        return False
+
+    df["IS_ACCESS"] = df.apply(check_row, axis=1)
+    return df
+
+
 # ============================================================================
 # LÓGICA DE CÁLCULO E MÉTRICAS PARA O DASHBOARD HTML AVANÇADO
 # ============================================================================
-def _is_access_ticket_html(assignment_group_value):
-    if assignment_group_value is None or pd.isna(assignment_group_value):
-        return False
-    return "access" in str(assignment_group_value).strip().lower()
-
-
 def _get_only_open_reqs(df):
     if df.empty:
         return df
@@ -1277,8 +1315,9 @@ def main_simples(configs, q=None):
         # 1. Carrega os Dados Reais
         df_reqs_raw = load_prepare_reqs(SOURCE_FILE, "REQs", now=RUN_AT, q=q)
         
-        # 1.5 Segregação RIGOROSA de UAMs antes de qualquer processamento para não inflar Suporte e MTTR!
-        df_reqs_raw["IS_ACCESS"] = df_reqs_raw["Assignment group"].apply(_is_access_ticket_html)
+        # 1.5 Segregação SUPER RIGOROSA de UAMs antes de qualquer processamento!
+        df_reqs_raw = tag_uam_tickets(df_reqs_raw)
+        
         df_reqs = df_reqs_raw[~df_reqs_raw["IS_ACCESS"]].copy()
         df_uams = df_reqs_raw[df_reqs_raw["IS_ACCESS"]].copy()
         
