@@ -5,6 +5,8 @@ ELITE MASTER V4.1 - RELATÓRIO 2 (NOVO LAYOUT MONOCROMÁTICO AZUL)
 Integra múltiplas análises em um ÚNICO Excel e exporta Dashboard HTML Avançado
 utilizando DADOS REAIS carregados do ServiceNow.
 Separa rigorosamente em 3 Sessões: INCs, REQs (Suporte) e UAMs (Acessos).
+Adicionado processamento de PTASKs e RCAs.
+Exporta Dados Brutos para Anexo no E-mail com Aba de Desempenho de Analistas.
 """
 
 import os
@@ -42,28 +44,28 @@ OUTPUT_FILE = 'rel_master/relatorio_completo_layout2.xlsx'
 OUTPUT_HTML = 'rel_master/relatorio_email2.html'
 
 # ============================================================================
-# NOVA PALETA DE CORES (Tons Monocromáticos de Azul Forte/Escuro)
+# NOVA PALETA DE CORES (Tons Monocromáticos de Azul Forte/Escuro + Semânticas)
 # ============================================================================
 class ModernColors:
     PRIMARY_DARK = "#001871"   # Azul Escuro Oficial Solicitado (Títulos, Separadores, Barras Abertos)
     PRIMARY = "#1E3A8A"        # Azul Escuro Forte (REQs)
-    PRIMARY_LIGHT = "#E3F2FD"  # Fundo Azul Claro
+    PRIMARY_LIGHT = "#0284C7"  # Fundo Azul Claro
     ACCENT_DARK = "#0F172A"    # Azul-Cinza Escuro (INCs)
     ACCENT = "#2563EB"         # Azul Royal Vivo (Gráficos: Resolvidos e SLA no Prazo)
     ACCENT_LIGHT = "#93C5FD"   # Azul Claro (Cancelados)
     SUCCESS = "#00C853"        # Verde Esmeralda Vivo (Apenas HTML Texto)
-    SUCCESS_LIGHT = "#B9F6CA"  
-    WARNING = "#FF8F00"        # Laranja Âmbar Vivo (Usado para Aging >= 10 dias / Tabela Auxiliar)
-    WARNING_LIGHT = "#FFECB3"  
+    SUCCESS_LIGHT = "#B9F6CA"
+    WARNING = "#FF8F00"
+    WARNING_LIGHT = "#FFECB3"
     DANGER = "#D50000"         # Vermelho Intenso (Gráficos e Alertas CRÍTICOS)
-    DANGER_LIGHT = "#FFCDD2"   
+    DANGER_LIGHT = "#FFCDD2"
     ORANGE = "#FF8C00"         # Laranja Clássico Vibrante para Linhas de Backlog
-    ORANGE_LIGHT = "#FFE0B2"   
+    ORANGE_LIGHT = "#FFE0B2"
     GRAY_DARK = "#334155"      # Cinza Chumbo Forte e Vivo
     GRAY = "#94A3B8"           # Cinza Metálico (SLA Fora do prazo em gráficos)
     GRAY_LIGHT = "#F8FAFC"     # Fundo de Tabelas e Cards Discretos
     WHITE = "#FFFFFF"
-    INFO = "#0284C7"           # Azul Ciano Vivo
+    INFO = "#CC00FF"           # Azul Ciano Vivo
     BACKGROUND = "#F1F5F9"
 
 
@@ -241,7 +243,6 @@ def load_prepare_ptasks(source_file, now=None, q=None):
     prob_col = _pick_col(df, ["Problem", "Problema"])
     num_col = _pick_col(df, ["Number", "Número", "Task"])
     
-    # NOVAS BUSCAS AGRESSIVAS DE NOMES E DB FIELDS (SERVICENOW)
     opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created", "Criado", "Criado em", "opened_at", "sys_created_on", "Abertura"])
     state_col = _pick_col(df, ["State", "Estado", "Status", "state"])
     prob_state_col = _pick_col(df, ["Problem State", "Problem.State", "Estado do Problema"])
@@ -255,7 +256,6 @@ def load_prepare_ptasks(source_file, now=None, q=None):
     d["Problem"] = df[prob_col].astype(str).fillna("N/A") if prob_col else "N/A"
     d["PTASK"] = df[num_col].astype(str).fillna("N/A") if num_col else "N/A"
     
-    # Tratamento da Data de Abertura ("Opened")
     if opened_col:
         d["Opened"] = pd.to_datetime(df[opened_col], errors='coerce', dayfirst=True)
         d["Opened_Str"] = d["Opened"].dt.strftime('%d/%m/%Y').fillna("N/A")
@@ -920,7 +920,7 @@ def build_grid2(left_content, right_content):
     """
 
 
-def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_totals=True, lbl_resolved="Encerrados"):
+def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_totals=True, lbl_resolved="Encerrados", sla_days=10):
     if df is None or df.empty:
         return f"<div style='padding: 15px; color: {ModernColors.PRIMARY_DARK}; background-color: {ModernColors.PRIMARY_LIGHT}; text-align: center; font-weight: bold; border: 1px solid {ModernColors.PRIMARY_DARK}; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Sem dados aplicáveis para o período.</div>"
 
@@ -945,7 +945,7 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
                         color = "#ffffff"
                         bg_cell = ModernColors.DANGER
                         font_weight = "bold"
-                    elif int(val) >= 10:
+                    elif int(val) >= sla_days:
                         color = "#ffffff"
                         bg_cell = ModernColors.WARNING
                         font_weight = "bold"
@@ -1042,7 +1042,7 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
     tot_c = df["Cancelados"].sum()
     tot_s = df["Saldo"].sum()
     last_b = df["Backlog Acumulado"].iloc[-1] if not df.empty else 0
-
+    
     c_tot = ModernColors.PRIMARY_DARK if tot_s > 0 else (
         ModernColors.PRIMARY if tot_s < 0 else ModernColors.GRAY_DARK)
     sign_tot = "+" if tot_s > 0 else ""
@@ -1179,6 +1179,59 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
     return add_title_to_cfg(cfg, f"ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE) - TOTAL ENTRADAS: {total_in} | SAÍDAS ({lbl_resolved.upper()} + CANCELADOS): {total_out}")
 
+def build_ptask_table_html(df):
+    if df.empty:
+        return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) aberta localizada.</div>"
+    
+    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
+    html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
+    cols = ["Problem", "PTASK", "Abertura", "Problem State", "PTASK State", "Analista", "RCA Status", "SLA RCA", "SLA PTASK"]
+    for c in cols:
+        html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
+    html += "</tr></thead><tbody>"
+    
+    for i, row in df.iterrows():
+        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
+        html += f"<tr style='background-color: {bg};'>"
+        
+        sla_rca_val = row["SLA RCA (Dias)"]
+        if pd.isna(sla_rca_val):
+            txt_rca = "N/A"
+            col_rca = ModernColors.GRAY_DARK
+        elif sla_rca_val < 0:
+            txt_rca = f"Estourado ({abs(int(sla_rca_val))} dias)"
+            col_rca = ModernColors.DANGER
+        else:
+            txt_rca = f"No Prazo ({int(sla_rca_val)} dias)"
+            col_rca = ModernColors.SUCCESS
+            
+        sla_ptask_val = row["SLA PTASK (Dias)"]
+        if pd.isna(sla_ptask_val):
+            txt_ptask = "N/A"
+            col_ptask = ModernColors.GRAY_DARK
+        elif sla_ptask_val < 0:
+            txt_ptask = f"Estourado ({abs(int(sla_ptask_val))} dias)"
+            col_ptask = ModernColors.DANGER
+        else:
+            txt_ptask = f"No Prazo ({int(sla_ptask_val)} dias)"
+            col_ptask = ModernColors.SUCCESS
+        
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['PTASK']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('Opened_Str', 'N/A')}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Problem State']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['PTASK State']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Status']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_rca}; font-weight: bold;'>{txt_rca}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_ptask}; font-weight: bold;'>{txt_ptask}</td>"
+        
+        html += "</tr>"
+    
+    html += "</tbody></table>"
+    return html
+
+
 # ============================================================================
 # ORQUESTRADOR DE CRIAÇÃO DO RELATÓRIO 2 (COM DADOS REAIS DO EXCEL)
 # ============================================================================
@@ -1226,7 +1279,7 @@ def main_simples(configs, q=None):
         inc_count = len(inc_open_strict)
         req_support_count = len(req_sup_open_strict)
         uam_count = len(uam_open_strict)
-
+        
         # Filtro de PTASKs (GLOBAL - Todas as abertas)
         if not df_ptasks_raw.empty:
             closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'fechado', 'cancelado', 'encerrado', 'resolved', 'resolvido']
@@ -1358,177 +1411,6 @@ def main_simples(configs, q=None):
                                                "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"])
 
             return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla, in_sla_closed, out_sla_closed, in_sla_pct, df_missing_prb
-
-        log_q(q, "Processando dados reais de INCs...")
-        inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct, inc_missing_prb_df = process_section(
-            inc, inc_open_strict, "INC", SLA_DAYS_INCS, inc_count, is_inc=True)
-
-        log_q(q, "Processando dados reais de REQs...")
-        req_m, req_d, req_a, req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_in_c_pct, req_missing_prb_df = process_section(
-            req_support, req_sup_open_strict, "REQ", SLA_DAYS_REQS, req_support_count, is_inc=False)
-
-        log_q(q, "Processando dados reais de UAMs...")
-        uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df = process_section(
-            req_uam, uam_open_strict, "REQ", SLA_DAYS_REQS, uam_count, is_inc=False)
-
-        # ========================================================================
-        # FUNÇÃO INTERNA DE MONTAGEM HTML DA SESSÃO
-        # ========================================================================
-
-        def montar_bloco_html(titulo, color_main, df_m, df_d, df_a, df_ag, df_sla, mttr_val, in_sla, out_sla, in_c, out_c_abs, in_c_pct, df_missing_prb=None, sla_days=10, is_inc=False):
-
-            lbl_resolved = "Resolvidos" if is_inc else "Encerrados"
-            
-            # SLA de 98% fica verde, abaixo disso fica vermelho no card principal
-            color_pct_card = ModernColors.SUCCESS if in_c_pct >= 98 else ModernColors.DANGER
-
-            mttr_html = f"""
-            <table width="100%" height="100" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #f8fafc, #e2e8f0); border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
-                <tr>
-                    <td align="center" valign="middle">
-                        <div style="font-size: 42px; font-weight: 900; color: {ModernColors.PRIMARY_DARK}; margin-bottom: 5px; line-height: 1;">{mttr_val}</div>
-                        <div style="font-size: 14px; font-weight: bold; color: {ModernColors.GRAY_DARK}; text-transform: uppercase; letter-spacing: 1px;">Dias</div>
-                    </td>
-                </tr>
-            </table>
-            """
-            
-            sla_html = f"""
-            <table width="100%" height="100" cellpadding="0" cellspacing="0" border="0" style="background: linear-gradient(135deg, #f8fafc, #e2e8f0); border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
-                <tr>
-                    <td align="center" valign="middle">
-                        <div style="font-size: 20px; font-weight: bold; color: {ModernColors.GRAY_DARK}; margin: 0;">
-                            <span style="color: {ModernColors.SUCCESS};">✅ {in_c} no Prazo</span> <span style="color: #cbd5e1; margin: 0 8px;">;</span> 
-                            <span style="color: {ModernColors.DANGER};">❌ {out_c_abs} Fora</span><br>
-                            <span style="color: {color_pct_card}; font-size: 22px;">{in_c_pct}% Dentro do Prazo.</span>
-                        </div>
-                    </td>
-                </tr>
-            </table>
-            """
-
-            cards_html = build_grid2(
-                build_card("⏱️ TEMPO MÉDIO DE RESOLUÇÃO (MTTR)", mttr_html),
-                build_card(f"📊 {lbl_resolved.upper()} NO MÊS VIGENTE", sla_html)
-            )
-
-            label_canc = "Cancelados"
-            cfg_mensal = build_monthly_backlog_cfg(
-                df_m, "#001871", ModernColors.SUCCESS, ModernColors.DANGER, label_canc, ModernColors.ORANGE, lbl_resolved)
-            cfg_diario = build_daily_trend_cfg(
-                df_d, "#001871", ModernColors.SUCCESS, ModernColors.DANGER, label_canc, ModernColors.ORANGE, lbl_resolved)
-
-            tabela_throughput = build_full_monthly_table_html(
-                df_m, "TABELA DE THROUGHPUT ACUMULADO", lbl_resolved)
-            tabela_sla_critica = build_html_table_html(
-                df_sla, ModernColors.PRIMARY_DARK, show_totals=False, sla_days=sla_days)
-
-            # Nova Tabela Auxiliar (Somente INCs Críticos sem PRB)
-            tabela_auxiliar_html = ""
-            if df_missing_prb is not None and not df_missing_prb.empty:
-                tabela_auxiliar_inner = build_html_table_html(df_missing_prb, ModernColors.WARNING, show_totals=False, sla_days=sla_days)
-                tabela_auxiliar_html = build_card(f"⚠️ INCIDENTES CRÍTICOS SEM PRB VINCULADO (TOTAL: {len(df_missing_prb)})", tabela_auxiliar_inner)
-
-            # Gráfico de Analistas Empilhado (Abertos vs Fechados)
-            if not df_a.empty:
-                labels_a = df_a["Analista"].tolist()
-                data_a_abertos = hide_zeros(df_a["Abertos (Atuais)"].tolist())
-                data_a_fechados = hide_zeros(df_a["Fechados (Mês)"].tolist())
-                total_a_sum = sum(df_a["Total"].tolist())
-            else:
-                labels_a, data_a_abertos, data_a_fechados, total_a_sum = [
-                    "Sem Dados"], [0], [0], 0
-
-            cfg_analistas = {
-                "type": "horizontalBar",
-                "data": {
-                    "labels": labels_a,
-                    "datasets": [
-                        {"label": "Abertos (Atuais)", "data": data_a_abertos,
-                         "backgroundColor": "#001871"},
-                        {"label": f"{lbl_resolved} (Mês)", "data": data_a_fechados,
-                         "backgroundColor": ModernColors.SUCCESS}
-                    ]
-                },
-                "options": get_hbar_opts(max_val=max(df_a["Total"].tolist()) if not df_a.empty else 10, is_stacked=True)
-            }
-            cfg_analistas = add_title_to_cfg(
-                cfg_analistas, f"TOP ANALISTAS (ABERTOS + {lbl_resolved.upper()}) - TOTAL: {total_a_sum}")
-            cfg_analistas = add_bar_formatter(cfg_analistas, [df_a["Abertos (Atuais)"].tolist(
-            ), df_a["Fechados (Mês)"].tolist()], is_stacked=True)
-
-            labels_ag, data_ag = pad_empty_html(
-                df_ag["Faixa"].tolist(), df_ag["Qtd"].tolist())
-                
-            # Cores dinâmicas para o gráfico de aging (espelhando a tabela)
-            colors_ag = []
-            for lbl in labels_ag:
-                # Se na label tiver indicação que passou do SLA correspondente
-                if ("10" in lbl and sla_days <= 10) or ("20" in lbl) or ("30" in lbl) or ("7+" in lbl and sla_days <= 7): 
-                    colors_ag.append(ModernColors.DANGER)
-                else: 
-                    colors_ag.append(ModernColors.PRIMARY)
-                
-            cfg_aging = {
-                "type": "horizontalBar",
-                "data": {
-                    "labels": labels_ag,
-                    "datasets": [{"data": data_ag, "backgroundColor": colors_ag}]
-                },
-                "options": get_hbar_opts(max_val=max(data_ag) if data_ag and str(data_ag[0]).replace('.', '', 1).isdigit() else 10)
-            }
-            cfg_aging = add_title_to_cfg(
-                cfg_aging, f"DISTRIBUIÇÃO AGING - TOTAL: {sum(data_ag) if data_ag and str(data_ag[0]).isdigit() else 0}")
-            cfg_aging = add_bar_formatter(cfg_aging, data_ag)
-
-            total_sla = in_sla + out_sla
-            cfg_sla_pie = {
-                "type": "pie",
-                "data": {
-                    "labels": ["SLA Cumprido", "SLA Estourado"],
-                    "datasets": [{"data": [in_sla, out_sla], "backgroundColor": [ModernColors.SUCCESS, ModernColors.DANGER]}]
-                },
-                "options": {}
-            }
-            cfg_sla_pie = add_title_to_cfg(
-                cfg_sla_pie, f"SLA DE ABERTOS ATUAIS (%) - TOTAL: {total_sla}")
-            cfg_sla_pie = add_pie_formatter(cfg_sla_pie, [in_sla, out_sla])
-
-            div_maturidade = f"""
-            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 40px; margin-bottom: 20px;">
-                <tr>
-                    <td style="font-family: 'Calibri', Arial, sans-serif; font-size: 16px; font-weight: bold; color: #FFFFFF; background-color: {color_main}; padding: 10px 15px; border-radius: 4px; text-transform: uppercase; text-align: center; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        ANÁLISE DE MATURIDADE E SLA
-                    </td>
-                </tr>
-            </table>
-            """
-
-            # LAYOUT FINAL DO BLOCO
-            return f"""
-            {build_section_title(titulo, color_main)}
-            {cards_html}
-            
-            {build_card("1. ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE)", f'<img src="{qc_url_wide_html(cfg_diario, q)}" width="100%">')}
-            
-            {build_card("2. VISÃO MENSAL / ANUAL", f'<img src="{qc_url_wide_html(cfg_mensal, q)}" width="100%">')}
-            
-            {build_grid2(
-                build_card("3. TABELA DE THROUGHPUT ACUMULADO", tabela_throughput),
-                build_card("4. VOLUME E PRODUTIVIDADE POR ANALISTA", f'<img src="{qc_url_html(cfg_analistas, q)}" width="100%">')
-            )}
-            
-            {div_maturidade}
-            
-            {build_grid2(
-                build_card("5. MATURIDADE (AGING) DOS VIGENTES", f'<img src="{qc_url_html(cfg_aging, q)}" width="100%">'),
-                build_card("6. STATUS DE SLA DOS VIGENTES", f'<img src="{qc_url_html(cfg_sla_pie, q)}" width="100%">')
-            )}
-            
-            {build_card(f"⚠️ CHAMADOS ACIMA DO SLA PENDENTES (TOTAL: {len(df_sla)})", tabela_sla_critica)}
-            {tabela_auxiliar_html}
-            <br><br>
-            """
 
         log_q(q, "Processando dados reais de INCs...")
         inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct, inc_missing_prb_df = process_section(
