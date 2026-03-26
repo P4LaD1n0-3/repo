@@ -5,8 +5,6 @@ ELITE MASTER V4.1 - RELATÓRIO 2 (NOVO LAYOUT MONOCROMÁTICO AZUL)
 Integra múltiplas análises em um ÚNICO Excel e exporta Dashboard HTML Avançado
 utilizando DADOS REAIS carregados do ServiceNow.
 Separa rigorosamente em 3 Sessões: INCs, REQs (Suporte) e UAMs (Acessos).
-Nova Sessão global para todas as PTASKs Abertas.
-Exporta Dados Brutos para Anexo no E-mail.
 """
 
 import os
@@ -44,7 +42,7 @@ OUTPUT_FILE = 'rel_master/relatorio_completo_layout2.xlsx'
 OUTPUT_HTML = 'rel_master/relatorio_email2.html'
 
 # ============================================================================
-# NOVA PALETA DE CORES (Tons Monocromáticos de Azul Forte/Escuro + Semânticas)
+# NOVA PALETA DE CORES (Tons Monocromáticos de Azul Forte/Escuro)
 # ============================================================================
 class ModernColors:
     PRIMARY_DARK = "#001871"   # Azul Escuro Oficial Solicitado (Títulos, Separadores, Barras Abertos)
@@ -53,11 +51,11 @@ class ModernColors:
     ACCENT_DARK = "#0F172A"    # Azul-Cinza Escuro (INCs)
     ACCENT = "#2563EB"         # Azul Royal Vivo (Gráficos: Resolvidos e SLA no Prazo)
     ACCENT_LIGHT = "#93C5FD"   # Azul Claro (Cancelados)
-    SUCCESS = "#00C853"        # Verde Esmeralda Vivo (SLA >= 98% e HTML Texto)
+    SUCCESS = "#00C853"        # Verde Esmeralda Vivo (Apenas HTML Texto)
     SUCCESS_LIGHT = "#B9F6CA"  
-    WARNING = "#FF8F00"        # Laranja Âmbar Vivo (Usado secundariamente)
+    WARNING = "#FF8F00"        # Laranja Âmbar Vivo (Usado para Aging >= 10 dias / Tabela Auxiliar)
     WARNING_LIGHT = "#FFECB3"  
-    DANGER = "#D50000"         # Vermelho Intenso (Gráficos, Alertas CRÍTICOS e SLA < 98%)
+    DANGER = "#D50000"         # Vermelho Intenso (Gráficos e Alertas CRÍTICOS)
     DANGER_LIGHT = "#FFCDD2"   
     ORANGE = "#FF8C00"         # Laranja Clássico Vibrante para Linhas de Backlog
     ORANGE_LIGHT = "#FFE0B2"   
@@ -676,7 +674,7 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     df_out["SLA no Prazo"] = sla_ok_months.reindex(
         all_months_index, fill_value=0).values.astype(int)
 
-    # CORREÇÃO APLICADA AQUI: Divisão segura para evitar o erro IntCastingNaNError
+    # Divisão segura para evitar o erro IntCastingNaNError
     pct_no_prazo = (df_out["SLA no Prazo"] /
                     df_out["Encerrados"].replace(0, np.nan)) * 100
     df_out["% no Prazo"] = pct_no_prazo.fillna(0).astype(int).astype(str) + "%"
@@ -922,7 +920,7 @@ def build_grid2(left_content, right_content):
     """
 
 
-def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_totals=True, lbl_resolved="Encerrados", sla_days=10):
+def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_totals=True, lbl_resolved="Encerrados"):
     if df is None or df.empty:
         return f"<div style='padding: 15px; color: {ModernColors.PRIMARY_DARK}; background-color: {ModernColors.PRIMARY_LIGHT}; text-align: center; font-weight: bold; border: 1px solid {ModernColors.PRIMARY_DARK}; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Sem dados aplicáveis para o período.</div>"
 
@@ -943,10 +941,13 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
 
             if "Aging" in df.columns and j == list(df.columns).index("Aging"):
                 try:
-                    # Lógica ajustada: Aging > SLA fica Vermelho (DANGER)
-                    if int(val) > sla_days:
+                    if int(val) >= 30:
                         color = "#ffffff"
                         bg_cell = ModernColors.DANGER
+                        font_weight = "bold"
+                    elif int(val) >= 10:
+                        color = "#ffffff"
+                        bg_cell = ModernColors.WARNING
                         font_weight = "bold"
                     else:
                         bg_cell = "transparent"
@@ -1021,19 +1022,6 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
         b1 = r["Backlog Acumulado"]
         pct_est = r["% no Prazo"]
 
-        # Lógica de Cor para SLA >= 98%
-        try:
-            pct_val = float(str(pct_est).replace('%', ''))
-            if pct_val >= 98:
-                bg_pct = ModernColors.SUCCESS
-                color_pct = "#FFFFFF"
-            else:
-                bg_pct = ModernColors.DANGER
-                color_pct = "#FFFFFF"
-        except:
-            bg_pct = "transparent"
-            color_pct = ModernColors.PRIMARY_DARK
-
         c1 = ModernColors.PRIMARY_DARK if s1 > 0 else (
             ModernColors.PRIMARY if s1 < 0 else ModernColors.GRAY_DARK)
         sign1 = "+" if s1 > 0 else ""
@@ -1046,7 +1034,7 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
             <td style="padding:4px 6px; border:1px solid #ddd; text-align:center;">{c1_val}</td>
             <td style="color: {c1}; font-weight: bold; padding:4px 6px; border:1px solid #ddd; text-align:center;">{sign1}{s1}</td>
             <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold;">{b1}</td>
-            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold; background-color:{bg_pct}; color:{color_pct};">{pct_est}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold;">{pct_est}</td>
         </tr>"""
 
     tot_a = df["Abertos"].sum()
@@ -1054,7 +1042,7 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
     tot_c = df["Cancelados"].sum()
     tot_s = df["Saldo"].sum()
     last_b = df["Backlog Acumulado"].iloc[-1] if not df.empty else 0
-    
+
     c_tot = ModernColors.PRIMARY_DARK if tot_s > 0 else (
         ModernColors.PRIMARY if tot_s < 0 else ModernColors.GRAY_DARK)
     sign_tot = "+" if tot_s > 0 else ""
@@ -1191,60 +1179,6 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
     return add_title_to_cfg(cfg, f"ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE) - TOTAL ENTRADAS: {total_in} | SAÍDAS ({lbl_resolved.upper()} + CANCELADOS): {total_out}")
 
-
-def build_ptask_table_html(df):
-    if df.empty:
-        return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) aberta localizada.</div>"
-    
-    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
-    html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
-    cols = ["Problem", "PTASK", "Abertura", "Problem State", "PTASK State", "Analista", "RCA Status", "SLA RCA", "SLA PTASK"]
-    for c in cols:
-        html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
-    html += "</tr></thead><tbody>"
-    
-    for i, row in df.iterrows():
-        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
-        html += f"<tr style='background-color: {bg};'>"
-        
-        sla_rca_val = row["SLA RCA (Dias)"]
-        if pd.isna(sla_rca_val):
-            txt_rca = "N/A"
-            col_rca = ModernColors.GRAY_DARK
-        elif sla_rca_val < 0:
-            txt_rca = f"Estourado ({abs(int(sla_rca_val))} dias)"
-            col_rca = ModernColors.DANGER
-        else:
-            txt_rca = f"No Prazo ({int(sla_rca_val)} dias)"
-            col_rca = ModernColors.SUCCESS
-            
-        sla_ptask_val = row["SLA PTASK (Dias)"]
-        if pd.isna(sla_ptask_val):
-            txt_ptask = "N/A"
-            col_ptask = ModernColors.GRAY_DARK
-        elif sla_ptask_val < 0:
-            txt_ptask = f"Estourado ({abs(int(sla_ptask_val))} dias)"
-            col_ptask = ModernColors.DANGER
-        else:
-            txt_ptask = f"No Prazo ({int(sla_ptask_val)} dias)"
-            col_ptask = ModernColors.SUCCESS
-        
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['PTASK']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('Opened_Str', 'N/A')}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Problem State']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['PTASK State']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Status']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_rca}; font-weight: bold;'>{txt_rca}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_ptask}; font-weight: bold;'>{txt_ptask}</td>"
-        
-        html += "</tr>"
-    
-    html += "</tbody></table>"
-    return html
-
-
 # ============================================================================
 # ORQUESTRADOR DE CRIAÇÃO DO RELATÓRIO 2 (COM DADOS REAIS DO EXCEL)
 # ============================================================================
@@ -1292,7 +1226,7 @@ def main_simples(configs, q=None):
         inc_count = len(inc_open_strict)
         req_support_count = len(req_sup_open_strict)
         uam_count = len(uam_open_strict)
-        
+
         # Filtro de PTASKs (GLOBAL - Todas as abertas)
         if not df_ptasks_raw.empty:
             closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'fechado', 'cancelado', 'encerrado', 'resolved', 'resolvido']
@@ -1425,6 +1359,17 @@ def main_simples(configs, q=None):
 
             return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla, in_sla_closed, out_sla_closed, in_sla_pct, df_missing_prb
 
+        log_q(q, "Processando dados reais de INCs...")
+        inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct, inc_missing_prb_df = process_section(
+            inc, inc_open_strict, "INC", SLA_DAYS_INCS, inc_count, is_inc=True)
+
+        log_q(q, "Processando dados reais de REQs...")
+        req_m, req_d, req_a, req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_in_c_pct, req_missing_prb_df = process_section(
+            req_support, req_sup_open_strict, "REQ", SLA_DAYS_REQS, req_support_count, is_inc=False)
+
+        log_q(q, "Processando dados reais de UAMs...")
+        uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df = process_section(
+            req_uam, uam_open_strict, "REQ", SLA_DAYS_REQS, uam_count, is_inc=False)
 
         # ========================================================================
         # FUNÇÃO INTERNA DE MONTAGEM HTML DA SESSÃO
@@ -1515,7 +1460,7 @@ def main_simples(configs, q=None):
             labels_ag, data_ag = pad_empty_html(
                 df_ag["Faixa"].tolist(), df_ag["Qtd"].tolist())
                 
-            # Cores dinâmicas para o gráfico de aging - Prazos Estourados (acima do SLA) em VERMELHO
+            # Cores dinâmicas para o gráfico de aging (espelhando a tabela)
             colors_ag = []
             for lbl in labels_ag:
                 # Se na label tiver indicação que passou do SLA correspondente
@@ -1627,7 +1572,7 @@ def main_simples(configs, q=None):
             <table width="100%" cellpadding="0" cellspacing="0" border="0" align="center" style="max-width: 1400px; background-color: {ModernColors.WHITE}; border-radius: 8px; border: 1px solid #ddd;">
                 <tr>
                     <td style="background-color: {ModernColors.PRIMARY_DARK}; color: {ModernColors.WHITE}; padding: 25px; border-radius: 8px 8px 0 0;">
-                        <h2 style="margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase;">PAINEL EXECUTIVO — REQs, INCs, UAMs e PTASKs (NOVO LAYOUT)</h2>
+                        <h2 style="margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase;">PAINEL EXECUTIVO — REQs, INCs e UAMs (NOVO LAYOUT)</h2>
                         <p style="margin: 0; color: {ModernColors.WHITE}; font-size: 13px; background-color: rgba(255,255,255,0.2); padding: 8px; border-radius: 4px; display: inline-block; font-weight: bold;">Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} | SLA REQ={SLA_DAYS_REQS}d | SLA INC={SLA_DAYS_INCS}d</p>
                     </td>
                 </tr>
@@ -1665,9 +1610,76 @@ def main_simples(configs, q=None):
             RAW_DATA_ATTACHMENT = os.path.join(os.path.dirname(
                 OUTPUT_FILE) or ".", f"Base_Bruta_Consolidada_{dynamic_date_str}.xlsx")
             
+            # PREPARANDO ABA DE ANALISTAS
+            df_all_tickets = []
+            for temp_df, t_type in [(inc, 'INC'), (req_support, 'REQ (Suporte)'), (req_uam, 'UAM (Acessos)')]:
+                if temp_df is not None and not temp_df.empty:
+                    temp = temp_df.copy()
+                    temp['Módulo'] = t_type
+                    df_all_tickets.append(temp)
+                    
+            df_analyst_summary = pd.DataFrame()
+            if df_all_tickets:
+                df_consolidated = pd.concat(df_all_tickets, ignore_index=True)
+                valid_analysts = df_consolidated[
+                    df_consolidated["Assigned to"].notna() & 
+                    (df_consolidated["Assigned to"].str.strip() != "") & 
+                    (df_consolidated["Assigned to"] != "—") & 
+                    (df_consolidated["Assigned to"] != "Nao Assinado") & 
+                    (df_consolidated["Assigned to"] != "N/A")
+                ]
+                
+                analyst_stats = []
+                for analista, group in valid_analysts.groupby("Assigned to"):
+                    total = len(group)
+                    fechados_mask = group["Status_Bin"].str.lower().str.contains("fechado")
+                    abertos_mask = group["Status_Bin"].str.lower().str.contains("aberto")
+                    
+                    fechados = int(fechados_mask.sum())
+                    abertos = int(abertos_mask.sum())
+                    
+                    mttr = group.loc[fechados_mask, "Aging"].mean()
+                    mttr = round(float(mttr), 1) if pd.notna(mttr) else 0.0
+                    
+                    idade_abertos = group.loc[abertos_mask, "Aging"].mean()
+                    idade_abertos = round(float(idade_abertos), 1) if pd.notna(idade_abertos) else 0.0
+                    
+                    # Desempenho por módulo
+                    incs_fechados = len(group[fechados_mask & (group["Módulo"] == "INC")])
+                    reqs_fechados = len(group[fechados_mask & (group["Módulo"] == "REQ (Suporte)")])
+                    uams_fechados = len(group[fechados_mask & (group["Módulo"] == "UAM (Acessos)")])
+                    
+                    # Pico
+                    meses_fechamento = pd.to_datetime(group.loc[fechados_mask, "Closed"], errors='coerce').dt.to_period("M")
+                    meses_fechamento = meses_fechamento.dropna()
+                    if not meses_fechamento.empty:
+                        pico_mes = meses_fechamento.value_counts().idxmax().strftime("%m/%Y")
+                        pico_qtde = meses_fechamento.value_counts().max()
+                        pico_str = f"{pico_mes} ({pico_qtde} tickets)"
+                    else:
+                        pico_str = "N/A"
+                        
+                    analyst_stats.append({
+                        "Analista": analista,
+                        "Total Atribuídos (Geral)": total,
+                        "Abertos Atuais (Backlog)": abertos,
+                        "Idade Média Backlog (Dias)": idade_abertos,
+                        "Total Resolvidos/Encerrados": fechados,
+                        "INCs Resolvidos": incs_fechados,
+                        "REQs Resolvidos": reqs_fechados,
+                        "UAMs Resolvidos": uams_fechados,
+                        "MTTR Médio (Dias)": mttr,
+                        "Mês de Pico (Produtividade)": pico_str
+                    })
+                    
+                df_analyst_summary = pd.DataFrame(analyst_stats).sort_values(by="Total Resolvidos/Encerrados", ascending=False)
+            
             # 2. CRIA E SALVA O EXCEL COM OS DADOS BRUTOS (Isso estava faltando!)
             log_q(q, f"📊 Exportando Dados Brutos para Excel: {RAW_DATA_ATTACHMENT}...")
             with pd.ExcelWriter(RAW_DATA_ATTACHMENT, engine='openpyxl') as writer:
+                # Nova Aba Desempenho Analistas
+                if not df_analyst_summary.empty:
+                    df_analyst_summary.to_excel(writer, sheet_name='Desempenho_Analistas', index=False)
                 if not df_incs.empty:
                     df_incs.to_excel(writer, sheet_name='INCs_Bruto', index=False)
                 if not df_reqs.empty:
