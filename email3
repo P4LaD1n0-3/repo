@@ -49,23 +49,23 @@ OUTPUT_HTML = 'rel_master/relatorio_email2.html'
 class ModernColors:
     PRIMARY_DARK = "#001871"   # Azul Escuro Oficial Solicitado (Títulos, Separadores, Barras Abertos)
     PRIMARY = "#1E3A8A"        # Azul Escuro Forte (REQs)
-    PRIMARY_LIGHT = "#0284C7"  # Fundo Azul Claro
+    PRIMARY_LIGHT = "#E3F2FD"  # Fundo Azul Claro
     ACCENT_DARK = "#0F172A"    # Azul-Cinza Escuro (INCs)
     ACCENT = "#2563EB"         # Azul Royal Vivo (Gráficos: Resolvidos e SLA no Prazo)
     ACCENT_LIGHT = "#93C5FD"   # Azul Claro (Cancelados)
     SUCCESS = "#00C853"        # Verde Esmeralda Vivo (Apenas HTML Texto)
-    SUCCESS_LIGHT = "#B9F6CA"
-    WARNING = "#FF8F00"
-    WARNING_LIGHT = "#FFECB3"
-    DANGER = "#D50000"         # Vermelho Intenso (Gráficos e Alertas CRÍTICOS)
-    DANGER_LIGHT = "#FFCDD2"
+    SUCCESS_LIGHT = "#B9F6CA"  
+    WARNING = "#FF8F00"        # Laranja Âmbar Vivo (Usado secundariamente)
+    WARNING_LIGHT = "#FFECB3"  
+    DANGER = "#D50000"         # Vermelho Intenso (Gráficos, Alertas CRÍTICOS e SLA < 98%)
+    DANGER_LIGHT = "#FFCDD2"   
     ORANGE = "#FF8C00"         # Laranja Clássico Vibrante para Linhas de Backlog
-    ORANGE_LIGHT = "#FFE0B2"
+    ORANGE_LIGHT = "#FFE0B2"   
     GRAY_DARK = "#334155"      # Cinza Chumbo Forte e Vivo
     GRAY = "#94A3B8"           # Cinza Metálico (SLA Fora do prazo em gráficos)
     GRAY_LIGHT = "#F8FAFC"     # Fundo de Tabelas e Cards Discretos
     WHITE = "#FFFFFF"
-    INFO = "#CC00FF"           # Azul Ciano Vivo
+    INFO = "#0284C7"           # Azul Ciano Vivo
     BACKGROUND = "#F1F5F9"
 
 
@@ -243,6 +243,7 @@ def load_prepare_ptasks(source_file, now=None, q=None):
     prob_col = _pick_col(df, ["Problem", "Problema"])
     num_col = _pick_col(df, ["Number", "Número", "Task"])
     
+    # NOVAS BUSCAS AGRESSIVAS DE NOMES E DB FIELDS (SERVICENOW)
     opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created", "Criado", "Criado em", "opened_at", "sys_created_on", "Abertura"])
     state_col = _pick_col(df, ["State", "Estado", "Status", "state"])
     prob_state_col = _pick_col(df, ["Problem State", "Problem.State", "Estado do Problema"])
@@ -256,6 +257,7 @@ def load_prepare_ptasks(source_file, now=None, q=None):
     d["Problem"] = df[prob_col].astype(str).fillna("N/A") if prob_col else "N/A"
     d["PTASK"] = df[num_col].astype(str).fillna("N/A") if num_col else "N/A"
     
+    # Tratamento da Data de Abertura ("Opened")
     if opened_col:
         d["Opened"] = pd.to_datetime(df[opened_col], errors='coerce', dayfirst=True)
         d["Opened_Str"] = d["Opened"].dt.strftime('%d/%m/%Y').fillna("N/A")
@@ -273,18 +275,17 @@ def load_prepare_ptasks(source_file, now=None, q=None):
     
     if due_date_col:
         d["PTASK Due Date"] = pd.to_datetime(df[due_date_col], errors='coerce', dayfirst=True)
-        d["SLA_PTASK"] = (d["PTASK Due Date"] - now_ts).dt.days
+        d["SLA PTASK (Dias)"] = (d["PTASK Due Date"] - now_ts).dt.days
     else:
-        d["SLA_PTASK"] = np.nan
+        d["SLA PTASK (Dias)"] = np.nan
         
     if rca_due_date_col:
         d["RCA Due Date"] = pd.to_datetime(df[rca_due_date_col], errors='coerce', dayfirst=True)
-        d["SLA_RCA"] = (d["RCA Due Date"] - now_ts).dt.days
+        d["SLA RCA (Dias)"] = (d["RCA Due Date"] - now_ts).dt.days
     else:
-        d["SLA_RCA"] = np.nan
+        d["SLA RCA (Dias)"] = np.nan
         
     return d
-
 
 # ============================================================================
 # LÓGICA DE CÁLCULO E MÉTRICAS PARA O DASHBOARD HTML AVANÇADO
@@ -1023,6 +1024,19 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
         b1 = r["Backlog Acumulado"]
         pct_est = r["% no Prazo"]
 
+        # Lógica de Cor para SLA >= 98%
+        try:
+            pct_val = float(str(pct_est).replace('%', ''))
+            if pct_val >= 98:
+                bg_pct = ModernColors.SUCCESS
+                color_pct = "#FFFFFF"
+            else:
+                bg_pct = ModernColors.DANGER
+                color_pct = "#FFFFFF"
+        except:
+            bg_pct = "transparent"
+            color_pct = ModernColors.PRIMARY_DARK
+
         c1 = ModernColors.PRIMARY_DARK if s1 > 0 else (
             ModernColors.PRIMARY if s1 < 0 else ModernColors.GRAY_DARK)
         sign1 = "+" if s1 > 0 else ""
@@ -1035,7 +1049,7 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
             <td style="padding:4px 6px; border:1px solid #ddd; text-align:center;">{c1_val}</td>
             <td style="color: {c1}; font-weight: bold; padding:4px 6px; border:1px solid #ddd; text-align:center;">{sign1}{s1}</td>
             <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold;">{b1}</td>
-            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold;">{pct_est}</td>
+            <td style="padding:4px 6px; border:1px solid #ddd; text-align:center; font-weight:bold; background-color:{bg_pct}; color:{color_pct};">{pct_est}</td>
         </tr>"""
 
     tot_a = df["Abertos"].sum()
@@ -1227,6 +1241,13 @@ def main_simples(configs, q=None):
         inc_count = len(inc_open_strict)
         req_support_count = len(req_sup_open_strict)
         uam_count = len(uam_open_strict)
+
+        # Filtro de PTASKs (GLOBAL - Todas as abertas)
+        if not df_ptasks_raw.empty:
+            closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'fechado', 'cancelado', 'encerrado', 'resolved', 'resolvido']
+            df_ptasks_open = df_ptasks_raw[~df_ptasks_raw['PTASK State'].str.lower().str.strip().isin(closed_states)].copy()
+        else:
+            df_ptasks_open = pd.DataFrame()
 
         all_months, meta = build_month_window_html(
             [req, inc], MONTHS_LIMIT_HTML)
@@ -1546,6 +1567,67 @@ def main_simples(configs, q=None):
         SESSAO_UAMS = montar_bloco_html("🔐 SESSÃO UAMs (ACESSOS)", ModernColors.ACCENT_DARK, uam_m, uam_d, uam_a,
                                         uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df, SLA_DAYS_REQS, is_inc=False)
 
+        # NOVA SESSÃO GLOBAL PARA TODAS AS PTASKS
+        def build_ptask_table_html_global(df):
+            if df.empty:
+                return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) aberta localizada.</div>"
+            
+            html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
+            html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
+            cols = ["Problem", "PTASK", "Abertura", "Problem State", "PTASK State", "Analista", "RCA Status", "SLA RCA", "SLA PTASK"]
+            for c in cols:
+                html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
+            html += "</tr></thead><tbody>"
+            
+            for i, row in df.iterrows():
+                bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
+                html += f"<tr style='background-color: {bg};'>"
+                
+                sla_rca_val = row.get("SLA_RCA", np.nan)
+                if pd.isna(sla_rca_val):
+                    txt_rca = "N/A"
+                    col_rca = ModernColors.GRAY_DARK
+                elif sla_rca_val < 0:
+                    txt_rca = f"Estourado ({abs(int(sla_rca_val))} dias)"
+                    col_rca = ModernColors.DANGER
+                else:
+                    txt_rca = f"No Prazo ({int(sla_rca_val)} dias)"
+                    col_rca = ModernColors.SUCCESS
+                    
+                sla_ptask_val = row.get("SLA_PTASK", np.nan)
+                if pd.isna(sla_ptask_val):
+                    txt_ptask = "N/A"
+                    col_ptask = ModernColors.GRAY_DARK
+                elif sla_ptask_val < 0:
+                    txt_ptask = f"Estourado ({abs(int(sla_ptask_val))} dias)"
+                    col_ptask = ModernColors.DANGER
+                else:
+                    txt_ptask = f"No Prazo ({int(sla_ptask_val)} dias)"
+                    col_ptask = ModernColors.SUCCESS
+                
+                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('Problem', 'N/A')}</td>"
+                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('PTASK', 'N/A')}</td>"
+                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('Opened_Str', 'N/A')}</td>"
+                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row.get('Problem State', 'N/A')}</td>"
+                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row.get('PTASK State', 'N/A')}</td>"
+                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row.get('Assigned to', 'N/A')}</td>"
+                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row.get('RCA Status', 'N/A')}</td>"
+                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_rca}; font-weight: bold;'>{txt_rca}</td>"
+                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_ptask}; font-weight: bold;'>{txt_ptask}</td>"
+                
+                html += "</tr>"
+            
+            html += "</tbody></table>"
+            return html
+
+        SESSAO_PTASKS = f"""
+        {build_section_title("🎯 SESSÃO PTASK E RCA (TODAS AS ABERTAS NO SISTEMA)", ModernColors.GRAY_DARK)}
+        {build_card(f"📋 LISTA GERAL DE PROBLEM TASKS ABERTAS (TOTAL: {len(df_ptasks_open)})", build_ptask_table_html_global(df_ptasks_open))}
+        <br><br>
+        """
+
+        meses_exibido = meta.get("meses_calculado", MONTHS_LIMIT_HTML)
+
         # ========================================================================
         # ENVELOPAMENTO DO HTML GERAL E RENDERIZAÇÃO NO ARQUIVO
         # ========================================================================
@@ -1569,6 +1651,8 @@ def main_simples(configs, q=None):
                         {SESSAO_REQS}
                         <br><br>
                         {SESSAO_UAMS}
+                        <br><br>
+                        {SESSAO_PTASKS}
                     </td>
                 </tr>
                 <tr>
@@ -1657,7 +1741,7 @@ def main_simples(configs, q=None):
                     
                 df_analyst_summary = pd.DataFrame(analyst_stats).sort_values(by="Total Resolvidos/Encerrados", ascending=False)
             
-            # 2. CRIA E SALVA O EXCEL COM OS DADOS BRUTOS (Isso estava faltando!)
+            # 2. CRIA E SALVA O EXCEL COM OS DADOS BRUTOS
             log_q(q, f"📊 Exportando Dados Brutos para Excel: {RAW_DATA_ATTACHMENT}...")
             with pd.ExcelWriter(RAW_DATA_ATTACHMENT, engine='openpyxl') as writer:
                 # Nova Aba Desempenho Analistas
