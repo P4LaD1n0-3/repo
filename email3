@@ -90,12 +90,15 @@ def hide_zeros(lst):
 
 
 def _pick_col(df, candidates):
+    # 1. Match exato
     for c in candidates:
         if c in df.columns:
             return c
-    df_cols_norm = {col.strip().lower(): col for col in df.columns}
+    # 2. Match normalizado (lowercase, substitui underscores por espaços)
+    # Isso garante que "assignment_group" e "Assignment Group" sejam identificados como iguais
+    df_cols_norm = {str(col).strip().lower().replace("_", " "): col for col in df.columns}
     for c in candidates:
-        key = c.strip().lower()
+        key = str(c).strip().lower().replace("_", " ")
         if key in df_cols_norm:
             return df_cols_norm[key]
     return None
@@ -148,10 +151,9 @@ def _ensure_identity_cols_common(df):
     df["Requester"] = df[requester_col].astype(
         str).fillna("—") if requester_col else "—"
 
-    ag_col = _pick_col(
-        df, ["Assignment group", "Assignment Group", "Grupo", "Grupo de Atribuição"])
-    df["Assignment group"] = df[ag_col].astype(
-        str).fillna("") if ag_col else ""
+    # GARANTIA: Busca rigorosa por qualquer variação de Assignment Group
+    ag_col = _pick_col(df, ["Assignment group", "Assignment Group", "assignment_group", "Grupo", "Grupo de Atribuição"])
+    df["Assignment group"] = df[ag_col].astype(str).fillna("") if ag_col else ""
 
     asg_col = _pick_col(
         df, ["Assigned to", "AssignedTo", "Analista", "Assignee"])
@@ -293,15 +295,6 @@ def load_prepare_ptasks(source_file, now=None, q=None):
 # ============================================================================
 # LÓGICA DE CÁLCULO E MÉTRICAS PARA O DASHBOARD HTML AVANÇADO
 # ============================================================================
-def _is_access_ticket_html(assignment_group_value):
-    """
-    Regra de filtro exata solicitada: Apenas verifica se a palavra 'access'
-    está contida no Assignment group (ignorando maiúsculas/minúsculas).
-    """
-    if assignment_group_value is None or pd.isna(assignment_group_value):
-        return False
-    return "access" in str(assignment_group_value).strip().lower()
-
 
 def _get_only_open_reqs(df):
     if df.empty:
@@ -336,7 +329,7 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
                            "Data Abertura", "Created", "Criado em", "Creation date"])
     closed_col = _pick_col(
         df, ["Resolved", "Resolved at", "Closed", "Close", "ClosedAt", "Data Fechamento"])
-    ag_col = _pick_col(df, ["Assignment group", "Assignment Group",
+    ag_col = _pick_col(df, ["Assignment group", "Assignment Group", "assignment_group",
                        "Grupo", "Grupo de Atribuição", "Grupo de atribuicao"])
     asg_col = _pick_col(
         df, ["Assigned to", "AssignedTo", "Analista", "Assignee"])
@@ -347,11 +340,9 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
         df, ["Short description", "Descrição Curta", "Description", "Descrição"])
     on_hold_col = _pick_col(df, ["On hold reason", "Motivo de espera", "On Hold Reason"])
     
-    # NOVA COLUNA: Comentários adicionais para a tabela auxiliar
     add_comments_col = _pick_col(df, ["Additional comments", "Comentários Adicionais", "Comments", "Comentários"])
 
     def extract_prb(row):
-        # 1. Verifica coluna "Problem"
         prb_val = str(row.get(prb_col, "")).strip() if prb_col and pd.notna(row.get(prb_col)) else ""
         if prb_val and prb_val.upper() not in ["NAN", "N/A", "NONE", ""]:
             match_prb = re.search(r'(PRB\d+)', prb_val, re.IGNORECASE)
@@ -359,13 +350,11 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
                 return match_prb.group(1).upper()
             return prb_val
 
-        # 2. Verifica coluna "Short description"
         sd_val = str(row.get(short_desc_col, "")) if short_desc_col and pd.notna(row.get(short_desc_col)) else ""
         match_sd = re.search(r'(PRB\d+)', sd_val, re.IGNORECASE)
         if match_sd:
             return match_sd.group(1).upper()
 
-        # 3. Verifica coluna "Additional comments"
         ac_val = str(row.get(add_comments_col, "")) if add_comments_col and pd.notna(row.get(add_comments_col)) else ""
         match_ac = re.search(r'(PRB\d+)', ac_val, re.IGNORECASE)
         if match_ac:
@@ -385,7 +374,6 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
     df["State"] = df[state_col].astype(
         str).fillna("N/A") if state_col else "N/A"
     
-    # Aplica o super filtro de PRB
     df["PRB"] = df.apply(extract_prb, axis=1)
     
     df["On hold reason"] = df[on_hold_col].astype(str).fillna("").replace("nan", "") if on_hold_col else ""
@@ -683,7 +671,6 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     df_out["SLA no Prazo"] = sla_ok_months.reindex(
         all_months_index, fill_value=0).values.astype(int)
 
-    # CORREÇÃO APLICADA AQUI: Divisão segura para evitar o erro IntCastingNaNError e 2 casas decimais
     pct_no_prazo = (df_out["SLA no Prazo"] /
                     df_out["Encerrados"].replace(0, np.nan)) * 100
     df_out["% no Prazo"] = pct_no_prazo.fillna(0).round(2).apply(lambda x: f"{x:.2f}".replace('.', ',')) + "%"
@@ -950,7 +937,6 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
 
             if "Aging" in df.columns and j == list(df.columns).index("Aging"):
                 try:
-                    # Lógica ajustada: Aging > SLA fica Vermelho (DANGER)
                     if int(val) > sla_days:
                         color = "#ffffff"
                         bg_cell = ModernColors.DANGER
@@ -1031,7 +1017,6 @@ def build_full_monthly_table_html(df, title, lbl_resolved="Encerrados"):
         b1 = r["Backlog Acumulado"]
         pct_est = r["% no Prazo"]
 
-        # Lógica de Cor para SLA >= 98%
         try:
             pct_val = float(str(pct_est).replace('%', '').replace(',', '.'))
             if pct_val >= 98:
@@ -1282,10 +1267,22 @@ def main_simples(configs, q=None):
         # 1. Carrega os Dados Reais
         df_reqs_raw = load_prepare_reqs(SOURCE_FILE, "REQs", now=RUN_AT, q=q)
         
-        # 1.5 Segregação EXATA de UAMs (Apenas "access" no Grupo de Atribuição)
-        df_reqs_raw["IS_ACCESS"] = df_reqs_raw["Assignment group"].apply(_is_access_ticket_html)
+        # ====================================================================
+        # FILTRO EXATO E RIGOROSO NA CAUSA RAIZ - APENAS PELA PALAVRA "ACCESS"
+        # ====================================================================
+        # Garantindo que se a coluna existir, vamos checar nela.
+        if "Assignment group" not in df_reqs_raw.columns:
+            df_reqs_raw["Assignment group"] = ""
+            
+        # Avalia True se Assignment group contém "access" (independente de maiúsculas)
+        df_reqs_raw["IS_ACCESS"] = df_reqs_raw["Assignment group"].astype(str).str.lower().str.contains("access", na=False)
+        
+        # Isola perfeitamente REQs de Suporte
         df_reqs = df_reqs_raw[~df_reqs_raw["IS_ACCESS"]].copy()
+        
+        # Isola perfeitamente UAMs (Acessos)
         df_uams = df_reqs_raw[df_reqs_raw["IS_ACCESS"]].copy()
+        # ====================================================================
         
         df_incs = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
         df_ptasks_raw = load_prepare_ptasks(SOURCE_PTASK, now=RUN_AT, q=q)
@@ -1406,11 +1403,9 @@ def main_simples(configs, q=None):
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
                     
-                    # Cria tabela auxiliar de INCs sem PRB ANTES de limpar as colunas
                     mask_missing_prb = df_critical["PRB"] == "N/A"
                     if mask_missing_prb.any():
                         df_missing_prb = df_critical[mask_missing_prb][["Number", "Assigned to", "Additional_Comments"]].copy()
-                        # Truncar comentário em 150 caracteres
                         df_missing_prb["Additional_Comments"] = df_missing_prb["Additional_Comments"].apply(lambda x: (str(x)[:150] + '...') if len(str(x)) > 150 else str(x))
                         df_missing_prb.columns = ["Ticket", "Analista", "Último Comentário Registrado"]
                     
@@ -1530,10 +1525,8 @@ def main_simples(configs, q=None):
             labels_ag, data_ag = pad_empty_html(
                 df_ag["Faixa"].tolist(), df_ag["Qtd"].tolist())
                 
-            # Cores dinâmicas para o gráfico de aging - Prazos Estourados (acima do SLA) em VERMELHO
             colors_ag = []
             for lbl in labels_ag:
-                # Se na label tiver indicação que passou do SLA correspondente
                 if ("10" in lbl and sla_days <= 10) or ("20" in lbl) or ("30" in lbl) or ("7+" in lbl and sla_days <= 7): 
                     colors_ag.append(ModernColors.DANGER)
                 else: 
