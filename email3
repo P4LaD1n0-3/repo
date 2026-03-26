@@ -1,12 +1,1558 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+"""
+ABA: ANALISTAS — Dashboard de Performance Individual (REQs x INCs)
+
+MELHORIAS IMPLEMENTADAS (SEM CORTES / SEM OMISSÕES):
+- Limite de analistas exibidos: TOP N (padrão 20) para garantir legibilidade e evitar gráficos quebrados
+- Inclusão de INCs (incidentes) com métricas próprias:
+    - Quantidade atendida (encerrados)
+    - Tempo de atendimento (MTTR, mediana, p90)
+    - Backlog aberto (abertos)
+    - SLA Compliance (fechados dentro do SLA) com SLA menor por padrão (INCs: 7 dias; REQs: 10 dias)
+- Painel comparativo "REQs x INCs" por analista (lado a lado na mesma tabela)
+- Tabelas mais objetivas (ranking + colunas essenciais + indicadores de risco)
+- Área de dados para gráficos isolada (evita sobreposição com tabelas)
+- Gráficos refeitos para usar TOP N e ranges estáveis
+- Mantém padrão visual compatível com analise_temporal.py (ModernColors + utilitários)
+"""
+
+import pandas as pd
+import numpy as np
+from datetime import datetime
+
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+
+
+# =============================================================================
+# PALETA DE CORES MODERNA (mesmo padrão do analise_temporal.py)
+# =============================================================================
+class ModernColors:
+    """Paleta de cores profissional e moderna"""
+    # Primárias
+    PRIMARY_DARK  = "2C3E50"
+    PRIMARY       = "3498DB"
+    PRIMARY_LIGHT = "EBF5FB"
+
+    # Status
+    SUCCESS       = "27AE60"
+    SUCCESS_LIGHT = "D5F4E6"
+    WARNING       = "F39C12"
+    WARNING_LIGHT = "FCF3CF"
+    DANGER        = "E74C3C"
+    DANGER_LIGHT  = "FADBD8"
+
+    # Extras
+    ORANGE        = "E67E22"
+    ORANGE_LIGHT  = "FDEBD0"
+
+    # Neutros
+    GRAY_DARK     = "34495E"
+    GRAY          = "7F8C8D"
+    GRAY_LIGHT    = "ECF0F1"
+    WHITE         = "FFFFFF"
+
+    # Especiais
+    ACCENT        = "9B59B6"
+    ACCENT_LIGHT  = "EBDEF0"
+    INFO          = "17A2B8"
+    INFO_LIGHT    = "D1ECF1"
+
+    # Dashboard
+    BACKGROUND    = "F5F6FA"
+
+
+# =============================================================================
+# Utilitários base (no mesmo padrão do analise_temporal.py)
+# =============================================================================
+def _pick_col(df, candidates):
+    for c in candidates:
+        if c in df.columns:
+            return c
+    return None
+
+
+def _norm_state(x):
+    if pd.isna(x):
+        return "Open"
+    v = str(x).strip().lower()
+    if any(k in v for k in ["closed", "fechado", "final", "encerr", "resolv", "done", "completed", "resolved"]):
+        return "Closed"
+    return "Open"
+
+
+def _modern_border(style="thin", color=None):
+    color = color or ModernColors.GRAY
+    return Border(
+        left=Side(style=style, color=color),
+        right=Side(style=style, color=color),
+        top=Side(style=style, color=color),
+        bottom=Side(style=style, color=color),
+    )
+
+
+def _apply_border_to_range(ws, start_row, start_col, end_row, end_col,
+                           border_style="medium", border_color=None):
+    border_color = border_color or ModernColors.PRIMARY_DARK
+    for row in range(start_row, end_row + 1):
+        for col in range(start_col, end_col + 1):
+            cell = ws.cell(row=row, column=col)
+
+            left_style   = "medium" if col == start_col else "thin"
+            right_style  = "medium" if col == end_col else "thin"
+            top_style    = "medium" if row == start_row else "thin"
+            bottom_style = "medium" if row == end_row else "thin"
+
+            cell.border = Border(
+                left=Side(style=left_style, color=border_color),
+                right=Side(style=right_style, color=border_color),
+                top=Side(style=top_style, color=border_color),
+                bottom=Side(style=bottom_style, color=border_color),
+            )
+
+
+def _fill_background_cells(ws, start_row, start_col, end_row, end_col, bg_color):
+    for row in range(start_row, end_row + 1):
+        for col in range(start_col, end_col + 1):
+            cell = ws.cell(row=row, column=col)
+            if (not cell.fill
+                    or getattr(cell.fill, "start_color", None) is None
+                    or getattr(cell.fill.start_color, "rgb", None) in (None, "00000000")):
+                cell.fill = PatternFill(
+                    start_color=bg_color,
+                    end_color=bg_color,
+                    fill_type="solid"
+                )
+
+
+def _merge_and_style(ws, start_row, start_col, end_row, end_col, value,
+                     font_size=12, font_color="FFFFFF", bg_color=None,
+                     bold=True, align="center", border_color=None):
+    start_cell = f"{get_column_letter(start_col)}{start_row}"
+    end_cell   = f"{get_column_letter(end_col)}{end_row}"
+    ws.merge_cells(f"{start_cell}:{end_cell}")
+
+    cell = ws[start_cell]
+    cell.value = value
+    cell.font = Font(size=font_size, bold=bold, color=font_color, name="Calibri")
+
+    if bg_color:
+        cell.fill = PatternFill(start_color=bg_color, end_color=bg_color, fill_type="solid")
+
+    cell.alignment = Alignment(horizontal=align, vertical="center", wrap_text=True)
+
+    _apply_border_to_range(
+        ws, start_row, start_col, end_row, end_col,
+        border_style="medium",
+        border_color=border_color or ModernColors.PRIMARY_DARK
+    )
+
+    if bg_color:
+        _fill_background_cells(ws, start_row, start_col, end_row, end_col, bg_color)
+
+    return cell
+
+
+def _create_kpi_card(ws, row, col, label, value, delta="", icon="📊",
+                     bg_color=None, value_color=None, size="normal"):
+    """
+    Card KPI com altura padronizada (sempre 3 linhas).
+    """
+    bg_color = bg_color or ModernColors.PRIMARY_LIGHT
+    value_color = value_color or ModernColors.PRIMARY_DARK
+
+    ws.row_dimensions[row].height = 18
+
+    _merge_and_style(
+        ws, row, col, row, col + 1, f"{icon} {label}",
+        font_size=9, font_color=ModernColors.GRAY_DARK,
+        bg_color=ModernColors.GRAY_LIGHT, bold=True, align="left",
+        border_color=ModernColors.PRIMARY_DARK
+    )
+
+    _merge_and_style(
+        ws, row + 1, col, row + 1, col + 1, value,
+        font_size=22 if size == "normal" else 18,
+        font_color=value_color,
+        bg_color=bg_color, bold=True, align="center",
+        border_color=ModernColors.PRIMARY_DARK
+    )
+    ws.row_dimensions[row + 1].height = 40 if size == "normal" else 30
+
+    delta_text = delta if (delta is not None and str(delta).strip() != "") else " "
+    _merge_and_style(
+        ws, row + 2, col, row + 2, col + 1, delta_text,
+        font_size=8, font_color=ModernColors.GRAY,
+        bg_color=bg_color, bold=False, align="center",
+        border_color=ModernColors.PRIMARY_DARK
+    )
+    ws.row_dimensions[row + 2].height = 18
+
+
+def _create_section_header(ws, row, start_col, end_col, title, icon="", bg_color=None):
+    bg_color = bg_color or ModernColors.PRIMARY_DARK
+    _merge_and_style(
+        ws, row, start_col, row, end_col, f"{icon} {title}",
+        font_size=13, font_color="FFFFFF",
+        bg_color=bg_color, bold=True, align="left",
+        border_color=bg_color
+    )
+    ws.row_dimensions[row].height = 30
+
+
+def _create_table_compact(ws, start_row, start_col, headers, data,
+                          col_widths=None, zebra=True, highlight_cols=None,
+                          header_color=None):
+    header_color = header_color or ModernColors.PRIMARY
+
+    # Header
+    for idx, header in enumerate(headers):
+        cell = ws.cell(row=start_row, column=start_col + idx)
+        cell.value = header
+        cell.font = Font(size=10, bold=True, color="FFFFFF", name="Calibri")
+        cell.fill = PatternFill(start_color=header_color,
+                                end_color=header_color,
+                                fill_type="solid")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = _modern_border("thin", ModernColors.PRIMARY_DARK)
+
+        if col_widths and idx < len(col_widths):
+            ws.column_dimensions[get_column_letter(start_col + idx)].width = col_widths[idx]
+
+    ws.row_dimensions[start_row].height = 25
+
+    # Data
+    for row_idx, row_data in enumerate(data):
+        current_row = start_row + 1 + row_idx
+
+        if zebra and row_idx % 2 == 0:
+            bg_fill = PatternFill(start_color=ModernColors.GRAY_LIGHT,
+                                  end_color=ModernColors.GRAY_LIGHT,
+                                  fill_type="solid")
+        else:
+            bg_fill = PatternFill(start_color=ModernColors.WHITE,
+                                  end_color=ModernColors.WHITE,
+                                  fill_type="solid")
+
+        for col_idx, val in enumerate(row_data):
+            cell = ws.cell(row=current_row, column=start_col + col_idx)
+            cell.value = val
+            cell.font = Font(size=10, name="Calibri", bold=(col_idx == 0))
+
+            applied_highlight = False
+            if highlight_cols and col_idx in highlight_cols:
+                check_func, hl_bg, hl_text = highlight_cols[col_idx]
+                if check_func(val, row_data):
+                    cell.fill = PatternFill(start_color=hl_bg, end_color=hl_bg, fill_type="solid")
+                    cell.font = Font(size=10, name="Calibri", bold=True, color=hl_text)
+                    applied_highlight = True
+
+            if not applied_highlight:
+                cell.fill = bg_fill
+
+            cell.alignment = Alignment(horizontal="center" if col_idx > 0 else "left",
+                                       vertical="center")
+            cell.border = _modern_border("thin", ModernColors.GRAY)
+
+        ws.row_dimensions[current_row].height = 22
+
+    return start_row + len(data) + 2
+
+
+def _get_status_colors(value, threshold_good, threshold_warning, reverse=False):
+    if pd.isna(value):
+        return (ModernColors.GRAY_LIGHT, ModernColors.GRAY_DARK)
+
+    if reverse:
+        if value <= threshold_good:
+            return (ModernColors.SUCCESS_LIGHT, ModernColors.SUCCESS)
+        elif value <= threshold_warning:
+            return (ModernColors.WARNING_LIGHT, ModernColors.WARNING)
+        else:
+            return (ModernColors.DANGER_LIGHT, ModernColors.DANGER)
+    else:
+        if value >= threshold_good:
+            return (ModernColors.SUCCESS_LIGHT, ModernColors.SUCCESS)
+        elif value >= threshold_warning:
+            return (ModernColors.WARNING_LIGHT, ModernColors.WARNING)
+        else:
+            return (ModernColors.DANGER_LIGHT, ModernColors.DANGER)
+
+
+def _create_info_box(ws, row, col, width_cols, title, text, icon="💡",
+                     bg_title=None, bg_text=None, border_color=None):
+    end_col = col + width_cols - 1
+    bg_title = bg_title or ModernColors.PRIMARY_LIGHT
+    bg_text = bg_text or ModernColors.WHITE
+    border_color = border_color or ModernColors.PRIMARY
+
+    _merge_and_style(
+        ws, row, col, row, end_col, f"{icon} {title}",
+        font_size=10, font_color=ModernColors.PRIMARY,
+        bg_color=bg_title, bold=True, align="left",
+        border_color=border_color
+    )
+    _merge_and_style(
+        ws, row + 1, col, row + 1, end_col, text,
+        font_size=9, font_color=ModernColors.GRAY_DARK,
+        bg_color=bg_text, bold=False, align="left",
+        border_color=border_color
+    )
+
+    ws.row_dimensions[row + 1].height = 34
+    return row + 3
+
+
+def _fill_spacer_column(ws, col, start_row, end_row):
+    for rr in range(start_row, end_row + 1):
+        cell = ws.cell(row=rr, column=col)
+        cell.fill = PatternFill(start_color=ModernColors.BACKGROUND,
+                                end_color=ModernColors.BACKGROUND,
+                                fill_type="solid")
+
+
+def _safe_int(x, default=0):
+    try:
+        if pd.isna(x):
+            return default
+        return int(float(x))
+    except Exception:
+        return default
+
+
+def _safe_float(x, default=0.0):
+    try:
+        if pd.isna(x):
+            return default
+        return float(x)
+    except Exception:
+        return default
+
+
+def _weighted_mean(values, weights):
+    try:
+        v = np.array(values, dtype=float)
+        w = np.array(weights, dtype=float)
+        if np.sum(w) <= 0:
+            return 0.0
+        return float(np.sum(v * w) / np.sum(w))
+    except Exception:
+        return 0.0
+
+
+# =============================================================================
+# Cálculo da Análise por Analista (genérico para REQ/INC)
+# =============================================================================
+def calculate_analyst_analysis(df,
+                              meses_extracao_override=None,
+                              ticket_label="REQ",
+                              sla_max_days=None,
+                              months_limit=None):
+    """
+    Retorna métricas por analista para um dataset (REQ ou INC).
+
+    meses_extracao_override:
+      - None: calcula pela janela mensal (fechamento)
+      - int: força valor exibido como "X meses analisados"
+
+    sla_max_days:
+      - None: não calcula compliance SLA
+      - int: calcula SLA compliance em fechados (% aging <= SLA)
+
+    months_limit:
+      - None: usa todos os meses contínuos disponíveis
+      - int: limita a exibição/pivot aos últimos N meses (melhora legibilidade)
+    """
+    print("\n" + "=" * 100)
+    print(f"📊 ANÁLISE POR ANALISTA — Cálculo de Métricas ({ticket_label})")
+    print("=" * 100)
+
+    if df is None or len(df) == 0:
+        analysis_meta = {
+            "meses_calculado": 0,
+            "meses_exibido": int(meses_extracao_override) if meses_extracao_override is not None else 0,
+            "override_aplicado": meses_extracao_override is not None,
+            "janela": "N/A",
+            "periodo_inicio": "N/A",
+            "periodo_fim": "N/A",
+            "ticket_label": str(ticket_label),
+            "sla_max_days": int(sla_max_days) if sla_max_days is not None else None,
+        }
+        empty = pd.DataFrame()
+        return {
+            "analysis": analysis_meta,
+            "summary": empty,
+            "monthly_pivot": empty,
+            "months_list": [],
+            "analysts_sorted": [],
+            "kpis": {
+                "total_team_closed": 0,
+                "total_team_open": 0,
+                "team_mttr_mean": 0.0,
+                "team_mttr_p90": 0.0,
+                "team_sla_compliance_closed_pct": 0.0,
+                "ticket_label": str(ticket_label),
+            },
+            "base_counts": {
+                "total_rows": 0,
+                "open_rows": 0,
+                "closed_rows": 0
+            }
+        }
+
+    dfc = df.copy()
+
+    # GARANTIA DE SEGURANÇA: Remove colunas duplicadas e reseta o index
+    if dfc.columns.duplicated().any():
+        dfc = dfc.loc[:, ~dfc.columns.duplicated()]
+    dfc = dfc.reset_index(drop=True)
+
+    analyst_col = _pick_col(dfc, ["Assigned to", "Assigned_to", "Analista", "AssignedTo", "Assignee"])
+    opened_col  = _pick_col(dfc, ["Opened", "Open", "OpenedAt", "Data Abertura", "Created"])
+    closed_col  = _pick_col(dfc, ["Closed", "Close", "ClosedAt", "Data Fechamento"])
+    state_col   = _pick_col(dfc, ["Status_Bin", "Status Bin", "State", "Status", "Estado"])
+    aging_col   = _pick_col(dfc, ["Aging", "AGING"])
+    reopen_col  = _pick_col(dfc, ["Reopen_Count", "Reopen count", "ReopenCount", "Reaberto", "Reabertos"])
+    month_col   = _pick_col(dfc, ["Month"])
+
+    if not analyst_col:
+        raise ValueError("Coluna de analista não encontrada (Assigned to / Analista).")
+
+    dfc["_analyst"] = (dfc[analyst_col].fillna("Sem Analista").astype(str).str.strip())
+    dfc["_analyst"] = dfc["_analyst"].replace({"": "Sem Analista"})
+
+    if state_col:
+        dfc["_state"] = dfc[state_col].apply(_norm_state)
+    else:
+        if closed_col:
+            dfc["_state"] = np.where(pd.to_datetime(dfc[closed_col], errors="coerce").notna(),
+                                     "Closed", "Open")
+        else:
+            dfc["_state"] = "Open"
+
+    # Datas (para pivô mensal)
+    if opened_col:
+        dfc["_opened_dt"] = pd.to_datetime(dfc[opened_col], errors="coerce")
+    else:
+        dfc["_opened_dt"] = pd.NaT
+
+    if closed_col:
+        dfc["_closed_dt"] = pd.to_datetime(dfc[closed_col], errors="coerce")
+    else:
+        dfc["_closed_dt"] = pd.NaT
+
+    if month_col:
+        dfc["_month_open_raw"] = dfc[month_col].astype(str).str.strip()
+    else:
+        dfc["_month_open_raw"] = ""
+
+    # Aging/tempo de atendimento
+    if aging_col:
+        dfc["_aging"] = pd.to_numeric(dfc[aging_col], errors="coerce").fillna(0).astype(float)
+    else:
+        # fallback: se não houver aging, calcula por Opened/Closed
+        now = pd.Timestamp(datetime.now())
+        opened_dt = dfc["_opened_dt"]
+        closed_dt = dfc["_closed_dt"].fillna(now)
+        dfc["_aging"] = (closed_dt - opened_dt).dt.days
+        dfc["_aging"] = pd.to_numeric(dfc["_aging"], errors="coerce").fillna(0).astype(float)
+
+    if reopen_col:
+        dfc["_reopen"] = pd.to_numeric(dfc[reopen_col], errors="coerce").fillna(0).astype(float)
+    else:
+        dfc["_reopen"] = 0.0
+
+    # Month de fechamento
+    dfc["_close_month"] = (
+        dfc["_closed_dt"]
+        .dt.to_period("M")
+        .dt.to_timestamp()
+        .where(dfc["_closed_dt"].notna(), other=pd.NaT)
+    )
+
+    closed_df = dfc[dfc["_state"] == "Closed"].copy()
+    open_df   = dfc[dfc["_state"] != "Closed"].copy()
+
+    all_analysts = sorted(dfc["_analyst"].unique().tolist())
+
+    # Métricas base
+    total_assigned = dfc.groupby("_analyst").size()
+    total_closed   = closed_df.groupby("_analyst").size()
+    total_open     = open_df.groupby("_analyst").size()
+
+    mttr_mean = (closed_df.groupby("_analyst")["_aging"].mean()
+                 if len(closed_df) else pd.Series(dtype=float))
+    mttr_median = (closed_df.groupby("_analyst")["_aging"].median()
+                   if len(closed_df) else pd.Series(dtype=float))
+    mttr_p90 = (closed_df.groupby("_analyst")["_aging"].quantile(0.90)
+                if len(closed_df) else pd.Series(dtype=float))
+    mttr_std = (closed_df.groupby("_analyst")["_aging"].std()
+                if len(closed_df) else pd.Series(dtype=float))
+
+    reopen_sum = (closed_df.groupby("_analyst")["_reopen"].sum()
+                  if len(closed_df) else pd.Series(dtype=float))
+
+    # Aging Index: % chamados abertos com aging > 5
+    open_inactive = open_df[open_df["_aging"] > 5].groupby("_analyst").size()
+
+    summary = pd.DataFrame(index=all_analysts)
+    summary["Total_Atribuidos"] = total_assigned.reindex(all_analysts, fill_value=0)
+    summary["Total_Abertos"]    = total_open.reindex(all_analysts, fill_value=0)
+    summary["Total_Fechados"]   = total_closed.reindex(all_analysts, fill_value=0)
+
+    # Net Flow: atribuídos - fechados (mantém semântica do seu texto original)
+    summary["Net_Flow"] = summary["Total_Atribuidos"] - summary["Total_Fechados"]
+
+    summary["MTTR_Mean"]   = mttr_mean.reindex(all_analysts, fill_value=0).round(1)
+    summary["MTTR_Median"] = mttr_median.reindex(all_analysts, fill_value=0).round(1)
+    summary["MTTR_P90"]    = mttr_p90.reindex(all_analysts, fill_value=0).round(1)
+    summary["MTTR_Std"]    = mttr_std.reindex(all_analysts, fill_value=0).fillna(0).round(1)
+
+    summary["Reopen_Total"] = reopen_sum.reindex(all_analysts, fill_value=0).round(0).astype(int)
+
+    summary["Taxa_Resolucao_%"] = (
+        (summary["Total_Fechados"] / summary["Total_Atribuidos"] * 100)
+        .where(summary["Total_Atribuidos"] > 0, 0)
+        .round(1)
+    )
+
+    summary["Effective_Res_%"] = (
+        ((summary["Total_Fechados"] - summary["Reopen_Total"]) / summary["Total_Fechados"] * 100)
+        .where(summary["Total_Fechados"] > 0, 0)
+        .round(1)
+        .clip(lower=0)
+    )
+
+    summary["Aging_Index_%"] = (
+        (open_inactive / summary["Total_Abertos"] * 100)
+        .replace([np.inf, -np.inf], 0)
+        .reindex(all_analysts, fill_value=0)
+        .round(1)
+    )
+
+    # SLA compliance em fechados (opcional)
+    if sla_max_days is not None and len(closed_df) > 0:
+        sla_max_days = int(sla_max_days)
+        closed_df["_sla_ok"] = closed_df["_aging"] <= sla_max_days
+        sla_ok = closed_df.groupby("_analyst")["_sla_ok"].sum()
+        sla_total = closed_df.groupby("_analyst")["_sla_ok"].count()
+        sla_pct = (sla_ok / sla_total * 100).replace([np.inf, -np.inf], 0).fillna(0).round(1)
+        summary["SLA_Compliance_Closed_%"] = sla_pct.reindex(all_analysts, fill_value=0)
+        summary["SLA_Breaches_Closed"] = (sla_total - sla_ok).reindex(all_analysts, fill_value=0).astype(int)
+    else:
+        summary["SLA_Compliance_Closed_%"] = 0.0
+        summary["SLA_Breaches_Closed"] = 0
+
+    # Janela mensal contínua baseada nos fechamentos
+    close_months = dfc["_close_month"].dropna()
+    if len(close_months) > 0:
+        month_start = close_months.min()
+        month_end   = close_months.max()
+        all_months  = pd.date_range(month_start, month_end, freq="MS")
+
+        if months_limit is not None:
+            months_limit = int(months_limit)
+            if months_limit > 0 and len(all_months) > months_limit:
+                all_months = all_months[-months_limit:]
+
+        meses_calculado = int(len(all_months))
+        meses_exibido = int(meses_extracao_override) if meses_extracao_override is not None else meses_calculado
+        periodo_ini = pd.Timestamp(all_months[0]).strftime("%Y-%m")
+        periodo_fim = pd.Timestamp(all_months[-1]).strftime("%Y-%m")
+        janela = f"{periodo_ini} → {periodo_fim}"
+        months_list_str = [pd.Timestamp(m).strftime("%Y-%m") for m in all_months]
+    else:
+        all_months = pd.DatetimeIndex([])
+        meses_calculado = 0
+        meses_exibido = int(meses_extracao_override) if meses_extracao_override is not None else 0
+        janela = "N/A"
+        months_list_str = []
+
+    # Pivot de encerramentos por mês
+    if len(closed_df) > 0 and len(months_list_str) > 0:
+        closed_df["_close_month_str"] = closed_df["_close_month"].dt.strftime("%Y-%m")
+        monthly_pivot = (
+            closed_df.groupby(["_analyst", "_close_month_str"]).size().unstack(fill_value=0)
+        )
+        monthly_pivot = monthly_pivot.reindex(columns=months_list_str, fill_value=0)
+    else:
+        monthly_pivot = pd.DataFrame(index=all_analysts, columns=months_list_str).fillna(0).astype(int)
+
+    
+
+    # Métricas mensais detalhadas (para comparação por mês / últimos 3 meses)
+    # Retorna pivôs por analista x mês para: Closed_Count, MTTR_Mean, MTTR_P90, SLA_Compliance_%
+    if len(closed_df) > 0 and len(months_list_str) > 0:
+        closed_df["_close_month_str"] = closed_df["_close_month"].dt.strftime("%Y-%m")
+
+        m_count = (closed_df.groupby(["_analyst", "_close_month_str"]).size().unstack(fill_value=0)
+                   .reindex(columns=months_list_str, fill_value=0))
+
+        m_mttr_mean = (closed_df.groupby(["_analyst", "_close_month_str"])["_aging"].mean().unstack()
+                       if len(closed_df) else pd.DataFrame())
+        if isinstance(m_mttr_mean, pd.DataFrame) and len(m_mttr_mean) > 0:
+            m_mttr_mean = m_mttr_mean.reindex(columns=months_list_str).fillna(0).round(2)
+        else:
+            m_mttr_mean = pd.DataFrame(index=all_analysts, columns=months_list_str).fillna(0)
+
+        m_mttr_p90 = (closed_df.groupby(["_analyst", "_close_month_str"])["_aging"].quantile(0.90).unstack()
+                      if len(closed_df) else pd.DataFrame())
+        if isinstance(m_mttr_p90, pd.DataFrame) and len(m_mttr_p90) > 0:
+            m_mttr_p90 = m_mttr_p90.reindex(columns=months_list_str).fillna(0).round(2)
+        else:
+            m_mttr_p90 = pd.DataFrame(index=all_analysts, columns=months_list_str).fillna(0)
+
+        if sla_max_days is not None:
+            sla_days = int(sla_max_days)
+            closed_df["_sla_ok"] = closed_df["_aging"] <= sla_days
+            m_sla = (closed_df.groupby(["_analyst", "_close_month_str"])["_sla_ok"].mean().unstack()
+                     if len(closed_df) else pd.DataFrame())
+            if isinstance(m_sla, pd.DataFrame) and len(m_sla) > 0:
+                m_sla = (m_sla.reindex(columns=months_list_str).fillna(0) * 100.0).round(2)
+            else:
+                m_sla = pd.DataFrame(index=all_analysts, columns=months_list_str).fillna(0)
+        else:
+            m_sla = pd.DataFrame(index=all_analysts, columns=months_list_str).fillna(0)
+
+        # Garante mesma ordem/índice
+        m_count = m_count.reindex(index=all_analysts, fill_value=0)
+        m_mttr_mean = m_mttr_mean.reindex(index=all_analysts).fillna(0)
+        m_mttr_p90 = m_mttr_p90.reindex(index=all_analysts).fillna(0)
+        m_sla = m_sla.reindex(index=all_analysts).fillna(0)
+
+    else:
+        m_count = pd.DataFrame(index=all_analysts, columns=months_list_str).fillna(0).astype(int)
+        m_mttr_mean = pd.DataFrame(index=all_analysts, columns=months_list_str).fillna(0)
+        m_mttr_p90 = pd.DataFrame(index=all_analysts, columns=months_list_str).fillna(0)
+        m_sla = pd.DataFrame(index=all_analysts, columns=months_list_str).fillna(0)
+
+    monthly_metrics = {
+        "Closed_Count": m_count,
+        "MTTR_Mean": m_mttr_mean,
+        "MTTR_P90": m_mttr_p90,
+        "SLA_Compliance_%": m_sla,
+    }
+
+# Ordenação por fechados (principal)
+    summary = summary.sort_values(["Total_Fechados", "Total_Atribuidos", "MTTR_Mean"],
+                                  ascending=[False, False, True])
+    analysts_sorted = summary.index.tolist()
+
+    # KPIs da equipe
+    n_analysts = len(analysts_sorted)
+    total_team_closed = int(summary["Total_Fechados"].sum())
+    total_team_open = int(summary["Total_Abertos"].sum())
+
+    if len(closed_df) > 0:
+        team_mttr_mean = float(closed_df["_aging"].mean())
+        team_mttr_p90  = float(closed_df["_aging"].quantile(0.90))
+        if sla_max_days is not None:
+            team_sla_compliance = float((closed_df["_aging"] <= int(sla_max_days)).mean() * 100.0)
+        else:
+            team_sla_compliance = 0.0
+    else:
+        team_mttr_mean = 0.0
+        team_mttr_p90  = 0.0
+        team_sla_compliance = 0.0
+
+    analysis_meta = {
+        "meses_calculado": meses_calculado,
+        "meses_exibido": meses_exibido,
+        "override_aplicado": meses_extracao_override is not None,
+        "janela": janela,
+        "periodo_inicio": months_list_str[0] if months_list_str else "N/A",
+        "periodo_fim": months_list_str[-1] if months_list_str else "N/A",
+        "ticket_label": str(ticket_label),
+        "sla_max_days": int(sla_max_days) if sla_max_days is not None else None,
+        "months_limit": int(months_limit) if months_limit is not None else None,
+    }
+
+    print(f"✓ [{ticket_label}] Analistas: {n_analysts} | Janela: {janela} | Fechados: {total_team_closed} | Abertos: {total_team_open}")
+    print("✅ Análise por analista calculada!")
+    print("=" * 100)
+
+    return {
+        "analysis": analysis_meta,
+        "summary": summary,
+        "monthly_pivot": monthly_pivot,
+        "monthly_metrics": monthly_metrics,
+        "months_list": months_list_str,
+        "analysts_sorted": analysts_sorted,
+        "kpis": {
+            "total_team_closed": total_team_closed,
+            "total_team_open": total_team_open,
+            "team_mttr_mean": team_mttr_mean,
+            "team_mttr_p90": team_mttr_p90,
+            "team_sla_compliance_closed_pct": team_sla_compliance,
+            "ticket_label": str(ticket_label),
+            "sla_max_days": int(sla_max_days) if sla_max_days is not None else None,
+        },
+        "base_counts": {
+            "total_rows": int(len(dfc)),
+            "open_rows": int(len(open_df)),
+            "closed_rows": int(len(closed_df)),
+        }
+    }
+
+
+# =============================================================================
+# Combina REQs e INCs por analista (para tabela comparativa)
+# =============================================================================
+def calculate_analyst_reqs_incs(df_reqs,
+                               df_incs,
+                               meses_extracao_override=None,
+                               top_n_analysts=20,
+                               sla_days_reqs=10,
+                               sla_days_incs=7,
+                               months_limit=12):
+    """
+    Calcula métricas para REQs e INCs e prepara um resumo combinado TOP N.
+    """
+    m_reqs = calculate_analyst_analysis(
+        df_reqs,
+        meses_extracao_override=meses_extracao_override,
+        ticket_label="REQ",
+        sla_max_days=int(sla_days_reqs),
+        months_limit=months_limit
+    )
+
+    m_incs = calculate_analyst_analysis(
+        df_incs,
+        meses_extracao_override=meses_extracao_override,
+        ticket_label="INC",
+        sla_max_days=int(sla_days_incs),
+        months_limit=months_limit
+    )
+
+    s_req = m_reqs["summary"].copy()
+    s_inc = m_incs["summary"].copy()
+
+    # Garante colunas esperadas
+    for col in ["Total_Fechados", "Total_Atribuidos", "Total_Abertos", "Net_Flow",
+                "MTTR_Mean", "MTTR_P90", "Effective_Res_%", "Aging_Index_%",
+                "SLA_Compliance_Closed_%", "SLA_Breaches_Closed"]:
+        if col not in s_req.columns:
+            s_req[col] = 0
+        if col not in s_inc.columns:
+            s_inc[col] = 0
+
+    # Renomeia com prefixos
+    s_req = s_req.rename(columns={
+        "Total_Fechados": "REQ_Fechados",
+        "Total_Atribuidos": "REQ_Atribuidos",
+        "Total_Abertos": "REQ_Abertos",
+        "Net_Flow": "REQ_NetFlow",
+        "MTTR_Mean": "REQ_MTTR",
+        "MTTR_P90": "REQ_P90",
+        "Effective_Res_%": "REQ_EffRes",
+        "Aging_Index_%": "REQ_AgingIdx",
+        "SLA_Compliance_Closed_%": "REQ_SLA%",
+        "SLA_Breaches_Closed": "REQ_SLA_Breaches",
+    })
+
+    s_inc = s_inc.rename(columns={
+        "Total_Fechados": "INC_Fechados",
+        "Total_Atribuidos": "INC_Atribuidos",
+        "Total_Abertos": "INC_Abertos",
+        "Net_Flow": "INC_NetFlow",
+        "MTTR_Mean": "INC_MTTR",
+        "MTTR_P90": "INC_P90",
+        "Effective_Res_%": "INC_EffRes",
+        "Aging_Index_%": "INC_AgingIdx",
+        "SLA_Compliance_Closed_%": "INC_SLA%",
+        "SLA_Breaches_Closed": "INC_SLA_Breaches",
+    })
+
+    # Merge por analista (outer)
+    combo = s_req[[
+        "REQ_Fechados", "REQ_Atribuidos", "REQ_Abertos", "REQ_NetFlow",
+        "REQ_MTTR", "REQ_P90", "REQ_EffRes", "REQ_AgingIdx",
+        "REQ_SLA%", "REQ_SLA_Breaches"
+    ]].merge(
+        s_inc[[
+            "INC_Fechados", "INC_Atribuidos", "INC_Abertos", "INC_NetFlow",
+            "INC_MTTR", "INC_P90", "INC_EffRes", "INC_AgingIdx",
+            "INC_SLA%", "INC_SLA_Breaches"
+        ]],
+        left_index=True, right_index=True, how="outer"
+    ).fillna(0)
+
+    combo["TOTAL_Fechados"] = combo["REQ_Fechados"] + combo["INC_Fechados"]
+    combo["TOTAL_Atribuidos"] = combo["REQ_Atribuidos"] + combo["INC_Atribuidos"]
+    combo["TOTAL_Abertos"] = combo["REQ_Abertos"] + combo["INC_Abertos"]
+
+    # MTTR total ponderado pelo volume fechado (mais correto do que média simples)
+    combo["TOTAL_MTTR"] = [
+        _weighted_mean(
+            [combo.loc[a, "REQ_MTTR"], combo.loc[a, "INC_MTTR"]],
+            [combo.loc[a, "REQ_Fechados"], combo.loc[a, "INC_Fechados"]],
+        )
+        for a in combo.index
+    ]
+    combo["TOTAL_P90"] = [
+        _weighted_mean(
+            [combo.loc[a, "REQ_P90"], combo.loc[a, "INC_P90"]],
+            [combo.loc[a, "REQ_Fechados"], combo.loc[a, "INC_Fechados"]],
+        )
+        for a in combo.index
+    ]
+
+    # Ranking objetivo (prioridade: TOTAL_Fechados, depois INC_Fechados, depois MTTR)
+    combo = combo.sort_values(
+        by=["TOTAL_Fechados", "INC_Fechados", "TOTAL_MTTR"],
+        ascending=[False, False, True]
+    )
+
+    # TOP N exibido
+    top_n_analysts = int(top_n_analysts) if top_n_analysts is not None else 20
+    if top_n_analysts <= 0:
+        top_n_analysts = 20
+    combo_top = combo.head(top_n_analysts).copy()
+
+    # Coluna de risco/observação (bem objetiva)
+    def _risk_note(r):
+        notes = []
+        if r["INC_Fechados"] > 0:
+            if float(r["INC_SLA%"]) < 80:
+                notes.append("INC SLA baixo")
+            if float(r["INC_MTTR"]) >= 5:
+                notes.append("INC MTTR alto")
+        if r["REQ_Fechados"] > 0:
+            if float(r["REQ_MTTR"]) >= 15:
+                notes.append("REQ MTTR alto")
+        if int(r["TOTAL_Abertos"]) > 20:
+            notes.append("Backlog alto")
+        return " | ".join(notes) if notes else "OK"
+
+    combo_top["Observação"] = combo_top.apply(_risk_note, axis=1)
+
+    return {
+        "reqs": m_reqs,
+        "incs": m_incs,
+        "combo_all": combo,
+        "combo_top": combo_top,
+        "config": {
+            "top_n_analysts": top_n_analysts,
+            "sla_days_reqs": int(sla_days_reqs),
+            "sla_days_incs": int(sla_days_incs),
+            "months_limit": int(months_limit) if months_limit is not None else None,
+        }
+    }
+
+
+# =============================================================================
+# Criação da Aba ANALISTAS (REQs x INCs)
+# =============================================================================
+def create_analyst_sheet(wb,
+                         df_reqs,
+                         df_incs=None,
+                         meses_extracao_override=None,
+                         top_n_analysts=20,
+                         sla_days_reqs=10,
+                         sla_days_incs=7,
+                         months_limit=12):
+    """
+    Cria aba "ANALISTAS" com foco em objetividade:
+      - TOP N analistas (padrão 20)
+      - Tabela comparativa REQs x INCs
+      - KPIs de equipe: REQs e INCs
+      - Gráficos estáveis com base no TOP N
+      - Evolução mensal (Total equipe + top 5)
+
+    Compatibilidade:
+      - Se df_incs for None, a aba vira "REQs only" (sem quebrar).
+    """
+    print("\n" + "=" * 100)
+    print("📋 CRIANDO ABA: ANALISTAS — Dashboard (REQs x INCs)")
+    print("=" * 100)
+
+    if df_incs is None:
+        # Modo compatível (somente REQs)
+        pack = calculate_analyst_reqs_incs(
+            df_reqs=df_reqs,
+            df_incs=pd.DataFrame(),  # vazio
+            meses_extracao_override=meses_extracao_override,
+            top_n_analysts=top_n_analysts,
+            sla_days_reqs=sla_days_reqs,
+            sla_days_incs=sla_days_incs,
+            months_limit=months_limit
+        )
+    else:
+        pack = calculate_analyst_reqs_incs(
+            df_reqs=df_reqs,
+            df_incs=df_incs,
+            meses_extracao_override=meses_extracao_override,
+            top_n_analysts=top_n_analysts,
+            sla_days_reqs=sla_days_reqs,
+            sla_days_incs=sla_days_incs,
+            months_limit=months_limit
+        )
+
+    m_reqs = pack["reqs"]
+    m_incs = pack["incs"]
+    combo_top = pack["combo_top"]
+    cfg = pack["config"]
+
+    # Lista de analistas TOP (ordem já definida pelo ranking combinado)
+    top_list = list(combo_top.index)
+
+
+    meta_req = m_reqs.get("analysis", {})
+    meta_inc = m_incs.get("analysis", {})
+
+    # Base (exibição): usa meses exibidos do REQ (normalmente alinhado)
+    meses_base = int(meta_req.get("meses_exibido", 0))
+    badge_meses = f"{meses_base} MESES ANALISADOS"
+    janela_req = meta_req.get("janela", "N/A")
+    janela_inc = meta_inc.get("janela", "N/A")
+
+    # KPIs
+    k_req = m_reqs.get("kpis", {})
+    k_inc = m_incs.get("kpis", {})
+
+    req_closed = _safe_int(k_req.get("total_team_closed", 0))
+    req_open   = _safe_int(k_req.get("total_team_open", 0))
+    req_mttr   = _safe_float(k_req.get("team_mttr_mean", 0.0))
+    req_p90    = _safe_float(k_req.get("team_mttr_p90", 0.0))
+    req_sla    = _safe_float(k_req.get("team_sla_compliance_closed_pct", 0.0))
+
+    inc_closed = _safe_int(k_inc.get("total_team_closed", 0))
+    inc_open   = _safe_int(k_inc.get("total_team_open", 0))
+    inc_mttr   = _safe_float(k_inc.get("team_mttr_mean", 0.0))
+    inc_p90    = _safe_float(k_inc.get("team_mttr_p90", 0.0))
+    inc_sla    = _safe_float(k_inc.get("team_sla_compliance_closed_pct", 0.0))
+
+    # Worksheet
+    ws = wb.create_sheet("ANALISTAS")
+
+    # Fundo do dashboard
+    for r in range(1, 1200):
+        for c in range(1, 24):
+            ws.cell(row=r, column=c).fill = PatternFill(
+                start_color=ModernColors.BACKGROUND,
+                end_color=ModernColors.BACKGROUND,
+                fill_type="solid"
+            )
+
+    # Header principal
+    _merge_and_style(
+        ws, 1, 2, 1, 21,
+        f"ANALISTAS — Performance Individual (TOP {int(cfg['top_n_analysts'])}) | {badge_meses}",
+        font_size=20, font_color="FFFFFF",
+        bg_color=ModernColors.PRIMARY_DARK, bold=True,
+        border_color=ModernColors.PRIMARY_DARK
+    )
+    ws.row_dimensions[1].height = 40
+
+    _merge_and_style(
+        ws, 2, 2, 2, 21,
+        (f"REQs: janela {janela_req} | SLA {int(cfg['sla_days_reqs'])}d "
+         f"|| INCs: janela {janela_inc} | SLA {int(cfg['sla_days_incs'])}d "
+         f"|| Months pivot limit: {cfg.get('months_limit', 'N/A')} "
+         f"|| Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M')}"),
+        font_size=9, font_color=ModernColors.GRAY,
+        bg_color=ModernColors.GRAY_LIGHT, bold=False,
+        border_color=ModernColors.GRAY
+    )
+    ws.row_dimensions[2].height = 20
+
+    row = 4
+
+    # =========================================================================
+    # SEÇÃO 1 — KPIs Objetivos (REQs x INCs)
+    # =========================================================================
+    _create_section_header(
+        ws, row, 2, 21,
+        f"📌 KPIs OBJETIVOS — REQs x INCs | TOP {int(cfg['top_n_analysts'])}",
+        "📌", bg_color=ModernColors.ACCENT
+    )
+    row += 2
+
+    # Linha 1 (REQs)
+    _create_kpi_card(
+        ws, row, 2,
+        "REQs Encerrados",
+        f"{req_closed}",
+        f"Janela: {janela_req}",
+        "🧾",
+        bg_color=ModernColors.PRIMARY_LIGHT,
+        value_color=ModernColors.PRIMARY
+    )
+    _fill_spacer_column(ws, 4, row, row + 2)
+
+    mttr_bg_r, mttr_cl_r = _get_status_colors(req_mttr, 7, 15, reverse=True)
+    _create_kpi_card(
+        ws, row, 5,
+        "REQs MTTR (médio)",
+        f"{req_mttr:.1f}d",
+        f"p90: {req_p90:.1f}d",
+        "⏱️",
+        bg_color=mttr_bg_r,
+        value_color=mttr_cl_r
+    )
+    _fill_spacer_column(ws, 7, row, row + 2)
+
+    sla_bg_r, sla_cl_r = _get_status_colors(req_sla, 90, 80)
+    _create_kpi_card(
+        ws, row, 8,
+        "REQs SLA (fechados)",
+        f"{req_sla:.1f}%",
+        f"SLA ≤ {int(cfg['sla_days_reqs'])}d",
+        "🛡️",
+        bg_color=sla_bg_r,
+        value_color=sla_cl_r
+    )
+    _fill_spacer_column(ws, 10, row, row + 2)
+
+    back_bg_r, back_cl_r = _get_status_colors(req_open, 10, 30, reverse=True)
+    _create_kpi_card(
+        ws, row, 11,
+        "REQs Backlog (abertos)",
+        f"{req_open}",
+        "chamados abertos",
+        "📦",
+        bg_color=back_bg_r,
+        value_color=back_cl_r
+    )
+
+    _fill_spacer_column(ws, 13, row, row + 2)
+
+    # Linha 1 (INCs)
+    _create_kpi_card(
+        ws, row, 14,
+        "INCs Encerrados",
+        f"{inc_closed}",
+        f"Janela: {janela_inc}",
+        "🚨",
+        bg_color=ModernColors.INFO_LIGHT,
+        value_color=ModernColors.INFO
+    )
+    _fill_spacer_column(ws, 16, row, row + 2)
+
+    mttr_bg_i, mttr_cl_i = _get_status_colors(inc_mttr, 2, 5, reverse=True)
+    _create_kpi_card(
+        ws, row, 17,
+        "INCs MTTR (médio)",
+        f"{inc_mttr:.1f}d",
+        f"p90: {inc_p90:.1f}d",
+        "⏱️",
+        bg_color=mttr_bg_i,
+        value_color=mttr_cl_i
+    )
+    _fill_spacer_column(ws, 19, row, row + 2)
+
+    sla_bg_i, sla_cl_i = _get_status_colors(inc_sla, 90, 80)
+    _create_kpi_card(
+        ws, row, 20,
+        "INCs SLA (fechados)",
+        f"{inc_sla:.1f}%",
+        f"SLA ≤ {int(cfg['sla_days_incs'])}d",
+        "🛡️",
+        bg_color=sla_bg_i,
+        value_color=sla_cl_i,
+        size="small"
+    )
+
+    row += 5
+
+    row = _create_info_box(
+        ws, row, 2, 20,
+        f"Como ler esta aba (objetivo){' (' + str(meses_base) + 'm)' if meses_base else ''}",
+        ("Este painel mostra TOP analistas (máx. 20) para não poluir a visualização. "
+         "Tempo de atendimento = MTTR (médio) e p90 (pior caso típico). "
+         "SLA é medido nos chamados FECHADOS: % com aging ≤ SLA (REQ e INC têm SLA diferente). "
+         "A tabela abaixo compara REQs x INCs por analista e destaca riscos."),
+        icon="💡",
+        bg_title=ModernColors.PRIMARY_LIGHT,
+        bg_text=ModernColors.WHITE,
+        border_color=ModernColors.PRIMARY
+    )
+
+    # =========================================================================
+    # SEÇÃO 2 — TABELA OBJETIVA: TOP Analistas (REQs x INCs)
+    # =========================================================================
+    _create_section_header(
+        ws, row, 2, 21,
+        f"📊 TOP {int(cfg['top_n_analysts'])} — REQs x INCs por Analista (comparativo)",
+        "📊", bg_color=ModernColors.PRIMARY_DARK
+    )
+    row += 1
+
+    headers = [
+        "Rank", "Analista",
+        "REQ Fech.", "REQ MTTR", "REQ p90", "REQ SLA%",
+        "INC Fech.", "INC MTTR", "INC p90", "INC SLA%",
+        "Total Fech.", "Total MTTR", "Obs."
+    ]
+
+    data = []
+    for i, (analyst, r) in enumerate(combo_top.iterrows(), start=1):
+        data.append([
+            i,
+            analyst,
+            int(r["REQ_Fechados"]),
+            f"{float(r['REQ_MTTR']):.1f}d",
+            f"{float(r['REQ_P90']):.1f}d",
+            f"{float(r['REQ_SLA%']):.1f}%",
+            int(r["INC_Fechados"]),
+            f"{float(r['INC_MTTR']):.1f}d",
+            f"{float(r['INC_P90']):.1f}d",
+            f"{float(r['INC_SLA%']):.1f}%",
+            int(r["TOTAL_Fechados"]),
+            f"{float(r['TOTAL_MTTR']):.1f}d",
+            str(r["Observação"]),
+        ])
+
+    def hl_obs(val, row_data):
+        return str(val).strip().upper() != "OK"
+
+    def hl_inc_sla_low(val, row_data):
+        try:
+            # INC SLA% está na coluna 9 do data (índice 9 no row_data? -> veja headers)
+            # row_data: [Rank, Analista, ..., INC SLA% -> posição 9]
+            inc_sla_txt = str(row_data[9]).replace("%", "").strip()
+            return float(inc_sla_txt) < 80.0
+        except Exception:
+            return False
+
+    highlight = {
+        12: (hl_obs, ModernColors.WARNING_LIGHT, ModernColors.WARNING),   # Obs.
+        9:  (hl_inc_sla_low, ModernColors.DANGER_LIGHT, ModernColors.DANGER),  # INC SLA%
+    }
+
+    row = _create_table_compact(
+        ws, row, 2, headers, data,
+        col_widths=[6, 26, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 20],
+        zebra=True,
+        highlight_cols=highlight,
+        header_color=ModernColors.PRIMARY_DARK
+    )
+
+    row += 1
+
+    
+    # =========================================================================
+    # SEÇÃO 3 — COMPARATIVO 3 MESES (sem gráficos)
+    # =========================================================================
+    _create_section_header(
+        ws, row, 2, 21,
+        "📈 COMPARATIVO 3 MESES — Performance do próprio analista (REQs x INCs)",
+        "📈", bg_color=ModernColors.INFO
+    )
+    row += 2
+
+    def _period_weighted_metrics(monthly_metrics, analysts, months):
+        """Retorna (closed_sum, mttr_weighted, p90_weighted, sla_weighted) no período."""
+        if monthly_metrics is None or not isinstance(monthly_metrics, dict) or len(months) == 0:
+            return (0, 0.0, 0.0, 0.0)
+
+        m_count = monthly_metrics.get("Closed_Count", pd.DataFrame())
+        m_mttr  = monthly_metrics.get("MTTR_Mean", pd.DataFrame())
+        m_p90   = monthly_metrics.get("MTTR_P90", pd.DataFrame())
+        m_sla   = monthly_metrics.get("SLA_Compliance_%", pd.DataFrame())
+
+        def _get(df, a, mo, default=0.0):
+            try:
+                if df is None or len(df) == 0:
+                    return default
+                if a not in df.index or mo not in df.columns:
+                    return default
+                v = df.loc[a, mo]
+                if pd.isna(v):
+                    return default
+                return float(v)
+            except Exception:
+                return default
+
+        total_closed = 0.0
+        sum_mttr = 0.0
+        sum_p90 = 0.0
+        sum_sla = 0.0
+
+        for mo in months:
+            c = 0.0
+            # soma fechado de todos analysts? aqui usamos apenas um analyst por chamada (analysts deverá ter 1)
+            # mas mantemos compatível para lista.
+            for a in analysts:
+                c += _get(m_count, a, mo, 0.0)
+            total_closed += c
+            if c > 0:
+                # pondera MTTR/P90/SLA pelo volume fechado no mês
+                for a in analysts:
+                    ca = _get(m_count, a, mo, 0.0)
+                    if ca > 0:
+                        sum_mttr += _get(m_mttr, a, mo, 0.0) * ca
+                        sum_p90  += _get(m_p90,  a, mo, 0.0) * ca
+                        sum_sla  += _get(m_sla,  a, mo, 0.0) * ca
+
+        if total_closed > 0:
+            mttr_w = sum_mttr / total_closed
+            p90_w  = sum_p90 / total_closed
+            sla_w  = sum_sla / total_closed
+        else:
+            mttr_w = 0.0
+            p90_w  = 0.0
+            sla_w  = 0.0
+
+        return (int(round(total_closed)), float(mttr_w), float(p90_w), float(sla_w))
+
+    # Meses: usa janela do REQ; se insuficiente, complementa com INC
+    months_all = list(m_reqs.get("months_list", []) or [])
+    if len(months_all) < 3:
+        months_all = list(m_incs.get("months_list", []) or [])
+
+    # Garante pelo menos 3 meses (se existir)
+    last3 = months_all[-3:] if len(months_all) >= 3 else months_all
+    prev3 = months_all[-6:-3] if len(months_all) >= 6 else []
+
+    # Monta tabela comparativa (Last3 vs Prev3) por analista
+    headers_cmp = [
+        "Rank", "Analista",
+        "REQ Fech L3", "REQ Fech P3", "Δ REQ Fech",
+        "REQ MTTR L3", "REQ MTTR P3", "Δ REQ MTTR",
+        "REQ SLA L3", "REQ SLA P3", "Δ REQ SLA",
+        "INC Fech L3", "INC Fech P3", "Δ INC Fech",
+        "INC MTTR L3", "INC MTTR P3", "Δ INC MTTR",
+        "INC SLA L3", "INC SLA P3", "Δ INC SLA",
+        "Obs."
+    ]
+
+    data_cmp = []
+    for i, a in enumerate(top_list, start=1):
+        req_l3 = _period_weighted_metrics(m_reqs.get("monthly_metrics", {}), [a], last3)
+        req_p3 = _period_weighted_metrics(m_reqs.get("monthly_metrics", {}), [a], prev3) if prev3 else (0, 0.0, 0.0, 0.0)
+        inc_l3 = _period_weighted_metrics(m_incs.get("monthly_metrics", {}), [a], last3)
+        inc_p3 = _period_weighted_metrics(m_incs.get("monthly_metrics", {}), [a], prev3) if prev3 else (0, 0.0, 0.0, 0.0)
+
+        d_req_closed = req_l3[0] - req_p3[0]
+        d_req_mttr   = req_l3[1] - req_p3[1]
+        d_req_sla    = req_l3[3] - req_p3[3]
+
+        d_inc_closed = inc_l3[0] - inc_p3[0]
+        d_inc_mttr   = inc_l3[1] - inc_p3[1]
+        d_inc_sla    = inc_l3[3] - inc_p3[3]
+
+        obs = str(combo_top.loc[a, "Observação"]) if (a in combo_top.index and "Observação" in combo_top.columns) else "OK"
+
+        data_cmp.append([
+            i, a,
+            req_l3[0], req_p3[0], d_req_closed,
+            f"{req_l3[1]:.1f}d", f"{req_p3[1]:.1f}d", f"{d_req_mttr:+.1f}d" if prev3 else "N/A",
+            f"{req_l3[3]:.1f}%", f"{req_p3[3]:.1f}%", f"{d_req_sla:+.1f}%" if prev3 else "N/A",
+            inc_l3[0], inc_p3[0], d_inc_closed,
+            f"{inc_l3[1]:.1f}d", f"{inc_p3[1]:.1f}d", f"{d_inc_mttr:+.1f}d" if prev3 else "N/A",
+            f"{inc_l3[3]:.1f}%", f"{inc_p3[3]:.1f}%", f"{d_inc_sla:+.1f}%" if prev3 else "N/A",
+            obs
+        ])
+
+    row_table_start = row
+    row = _create_table_compact(
+        ws, row, 2, headers_cmp, data_cmp,
+        col_widths=[6, 22, 11, 11, 10, 11, 11, 11, 10, 10, 10, 11, 11, 10, 11, 11, 11, 10, 10, 10, 20],
+        zebra=True,
+        highlight_cols=None,
+        header_color=ModernColors.INFO
+    )
+
+    # Aplica cores nas colunas de delta (melhor visual, sem gráficos)
+    # Índices relativos (base 0 em headers_cmp): Δ REQ Fech=4, Δ REQ MTTR=7, Δ REQ SLA=10, Δ INC Fech=13, Δ INC MTTR=16, Δ INC SLA=19
+    delta_cols = [4, 7, 10, 13, 16, 19]
+
+    for r_i in range(len(data_cmp)):
+        rr = row_table_start + 1 + r_i
+        for dc in delta_cols:
+            cc = 2 + dc
+            cell = ws.cell(row=rr, column=cc)
+            val = cell.value
+            # MTTR deltas vêm como texto "+1.2d"; fechados delta como int
+            try:
+                if val is None or str(val).strip().upper() == "N/A":
+                    cell.fill = PatternFill(start_color=ModernColors.GRAY_LIGHT, end_color=ModernColors.GRAY_LIGHT, fill_type="solid")
+                    continue
+                if isinstance(val, (int, float)):
+                    dv = float(val)
+                else:
+                    sv = str(val).replace("d", "").replace("%", "").strip()
+                    dv = float(sv)
+
+                is_mttr = (dc in [7, 16])
+                if dv == 0:
+                    bg = ModernColors.GRAY_LIGHT
+                    fg = ModernColors.GRAY_DARK
+                else:
+                    good = (dv > 0) if (not is_mttr) else (dv < 0)  # MTTR menor é melhor
+                    if good:
+                        bg = ModernColors.SUCCESS_LIGHT
+                        fg = ModernColors.SUCCESS
+                    else:
+                        bg = ModernColors.DANGER_LIGHT
+                        fg = ModernColors.DANGER
+
+                cell.fill = PatternFill(start_color=bg, end_color=bg, fill_type="solid")
+                cell.font = Font(size=10, name="Calibri", bold=True, color=fg)
+            except Exception:
+                pass
+
+    row += 2
+
+    # =========================================================================
+    # SEÇÃO 4 — DETALHE MENSAL (últimos 3 meses) — sem gráficos
+    # =========================================================================
+    _create_section_header(
+        ws, row, 2, 21,
+        "📅 DETALHE MENSAL — Últimos 3 meses (performance do próprio analista)",
+        "📅", bg_color=ModernColors.ACCENT
+    )
+    row += 2
+
+    if len(last3) == 0:
+        _merge_and_style(
+            ws, row, 2, row + 1, 21,
+            "⚠️ Sem meses suficientes para detalhamento mensal (fechamentos insuficientes).",
+            font_size=11, font_color=ModernColors.GRAY,
+            bg_color=ModernColors.GRAY_LIGHT, bold=False,
+            border_color=ModernColors.GRAY
+        )
+        row += 4
+    else:
+        # Tabela REQs por mês (últimos 3)
+        _create_section_header(
+            ws, row, 2, 21,
+            f"🧾 REQs — Detalhe por mês ({' / '.join(last3)})",
+            "🧾", bg_color=ModernColors.PRIMARY_DARK
+        )
+        row += 1
+
+        headers_reqm = [
+            "Rank", "Analista",
+            f"Fech {last3[0] if len(last3)>0 else ''}", f"Fech {last3[1] if len(last3)>1 else ''}", f"Fech {last3[2] if len(last3)>2 else ''}",
+            f"MTTR {last3[0] if len(last3)>0 else ''}", f"MTTR {last3[1] if len(last3)>1 else ''}", f"MTTR {last3[2] if len(last3)>2 else ''}",
+            f"SLA% {last3[0] if len(last3)>0 else ''}", f"SLA% {last3[1] if len(last3)>1 else ''}", f"SLA% {last3[2] if len(last3)>2 else ''}",
+            "Obs."
+        ]
+
+        mm_req = m_reqs.get("monthly_metrics", {})
+        c_req = mm_req.get("Closed_Count", pd.DataFrame())
+        mt_req = mm_req.get("MTTR_Mean", pd.DataFrame())
+        sla_req = mm_req.get("SLA_Compliance_%", pd.DataFrame())
+
+        def _v(df, a, mo, default=0.0):
+            try:
+                if df is None or len(df) == 0:
+                    return default
+                if a not in df.index or mo not in df.columns:
+                    return default
+                v = df.loc[a, mo]
+                return default if pd.isna(v) else float(v)
+            except Exception:
+                return default
+
+        data_reqm = []
+        for i, a in enumerate(top_list, start=1):
+            f0 = int(_v(c_req, a, last3[0], 0.0)) if len(last3) > 0 else 0
+            f1 = int(_v(c_req, a, last3[1], 0.0)) if len(last3) > 1 else 0
+            f2 = int(_v(c_req, a, last3[2], 0.0)) if len(last3) > 2 else 0
+
+            m0 = _v(mt_req, a, last3[0], 0.0) if len(last3) > 0 else 0.0
+            m1 = _v(mt_req, a, last3[1], 0.0) if len(last3) > 1 else 0.0
+            m2 = _v(mt_req, a, last3[2], 0.0) if len(last3) > 2 else 0.0
+
+            s0 = _v(sla_req, a, last3[0], 0.0) if len(last3) > 0 else 0.0
+            s1 = _v(sla_req, a, last3[1], 0.0) if len(last3) > 1 else 0.0
+            s2 = _v(sla_req, a, last3[2], 0.0) if len(last3) > 2 else 0.0
+
+            obs = str(combo_top.loc[a, "Observação"]) if (a in combo_top.index and "Observação" in combo_top.columns) else "OK"
+
+            data_reqm.append([
+                i, a,
+                f0, f1, f2,
+                f"{m0:.1f}d", f"{m1:.1f}d", f"{m2:.1f}d",
+                f"{s0:.1f}%", f"{s1:.1f}%", f"{s2:.1f}%",
+                obs
+            ])
+
+        row = _create_table_compact(
+            ws, row, 2, headers_reqm, data_reqm,
+            col_widths=[6, 22, 10, 10, 10, 10, 10, 10, 10, 10, 10, 20],
+            zebra=True,
+            highlight_cols=None,
+            header_color=ModernColors.PRIMARY_DARK
+        )
+        row += 1
+
+        # Tabela INCs por mês (últimos 3)
+        _create_section_header(
+            ws, row, 2, 21,
+            f"🚨 INCs — Detalhe por mês ({' / '.join(last3)})",
+            "🚨", bg_color=ModernColors.INFO
+        )
+        row += 1
+
+        headers_incm = [
+            "Rank", "Analista",
+            f"Fech {last3[0] if len(last3)>0 else ''}", f"Fech {last3[1] if len(last3)>1 else ''}", f"Fech {last3[2] if len(last3)>2 else ''}",
+            f"MTTR {last3[0] if len(last3)>0 else ''}", f"MTTR {last3[1] if len(last3)>1 else ''}", f"MTTR {last3[2] if len(last3)>2 else ''}",
+            f"SLA% {last3[0] if len(last3)>0 else ''}", f"SLA% {last3[1] if len(last3)>1 else ''}", f"SLA% {last3[2] if len(last3)>2 else ''}",
+            "Obs."
+        ]
+
+        mm_inc = m_incs.get("monthly_metrics", {})
+        c_inc = mm_inc.get("Closed_Count", pd.DataFrame())
+        mt_inc = mm_inc.get("MTTR_Mean", pd.DataFrame())
+        sla_inc = mm_inc.get("SLA_Compliance_%", pd.DataFrame())
+
+        data_incm = []
+        for i, a in enumerate(top_list, start=1):
+            f0 = int(_v(c_inc, a, last3[0], 0.0)) if len(last3) > 0 else 0
+            f1 = int(_v(c_inc, a, last3[1], 0.0)) if len(last3) > 1 else 0
+            f2 = int(_v(c_inc, a, last3[2], 0.0)) if len(last3) > 2 else 0
+
+            m0 = _v(mt_inc, a, last3[0], 0.0) if len(last3) > 0 else 0.0
+            m1 = _v(mt_inc, a, last3[1], 0.0) if len(last3) > 1 else 0.0
+            m2 = _v(mt_inc, a, last3[2], 0.0) if len(last3) > 2 else 0.0
+
+            s0 = _v(sla_inc, a, last3[0], 0.0) if len(last3) > 0 else 0.0
+            s1 = _v(sla_inc, a, last3[1], 0.0) if len(last3) > 1 else 0.0
+            s2 = _v(sla_inc, a, last3[2], 0.0) if len(last3) > 2 else 0.0
+
+            obs = str(combo_top.loc[a, "Observação"]) if (a in combo_top.index and "Observação" in combo_top.columns) else "OK"
+
+            data_incm.append([
+                i, a,
+                f0, f1, f2,
+                f"{m0:.1f}d", f"{m1:.1f}d", f"{m2:.1f}d",
+                f"{s0:.1f}%", f"{s1:.1f}%", f"{s2:.1f}%",
+                obs
+            ])
+
+        row = _create_table_compact(
+            ws, row, 2, headers_incm, data_incm,
+            col_widths=[6, 22, 10, 10, 10, 10, 10, 10, 10, 10, 10, 20],
+            zebra=True,
+            highlight_cols=None,
+            header_color=ModernColors.INFO
+        )
+
+        row += 2
+    # =========================================================================
+    # SEÇÃO 5 — GLOSSÁRIO (curto e objetivo)
+    # =========================================================================
+    row_after_evo = row
+    _create_section_header(
+        ws, row_after_evo, 2, 21,
+        "📖 Glossário — Métricas desta aba (objetivo)",
+        "📖", bg_color=ModernColors.GRAY_DARK
+    )
+    glo_row = row_after_evo + 2
+
+    glossary = [
+        ("🚨 INCs Encerrados", "Quantidade de incidentes fechados (atendimento concluído)."),
+        ("⏱️ MTTR (médio)", "Tempo médio de atendimento/resolução (dias) nos chamados fechados."),
+        ("📉 p90", "Percentil 90 do tempo: 90% dos chamados fechados levam até esse tempo; mede cauda (pior caso típico)."),
+        ("🛡️ SLA (fechados)", "Percentual de chamados fechados com tempo (aging) ≤ SLA do tipo (REQ/INC)."),
+        ("📦 Backlog (abertos)", "Chamados em aberto atribuídos ao time; indica pressão de fila."),
+        ("📊 TOP N", "Somente os principais analistas (máx. 20) são exibidos para manter tabela/gráficos legíveis."),
+    ]
+
+    for label, desc in glossary:
+        c1 = ws.cell(row=glo_row, column=2)
+        c1.value = label
+        c1.font = Font(size=10, bold=True, color=ModernColors.PRIMARY, name="Calibri")
+        c1.alignment = Alignment(horizontal="left", vertical="center")
+        c1.border = _modern_border("thin", ModernColors.GRAY)
+        c1.fill = PatternFill(start_color=ModernColors.GRAY_LIGHT,
+                              end_color=ModernColors.GRAY_LIGHT,
+                              fill_type="solid")
+
+        c2 = ws.cell(row=glo_row, column=3)
+        c2.value = desc
+        c2.font = Font(size=9, color=ModernColors.GRAY_DARK, name="Calibri")
+        c2.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+        c2.border = _modern_border("thin", ModernColors.GRAY)
+
+        ws.merge_cells(f"C{glo_row}:U{glo_row}")
+        ws.row_dimensions[glo_row].height = 28
+        glo_row += 1
+
+    # Larguras de coluna (layout)
+    ws.column_dimensions["A"].width = 2
+    ws.column_dimensions["B"].width = 26
+    ws.column_dimensions["C"].width = 10
+    ws.column_dimensions["D"].width = 10
+    ws.column_dimensions["E"].width = 10
+    ws.column_dimensions["F"].width = 10
+    ws.column_dimensions["G"].width = 10
+    ws.column_dimensions["H"].width = 10
+    ws.column_dimensions["I"].width = 10
+    ws.column_dimensions["J"].width = 10
+    ws.column_dimensions["K"].width = 10
+    ws.column_dimensions["L"].width = 2
+    ws.column_dimensions["M"].width = 14
+    ws.column_dimensions["N"].width = 14
+    ws.column_dimensions["O"].width = 14
+    ws.column_dimensions["P"].width = 14
+    ws.column_dimensions["Q"].width = 14
+    ws.column_dimensions["R"].width = 14
+    ws.column_dimensions["S"].width = 14
+    ws.column_dimensions["T"].width = 14
+    ws.column_dimensions["U"].width = 14
+    ws.column_dimensions["V"].width = 2
+
+    ws.sheet_view.showGridLines = False
+
+    print("\n✅ Aba ANALISTAS (REQs x INCs) criada com sucesso!")
+    print("=" * 100)
+    return ws
+
+
+# Alias para manter compatibilidade com seu main.py e suportar INCs
+def create_analyst_analysis_sheet(wb,
+                                 df,
+                                 df_incs=None,
+                                 meses_extracao_override=None,
+                                 top_n_analysts=20,
+                                 sla_days_reqs=10,
+                                 sla_days_incs=7,
+                                 months_limit=12):
+    """
+    Compatível com:
+      - create_analyst_analysis_sheet(wb, df_reqs)
+      - create_analyst_analysis_sheet(wb, df_reqs, df_incs=df_incs, top_n_analysts=20, ...)
+    """
+    return create_analyst_sheet(
+        wb,
+        df_reqs=df,
+        df_incs=df_incs,
+        meses_extracao_override=meses_extracao_override,
+        top_n_analysts=top_n_analysts,
+        sla_days_reqs=sla_days_reqs,
+        sla_days_incs=sla_days_incs,
+        months_limit=months_limit
+    )
+
+
+__all__ = [
+    "create_analyst_sheet",
+    "create_analyst_analysis_sheet",
+    "calculate_analyst_analysis",
+    "calculate_analyst_reqs_incs",
+]
+
+
+_____________________________________
+
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 ELITE MASTER V4.1 - RELATÓRIO 2 (NOVO LAYOUT MONOCROMÁTICO AZUL)
 Integra múltiplas análises em um ÚNICO Excel e exporta Dashboard HTML Avançado
 utilizando DADOS REAIS carregados do ServiceNow.
 Separa rigorosamente em 3 Sessões: INCs, REQs (Suporte) e UAMs (Acessos).
-Adicionado processamento de PTASKs e RCAs.
-Exporta Dados Brutos para Anexo no E-mail com Aba de Desempenho de Analistas.
+Nova Sessão global para todas as PTASKs Abertas.
+Exporta Dados Brutos para Anexo no E-mail.
 """
 
 import os
@@ -23,6 +1569,8 @@ import pandas as pd
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import win32com.client  # pip install pywin32
+
+import tracking # Importação do novo módulo de tracking gerado!
 
 
 titulo = os.getenv("titulo")
@@ -53,7 +1601,7 @@ class ModernColors:
     ACCENT_DARK = "#0F172A"    # Azul-Cinza Escuro (INCs)
     ACCENT = "#2563EB"         # Azul Royal Vivo (Gráficos: Resolvidos e SLA no Prazo)
     ACCENT_LIGHT = "#93C5FD"   # Azul Claro (Cancelados)
-    SUCCESS = "#00C853"        # Verde Esmeralda Vivo (Apenas HTML Texto)
+    SUCCESS = "#00C853"        # Verde Esmeralda Vivo (SLA >= 98% e HTML Texto)
     SUCCESS_LIGHT = "#B9F6CA"  
     WARNING = "#FF8F00"        # Laranja Âmbar Vivo (Usado secundariamente)
     WARNING_LIGHT = "#FFECB3"  
@@ -676,7 +2224,7 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
     df_out["SLA no Prazo"] = sla_ok_months.reindex(
         all_months_index, fill_value=0).values.astype(int)
 
-    # Divisão segura para evitar o erro IntCastingNaNError
+    # CORREÇÃO APLICADA AQUI: Divisão segura para evitar o erro IntCastingNaNError
     pct_no_prazo = (df_out["SLA no Prazo"] /
                     df_out["Encerrados"].replace(0, np.nan)) * 100
     df_out["% no Prazo"] = pct_no_prazo.fillna(0).astype(int).astype(str) + "%"
@@ -943,13 +2491,10 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
 
             if "Aging" in df.columns and j == list(df.columns).index("Aging"):
                 try:
-                    if int(val) >= 30:
+                    # Lógica ajustada: Aging > SLA fica Vermelho (DANGER)
+                    if int(val) > sla_days:
                         color = "#ffffff"
                         bg_cell = ModernColors.DANGER
-                        font_weight = "bold"
-                    elif int(val) >= sla_days:
-                        color = "#ffffff"
-                        bg_cell = ModernColors.WARNING
                         font_weight = "bold"
                     else:
                         bg_cell = "transparent"
@@ -1194,6 +2739,60 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
     return add_title_to_cfg(cfg, f"ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE) - TOTAL ENTRADAS: {total_in} | SAÍDAS ({lbl_resolved.upper()} + CANCELADOS): {total_out}")
 
+
+def build_ptask_table_html(df):
+    if df.empty:
+        return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) aberta localizada.</div>"
+    
+    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
+    html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
+    cols = ["Problem", "PTASK", "Abertura", "Problem State", "PTASK State", "Analista", "RCA Status", "SLA RCA", "SLA PTASK"]
+    for c in cols:
+        html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
+    html += "</tr></thead><tbody>"
+    
+    for i, row in df.iterrows():
+        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
+        html += f"<tr style='background-color: {bg};'>"
+        
+        sla_rca_val = row["SLA RCA (Dias)"]
+        if pd.isna(sla_rca_val):
+            txt_rca = "N/A"
+            col_rca = ModernColors.GRAY_DARK
+        elif sla_rca_val < 0:
+            txt_rca = f"Estourado ({abs(int(sla_rca_val))} dias)"
+            col_rca = ModernColors.DANGER
+        else:
+            txt_rca = f"No Prazo ({int(sla_rca_val)} dias)"
+            col_rca = ModernColors.SUCCESS
+            
+        sla_ptask_val = row["SLA PTASK (Dias)"]
+        if pd.isna(sla_ptask_val):
+            txt_ptask = "N/A"
+            col_ptask = ModernColors.GRAY_DARK
+        elif sla_ptask_val < 0:
+            txt_ptask = f"Estourado ({abs(int(sla_ptask_val))} dias)"
+            col_ptask = ModernColors.DANGER
+        else:
+            txt_ptask = f"No Prazo ({int(sla_ptask_val)} dias)"
+            col_ptask = ModernColors.SUCCESS
+        
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['PTASK']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('Opened_Str', 'N/A')}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Problem State']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['PTASK State']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Status']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_rca}; font-weight: bold;'>{txt_rca}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_ptask}; font-weight: bold;'>{txt_ptask}</td>"
+        
+        html += "</tr>"
+    
+    html += "</tbody></table>"
+    return html
+
+
 # ============================================================================
 # ORQUESTRADOR DE CRIAÇÃO DO RELATÓRIO 2 (COM DADOS REAIS DO EXCEL)
 # ============================================================================
@@ -1241,7 +2840,7 @@ def main_simples(configs, q=None):
         inc_count = len(inc_open_strict)
         req_support_count = len(req_sup_open_strict)
         uam_count = len(uam_open_strict)
-
+        
         # Filtro de PTASKs (GLOBAL - Todas as abertas)
         if not df_ptasks_raw.empty:
             closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'fechado', 'cancelado', 'encerrado', 'resolved', 'resolvido']
@@ -1374,17 +2973,6 @@ def main_simples(configs, q=None):
 
             return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla, in_sla_closed, out_sla_closed, in_sla_pct, df_missing_prb
 
-        log_q(q, "Processando dados reais de INCs...")
-        inc_m, inc_d, inc_a, inc_ag, inc_sla_df, inc_mttr, inc_in_sla, inc_out_sla, inc_in_c, inc_out_c_abs, inc_in_c_pct, inc_missing_prb_df = process_section(
-            inc, inc_open_strict, "INC", SLA_DAYS_INCS, inc_count, is_inc=True)
-
-        log_q(q, "Processando dados reais de REQs...")
-        req_m, req_d, req_a, req_ag, req_sla_df, req_mttr, req_in_sla, req_out_sla, req_in_c, req_out_c_abs, req_in_c_pct, req_missing_prb_df = process_section(
-            req_support, req_sup_open_strict, "REQ", SLA_DAYS_REQS, req_support_count, is_inc=False)
-
-        log_q(q, "Processando dados reais de UAMs...")
-        uam_m, uam_d, uam_a, uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df = process_section(
-            req_uam, uam_open_strict, "REQ", SLA_DAYS_REQS, uam_count, is_inc=False)
 
         # ========================================================================
         # FUNÇÃO INTERNA DE MONTAGEM HTML DA SESSÃO
@@ -1475,7 +3063,7 @@ def main_simples(configs, q=None):
             labels_ag, data_ag = pad_empty_html(
                 df_ag["Faixa"].tolist(), df_ag["Qtd"].tolist())
                 
-            # Cores dinâmicas para o gráfico de aging (espelhando a tabela)
+            # Cores dinâmicas para o gráfico de aging - Prazos Estourados (acima do SLA) em VERMELHO
             colors_ag = []
             for lbl in labels_ag:
                 # Se na label tiver indicação que passou do SLA correspondente
@@ -1568,61 +3156,9 @@ def main_simples(configs, q=None):
                                         uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df, SLA_DAYS_REQS, is_inc=False)
 
         # NOVA SESSÃO GLOBAL PARA TODAS AS PTASKS
-        def build_ptask_table_html_global(df):
-            if df.empty:
-                return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) aberta localizada.</div>"
-            
-            html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
-            html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
-            cols = ["Problem", "PTASK", "Abertura", "Problem State", "PTASK State", "Analista", "RCA Status", "SLA RCA", "SLA PTASK"]
-            for c in cols:
-                html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
-            html += "</tr></thead><tbody>"
-            
-            for i, row in df.iterrows():
-                bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
-                html += f"<tr style='background-color: {bg};'>"
-                
-                sla_rca_val = row.get("SLA_RCA", np.nan)
-                if pd.isna(sla_rca_val):
-                    txt_rca = "N/A"
-                    col_rca = ModernColors.GRAY_DARK
-                elif sla_rca_val < 0:
-                    txt_rca = f"Estourado ({abs(int(sla_rca_val))} dias)"
-                    col_rca = ModernColors.DANGER
-                else:
-                    txt_rca = f"No Prazo ({int(sla_rca_val)} dias)"
-                    col_rca = ModernColors.SUCCESS
-                    
-                sla_ptask_val = row.get("SLA_PTASK", np.nan)
-                if pd.isna(sla_ptask_val):
-                    txt_ptask = "N/A"
-                    col_ptask = ModernColors.GRAY_DARK
-                elif sla_ptask_val < 0:
-                    txt_ptask = f"Estourado ({abs(int(sla_ptask_val))} dias)"
-                    col_ptask = ModernColors.DANGER
-                else:
-                    txt_ptask = f"No Prazo ({int(sla_ptask_val)} dias)"
-                    col_ptask = ModernColors.SUCCESS
-                
-                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('Problem', 'N/A')}</td>"
-                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('PTASK', 'N/A')}</td>"
-                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('Opened_Str', 'N/A')}</td>"
-                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row.get('Problem State', 'N/A')}</td>"
-                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row.get('PTASK State', 'N/A')}</td>"
-                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row.get('Assigned to', 'N/A')}</td>"
-                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row.get('RCA Status', 'N/A')}</td>"
-                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_rca}; font-weight: bold;'>{txt_rca}</td>"
-                html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_ptask}; font-weight: bold;'>{txt_ptask}</td>"
-                
-                html += "</tr>"
-            
-            html += "</tbody></table>"
-            return html
-
         SESSAO_PTASKS = f"""
         {build_section_title("🎯 SESSÃO PTASK E RCA (TODAS AS ABERTAS NO SISTEMA)", ModernColors.GRAY_DARK)}
-        {build_card(f"📋 LISTA GERAL DE PROBLEM TASKS ABERTAS (TOTAL: {len(df_ptasks_open)})", build_ptask_table_html_global(df_ptasks_open))}
+        {build_card(f"📋 LISTA GERAL DE PROBLEM TASKS ABERTAS (TOTAL: {len(df_ptasks_open)})", build_ptask_table_html(df_ptasks_open))}
         <br><br>
         """
 
@@ -1639,7 +3175,7 @@ def main_simples(configs, q=None):
             <table width="100%" cellpadding="0" cellspacing="0" border="0" align="center" style="max-width: 1400px; background-color: {ModernColors.WHITE}; border-radius: 8px; border: 1px solid #ddd;">
                 <tr>
                     <td style="background-color: {ModernColors.PRIMARY_DARK}; color: {ModernColors.WHITE}; padding: 25px; border-radius: 8px 8px 0 0;">
-                        <h2 style="margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase;">PAINEL EXECUTIVO — REQs, INCs e UAMs (NOVO LAYOUT)</h2>
+                        <h2 style="margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase;">PAINEL EXECUTIVO — REQs, INCs, UAMs e PTASKs (NOVO LAYOUT)</h2>
                         <p style="margin: 0; color: {ModernColors.WHITE}; font-size: 13px; background-color: rgba(255,255,255,0.2); padding: 8px; border-radius: 4px; display: inline-block; font-weight: bold;">Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} | SLA REQ={SLA_DAYS_REQS}d | SLA INC={SLA_DAYS_INCS}d</p>
                     </td>
                 </tr>
@@ -1677,76 +3213,12 @@ def main_simples(configs, q=None):
             RAW_DATA_ATTACHMENT = os.path.join(os.path.dirname(
                 OUTPUT_FILE) or ".", f"Base_Bruta_Consolidada_{dynamic_date_str}.xlsx")
             
-            # PREPARANDO ABA DE ANALISTAS
-            df_all_tickets = []
-            for temp_df, t_type in [(inc, 'INC'), (req_support, 'REQ (Suporte)'), (req_uam, 'UAM (Acessos)')]:
-                if temp_df is not None and not temp_df.empty:
-                    temp = temp_df.copy()
-                    temp['Módulo'] = t_type
-                    df_all_tickets.append(temp)
-                    
-            df_analyst_summary = pd.DataFrame()
-            if df_all_tickets:
-                df_consolidated = pd.concat(df_all_tickets, ignore_index=True)
-                valid_analysts = df_consolidated[
-                    df_consolidated["Assigned to"].notna() & 
-                    (df_consolidated["Assigned to"].str.strip() != "") & 
-                    (df_consolidated["Assigned to"] != "—") & 
-                    (df_consolidated["Assigned to"] != "Nao Assinado") & 
-                    (df_consolidated["Assigned to"] != "N/A")
-                ]
-                
-                analyst_stats = []
-                for analista, group in valid_analysts.groupby("Assigned to"):
-                    total = len(group)
-                    fechados_mask = group["Status_Bin"].str.lower().str.contains("fechado")
-                    abertos_mask = group["Status_Bin"].str.lower().str.contains("aberto")
-                    
-                    fechados = int(fechados_mask.sum())
-                    abertos = int(abertos_mask.sum())
-                    
-                    mttr = group.loc[fechados_mask, "Aging"].mean()
-                    mttr = round(float(mttr), 1) if pd.notna(mttr) else 0.0
-                    
-                    idade_abertos = group.loc[abertos_mask, "Aging"].mean()
-                    idade_abertos = round(float(idade_abertos), 1) if pd.notna(idade_abertos) else 0.0
-                    
-                    # Desempenho por módulo
-                    incs_fechados = len(group[fechados_mask & (group["Módulo"] == "INC")])
-                    reqs_fechados = len(group[fechados_mask & (group["Módulo"] == "REQ (Suporte)")])
-                    uams_fechados = len(group[fechados_mask & (group["Módulo"] == "UAM (Acessos)")])
-                    
-                    # Pico
-                    meses_fechamento = pd.to_datetime(group.loc[fechados_mask, "Closed"], errors='coerce').dt.to_period("M")
-                    meses_fechamento = meses_fechamento.dropna()
-                    if not meses_fechamento.empty:
-                        pico_mes = meses_fechamento.value_counts().idxmax().strftime("%m/%Y")
-                        pico_qtde = meses_fechamento.value_counts().max()
-                        pico_str = f"{pico_mes} ({pico_qtde} tickets)"
-                    else:
-                        pico_str = "N/A"
-                        
-                    analyst_stats.append({
-                        "Analista": analista,
-                        "Total Atribuídos (Geral)": total,
-                        "Abertos Atuais (Backlog)": abertos,
-                        "Idade Média Backlog (Dias)": idade_abertos,
-                        "Total Resolvidos/Encerrados": fechados,
-                        "INCs Resolvidos": incs_fechados,
-                        "REQs Resolvidos": reqs_fechados,
-                        "UAMs Resolvidos": uams_fechados,
-                        "MTTR Médio (Dias)": mttr,
-                        "Mês de Pico (Produtividade)": pico_str
-                    })
-                    
-                df_analyst_summary = pd.DataFrame(analyst_stats).sort_values(by="Total Resolvidos/Encerrados", ascending=False)
+            TRACKING_ATTACHMENT = os.path.join(os.path.dirname(
+                OUTPUT_FILE) or ".", f"tracking_{dynamic_date_str}.xlsx")
             
             # 2. CRIA E SALVA O EXCEL COM OS DADOS BRUTOS
             log_q(q, f"📊 Exportando Dados Brutos para Excel: {RAW_DATA_ATTACHMENT}...")
             with pd.ExcelWriter(RAW_DATA_ATTACHMENT, engine='openpyxl') as writer:
-                # Nova Aba Desempenho Analistas
-                if not df_analyst_summary.empty:
-                    df_analyst_summary.to_excel(writer, sheet_name='Desempenho_Analistas', index=False)
                 if not df_incs.empty:
                     df_incs.to_excel(writer, sheet_name='INCs_Bruto', index=False)
                 if not df_reqs.empty:
@@ -1754,12 +3226,27 @@ def main_simples(configs, q=None):
                 if not df_ptasks_raw.empty:
                     df_ptasks_raw.to_excel(writer, sheet_name='PTASKs_Bruto', index=False)
 
-            # 3. Força o e-mail a anexar o arquivo gerado (ignora a configuração para garantir o envio)
-            caminho_anexo_email = RAW_DATA_ATTACHMENT
+            # 2.1 CRIA E SALVA O EXCEL DE TRACKING (NOVO)
+            log_q(q, f"📈 Exportando Dashboard de Analistas para Excel: {TRACKING_ATTACHMENT}...")
+            wb_tracking = openpyxl.Workbook()
+            tracking.create_analyst_analysis_sheet(
+                wb_tracking, 
+                df=df_reqs, 
+                df_incs=df_incs, 
+                sla_days_reqs=SLA_DAYS_REQS, 
+                sla_days_incs=SLA_DAYS_INCS
+            )
+            # Remove a aba padrão caso exista
+            if "Sheet" in wb_tracking.sheetnames:
+                del wb_tracking["Sheet"]
+            wb_tracking.save(TRACKING_ATTACHMENT)
+
+            # 3. Força o e-mail a anexar os arquivos gerados em formato de lista
+            caminhos_anexos_email = [RAW_DATA_ATTACHMENT, TRACKING_ATTACHMENT]
 
             log_q(q, "📧 Disparando e-mail...")
             enviar_email_relatorio(
-                html_template, caminho_anexo=caminho_anexo_email, q=q)
+                html_template, caminhos_anexos=caminhos_anexos_email, q=q)
             
         except Exception as e:
             log_q(q, f"⚠️  Falha no envio do e-mail ou exportação: {e}")
@@ -1774,7 +3261,10 @@ def main_simples(configs, q=None):
 # ============================================================================
 
 
-def enviar_email_relatorio(html_content, caminho_anexo="", q=None):
+def enviar_email_relatorio(html_content, caminhos_anexos=None, q=None):
+    if caminhos_anexos is None:
+        caminhos_anexos = []
+        
     log_q(q, "\n--- Preparando envio de E-mail via Outlook ---")
 
     safe_destinatario = str(destinatario) if destinatario else ""
@@ -1803,10 +3293,14 @@ def enviar_email_relatorio(html_content, caminho_anexo="", q=None):
         if safe_copia:
             mail.CC = safe_copia
 
-        if caminho_anexo and os.path.exists(caminho_anexo):
-            absolute_path = os.path.abspath(caminho_anexo)
-            mail.Attachments.Add(absolute_path)
-            
+        # Adiciona suporte nativo a múltiplos anexos do loop
+        anexos_adicionados = 0
+        for caminho_anexo in caminhos_anexos:
+            if caminho_anexo and os.path.exists(caminho_anexo):
+                absolute_path = os.path.abspath(caminho_anexo)
+                mail.Attachments.Add(absolute_path)
+                anexos_adicionados += 1
+                
         # ANEXANDO AS IMAGENS COM CID PARA PERMANECEREM NOS ENCAMINHAMENTOS
         global IMAGE_ATTACHMENTS
         for img_path, cid in IMAGE_ATTACHMENTS:
@@ -1819,11 +3313,13 @@ def enviar_email_relatorio(html_content, caminho_anexo="", q=None):
 
         mail.Send()
 
-        if caminho_anexo and os.path.exists(caminho_anexo):
+        if anexos_adicionados > 0:
             log_q(
-                q, f"✅ E-mail enviado com sucesso (com anexo e gráficos embutidos)!")
+                q, f"✅ E-mail enviado com sucesso (com {anexos_adicionados} anexo(s) e gráficos embutidos)!")
         else:
             log_q(q, "✅ E-mail enviado com sucesso (sem anexo, com gráficos embutidos)!")
 
     except Exception as e:
         log_q(q, f"❌ Erro crítico ao enviar e-mail. Erro: {e}")
+
+
