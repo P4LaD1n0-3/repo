@@ -91,16 +91,18 @@ def hide_zeros(lst):
 
 def _pick_col(df, candidates):
     """
-    CORREÇÃO RAIZ: Trata sublinhados, espaços e diferenças de capitalização.
-    Garante que "assignment_group" no Excel se conecte com "Assignment group".
+    Busca agressiva para não perder a coluna do Excel por causa de underlines, espaços
+    ou maiúsculas/minúsculas vindas do ServiceNow.
     """
+    # 1. Match exato
     for c in candidates:
         if c in df.columns:
             return c
             
-    df_cols_norm = {str(col).strip().lower().replace("_", " "): col for col in df.columns}
+    # 2. Match normalizado (Remove todos os caracteres não alfanuméricos)
+    df_cols_norm = {re.sub(r'[^a-z0-9]', '', str(col).lower()): col for col in df.columns}
     for c in candidates:
-        key = str(c).strip().lower().replace("_", " ")
+        key = re.sub(r'[^a-z0-9]', '', str(c).lower())
         if key in df_cols_norm:
             return df_cols_norm[key]
             
@@ -344,7 +346,6 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
         df, ["Short description", "Descrição Curta", "Description", "Descrição"])
     on_hold_col = _pick_col(df, ["On hold reason", "Motivo de espera", "On Hold Reason"])
     
-    # NOVA COLUNA: Comentários adicionais para a tabela auxiliar
     add_comments_col = _pick_col(df, ["Additional comments", "Comentários Adicionais", "Comments", "Comentários"])
 
     def extract_prb(row):
@@ -1264,28 +1265,45 @@ def main_simples(configs, q=None):
 
         # 1. Carrega os Dados Reais Brutos
         df_reqs_raw = load_prepare_reqs(SOURCE_FILE, "REQs", now=RUN_AT, q=q)
-        df_incs_raw = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
+        
+        # ====================================================================
+        # FILTRO EXATO E RIGOROSO NA CAUSA RAIZ - REGRAS:
+        # 1. Assignment group contém "Access"
+        # 2. Item contém "Access"
+        # ====================================================================
+        col_grupo = _pick_col(df_reqs_raw, ["Assignment group", "Assignment Group", "assignment_group", "Grupo", "Grupo de Atribuição"])
+        col_item = _pick_col(df_reqs_raw, ["Item", "Cat_item", "Cat Item", "Cat item", "Item Solicitado", "Item solicitado"])
+        
+        # Inicializa a máscara como False para todos os registros
+        mask_access = pd.Series(False, index=df_reqs_raw.index)
+        
+        # Regra 1: Verifica Assignment group
+        if col_grupo:
+            mask_access = mask_access | df_reqs_raw[col_grupo].astype(str).str.lower().str.contains("access", na=False)
+            
+        # Regra 2: Verifica Item
+        if col_item:
+            mask_access = mask_access | df_reqs_raw[col_item].astype(str).str.lower().str.contains("access", na=False)
+            
+        # Aplica a máscara à base bruta
+        df_reqs_raw["IS_ACCESS"] = mask_access
+        
+        # REQs (Suporte) fica RIGOROSAMENTE SEM os chamados marcados como IS_ACCESS (~)
+        df_reqs = df_reqs_raw[~df_reqs_raw["IS_ACCESS"]].copy()
+        
+        # UAMs recebe apenas os chamados marcados como IS_ACCESS
+        df_uams = df_reqs_raw[df_reqs_raw["IS_ACCESS"]].copy()
+        # ====================================================================
+        
+        df_incs = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
         df_ptasks_raw = load_prepare_ptasks(SOURCE_PTASK, now=RUN_AT, q=q)
 
-        # 2. Normaliza os tickets para o HTML ANTES do filtro para garantir a coluna
-        req_all = normalize_ticket_df_html(df_reqs_raw, "REQ")
-        inc = normalize_ticket_df_html(df_incs_raw, "INC")
+        # 2. Normaliza os tickets para o HTML
+        req_support = normalize_ticket_df_html(df_reqs, "REQ")
+        req_uam = normalize_ticket_df_html(df_uams, "REQ")
+        inc = normalize_ticket_df_html(df_incs, "INC")
 
-        # 3. FILTRO RIGOROSO E INFALÍVEL DE UAM (ACESSOS) VS REQ (SUPORTE GERAL)
-        # Se a string "access" (em minúsculo) estiver dentro da coluna "Assignment group", é UAM. Fim.
-        def _is_access_ticket(ag_val):
-            if pd.isna(ag_val):
-                return False
-            return "access" in str(ag_val).strip().lower()
-
-        # Aplica a marcação exata e blinda as bases
-        req_all["IS_ACCESS"] = req_all["Assignment group"].apply(_is_access_ticket)
-        
-        # Suporte = FALSO para access | UAM = TRUE para access
-        req_support = req_all[~req_all["IS_ACCESS"]].copy()
-        req_uam = req_all[req_all["IS_ACCESS"]].copy()
-
-        # 4. Segregação Somente Abertos
+        # 3. Segregação Somente Abertos
         inc_open_strict = _get_only_open_incs(inc)
         req_sup_open_strict = _get_only_open_reqs(req_support)
         uam_open_strict = _get_only_open_reqs(req_uam)
