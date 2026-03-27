@@ -25,19 +25,12 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import win32com.client  # pip install pywin32
 
 from src import tracking # Importação do novo módulo de tracking ajustada
-import fillOut # Import do módulo utilizado para baixar os dados
 
 
 titulo = os.getenv("titulo")
 importance = os.getenv("importance")
 destinatario = os.getenv("destinatario")
 copia = os.getenv("copia")
-
-# Variáveis de ambiente para download
-incidents = os.getenv("incidents")
-requets = os.getenv("requets")
-problem_rca = os.getenv("problem_rca")
-problem_ptask = os.getenv("problem_ptask")
 
 # Variável global para armazenar os caminhos das imagens baixadas para anexar (evita quebrar em encaminhamentos)
 IMAGE_ATTACHMENTS = []
@@ -1334,25 +1327,6 @@ def main_simples2(configs, q=None):
     log_q(q, "=" * 80)
 
     try:
-        if q:
-            q.put("Baixando dados Inc...")
-            fillOut.openServiceNow(incidents)
-            q.put("Baixando dados REQs...")
-            fillOut.openServiceNow(requets)
-            q.put("Baixando dados RCA...")
-            fillOut.openServiceNow(problem_rca)
-            q.put("Baixando dados PTASK...")
-            fillOut.openServiceNow(problem_ptask)
-        else:
-            print("Baixando dados Inc...")
-            fillOut.openServiceNow(incidents)
-            print("Baixando dados REQs...")
-            fillOut.openServiceNow(requets)
-            print("Baixando dados RCA...")
-            fillOut.openServiceNow(problem_rca)
-            print("Baixando dados PTASK...")
-            fillOut.openServiceNow(problem_ptask)
-
         _ensure_dir(OUTPUT_FILE)
         _ensure_dir(OUTPUT_HTML)
 
