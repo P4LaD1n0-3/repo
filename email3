@@ -36,14 +36,22 @@ copia = os.getenv("copia")
 IMAGE_ATTACHMENTS = []
 
 # ============================================================================
-# CONFIGURAÇÕES DE CAMINHOS
+# CONFIGURAÇÕES DE CAMINHOS (CORREÇÃO ABSOLUTA DE DIRETÓRIOS)
 # ============================================================================
-SOURCE_FILE = 'path_temp/sc_task.xlsx'
-SOURCE_INCS = 'path_temp/incident.xlsx'
-SOURCE_PTASK = 'path_temp/problem_task.xlsx'
+# Identifica onde o script está rodando (ex: src/) e volta uma pasta para a raiz
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, '..'))
 
-OUTPUT_FILE = 'rel_master/relatorio_completo_layout2.xlsx'
-OUTPUT_HTML = 'rel_master/relatorio_email2.html'
+# Se a pasta path_temp existir junto do script, usa ela. Senão, usa a raiz.
+if os.path.exists(os.path.join(SCRIPT_DIR, 'path_temp')):
+    BASE_DIR = SCRIPT_DIR
+
+SOURCE_FILE = os.path.join(BASE_DIR, 'path_temp', 'sc_task.xlsx')
+SOURCE_INCS = os.path.join(BASE_DIR, 'path_temp', 'incident.xlsx')
+SOURCE_PTASK = os.path.join(BASE_DIR, 'path_temp', 'problem_task.xlsx')
+
+OUTPUT_FILE = os.path.join(BASE_DIR, 'rel_master', 'relatorio_completo_layout2.xlsx')
+OUTPUT_HTML = os.path.join(BASE_DIR, 'rel_master', 'relatorio_email2.html')
 
 # ============================================================================
 # NOVA PALETA DE CORES (Tons Monocromáticos de Azul Forte/Escuro + Semânticas)
@@ -1295,13 +1303,13 @@ def main_simples(configs, q=None):
         df_uams = df_reqs_raw[df_reqs_raw["IS_ACCESS"]].copy()
         # ====================================================================
         
-        df_incs = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
+        df_incs_raw = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
         df_ptasks_raw = load_prepare_ptasks(SOURCE_PTASK, now=RUN_AT, q=q)
 
         # 2. Normaliza os tickets para o HTML
         req_support = normalize_ticket_df_html(df_reqs, "REQ")
         req_uam = normalize_ticket_df_html(df_uams, "REQ")
-        inc = normalize_ticket_df_html(df_incs, "INC")
+        inc = normalize_ticket_df_html(df_incs_raw, "INC")
 
         # 3. Segregação Somente Abertos
         inc_open_strict = _get_only_open_incs(inc)
