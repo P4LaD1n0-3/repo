@@ -5,7 +5,7 @@ ELITE MASTER V4.1 - RELATÓRIO 2 (NOVO LAYOUT MONOCROMÁTICO AZUL)
 Integra múltiplas análises em um ÚNICO Excel e exporta Dashboard HTML Avançado
 utilizando DADOS REAIS carregados do ServiceNow.
 Separa rigorosamente em 3 Sessões: INCs, REQs (Suporte) e UAMs (Acessos).
-Nova Sessão global para todas as PTASKs Abertas.
+Nova Sessão global para PRB TASKs Abertas (RCA e PTASK).
 Exporta Dados Brutos para Anexo no E-mail.
 """
 
@@ -24,13 +24,20 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import win32com.client  # pip install pywin32
 
-import tracking # Importação do novo módulo de tracking gerado!
+from src import tracking # Importação do novo módulo de tracking ajustada
+import fillOut # Import do módulo utilizado para baixar os dados
 
 
 titulo = os.getenv("titulo")
 importance = os.getenv("importance")
 destinatario = os.getenv("destinatario")
 copia = os.getenv("copia")
+
+# Variáveis de ambiente para download
+incidents = os.getenv("incidents")
+requets = os.getenv("requets")
+problem_rca = os.getenv("problem_rca")
+problem_ptask = os.getenv("problem_ptask")
 
 # Variável global para armazenar os caminhos das imagens baixadas para anexar (evita quebrar em encaminhamentos)
 IMAGE_ATTACHMENTS = []
@@ -48,7 +55,8 @@ if os.path.exists(os.path.join(SCRIPT_DIR, 'path_temp')):
 
 SOURCE_FILE = os.path.join(BASE_DIR, 'path_temp', 'sc_task.xlsx')
 SOURCE_INCS = os.path.join(BASE_DIR, 'path_temp', 'incident.xlsx')
-SOURCE_PTASK = os.path.join(BASE_DIR, 'path_temp', 'problem_task.xlsx')
+SOURCE_RCA = os.path.join(BASE_DIR, 'path_temp', 'problem_rca.xlsx')
+SOURCE_PTASK = os.path.join(BASE_DIR, 'path_temp', 'problem_ptask.xlsx')
 
 OUTPUT_FILE = os.path.join(BASE_DIR, 'rel_master', 'relatorio_completo_layout2.xlsx')
 OUTPUT_HTML = os.path.join(BASE_DIR, 'rel_master', 'relatorio_email2.html')
@@ -245,10 +253,54 @@ def load_prepare_incs(source_file, label="INCs", now=None, q=None):
     return _ensure_identity_cols_common(df)
 
 
-def load_prepare_ptasks(source_file, now=None, q=None):
-    log_q(q, f"\n📂 [PTASKs] Carregando dados de: {source_file}")
+def load_prepare_rca(source_file, now=None, q=None):
+    log_q(q, f"\n📂 [RCA] Carregando dados de: {source_file}")
     if not os.path.exists(source_file):
-        log_q(q, "⚠️ Arquivo de PTASK não encontrado. A sessão será ignorada.")
+        log_q(q, "⚠️ Arquivo de RCA não encontrado. A tabela será ignorada.")
+        return pd.DataFrame()
+
+    df = pd.read_excel(source_file)
+    if df.columns.duplicated().any():
+        df = df.loc[:, ~df.columns.duplicated()]
+    log_q(q, f"   ✓ {len(df)} registros carregados")
+    
+    df = _normalize_columns(df)
+    
+    prob_col = _pick_col(df, ["Problem", "Problema"])
+    asg_col = _pick_col(df, ["Assigned to", "Analista", "assigned_to"])
+    rca_status_col = _pick_col(df, ["RCA Status", "Status do RCA", "Status RCA", "RCA", "RCA_Status", "u_rca_status", "rca_status", "State", "Status", "Estado"])
+    rca_due_date_col = _pick_col(df, ["RCA Due Date", "Data de vencimento do RCA", "RCA Due", "Due date (RCA)", "RCA_Due_Date", "u_rca_due_date", "Target date", "RCA Target Date", "Due Date", "due_date"])
+    state_col = _pick_col(df, ["State", "Estado", "Status"])
+
+    d = pd.DataFrame()
+    d["Problem"] = df[prob_col].astype(str).fillna("N/A") if prob_col else "N/A"
+    d["Assigned to"] = df[asg_col].astype(str).replace(["nan", "None", "<NA>", ""], "N/A").fillna("N/A") if asg_col else "N/A"
+    d["RCA Status"] = df[rca_status_col].astype(str).replace(["nan", "None", "<NA>", ""], "N/A").fillna("N/A") if rca_status_col else "N/A"
+    d["State_Original"] = df[state_col].astype(str) if state_col else d["RCA Status"]
+    
+    now_dt = now or datetime.now()
+    now_ts = pd.Timestamp(now_dt).floor('D')
+    
+    if rca_due_date_col:
+        d["RCA Due Date"] = pd.to_datetime(df[rca_due_date_col], errors='coerce', dayfirst=True)
+        d["RCA Due Date Str"] = d["RCA Due Date"].dt.strftime('%d/%m/%Y').fillna("N/A")
+        # RCA Aging (today() - RCA Due Date) - Positivo significa estourado
+        d["RCA Aging"] = (now_ts - d["RCA Due Date"]).dt.days
+    else:
+        d["RCA Due Date Str"] = "N/A"
+        d["RCA Aging"] = np.nan
+        
+    # Filtro rigoroso: Remover closed complete, closed incomplete, closed skipped, Resolved
+    closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'resolved', 'fechado', 'cancelado', 'encerrado', 'resolvido']
+    d = d[~d['State_Original'].str.lower().str.strip().isin(closed_states)].copy()
+
+    return d
+
+
+def load_prepare_ptasks_new(source_file, now=None, q=None):
+    log_q(q, f"\n📂 [PTASK] Carregando dados de: {source_file}")
+    if not os.path.exists(source_file):
+        log_q(q, "⚠️ Arquivo de PTASK não encontrado. A tabela será ignorada.")
         return pd.DataFrame()
 
     df = pd.read_excel(source_file)
@@ -260,49 +312,37 @@ def load_prepare_ptasks(source_file, now=None, q=None):
     
     prob_col = _pick_col(df, ["Problem", "Problema"])
     num_col = _pick_col(df, ["Number", "Número", "Task"])
-    
-    # NOVAS BUSCAS AGRESSIVAS DE NOMES E DB FIELDS (SERVICENOW)
-    opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created", "Criado", "Criado em", "opened_at", "sys_created_on", "Abertura"])
-    state_col = _pick_col(df, ["State", "Estado", "Status", "state"])
-    prob_state_col = _pick_col(df, ["Problem State", "Problem.State", "Estado do Problema"])
     asg_col = _pick_col(df, ["Assigned to", "Analista", "assigned_to"])
-    
-    rca_status_col = _pick_col(df, ["RCA Status", "Status do RCA", "Status RCA", "RCA", "RCA_Status", "u_rca_status", "rca_status"])
-    due_date_col = _pick_col(df, ["Due date", "Data de vencimento", "Due Date PTASK", "Vencimento PTASK", "due_date"])
-    rca_due_date_col = _pick_col(df, ["RCA Due Date", "Data de vencimento do RCA", "RCA Due", "Due date (RCA)", "RCA_Due_Date", "u_rca_due_date", "Target date", "RCA Target Date"])
+    state_col = _pick_col(df, ["State", "Estado", "Status"])
+    ag_col = _pick_col(df, ["Assignment group", "Assignment Group", "Grupo", "Grupo de Atribuição"])
+    opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created", "Criado em", "opened_at", "sys_created_on"])
+    due_date_col = _pick_col(df, ["Due date", "Data de vencimento", "due_date"])
 
     d = pd.DataFrame()
     d["Problem"] = df[prob_col].astype(str).fillna("N/A") if prob_col else "N/A"
-    d["PTASK"] = df[num_col].astype(str).fillna("N/A") if num_col else "N/A"
-    
-    # Tratamento da Data de Abertura ("Opened")
-    if opened_col:
-        d["Opened"] = pd.to_datetime(df[opened_col], errors='coerce', dayfirst=True)
-        d["Opened_Str"] = d["Opened"].dt.strftime('%d/%m/%Y').fillna("N/A")
-    else:
-        d["Opened"] = pd.NaT
-        d["Opened_Str"] = "N/A"
-
-    d["PTASK State"] = df[state_col].astype(str).replace(["nan", "None", "<NA>"], "N/A").fillna("N/A") if state_col else "N/A"
-    d["Problem State"] = df[prob_state_col].astype(str).replace(["nan", "None", "<NA>"], "N/A").fillna("N/A") if prob_state_col else "N/A"
+    d["Number"] = df[num_col].astype(str).fillna("N/A") if num_col else "N/A"
     d["Assigned to"] = df[asg_col].astype(str).replace(["nan", "None", "<NA>", ""], "N/A").fillna("N/A") if asg_col else "N/A"
-    d["RCA Status"] = df[rca_status_col].astype(str).replace(["nan", "None", "<NA>", ""], "N/A").fillna("N/A") if rca_status_col else "N/A"
+    d["State"] = df[state_col].astype(str).replace(["nan", "None", "<NA>", ""], "N/A").fillna("N/A") if state_col else "N/A"
+    d["Assignment group"] = df[ag_col].astype(str).replace(["nan", "None", "<NA>", ""], "N/A").fillna("N/A") if ag_col else "N/A"
     
     now_dt = now or datetime.now()
-    now_ts = pd.Timestamp(now_dt)
+    now_ts = pd.Timestamp(now_dt).floor('D')
     
+    if opened_col:
+        d["Opened"] = pd.to_datetime(df[opened_col], errors='coerce', dayfirst=True)
+        d["Opened Str"] = d["Opened"].dt.strftime('%d/%m/%Y').fillna("N/A")
+        d["PTASK Aging"] = (now_ts - d["Opened"]).dt.days
+    else:
+        d["Opened Str"] = "N/A"
+        d["PTASK Aging"] = np.nan
+
     if due_date_col:
-        d["PTASK Due Date"] = pd.to_datetime(df[due_date_col], errors='coerce', dayfirst=True)
-        d["SLA PTASK (Dias)"] = (d["PTASK Due Date"] - now_ts).dt.days
+        d["Due Date"] = pd.to_datetime(df[due_date_col], errors='coerce', dayfirst=True)
+        # Se today() > Due Date, valor será negativo para SLA (Days to Due < 0)
+        d["Days to Due"] = (d["Due Date"] - now_ts).dt.days 
     else:
-        d["SLA PTASK (Dias)"] = np.nan
-        
-    if rca_due_date_col:
-        d["RCA Due Date"] = pd.to_datetime(df[rca_due_date_col], errors='coerce', dayfirst=True)
-        d["SLA RCA (Dias)"] = (d["RCA Due Date"] - now_ts).dt.days
-    else:
-        d["SLA RCA (Dias)"] = np.nan
-        
+        d["Days to Due"] = np.nan
+
     return d
 
 
@@ -1194,13 +1234,55 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
     return add_title_to_cfg(cfg, f"ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE) - TOTAL ENTRADAS: {total_in} | SAÍDAS ({lbl_resolved.upper()} + CANCELADOS): {total_out}")
 
 
-def build_ptask_table_html(df):
+def build_rca_table_html(df):
+    if df.empty:
+        return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem RCA aberta localizada.</div>"
+
+    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
+    html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
+    cols = ["Problem", "Assigned to", "RCA Status", "RCA Due Date", "RCA Aging", "SLA"]
+    for c in cols:
+        html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
+    html += "</tr></thead><tbody>"
+
+    for i, row in df.iterrows():
+        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
+        html += f"<tr style='background-color: {bg};'>"
+
+        aging_val = row["RCA Aging"]
+        if pd.isna(aging_val):
+            aging_str = "N/A"
+            sla_txt = "N/A"
+            sla_col = ModernColors.GRAY_DARK
+        else:
+            aging_str = str(int(aging_val))
+            if aging_val > 0:
+                sla_txt = f"Estourado ({int(aging_val)} dias)"
+                sla_col = ModernColors.DANGER
+            else:
+                sla_txt = f"No Prazo (restam {abs(int(aging_val))} dias)"
+                sla_col = ModernColors.SUCCESS
+
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Status']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Due Date Str']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{aging_str}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {sla_col}; font-weight: bold;'>{sla_txt}</td>"
+
+        html += "</tr>"
+
+    html += "</tbody></table>"
+    return html
+
+
+def build_ptask_table_html_new(df):
     if df.empty:
         return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) aberta localizada.</div>"
     
     html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
     html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
-    cols = ["Problem", "PTASK", "Abertura", "Problem State", "PTASK State", "Analista", "RCA Status", "SLA RCA", "SLA PTASK"]
+    cols = ["Problem", "Number", "Assigned to", "State", "Assignment group", "Opened", "PTASK Aging", "SLA"]
     for c in cols:
         html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
     html += "</tr></thead><tbody>"
@@ -1209,37 +1291,29 @@ def build_ptask_table_html(df):
         bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
         html += f"<tr style='background-color: {bg};'>"
         
-        sla_rca_val = row["SLA RCA (Dias)"]
-        if pd.isna(sla_rca_val):
-            txt_rca = "N/A"
-            col_rca = ModernColors.GRAY_DARK
-        elif sla_rca_val < 0:
-            txt_rca = f"Estourado ({abs(int(sla_rca_val))} dias)"
-            col_rca = ModernColors.DANGER
+        aging_val = row["PTASK Aging"]
+        aging_str = str(int(aging_val)) if pd.notna(aging_val) else "N/A"
+
+        due_val = row["Days to Due"]
+        if pd.isna(due_val):
+            sla_txt = "N/A"
+            sla_col = ModernColors.GRAY_DARK
         else:
-            txt_rca = f"No Prazo ({int(sla_rca_val)} dias)"
-            col_rca = ModernColors.SUCCESS
-            
-        sla_ptask_val = row["SLA PTASK (Dias)"]
-        if pd.isna(sla_ptask_val):
-            txt_ptask = "N/A"
-            col_ptask = ModernColors.GRAY_DARK
-        elif sla_ptask_val < 0:
-            txt_ptask = f"Estourado ({abs(int(sla_ptask_val))} dias)"
-            col_ptask = ModernColors.DANGER
-        else:
-            txt_ptask = f"No Prazo ({int(sla_ptask_val)} dias)"
-            col_ptask = ModernColors.SUCCESS
-        
+            if due_val < 0:
+                sla_txt = f"Estourado ({abs(int(due_val))} dias)"
+                sla_col = ModernColors.DANGER
+            else:
+                sla_txt = f"No Prazo (restam {int(due_val)} dias)"
+                sla_col = ModernColors.SUCCESS
+
         html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['PTASK']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row.get('Opened_Str', 'N/A')}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Problem State']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['PTASK State']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Number']}</td>"
         html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Status']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_rca}; font-weight: bold;'>{txt_rca}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {col_ptask}; font-weight: bold;'>{txt_ptask}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['State']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assignment group']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Opened Str']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{aging_str}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {sla_col}; font-weight: bold;'>{sla_txt}</td>"
         
         html += "</tr>"
     
@@ -1251,7 +1325,7 @@ def build_ptask_table_html(df):
 # ORQUESTRADOR DE CRIAÇÃO DO RELATÓRIO 2 (COM DADOS REAIS DO EXCEL)
 # ============================================================================
 
-def main_simples(configs, q=None):
+def main_simples2(configs, q=None):
     global IMAGE_ATTACHMENTS
     IMAGE_ATTACHMENTS = []
 
@@ -1260,6 +1334,25 @@ def main_simples(configs, q=None):
     log_q(q, "=" * 80)
 
     try:
+        if q:
+            q.put("Baixando dados Inc...")
+            fillOut.openServiceNow(incidents)
+            q.put("Baixando dados REQs...")
+            fillOut.openServiceNow(requets)
+            q.put("Baixando dados RCA...")
+            fillOut.openServiceNow(problem_rca)
+            q.put("Baixando dados PTASK...")
+            fillOut.openServiceNow(problem_ptask)
+        else:
+            print("Baixando dados Inc...")
+            fillOut.openServiceNow(incidents)
+            print("Baixando dados REQs...")
+            fillOut.openServiceNow(requets)
+            print("Baixando dados RCA...")
+            fillOut.openServiceNow(problem_rca)
+            print("Baixando dados PTASK...")
+            fillOut.openServiceNow(problem_ptask)
+
         _ensure_dir(OUTPUT_FILE)
         _ensure_dir(OUTPUT_HTML)
 
@@ -1304,7 +1397,10 @@ def main_simples(configs, q=None):
         # ====================================================================
         
         df_incs_raw = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
-        df_ptasks_raw = load_prepare_ptasks(SOURCE_PTASK, now=RUN_AT, q=q)
+        
+        # Load RCA e PTASKs com a nova lógica
+        df_rca_raw = load_prepare_rca(SOURCE_RCA, now=RUN_AT, q=q)
+        df_ptasks_raw = load_prepare_ptasks_new(SOURCE_PTASK, now=RUN_AT, q=q)
 
         # 2. Normaliza os tickets para o HTML
         req_support = normalize_ticket_df_html(df_reqs, "REQ")
@@ -1320,10 +1416,12 @@ def main_simples(configs, q=None):
         req_support_count = len(req_sup_open_strict)
         uam_count = len(uam_open_strict)
         
-        # Filtro de PTASKs (GLOBAL - Todas as abertas)
+        # Filtro de RCA e PTASKs Abertos
+        df_rca_open = df_rca_raw.copy() # Já foi filtrado por states abertos no load_prepare_rca
+        
         if not df_ptasks_raw.empty:
-            closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'fechado', 'cancelado', 'encerrado', 'resolved', 'resolvido']
-            df_ptasks_open = df_ptasks_raw[~df_ptasks_raw['PTASK State'].str.lower().str.strip().isin(closed_states)].copy()
+            closed_states_ptask = ['closed complete', 'closed incomplete', 'closed skipped', 'fechado', 'cancelado', 'encerrado', 'resolved', 'resolvido']
+            df_ptasks_open = df_ptasks_raw[~df_ptasks_raw['State'].str.lower().str.strip().isin(closed_states_ptask)].copy()
         else:
             df_ptasks_open = pd.DataFrame()
 
@@ -1633,10 +1731,11 @@ def main_simples(configs, q=None):
         SESSAO_UAMS = montar_bloco_html("🔐 SESSÃO UAMs (ACESSOS)", ModernColors.ACCENT_DARK, uam_m, uam_d, uam_a,
                                         uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df, SLA_DAYS_REQS, is_inc=False)
 
-        # NOVA SESSÃO GLOBAL PARA TODAS AS PTASKS
+        # NOVA SESSÃO GLOBAL PARA TODAS AS PRB TASKs (DIVIDIDA EM RCA E PTASK)
         SESSAO_PTASKS = f"""
-        {build_section_title("🎯 SESSÃO PTASK E RCA (TODAS AS ABERTAS NO SISTEMA)", ModernColors.GRAY_DARK)}
-        {build_card(f"📋 LISTA GERAL DE PROBLEM TASKS ABERTAS (TOTAL: {len(df_ptasks_open)})", build_ptask_table_html(df_ptasks_open))}
+        {build_section_title("🎯 SESSÃO PRB TASKs (TODAS AS ABERTAS NO SISTEMA)", ModernColors.GRAY_DARK)}
+        {build_card(f"🔍 1. PROBLEM RCA - CAUSAS RAIZ (TOTAL: {len(df_rca_open)})", build_rca_table_html(df_rca_open))}
+        {build_card(f"📋 2. LISTA GERAL DE PROBLEM TASKS (TOTAL: {len(df_ptasks_open)})", build_ptask_table_html_new(df_ptasks_open))}
         <br><br>
         """
 
@@ -1653,7 +1752,7 @@ def main_simples(configs, q=None):
             <table width="100%" cellpadding="0" cellspacing="0" border="0" align="center" style="max-width: 1400px; background-color: {ModernColors.WHITE}; border-radius: 8px; border: 1px solid #ddd;">
                 <tr>
                     <td style="background-color: {ModernColors.PRIMARY_DARK}; color: {ModernColors.WHITE}; padding: 25px; border-radius: 8px 8px 0 0;">
-                        <h2 style="margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase;">PAINEL EXECUTIVO — REQs, INCs, UAMs e PTASKs (NOVO LAYOUT)</h2>
+                        <h2 style="margin: 0 0 10px 0; font-size: 22px; text-transform: uppercase;">PAINEL EXECUTIVO — REQs, INCs, UAMs e PRB TASKs (NOVO LAYOUT)</h2>
                         <p style="margin: 0; color: {ModernColors.WHITE}; font-size: 13px; background-color: rgba(255,255,255,0.2); padding: 8px; border-radius: 4px; display: inline-block; font-weight: bold;">Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')} | SLA REQ={SLA_DAYS_REQS}d | SLA INC={SLA_DAYS_INCS}d</p>
                     </td>
                 </tr>
@@ -1702,6 +1801,8 @@ def main_simples(configs, q=None):
                     req_support.drop(columns=["IS_ACCESS"], errors='ignore').to_excel(writer, sheet_name='REQs_Bruto', index=False)
                 if not req_uam.empty:
                     req_uam.drop(columns=["IS_ACCESS"], errors='ignore').to_excel(writer, sheet_name='UAMs_Bruto', index=False)
+                if not df_rca_raw.empty:
+                    df_rca_raw.to_excel(writer, sheet_name='RCA_Bruto', index=False)
                 if not df_ptasks_raw.empty:
                     df_ptasks_raw.to_excel(writer, sheet_name='PTASKs_Bruto', index=False)
 
