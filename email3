@@ -90,16 +90,17 @@ def hide_zeros(lst):
 
 
 def _pick_col(df, candidates):
-    """Busca ultra-agressiva para não perder a coluna do Excel por causa de underlines ou espaços."""
-    # 1. Match exato
+    """
+    CORREÇÃO RAIZ: Trata sublinhados, espaços e diferenças de capitalização.
+    Garante que "assignment_group" no Excel se conecte com "Assignment group".
+    """
     for c in candidates:
         if c in df.columns:
             return c
-    
-    # 2. Match normalizado (Remove TUDO que não for letra ou número e joga pra minúsculo)
-    df_cols_norm = {re.sub(r'[^a-z0-9]', '', str(col).lower()): col for col in df.columns}
+            
+    df_cols_norm = {str(col).strip().lower().replace("_", " "): col for col in df.columns}
     for c in candidates:
-        key = re.sub(r'[^a-z0-9]', '', str(c).lower())
+        key = str(c).strip().lower().replace("_", " ")
         if key in df_cols_norm:
             return df_cols_norm[key]
             
@@ -154,7 +155,7 @@ def _ensure_identity_cols_common(df):
         str).fillna("—") if requester_col else "—"
 
     ag_col = _pick_col(
-        df, ["Assignment group", "Assignment Group", "Grupo", "Grupo de Atribuição"])
+        df, ["Assignment group", "Assignment Group", "assignment_group", "Grupo", "Grupo de Atribuição"])
     df["Assignment group"] = df[ag_col].astype(
         str).fillna("") if ag_col else ""
 
@@ -332,7 +333,7 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
                            "Data Abertura", "Created", "Criado em", "Creation date"])
     closed_col = _pick_col(
         df, ["Resolved", "Resolved at", "Closed", "Close", "ClosedAt", "Data Fechamento"])
-    ag_col = _pick_col(df, ["Assignment group", "Assignment Group",
+    ag_col = _pick_col(df, ["Assignment group", "Assignment Group", "assignment_group",
                        "Grupo", "Grupo de Atribuição", "Grupo de atribuicao"])
     asg_col = _pick_col(
         df, ["Assigned to", "AssignedTo", "Analista", "Assignee"])
@@ -703,10 +704,6 @@ def compute_monthly_throughput_table_html(df, months_limit=None, ticket_type="RE
 # =============================================================================
 
 def get_chart_cid(cfg, width, height, q=None):
-    """
-    Em vez de URL curta que pode expirar/quebrar, faz o download do gráfico
-    e prepara para ser anexado como CID no e-mail (garante que nunca quebre no Outlook).
-    """
     global IMAGE_ATTACHMENTS
     url = "https://quickchart.io/chart"
     payload = {"chart": cfg, "width": width, "height": height, "format": "png"}
@@ -800,7 +797,6 @@ def add_pie_formatter(cfg, data_array=None):
 
 
 def add_bar_formatter(cfg, data_array, is_stacked=False):
-    """Garante porcentagem e anula valores iguais a zero para ocultar os rótulos de ponta."""
     try:
         if is_stacked and isinstance(data_array, list) and len(data_array) > 0 and isinstance(data_array[0], list):
             totals_per_bar = [sum(x) for x in zip(*data_array)]
@@ -819,7 +815,6 @@ def add_bar_formatter(cfg, data_array, is_stacked=False):
     for val in bar_values:
         if total > 0 and val > 0:
             pct = (val / total) * 100
-            # 2 Casas decimais com vírgula para manter o padrão Brasileiro no Gráfico
             pct_str = f"{pct:.2f}%".replace('.', ',')
             formatted_strings.append(f"{int(val)} ({pct_str})")
         else:
@@ -1267,38 +1262,30 @@ def main_simples(configs, q=None):
 
         RUN_AT = datetime.now()
 
-        # 1. Carrega os Dados Reais
+        # 1. Carrega os Dados Reais Brutos
         df_reqs_raw = load_prepare_reqs(SOURCE_FILE, "REQs", now=RUN_AT, q=q)
-        
-        # ====================================================================
-        # FILTRO EXATO E RIGOROSO NA CAUSA RAIZ - APENAS PELA PALAVRA "ACCESS"
-        # ====================================================================
-        # Encontra a coluna real de Grupo de Atribuição no Excel original, ignorando formatações chatas
-        col_grupo = _pick_col(df_reqs_raw, ["Assignment group", "Assignment Group", "assignment_group", "Grupo", "Grupo de Atribuição", "assignment group"])
-        
-        if col_grupo:
-            # Avalia True APENAS se a coluna de fato existir e contiver a string "access"
-            mask_access = df_reqs_raw[col_grupo].astype(str).str.lower().str.contains("access", na=False)
-        else:
-            # Fallback de segurança: se incrivelmente a coluna não existir, não inventa acesso.
-            mask_access = pd.Series(False, index=df_reqs_raw.index)
-        
-        # Isola perfeitamente REQs de Suporte (Tudo que NÃO possui "access" no grupo)
-        df_reqs = df_reqs_raw[~mask_access].copy()
-        
-        # Isola perfeitamente UAMs (Acessos - Tudo que POSSUI "access" no grupo)
-        df_uams = df_reqs_raw[mask_access].copy()
-        # ====================================================================
-        
-        df_incs = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
+        df_incs_raw = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
         df_ptasks_raw = load_prepare_ptasks(SOURCE_PTASK, now=RUN_AT, q=q)
 
-        # 2. Normaliza os tickets para o HTML
-        req_support = normalize_ticket_df_html(df_reqs, "REQ")
-        req_uam = normalize_ticket_df_html(df_uams, "REQ")
-        inc = normalize_ticket_df_html(df_incs, "INC")
+        # 2. Normaliza os tickets para o HTML ANTES do filtro para garantir a coluna
+        req_all = normalize_ticket_df_html(df_reqs_raw, "REQ")
+        inc = normalize_ticket_df_html(df_incs_raw, "INC")
 
-        # 3. Segregação Somente Abertos
+        # 3. FILTRO RIGOROSO E INFALÍVEL DE UAM (ACESSOS) VS REQ (SUPORTE GERAL)
+        # Se a string "access" (em minúsculo) estiver dentro da coluna "Assignment group", é UAM. Fim.
+        def _is_access_ticket(ag_val):
+            if pd.isna(ag_val):
+                return False
+            return "access" in str(ag_val).strip().lower()
+
+        # Aplica a marcação exata e blinda as bases
+        req_all["IS_ACCESS"] = req_all["Assignment group"].apply(_is_access_ticket)
+        
+        # Suporte = FALSO para access | UAM = TRUE para access
+        req_support = req_all[~req_all["IS_ACCESS"]].copy()
+        req_uam = req_all[req_all["IS_ACCESS"]].copy()
+
+        # 4. Segregação Somente Abertos
         inc_open_strict = _get_only_open_incs(inc)
         req_sup_open_strict = _get_only_open_reqs(req_support)
         uam_open_strict = _get_only_open_reqs(req_uam)
@@ -1377,7 +1364,6 @@ def main_simples(configs, q=None):
                     closed_this_month["Aging_Resolved_Days"] > sla_days).sum()
                 total_closed_month = in_sla_closed + out_sla_closed
 
-                # CÁLCULO POSITIVO DA PORCENTAGEM COM 2 CASAS DECIMAIS
                 in_sla_pct = round((in_sla_closed / total_closed_month * 100), 2) if total_closed_month > 0 else 0.00
             else:
                 in_sla_closed, out_sla_closed, in_sla_pct = 0, 0, 0.00
@@ -1674,7 +1660,6 @@ def main_simples(configs, q=None):
         log_q(q, "✅ Geração concluída!")
 
         try:
-            # 1. Define o nome do arquivo Excel
             dynamic_date_str = RUN_AT.strftime("%d_%m_%Y")
             RAW_DATA_ATTACHMENT = os.path.join(os.path.dirname(
                 OUTPUT_FILE) or ".", f"Base_Bruta_Consolidada_{dynamic_date_str}.xlsx")
@@ -1682,34 +1667,32 @@ def main_simples(configs, q=None):
             TRACKING_ATTACHMENT = os.path.join(os.path.dirname(
                 OUTPUT_FILE) or ".", f"tracking_{dynamic_date_str}.xlsx")
             
-            # 2. CRIA E SALVA O EXCEL COM OS DADOS BRUTOS (Com UAM separado em aba exclusiva)
+            # Exportando REQs filtrados e UAMs para abas separadas, mantendo a blindagem!
             log_q(q, f"📊 Exportando Dados Brutos para Excel: {RAW_DATA_ATTACHMENT}...")
             with pd.ExcelWriter(RAW_DATA_ATTACHMENT, engine='openpyxl') as writer:
-                if not df_incs.empty:
-                    df_incs.to_excel(writer, sheet_name='INCs_Bruto', index=False)
-                if not df_reqs.empty:
-                    df_reqs.drop(columns=["IS_ACCESS"], errors='ignore').to_excel(writer, sheet_name='REQs_Bruto', index=False)
-                if not df_uams.empty:
-                    df_uams.drop(columns=["IS_ACCESS"], errors='ignore').to_excel(writer, sheet_name='UAMs_Bruto', index=False)
+                if not df_incs_raw.empty:
+                    df_incs_raw.to_excel(writer, sheet_name='INCs_Bruto', index=False)
+                if not req_support.empty:
+                    req_support.drop(columns=["IS_ACCESS"], errors='ignore').to_excel(writer, sheet_name='REQs_Bruto', index=False)
+                if not req_uam.empty:
+                    req_uam.drop(columns=["IS_ACCESS"], errors='ignore').to_excel(writer, sheet_name='UAMs_Bruto', index=False)
                 if not df_ptasks_raw.empty:
                     df_ptasks_raw.to_excel(writer, sheet_name='PTASKs_Bruto', index=False)
 
-            # 2.1 CRIA E SALVA O EXCEL DE TRACKING (NOVO) - PASSANDO APENAS df_reqs (Sem UAMs!)
             log_q(q, f"📈 Exportando Dashboard de Analistas para Excel: {TRACKING_ATTACHMENT}...")
             wb_tracking = openpyxl.Workbook()
+            # Envia APENAS req_support (sem nenhum traço de 'access') para o tracking
             tracking.create_analyst_analysis_sheet(
                 wb_tracking, 
-                df=df_reqs, 
-                df_incs=df_incs, 
+                df=req_support, 
+                df_incs=inc, 
                 sla_days_reqs=SLA_DAYS_REQS, 
                 sla_days_incs=SLA_DAYS_INCS
             )
-            # Remove a aba padrão caso exista
             if "Sheet" in wb_tracking.sheetnames:
                 del wb_tracking["Sheet"]
             wb_tracking.save(TRACKING_ATTACHMENT)
 
-            # 3. Força o e-mail a anexar os arquivos gerados em formato de lista
             caminhos_anexos_email = [RAW_DATA_ATTACHMENT, TRACKING_ATTACHMENT]
 
             log_q(q, "📧 Disparando e-mail...")
@@ -1760,7 +1743,6 @@ def enviar_email_relatorio(html_content, caminhos_anexos=None, q=None):
         if safe_copia:
             mail.CC = safe_copia
 
-        # Adiciona suporte nativo a múltiplos anexos do loop
         anexos_adicionados = 0
         for caminho_anexo in caminhos_anexos:
             if caminho_anexo and os.path.exists(caminho_anexo):
@@ -1768,7 +1750,6 @@ def enviar_email_relatorio(html_content, caminhos_anexos=None, q=None):
                 mail.Attachments.Add(absolute_path)
                 anexos_adicionados += 1
                 
-        # ANEXANDO AS IMAGENS COM CID PARA PERMANECEREM NOS ENCAMINHAMENTOS
         global IMAGE_ATTACHMENTS
         for img_path, cid in IMAGE_ATTACHMENTS:
             if os.path.exists(img_path):
