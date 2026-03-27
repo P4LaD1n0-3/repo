@@ -290,9 +290,19 @@ def load_prepare_rca(source_file, now=None, q=None):
         d["RCA Due Date Str"] = "N/A"
         d["Days Overdue"] = np.nan
         
+    if pub_date_col:
+        d["RCA Published Date"] = pd.to_datetime(df[pub_date_col], errors='coerce', dayfirst=True)
+    else:
+        d["RCA Published Date"] = pd.NaT
+
     # Filtro rigoroso: Remover closed complete, closed incomplete, closed skipped, Resolved
     closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'resolved', 'fechado', 'cancelado', 'encerrado', 'resolvido']
-    d = d[~d['State_Original'].str.lower().str.strip().isin(closed_states)].copy()
+    
+    # Filtra por estado e se a Data de Publicação está vazia
+    mask_state = ~d['State_Original'].str.lower().str.strip().isin(closed_states)
+    mask_published = d["RCA Published Date"].isna()
+    
+    d = d[mask_state & mask_published].copy()
 
     return d
 
@@ -1224,6 +1234,96 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
     total_in = sum(a) if a and a[0] != 'Sem Dados' else 0
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
     return add_title_to_cfg(cfg, f"ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE) - TOTAL ENTRADAS: {total_in} | SAÍDAS ({lbl_resolved.upper()} + CANCELADOS): {total_out}")
+
+def build_rca_table_html(df):
+    if df.empty:
+        return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem RCA aberta localizada.</div>"
+
+    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
+    html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
+    cols = ["Problem", "Assigned to", "RCA Status", "RCA Due Date", "RCA Aging", "SLA"]
+    for c in cols:
+        html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
+    html += "</tr></thead><tbody>"
+
+    for i, row in df.iterrows():
+        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
+        html += f"<tr style='background-color: {bg};'>"
+
+        aging_val = row.get("RCA Aging", np.nan)
+        if pd.isna(aging_val):
+            aging_str = "N/A"
+        else:
+            aging_str = str(int(aging_val))
+            
+        overdue_val = row.get("Days Overdue", np.nan)
+        if pd.isna(overdue_val):
+            sla_txt = "N/A"
+            sla_col = ModernColors.GRAY_DARK
+        else:
+            if overdue_val > 0:
+                sla_txt = f"Estourado ({int(overdue_val)} dias)"
+                sla_col = ModernColors.DANGER
+            else:
+                sla_txt = f"No Prazo (restam {abs(int(overdue_val))} dias)"
+                sla_col = ModernColors.SUCCESS
+
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Status']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Due Date Str']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{aging_str}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {sla_col}; font-weight: bold;'>{sla_txt}</td>"
+
+        html += "</tr>"
+
+    html += "</tbody></table>"
+    return html
+
+
+def build_ptask_table_html_new(df, sla_days_ptask):
+    if df.empty:
+        return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) aberta localizada.</div>"
+    
+    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
+    html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
+    cols = ["Problem", "Number", "Assigned to", "State", "Assignment group", "Opened", "PTASK Aging", "SLA"]
+    for c in cols:
+        html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
+    html += "</tr></thead><tbody>"
+    
+    for i, row in df.iterrows():
+        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
+        html += f"<tr style='background-color: {bg};'>"
+        
+        aging_val = row.get("PTASK Aging", np.nan)
+        aging_str = str(int(aging_val)) if pd.notna(aging_val) else "N/A"
+
+        if pd.notna(aging_val):
+            restam = sla_days_ptask - int(aging_val)
+            if restam < 0:
+                sla_txt = f"Estourado ({abs(restam)} dias)"
+                sla_col = ModernColors.DANGER
+            else:
+                sla_txt = f"No Prazo (restam {restam} dias)"
+                sla_col = ModernColors.SUCCESS
+        else:
+            sla_txt = "N/A"
+            sla_col = ModernColors.GRAY_DARK
+
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Number']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['State']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assignment group']}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row.get('Opened Str', 'N/A')}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{aging_str}</td>"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {sla_col}; font-weight: bold;'>{sla_txt}</td>"
+        
+        html += "</tr>"
+    
+    html += "</tbody></table>"
+    return html
 
 # ============================================================================
 # LÓGICA DE GERAÇÃO DA SESSÃO CONSOLIDADA (INC + REQ + UAM)
