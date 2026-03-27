@@ -263,8 +263,8 @@ def load_prepare_rca(source_file, now=None, q=None):
     asg_col = _pick_col(df, ["Assigned to", "Analista", "assigned_to"])
     rca_status_col = _pick_col(df, ["RCA Status", "Status do RCA", "Status RCA", "RCA", "RCA_Status", "u_rca_status", "rca_status", "State", "Status", "Estado"])
     rca_due_date_col = _pick_col(df, ["RCA Due Date", "Data de vencimento do RCA", "RCA Due", "Due date (RCA)", "RCA_Due_Date", "u_rca_due_date", "Target date", "RCA Target Date", "Due Date", "due_date"])
+    pub_date_col = _pick_col(df, ["RCA Published Date", "Published Date", "Published", "Data de Publicação do RCA", "Data de Publicação"])
     state_col = _pick_col(df, ["State", "Estado", "Status"])
-    opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created", "Criado em", "opened_at", "sys_created_on"])
 
     d = pd.DataFrame()
     d["Problem"] = df[prob_col].astype(str).fillna("N/A") if prob_col else "N/A"
@@ -275,22 +275,24 @@ def load_prepare_rca(source_file, now=None, q=None):
     now_dt = now or datetime.now()
     now_ts = pd.Timestamp(now_dt).floor('D')
     
-    # Corrige o problema do RCA Aging (Agora extrai a data de criação e não ficará negativo)
-    if opened_col:
-        d["Opened"] = pd.to_datetime(df[opened_col], errors='coerce', dayfirst=True)
-        d["RCA Aging"] = (now_ts - d["Opened"]).dt.days
-    else:
-        d["RCA Aging"] = np.nan
-    
-    # A variável Days Overdue verifica se extrapolou o Due Date
     if rca_due_date_col:
         d["RCA Due Date"] = pd.to_datetime(df[rca_due_date_col], errors='coerce', dayfirst=True)
         d["RCA Due Date Str"] = d["RCA Due Date"].dt.strftime('%d/%m/%Y').fillna("N/A")
-        # Positivo significa que estourou (passou da data)
-        d["Days Overdue"] = (now_ts - d["RCA Due Date"]).dt.days
     else:
+        d["RCA Due Date"] = pd.NaT
         d["RCA Due Date Str"] = "N/A"
-        d["Days Overdue"] = np.nan
+
+    if pub_date_col:
+        d["RCA Published Date"] = pd.to_datetime(df[pub_date_col], errors='coerce', dayfirst=True)
+    else:
+        d["RCA Published Date"] = pd.NaT
+
+    # Calcula Aging apenas para RCA que não tem Published Date (RCA Abertos)
+    d["RCA Aging"] = np.nan
+    open_mask = d["RCA Published Date"].isna()
+    
+    d.loc[open_mask, "RCA Aging"] = (now_ts - d.loc[open_mask, "RCA Due Date"]).dt.days
+    d["Days Overdue"] = d["RCA Aging"]
         
     # Filtro rigoroso: Remover closed complete, closed incomplete, closed skipped, Resolved
     closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'resolved', 'fechado', 'cancelado', 'encerrado', 'resolvido']
@@ -1244,7 +1246,7 @@ def build_rca_table_html(df):
         html += f"<tr style='background-color: {bg};'>"
 
         aging_val = row.get("RCA Aging", np.nan)
-        if pd.isna(aging_val) or aging_val < 0:
+        if pd.isna(aging_val):
             aging_str = "N/A"
         else:
             aging_str = str(int(aging_val))
@@ -1322,6 +1324,24 @@ def build_ptask_table_html_new(df, sla_days_ptask):
 # LÓGICA DE GERAÇÃO DA SESSÃO CONSOLIDADA (INC + REQ + UAM)
 # ============================================================================
 
+def merge_daily_data(inc_d, req_d, uam_d):
+    df_i = inc_d[["Data", "Abertos", "Encerrados"]].rename(columns={"Abertos": "INC Abertos", "Encerrados": "INC Resolvidos"})
+    df_r = req_d[["Data", "Abertos", "Encerrados"]].rename(columns={"Abertos": "REQ Abertos", "Encerrados": "REQ Encerrados"})
+    df_u = uam_d[["Data", "Abertos", "Encerrados"]].rename(columns={"Abertos": "UAM Abertos", "Encerrados": "UAM Encerrados"})
+
+    df_merged = pd.merge(df_i, df_r, on="Data", how="outer")
+    df_merged = pd.merge(df_merged, df_u, on="Data", how="outer")
+    df_merged = df_merged.fillna(0)
+
+    # Ordenar por data
+    df_merged["_dt"] = pd.to_datetime(df_merged["Data"], format="%d/%m/%Y", errors="coerce")
+    df_merged = df_merged.sort_values("_dt").drop(columns=["_dt"])
+
+    for c in df_merged.columns:
+        if c != "Data":
+            df_merged[c] = df_merged[c].astype(int)
+    return df_merged
+
 def merge_monthly_data(inc_m, req_m, uam_m):
     # Renomeia para fazer o merge adequado
     df_i = inc_m[["Mês", "Abertos", "Encerrados"]].rename(columns={"Abertos": "INC Abertos", "Encerrados": "INC Resolvidos"})
@@ -1390,60 +1410,63 @@ def build_combined_table_html(df):
 
     return html
 
-def build_combined_charts(df, q):
-    # Gráfico Abertos
-    cfg_abertos = {
-        "type": "bar",
-        "data": {
-            "labels": df["Mês"].tolist(),
-            "datasets": [
-                {"label": "INCs", "data": hide_zeros(df["INC Abertos"].tolist()), "backgroundColor": ModernColors.ACCENT_DARK},
-                {"label": "REQs", "data": hide_zeros(df["REQ Abertos"].tolist()), "backgroundColor": ModernColors.PRIMARY},
-                {"label": "UAMs", "data": hide_zeros(df["UAM Abertos"].tolist()), "backgroundColor": ModernColors.INFO}
-            ]
-        },
-        "options": {
-            "plugins": {"datalabels": {"display": True, "color": "#fff", "font": {"weight": "bold", "size": 9}}},
-            "legend": {"display": True, "position": "bottom"},
-            "scales": {"yAxes": [{"ticks": {"beginAtZero": True}}]}
-        }
-    }
-    cfg_abertos = add_title_to_cfg(cfg_abertos, "📊 VOLUME DE ENTRADAS (ABERTOS)")
-
-    # Gráfico Encerrados
-    cfg_encerrados = {
-        "type": "bar",
-        "data": {
-            "labels": df["Mês"].tolist(),
-            "datasets": [
-                {"label": "INCs", "data": hide_zeros(df["INC Resolvidos"].tolist()), "backgroundColor": ModernColors.ACCENT_DARK},
-                {"label": "REQs", "data": hide_zeros(df["REQ Encerrados"].tolist()), "backgroundColor": ModernColors.PRIMARY},
-                {"label": "UAMs", "data": hide_zeros(df["UAM Encerrados"].tolist()), "backgroundColor": ModernColors.INFO}
-            ]
-        },
-        "options": {
-            "plugins": {"datalabels": {"display": True, "color": "#fff", "font": {"weight": "bold", "size": 9}}},
-            "legend": {"display": True, "position": "bottom"},
-            "scales": {"yAxes": [{"ticks": {"beginAtZero": True}}]}
-        }
-    }
-    cfg_encerrados = add_title_to_cfg(cfg_encerrados, "📈 VOLUME DE SAÍDAS (ENCERRADOS)")
-
-    return qc_url_html(cfg_abertos, q), qc_url_html(cfg_encerrados, q)
-
-def montar_bloco_consolidado(inc_m, req_m, uam_m, q):
-    df_combined = merge_monthly_data(inc_m, req_m, uam_m)
-    url_abertos, url_encerrados = build_combined_charts(df_combined, q)
-    tabela_html = build_combined_table_html(df_combined)
+def build_stacked_chart_cfg(df, col_labels, title):
+    # Lógica para as labels (se for diário exibe os primeiros caracteres dd/mm, senão o mês inteiro)
+    labels_raw = df[col_labels].tolist()
+    if col_labels == "Data":
+        labels = [str(x)[:5] for x in labels_raw]
+    else:
+        labels = labels_raw
+        
+    datasets = [
+        {"label": "INC Abertos", "data": hide_zeros(df["INC Abertos"].tolist()), "backgroundColor": ModernColors.GRAY_DARK, "stack": "Abertos"},
+        {"label": "REQ Abertos", "data": hide_zeros(df["REQ Abertos"].tolist()), "backgroundColor": ModernColors.PRIMARY_DARK, "stack": "Abertos"},
+        {"label": "UAM Abertos", "data": hide_zeros(df["UAM Abertos"].tolist()), "backgroundColor": ModernColors.ACCENT_DARK, "stack": "Abertos"},
+        
+        {"label": "INC Encerrados", "data": hide_zeros(df["INC Resolvidos"].tolist()), "backgroundColor": ModernColors.GRAY, "stack": "Encerrados"},
+        {"label": "REQ Encerrados", "data": hide_zeros(df["REQ Encerrados"].tolist()), "backgroundColor": ModernColors.PRIMARY, "stack": "Encerrados"},
+        {"label": "UAM Encerrados", "data": hide_zeros(df["UAM Encerrados"].tolist()), "backgroundColor": ModernColors.INFO, "stack": "Encerrados"}
+    ]
     
-    cards = build_grid2(
-        build_card("1. COMPARATIVO DE ABERTOS (INC x REQ x UAM)", f'<img src="{url_abertos}" width="100%">'),
-        build_card("2. COMPARATIVO DE RESOLVIDOS (INC x REQ x UAM)", f'<img src="{url_encerrados}" width="100%">')
-    )
+    cfg = {
+        "type": "bar",
+        "data": {
+            "labels": labels,
+            "datasets": datasets
+        },
+        "options": {
+            "plugins": {
+                "datalabels": {
+                    "display": True,
+                    "color": "#fff",
+                    "font": {"weight": "bold", "size": 9}
+                }
+            },
+            "legend": {"display": True, "position": "bottom"},
+            "scales": {
+                "xAxes": [{"stacked": True}],
+                "yAxes": [{"stacked": True, "ticks": {"beginAtZero": True}}]
+            }
+        }
+    }
+    return add_title_to_cfg(cfg, title)
+
+def montar_bloco_consolidado(inc_m, req_m, uam_m, inc_d, req_d, uam_d, q):
+    df_combined_m = merge_monthly_data(inc_m, req_m, uam_m)
+    df_combined_d = merge_daily_data(inc_d, req_d, uam_d)
+    
+    cfg_diario = build_stacked_chart_cfg(df_combined_d, "Data", "📊 VOLUME DIÁRIO CONSOLIDADO: ABERTOS X ENCERRADOS (MÊS VIGENTE)")
+    cfg_mensal = build_stacked_chart_cfg(df_combined_m, "Mês", "📈 VOLUME MENSAL CONSOLIDADO: ABERTOS X ENCERRADOS (VISÃO ANUAL)")
+    
+    url_diario = qc_url_wide_html(cfg_diario, q)
+    url_mensal = qc_url_wide_html(cfg_mensal, q)
+    
+    tabela_html = build_combined_table_html(df_combined_m)
     
     html = f"""
     {build_section_title("🌐 SESSÃO CONSOLIDADA (INCs + REQs + UAMs)", ModernColors.GRAY_DARK)}
-    {cards}
+    {build_card("1. EVOLUÇÃO DIÁRIA DE CHAMADOS (ABERTOS x RESOLVIDOS)", f'<img src="{url_diario}" width="100%">')}
+    {build_card("2. EVOLUÇÃO MENSAL DE CHAMADOS (ABERTOS x RESOLVIDOS)", f'<img src="{url_mensal}" width="100%">')}
     {build_card("📑 3. TABELA DE EVOLUÇÃO E VOLUMETRIA (MENSAL)", tabela_html)}
     """
     return html
@@ -1842,7 +1865,7 @@ def main_simples2(configs, q=None):
 
         # MONTAGEM DA SESSÃO CONSOLIDADA
         log_q(q, "Processando dados da Sessão Consolidada (INCs + REQs + UAMs)...")
-        SESSAO_CONSOLIDADA = montar_bloco_consolidado(inc_m, req_m, uam_m, q)
+        SESSAO_CONSOLIDADA = montar_bloco_consolidado(inc_m, req_m, uam_m, inc_d, req_d, uam_d, q)
 
         # NOVA SESSÃO GLOBAL PARA TODAS AS PRB TASKs (DIVIDIDA EM RCA E PTASK)
         SESSAO_PTASKS = f"""
