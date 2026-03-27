@@ -76,7 +76,7 @@ class ModernColors:
     GRAY = "#94A3B8"           # Cinza Metálico (SLA Fora do prazo em gráficos)
     GRAY_LIGHT = "#F8FAFC"     # Fundo de Tabelas e Cards Discretos
     WHITE = "#FFFFFF"
-    INFO = "#0284C7"           # Azul Ciano Vivo
+    INFO = "#0284C7"           # Azul Ciano Vivo (UAMs e destaques)
     BACKGROUND = "#F1F5F9"
 
 
@@ -264,6 +264,7 @@ def load_prepare_rca(source_file, now=None, q=None):
     rca_status_col = _pick_col(df, ["RCA Status", "Status do RCA", "Status RCA", "RCA", "RCA_Status", "u_rca_status", "rca_status", "State", "Status", "Estado"])
     rca_due_date_col = _pick_col(df, ["RCA Due Date", "Data de vencimento do RCA", "RCA Due", "Due date (RCA)", "RCA_Due_Date", "u_rca_due_date", "Target date", "RCA Target Date", "Due Date", "due_date"])
     state_col = _pick_col(df, ["State", "Estado", "Status"])
+    opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created", "Criado em", "opened_at", "sys_created_on"])
 
     d = pd.DataFrame()
     d["Problem"] = df[prob_col].astype(str).fillna("N/A") if prob_col else "N/A"
@@ -274,14 +275,22 @@ def load_prepare_rca(source_file, now=None, q=None):
     now_dt = now or datetime.now()
     now_ts = pd.Timestamp(now_dt).floor('D')
     
+    # Corrige o problema do RCA Aging (Agora extrai a data de criação e não ficará negativo)
+    if opened_col:
+        d["Opened"] = pd.to_datetime(df[opened_col], errors='coerce', dayfirst=True)
+        d["RCA Aging"] = (now_ts - d["Opened"]).dt.days
+    else:
+        d["RCA Aging"] = np.nan
+    
+    # A variável Days Overdue verifica se extrapolou o Due Date
     if rca_due_date_col:
         d["RCA Due Date"] = pd.to_datetime(df[rca_due_date_col], errors='coerce', dayfirst=True)
         d["RCA Due Date Str"] = d["RCA Due Date"].dt.strftime('%d/%m/%Y').fillna("N/A")
-        # RCA Aging (today() - RCA Due Date) - Positivo significa estourado
-        d["RCA Aging"] = (now_ts - d["RCA Due Date"]).dt.days
+        # Positivo significa que estourou (passou da data)
+        d["Days Overdue"] = (now_ts - d["RCA Due Date"]).dt.days
     else:
         d["RCA Due Date Str"] = "N/A"
-        d["RCA Aging"] = np.nan
+        d["Days Overdue"] = np.nan
         
     # Filtro rigoroso: Remover closed complete, closed incomplete, closed skipped, Resolved
     closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'resolved', 'fechado', 'cancelado', 'encerrado', 'resolvido']
@@ -309,7 +318,6 @@ def load_prepare_ptasks_new(source_file, now=None, q=None):
     state_col = _pick_col(df, ["State", "Estado", "Status"])
     ag_col = _pick_col(df, ["Assignment group", "Assignment Group", "Grupo", "Grupo de Atribuição"])
     opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created", "Criado em", "opened_at", "sys_created_on"])
-    due_date_col = _pick_col(df, ["Due date", "Data de vencimento", "due_date"])
 
     d = pd.DataFrame()
     d["Problem"] = df[prob_col].astype(str).fillna("N/A") if prob_col else "N/A"
@@ -328,13 +336,6 @@ def load_prepare_ptasks_new(source_file, now=None, q=None):
     else:
         d["Opened Str"] = "N/A"
         d["PTASK Aging"] = np.nan
-
-    if due_date_col:
-        d["Due Date"] = pd.to_datetime(df[due_date_col], errors='coerce', dayfirst=True)
-        # Se today() > Due Date, valor será negativo para SLA (Days to Due < 0)
-        d["Days to Due"] = (d["Due Date"] - now_ts).dt.days 
-    else:
-        d["Days to Due"] = np.nan
 
     return d
 
@@ -1242,18 +1243,22 @@ def build_rca_table_html(df):
         bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
         html += f"<tr style='background-color: {bg};'>"
 
-        aging_val = row["RCA Aging"]
-        if pd.isna(aging_val):
+        aging_val = row.get("RCA Aging", np.nan)
+        if pd.isna(aging_val) or aging_val < 0:
             aging_str = "N/A"
+        else:
+            aging_str = str(int(aging_val))
+            
+        overdue_val = row.get("Days Overdue", np.nan)
+        if pd.isna(overdue_val):
             sla_txt = "N/A"
             sla_col = ModernColors.GRAY_DARK
         else:
-            aging_str = str(int(aging_val))
-            if aging_val > 0:
-                sla_txt = f"Estourado ({int(aging_val)} dias)"
+            if overdue_val > 0:
+                sla_txt = f"Estourado ({int(overdue_val)} dias)"
                 sla_col = ModernColors.DANGER
             else:
-                sla_txt = f"No Prazo (restam {abs(int(aging_val))} dias)"
+                sla_txt = f"No Prazo (restam {abs(int(overdue_val))} dias)"
                 sla_col = ModernColors.SUCCESS
 
         html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
@@ -1269,7 +1274,7 @@ def build_rca_table_html(df):
     return html
 
 
-def build_ptask_table_html_new(df):
+def build_ptask_table_html_new(df, sla_days_ptask):
     if df.empty:
         return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) aberta localizada.</div>"
     
@@ -1284,20 +1289,20 @@ def build_ptask_table_html_new(df):
         bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
         html += f"<tr style='background-color: {bg};'>"
         
-        aging_val = row["PTASK Aging"]
-        aging_str = str(int(aging_val)) if pd.notna(aging_val) else "N/A"
+        aging_val = row.get("PTASK Aging", np.nan)
+        aging_str = str(int(aging_val)) if pd.notna(aging_val) and aging_val >= 0 else "N/A"
 
-        due_val = row["Days to Due"]
-        if pd.isna(due_val):
-            sla_txt = "N/A"
-            sla_col = ModernColors.GRAY_DARK
-        else:
-            if due_val < 0:
-                sla_txt = f"Estourado ({abs(int(due_val))} dias)"
+        if pd.notna(aging_val) and aging_val >= 0:
+            restam = sla_days_ptask - int(aging_val)
+            if restam < 0:
+                sla_txt = f"Estourado ({abs(restam)} dias)"
                 sla_col = ModernColors.DANGER
             else:
-                sla_txt = f"No Prazo (restam {int(due_val)} dias)"
+                sla_txt = f"No Prazo (restam {restam} dias)"
                 sla_col = ModernColors.SUCCESS
+        else:
+            sla_txt = "N/A"
+            sla_col = ModernColors.GRAY_DARK
 
         html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
         html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Number']}</td>"
@@ -1313,6 +1318,135 @@ def build_ptask_table_html_new(df):
     html += "</tbody></table>"
     return html
 
+# ============================================================================
+# LÓGICA DE GERAÇÃO DA SESSÃO CONSOLIDADA (INC + REQ + UAM)
+# ============================================================================
+
+def merge_monthly_data(inc_m, req_m, uam_m):
+    # Renomeia para fazer o merge adequado
+    df_i = inc_m[["Mês", "Abertos", "Encerrados"]].rename(columns={"Abertos": "INC Abertos", "Encerrados": "INC Resolvidos"})
+    df_r = req_m[["Mês", "Abertos", "Encerrados"]].rename(columns={"Abertos": "REQ Abertos", "Encerrados": "REQ Encerrados"})
+    df_u = uam_m[["Mês", "Abertos", "Encerrados"]].rename(columns={"Abertos": "UAM Abertos", "Encerrados": "UAM Encerrados"})
+
+    # Merge via Outer Join para preservar todos os meses
+    df_merged = pd.merge(df_i, df_r, on="Mês", how="outer")
+    df_merged = pd.merge(df_merged, df_u, on="Mês", how="outer")
+    df_merged = df_merged.fillna(0)
+
+    # Ordenação Cronológica Segura
+    meses_map = {"JAN": 1, "FEV": 2, "MAR": 3, "ABR": 4, "MAI": 5, "JUN": 6, "JUL": 7, "AGO": 8, "SET": 9, "OUT": 10, "NOV": 11, "DEZ": 12}
+    def sort_key(m_str):
+        try:
+            m, y = m_str.split('/')
+            return int(y) * 100 + meses_map.get(m.upper(), 1)
+        except:
+            return 0
+    
+    df_merged["SortKey"] = df_merged["Mês"].apply(sort_key)
+    df_merged = df_merged.sort_values("SortKey").drop(columns=["SortKey"])
+    
+    # Conversão de tipos para visualização na tabela
+    for c in df_merged.columns:
+        if c != "Mês":
+            df_merged[c] = df_merged[c].astype(int)
+            
+    df_merged["Total Abertos"] = df_merged["INC Abertos"] + df_merged["REQ Abertos"] + df_merged["UAM Abertos"]
+    df_merged["Total Encerrados"] = df_merged["INC Resolvidos"] + df_merged["REQ Encerrados"] + df_merged["UAM Encerrados"]
+    return df_merged
+
+def build_combined_table_html(df):
+    if df.empty:
+        return f"<div style='padding: 15px; color: {ModernColors.PRIMARY_DARK}; text-align: center; font-weight: bold;'>✅ Sem dados aplicáveis para o período consolidado.</div>"
+
+    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
+    html += f"<thead><tr style='background-color: {ModernColors.GRAY_DARK}; color: #fff;'>"
+    cols = ["Mês", "INCs Abertos", "INCs Resolvidos", "REQs Abertas", "REQs Encerradas", "UAMs Abertas", "UAMs Encerradas", "TOTAL ABERTOS", "TOTAL ENCERRADOS"]
+    for c in cols:
+        html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
+    html += "</tr></thead><tbody>"
+
+    for i, row in df.iterrows():
+        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
+        html += f"<tr style='background-color: {bg};'>"
+        for j, col in enumerate(df.columns):
+            val = str(row[col])
+            align = "left" if j == 0 else "center"
+            weight = "bold" if "Total" in col or j == 0 else "normal"
+            html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align}; color: {ModernColors.PRIMARY_DARK}; font-weight: {weight};'>{val}</td>"
+        html += "</tr>"
+    html += "</tbody>"
+
+    # Geração dos Totais das Colunas
+    html += f"<tfoot style='background-color: {ModernColors.GRAY_LIGHT}; font-weight: bold; color: {ModernColors.PRIMARY_DARK}; border-top: 2px solid {ModernColors.PRIMARY_DARK};'><tr>"
+    for j, col in enumerate(df.columns):
+        if j == 0:
+            val = "TOTAIS GERADOS"
+            align = "left"
+        else:
+            val = str(df[col].sum())
+            align = "center"
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align};'>{val}</td>"
+    html += "</tr></tfoot></table>"
+
+    return html
+
+def build_combined_charts(df, q):
+    # Gráfico Abertos
+    cfg_abertos = {
+        "type": "bar",
+        "data": {
+            "labels": df["Mês"].tolist(),
+            "datasets": [
+                {"label": "INCs", "data": hide_zeros(df["INC Abertos"].tolist()), "backgroundColor": ModernColors.ACCENT_DARK},
+                {"label": "REQs", "data": hide_zeros(df["REQ Abertos"].tolist()), "backgroundColor": ModernColors.PRIMARY},
+                {"label": "UAMs", "data": hide_zeros(df["UAM Abertos"].tolist()), "backgroundColor": ModernColors.INFO}
+            ]
+        },
+        "options": {
+            "plugins": {"datalabels": {"display": True, "color": "#fff", "font": {"weight": "bold", "size": 9}}},
+            "legend": {"display": True, "position": "bottom"},
+            "scales": {"yAxes": [{"ticks": {"beginAtZero": True}}]}
+        }
+    }
+    cfg_abertos = add_title_to_cfg(cfg_abertos, "📊 VOLUME DE ENTRADAS (ABERTOS)")
+
+    # Gráfico Encerrados
+    cfg_encerrados = {
+        "type": "bar",
+        "data": {
+            "labels": df["Mês"].tolist(),
+            "datasets": [
+                {"label": "INCs", "data": hide_zeros(df["INC Resolvidos"].tolist()), "backgroundColor": ModernColors.ACCENT_DARK},
+                {"label": "REQs", "data": hide_zeros(df["REQ Encerrados"].tolist()), "backgroundColor": ModernColors.PRIMARY},
+                {"label": "UAMs", "data": hide_zeros(df["UAM Encerrados"].tolist()), "backgroundColor": ModernColors.INFO}
+            ]
+        },
+        "options": {
+            "plugins": {"datalabels": {"display": True, "color": "#fff", "font": {"weight": "bold", "size": 9}}},
+            "legend": {"display": True, "position": "bottom"},
+            "scales": {"yAxes": [{"ticks": {"beginAtZero": True}}]}
+        }
+    }
+    cfg_encerrados = add_title_to_cfg(cfg_encerrados, "📈 VOLUME DE SAÍDAS (ENCERRADOS)")
+
+    return qc_url_html(cfg_abertos, q), qc_url_html(cfg_encerrados, q)
+
+def montar_bloco_consolidado(inc_m, req_m, uam_m, q):
+    df_combined = merge_monthly_data(inc_m, req_m, uam_m)
+    url_abertos, url_encerrados = build_combined_charts(df_combined, q)
+    tabela_html = build_combined_table_html(df_combined)
+    
+    cards = build_grid2(
+        build_card("1. COMPARATIVO DE ABERTOS (INC x REQ x UAM)", f'<img src="{url_abertos}" width="100%">'),
+        build_card("2. COMPARATIVO DE RESOLVIDOS (INC x REQ x UAM)", f'<img src="{url_encerrados}" width="100%">')
+    )
+    
+    html = f"""
+    {build_section_title("🌐 SESSÃO CONSOLIDADA (INCs + REQs + UAMs)", ModernColors.GRAY_DARK)}
+    {cards}
+    {build_card("📑 3. TABELA DE EVOLUÇÃO E VOLUMETRIA (MENSAL)", tabela_html)}
+    """
+    return html
 
 # ============================================================================
 # ORQUESTRADOR DE CRIAÇÃO DO RELATÓRIO 2 (COM DADOS REAIS DO EXCEL)
@@ -1332,6 +1466,7 @@ def main_simples2(configs, q=None):
 
         SLA_DAYS_REQS = int(configs.get("sla_days_reqs", 10))
         SLA_DAYS_INCS = int(configs.get("sla_days_incs", 7))
+        SLA_DAYS_PTASK = int(configs.get("sla_days_ptask", 10))
         MONTHS_LIMIT_HTML = int(configs.get("months_limit_html", 2))
         MONTHS_LIMIT_THROUGHPUT = int(
             configs.get("months_limit_throughput", 6))
@@ -1705,11 +1840,15 @@ def main_simples2(configs, q=None):
         SESSAO_UAMS = montar_bloco_html("🔐 SESSÃO UAMs (ACESSOS)", ModernColors.ACCENT_DARK, uam_m, uam_d, uam_a,
                                         uam_ag, uam_sla_df, uam_mttr, uam_in_sla, uam_out_sla, uam_in_c, uam_out_c_abs, uam_in_c_pct, uam_missing_prb_df, SLA_DAYS_REQS, is_inc=False)
 
+        # MONTAGEM DA SESSÃO CONSOLIDADA
+        log_q(q, "Processando dados da Sessão Consolidada (INCs + REQs + UAMs)...")
+        SESSAO_CONSOLIDADA = montar_bloco_consolidado(inc_m, req_m, uam_m, q)
+
         # NOVA SESSÃO GLOBAL PARA TODAS AS PRB TASKs (DIVIDIDA EM RCA E PTASK)
         SESSAO_PTASKS = f"""
         {build_section_title("🎯 SESSÃO PRB TASKs (TODAS AS ABERTAS NO SISTEMA)", ModernColors.GRAY_DARK)}
         {build_card(f"🔍 1. PROBLEM RCA - CAUSAS RAIZ (TOTAL: {len(df_rca_open)})", build_rca_table_html(df_rca_open))}
-        {build_card(f"📋 2. LISTA GERAL DE PROBLEM TASKS (TOTAL: {len(df_ptasks_open)})", build_ptask_table_html_new(df_ptasks_open))}
+        {build_card(f"📋 2. LISTA GERAL DE PROBLEM TASKS (TOTAL: {len(df_ptasks_open)})", build_ptask_table_html_new(df_ptasks_open, SLA_DAYS_PTASK))}
         <br><br>
         """
 
@@ -1738,6 +1877,8 @@ def main_simples2(configs, q=None):
                         {SESSAO_REQS}
                         <br><br>
                         {SESSAO_UAMS}
+                        <br><br>
+                        {SESSAO_CONSOLIDADA}
                         <br><br>
                         {SESSAO_PTASKS}
                     </td>
