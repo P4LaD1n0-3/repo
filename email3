@@ -90,17 +90,19 @@ def hide_zeros(lst):
 
 
 def _pick_col(df, candidates):
+    """Busca ultra-agressiva para não perder a coluna do Excel por causa de underlines ou espaços."""
     # 1. Match exato
     for c in candidates:
         if c in df.columns:
             return c
-    # 2. Match normalizado (lowercase, substitui underscores por espaços)
-    # Isso garante que "assignment_group" e "Assignment Group" sejam identificados como iguais
-    df_cols_norm = {str(col).strip().lower().replace("_", " "): col for col in df.columns}
+    
+    # 2. Match normalizado (Remove TUDO que não for letra ou número e joga pra minúsculo)
+    df_cols_norm = {re.sub(r'[^a-z0-9]', '', str(col).lower()): col for col in df.columns}
     for c in candidates:
-        key = str(c).strip().lower().replace("_", " ")
+        key = re.sub(r'[^a-z0-9]', '', str(c).lower())
         if key in df_cols_norm:
             return df_cols_norm[key]
+            
     return None
 
 
@@ -151,9 +153,10 @@ def _ensure_identity_cols_common(df):
     df["Requester"] = df[requester_col].astype(
         str).fillna("—") if requester_col else "—"
 
-    # GARANTIA: Busca rigorosa por qualquer variação de Assignment Group
-    ag_col = _pick_col(df, ["Assignment group", "Assignment Group", "assignment_group", "Grupo", "Grupo de Atribuição"])
-    df["Assignment group"] = df[ag_col].astype(str).fillna("") if ag_col else ""
+    ag_col = _pick_col(
+        df, ["Assignment group", "Assignment Group", "Grupo", "Grupo de Atribuição"])
+    df["Assignment group"] = df[ag_col].astype(
+        str).fillna("") if ag_col else ""
 
     asg_col = _pick_col(
         df, ["Assigned to", "AssignedTo", "Analista", "Assignee"])
@@ -329,7 +332,7 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
                            "Data Abertura", "Created", "Criado em", "Creation date"])
     closed_col = _pick_col(
         df, ["Resolved", "Resolved at", "Closed", "Close", "ClosedAt", "Data Fechamento"])
-    ag_col = _pick_col(df, ["Assignment group", "Assignment Group", "assignment_group",
+    ag_col = _pick_col(df, ["Assignment group", "Assignment Group",
                        "Grupo", "Grupo de Atribuição", "Grupo de atribuicao"])
     asg_col = _pick_col(
         df, ["Assigned to", "AssignedTo", "Analista", "Assignee"])
@@ -340,6 +343,7 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
         df, ["Short description", "Descrição Curta", "Description", "Descrição"])
     on_hold_col = _pick_col(df, ["On hold reason", "Motivo de espera", "On Hold Reason"])
     
+    # NOVA COLUNA: Comentários adicionais para a tabela auxiliar
     add_comments_col = _pick_col(df, ["Additional comments", "Comentários Adicionais", "Comments", "Comentários"])
 
     def extract_prb(row):
@@ -724,7 +728,6 @@ def get_chart_cid(cfg, width, height, q=None):
             return f"cid:{cid}"
     except Exception as e:
         log_q(q, f"⚠️ Aviso: Falha ao gerar/baixar gráfico. Erro: {e}")
-        # Tenta fallback para URL direta curta se falhar
         return f"https://quickchart.io/chart?w={width}&h={height}&c={urllib.parse.quote(json.dumps(cfg))}"
 
 
@@ -1270,18 +1273,21 @@ def main_simples(configs, q=None):
         # ====================================================================
         # FILTRO EXATO E RIGOROSO NA CAUSA RAIZ - APENAS PELA PALAVRA "ACCESS"
         # ====================================================================
-        # Garantindo que se a coluna existir, vamos checar nela.
-        if "Assignment group" not in df_reqs_raw.columns:
-            df_reqs_raw["Assignment group"] = ""
-            
-        # Avalia True se Assignment group contém "access" (independente de maiúsculas)
-        df_reqs_raw["IS_ACCESS"] = df_reqs_raw["Assignment group"].astype(str).str.lower().str.contains("access", na=False)
+        # Encontra a coluna real de Grupo de Atribuição no Excel original, ignorando formatações chatas
+        col_grupo = _pick_col(df_reqs_raw, ["Assignment group", "Assignment Group", "assignment_group", "Grupo", "Grupo de Atribuição", "assignment group"])
         
-        # Isola perfeitamente REQs de Suporte
-        df_reqs = df_reqs_raw[~df_reqs_raw["IS_ACCESS"]].copy()
+        if col_grupo:
+            # Avalia True APENAS se a coluna de fato existir e contiver a string "access"
+            mask_access = df_reqs_raw[col_grupo].astype(str).str.lower().str.contains("access", na=False)
+        else:
+            # Fallback de segurança: se incrivelmente a coluna não existir, não inventa acesso.
+            mask_access = pd.Series(False, index=df_reqs_raw.index)
         
-        # Isola perfeitamente UAMs (Acessos)
-        df_uams = df_reqs_raw[df_reqs_raw["IS_ACCESS"]].copy()
+        # Isola perfeitamente REQs de Suporte (Tudo que NÃO possui "access" no grupo)
+        df_reqs = df_reqs_raw[~mask_access].copy()
+        
+        # Isola perfeitamente UAMs (Acessos - Tudo que POSSUI "access" no grupo)
+        df_uams = df_reqs_raw[mask_access].copy()
         # ====================================================================
         
         df_incs = load_prepare_incs(SOURCE_INCS, "INCs", now=RUN_AT, q=q)
