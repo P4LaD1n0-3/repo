@@ -265,6 +265,7 @@ def load_prepare_rca(source_file, now=None, q=None):
     rca_due_date_col = _pick_col(df, ["RCA Due Date", "Data de vencimento do RCA", "RCA Due", "Due date (RCA)", "RCA_Due_Date", "u_rca_due_date", "Target date", "RCA Target Date", "Due Date", "due_date"])
     pub_date_col = _pick_col(df, ["RCA Published Date", "Published Date", "Published", "Data de Publicação do RCA", "Data de Publicação"])
     state_col = _pick_col(df, ["State", "Estado", "Status"])
+    opened_col = _pick_col(df, ["Opened", "Open", "Data Abertura", "Created", "Criado em", "opened_at", "sys_created_on"])
 
     d = pd.DataFrame()
     d["Problem"] = df[prob_col].astype(str).fillna("N/A") if prob_col else "N/A"
@@ -275,24 +276,19 @@ def load_prepare_rca(source_file, now=None, q=None):
     now_dt = now or datetime.now()
     now_ts = pd.Timestamp(now_dt).floor('D')
     
+    if opened_col:
+        d["Opened"] = pd.to_datetime(df[opened_col], errors='coerce', dayfirst=True)
+        d["RCA Aging"] = (now_ts - d["Opened"]).dt.days
+    else:
+        d["RCA Aging"] = np.nan
+    
     if rca_due_date_col:
         d["RCA Due Date"] = pd.to_datetime(df[rca_due_date_col], errors='coerce', dayfirst=True)
         d["RCA Due Date Str"] = d["RCA Due Date"].dt.strftime('%d/%m/%Y').fillna("N/A")
+        d["Days Overdue"] = (now_ts - d["RCA Due Date"]).dt.days
     else:
-        d["RCA Due Date"] = pd.NaT
         d["RCA Due Date Str"] = "N/A"
-
-    if pub_date_col:
-        d["RCA Published Date"] = pd.to_datetime(df[pub_date_col], errors='coerce', dayfirst=True)
-    else:
-        d["RCA Published Date"] = pd.NaT
-
-    # Calcula Aging apenas para RCA que não tem Published Date (RCA Abertos)
-    d["RCA Aging"] = np.nan
-    open_mask = d["RCA Published Date"].isna()
-    
-    d.loc[open_mask, "RCA Aging"] = (now_ts - d.loc[open_mask, "RCA Due Date"]).dt.days
-    d["Days Overdue"] = d["RCA Aging"]
+        d["Days Overdue"] = np.nan
         
     # Filtro rigoroso: Remover closed complete, closed incomplete, closed skipped, Resolved
     closed_states = ['closed complete', 'closed incomplete', 'closed skipped', 'resolved', 'fechado', 'cancelado', 'encerrado', 'resolvido']
@@ -1229,131 +1225,56 @@ def build_daily_trend_cfg(df_daily, cor_abertos, cor_fechados, cor_cancelados, l
     total_out = sum(f) + sum(c) if f and c and f[0] != 'Sem Dados' else 0
     return add_title_to_cfg(cfg, f"ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE) - TOTAL ENTRADAS: {total_in} | SAÍDAS ({lbl_resolved.upper()} + CANCELADOS): {total_out}")
 
-
-def build_rca_table_html(df):
-    if df.empty:
-        return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem RCA aberta localizada.</div>"
-
-    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
-    html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
-    cols = ["Problem", "Assigned to", "RCA Status", "RCA Due Date", "RCA Aging", "SLA"]
-    for c in cols:
-        html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
-    html += "</tr></thead><tbody>"
-
-    for i, row in df.iterrows():
-        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
-        html += f"<tr style='background-color: {bg};'>"
-
-        aging_val = row.get("RCA Aging", np.nan)
-        if pd.isna(aging_val):
-            aging_str = "N/A"
-        else:
-            aging_str = str(int(aging_val))
-            
-        overdue_val = row.get("Days Overdue", np.nan)
-        if pd.isna(overdue_val):
-            sla_txt = "N/A"
-            sla_col = ModernColors.GRAY_DARK
-        else:
-            if overdue_val > 0:
-                sla_txt = f"Estourado ({int(overdue_val)} dias)"
-                sla_col = ModernColors.DANGER
-            else:
-                sla_txt = f"No Prazo (restam {abs(int(overdue_val))} dias)"
-                sla_col = ModernColors.SUCCESS
-
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Status']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['RCA Due Date Str']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{aging_str}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {sla_col}; font-weight: bold;'>{sla_txt}</td>"
-
-        html += "</tr>"
-
-    html += "</tbody></table>"
-    return html
-
-
-def build_ptask_table_html_new(df, sla_days_ptask):
-    if df.empty:
-        return f"<div style='padding: 15px; background-color: {ModernColors.GRAY_LIGHT}; color: {ModernColors.GRAY_DARK}; text-align: center; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Nenhuma Problem Task (PTASK) aberta localizada.</div>"
-    
-    html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
-    html += f"<thead><tr style='background-color: {ModernColors.PRIMARY_DARK}; color: #fff;'>"
-    cols = ["Problem", "Number", "Assigned to", "State", "Assignment group", "Opened", "PTASK Aging", "SLA"]
-    for c in cols:
-        html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
-    html += "</tr></thead><tbody>"
-    
-    for i, row in df.iterrows():
-        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
-        html += f"<tr style='background-color: {bg};'>"
-        
-        aging_val = row.get("PTASK Aging", np.nan)
-        aging_str = str(int(aging_val)) if pd.notna(aging_val) and aging_val >= 0 else "N/A"
-
-        if pd.notna(aging_val) and aging_val >= 0:
-            restam = sla_days_ptask - int(aging_val)
-            if restam < 0:
-                sla_txt = f"Estourado ({abs(restam)} dias)"
-                sla_col = ModernColors.DANGER
-            else:
-                sla_txt = f"No Prazo (restam {restam} dias)"
-                sla_col = ModernColors.SUCCESS
-        else:
-            sla_txt = "N/A"
-            sla_col = ModernColors.GRAY_DARK
-
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Problem']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK}; font-weight: bold;'>{row['Number']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assigned to']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['State']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Assignment group']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{row['Opened Str']}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {ModernColors.PRIMARY_DARK};'>{aging_str}</td>"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: center; color: {sla_col}; font-weight: bold;'>{sla_txt}</td>"
-        
-        html += "</tr>"
-    
-    html += "</tbody></table>"
-    return html
-
 # ============================================================================
 # LÓGICA DE GERAÇÃO DA SESSÃO CONSOLIDADA (INC + REQ + UAM)
 # ============================================================================
 
 def merge_daily_data(inc_d, req_d, uam_d):
-    df_i = inc_d[["Data", "Abertos", "Encerrados"]].rename(columns={"Abertos": "INC Abertos", "Encerrados": "INC Resolvidos"})
-    df_r = req_d[["Data", "Abertos", "Encerrados"]].rename(columns={"Abertos": "REQ Abertos", "Encerrados": "REQ Encerrados"})
-    df_u = uam_d[["Data", "Abertos", "Encerrados"]].rename(columns={"Abertos": "UAM Abertos", "Encerrados": "UAM Encerrados"})
+    cols_i = {"Abertos": "INC Abertos", "Encerrados": "INC Resolvidos", "Cancelados": "INC Cancelados", "Saldo": "INC Saldo", "Backlog Acumulado": "INC Backlog"}
+    cols_r = {"Abertos": "REQ Abertos", "Encerrados": "REQ Encerrados", "Cancelados": "REQ Cancelados", "Saldo": "REQ Saldo", "Backlog Acumulado": "REQ Backlog"}
+    cols_u = {"Abertos": "UAM Abertos", "Encerrados": "UAM Encerrados", "Cancelados": "UAM Cancelados", "Saldo": "UAM Saldo", "Backlog Acumulado": "UAM Backlog"}
+
+    df_i = inc_d[["Data", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado"]].rename(columns=cols_i)
+    df_r = req_d[["Data", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado"]].rename(columns=cols_r)
+    df_u = uam_d[["Data", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado"]].rename(columns=cols_u)
 
     df_merged = pd.merge(df_i, df_r, on="Data", how="outer")
     df_merged = pd.merge(df_merged, df_u, on="Data", how="outer")
-    df_merged = df_merged.fillna(0)
 
-    # Ordenar por data
     df_merged["_dt"] = pd.to_datetime(df_merged["Data"], format="%d/%m/%Y", errors="coerce")
     df_merged = df_merged.sort_values("_dt").drop(columns=["_dt"])
+
+    # Forward e Backward fill para manter o backlog contínuo se faltarem dias em algum DataFrame
+    for c in ["INC Backlog", "REQ Backlog", "UAM Backlog"]:
+        if c in df_merged.columns:
+            df_merged[c] = df_merged[c].ffill().bfill()
+
+    df_merged = df_merged.fillna(0)
 
     for c in df_merged.columns:
         if c != "Data":
             df_merged[c] = df_merged[c].astype(int)
+
+    df_merged["Total Abertos"] = df_merged["INC Abertos"] + df_merged["REQ Abertos"] + df_merged["UAM Abertos"]
+    df_merged["Total Encerrados"] = df_merged["INC Resolvidos"] + df_merged["REQ Encerrados"] + df_merged["UAM Encerrados"]
+    df_merged["Total Cancelados"] = df_merged["INC Cancelados"] + df_merged["REQ Cancelados"] + df_merged["UAM Cancelados"]
+    df_merged["Saldo Global"] = df_merged["Total Abertos"] - (df_merged["Total Encerrados"] + df_merged["Total Cancelados"])
+    df_merged["Backlog Global"] = df_merged["INC Backlog"] + df_merged["REQ Backlog"] + df_merged["UAM Backlog"]
+
     return df_merged
 
 def merge_monthly_data(inc_m, req_m, uam_m):
-    # Renomeia para fazer o merge adequado
-    df_i = inc_m[["Mês", "Abertos", "Encerrados"]].rename(columns={"Abertos": "INC Abertos", "Encerrados": "INC Resolvidos"})
-    df_r = req_m[["Mês", "Abertos", "Encerrados"]].rename(columns={"Abertos": "REQ Abertos", "Encerrados": "REQ Encerrados"})
-    df_u = uam_m[["Mês", "Abertos", "Encerrados"]].rename(columns={"Abertos": "UAM Abertos", "Encerrados": "UAM Encerrados"})
+    cols_i = {"Abertos": "INC Abertos", "Encerrados": "INC Resolvidos", "Cancelados": "INC Cancelados", "Saldo": "INC Saldo", "Backlog Acumulado": "INC Backlog"}
+    cols_r = {"Abertos": "REQ Abertos", "Encerrados": "REQ Encerrados", "Cancelados": "REQ Cancelados", "Saldo": "REQ Saldo", "Backlog Acumulado": "REQ Backlog"}
+    cols_u = {"Abertos": "UAM Abertos", "Encerrados": "UAM Encerrados", "Cancelados": "UAM Cancelados", "Saldo": "UAM Saldo", "Backlog Acumulado": "UAM Backlog"}
 
-    # Merge via Outer Join para preservar todos os meses
+    df_i = inc_m[["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado"]].rename(columns=cols_i)
+    df_r = req_m[["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado"]].rename(columns=cols_r)
+    df_u = uam_m[["Mês", "Abertos", "Encerrados", "Cancelados", "Saldo", "Backlog Acumulado"]].rename(columns=cols_u)
+
     df_merged = pd.merge(df_i, df_r, on="Mês", how="outer")
     df_merged = pd.merge(df_merged, df_u, on="Mês", how="outer")
-    df_merged = df_merged.fillna(0)
 
-    # Ordenação Cronológica Segura
     meses_map = {"JAN": 1, "FEV": 2, "MAR": 3, "ABR": 4, "MAI": 5, "JUN": 6, "JUL": 7, "AGO": 8, "SET": 9, "OUT": 10, "NOV": 11, "DEZ": 12}
     def sort_key(m_str):
         try:
@@ -1364,14 +1285,24 @@ def merge_monthly_data(inc_m, req_m, uam_m):
     
     df_merged["SortKey"] = df_merged["Mês"].apply(sort_key)
     df_merged = df_merged.sort_values("SortKey").drop(columns=["SortKey"])
+
+    # Forward e Backward fill para manter o backlog contínuo se faltarem meses em algum DataFrame
+    for c in ["INC Backlog", "REQ Backlog", "UAM Backlog"]:
+        if c in df_merged.columns:
+            df_merged[c] = df_merged[c].ffill().bfill()
+            
+    df_merged = df_merged.fillna(0)
     
-    # Conversão de tipos para visualização na tabela
     for c in df_merged.columns:
         if c != "Mês":
             df_merged[c] = df_merged[c].astype(int)
             
     df_merged["Total Abertos"] = df_merged["INC Abertos"] + df_merged["REQ Abertos"] + df_merged["UAM Abertos"]
     df_merged["Total Encerrados"] = df_merged["INC Resolvidos"] + df_merged["REQ Encerrados"] + df_merged["UAM Encerrados"]
+    df_merged["Total Cancelados"] = df_merged["INC Cancelados"] + df_merged["REQ Cancelados"] + df_merged["UAM Cancelados"]
+    df_merged["Saldo Global"] = df_merged["Total Abertos"] - (df_merged["Total Encerrados"] + df_merged["Total Cancelados"])
+    df_merged["Backlog Global"] = df_merged["INC Backlog"] + df_merged["REQ Backlog"] + df_merged["UAM Backlog"]
+    
     return df_merged
 
 def build_combined_table_html(df):
@@ -1380,7 +1311,8 @@ def build_combined_table_html(df):
 
     html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
     html += f"<thead><tr style='background-color: {ModernColors.GRAY_DARK}; color: #fff;'>"
-    cols = ["Mês", "INCs Abertos", "INCs Resolvidos", "REQs Abertas", "REQs Encerradas", "UAMs Abertas", "UAMs Encerradas", "TOTAL ABERTOS", "TOTAL ENCERRADOS"]
+    cols = ["Mês", "INC Ab.", "INC Res.", "REQ Ab.", "REQ Enc.", "UAM Ab.", "UAM Enc.", "Tot. Ab.", "Tot. Enc.", "Tot. Canc.", "Saldo Global", "Backlog Global"]
+    
     for c in cols:
         html += f"<th style='padding: 4px 6px; border: 1px solid #ddd; text-align: center;'>{c}</th>"
     html += "</tr></thead><tbody>"
@@ -1388,24 +1320,50 @@ def build_combined_table_html(df):
     for i, row in df.iterrows():
         bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
         html += f"<tr style='background-color: {bg};'>"
-        for j, col in enumerate(df.columns):
-            val = str(row[col])
+        
+        vals = [
+            row["Mês"],
+            row["INC Abertos"], row["INC Resolvidos"],
+            row["REQ Abertos"], row["REQ Encerrados"],
+            row["UAM Abertos"], row["UAM Encerrados"],
+            row["Total Abertos"], row["Total Encerrados"], row["Total Cancelados"],
+            row["Saldo Global"], row["Backlog Global"]
+        ]
+        
+        for j, val in enumerate(vals):
             align = "left" if j == 0 else "center"
-            weight = "bold" if "Total" in col or j == 0 else "normal"
-            html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align}; color: {ModernColors.PRIMARY_DARK}; font-weight: {weight};'>{val}</td>"
+            weight = "bold" if j == 0 or j >= 7 else "normal"
+            
+            color = ModernColors.PRIMARY_DARK
+            if j == 10: # Saldo Global
+                color = ModernColors.PRIMARY_DARK if int(val) > 0 else (ModernColors.PRIMARY if int(val) < 0 else ModernColors.GRAY_DARK)
+                if int(val) > 0: val = f"+{val}"
+            
+            html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align}; color: {color}; font-weight: {weight};'>{val}</td>"
         html += "</tr>"
     html += "</tbody>"
 
-    # Geração dos Totais das Colunas
     html += f"<tfoot style='background-color: {ModernColors.GRAY_LIGHT}; font-weight: bold; color: {ModernColors.PRIMARY_DARK}; border-top: 2px solid {ModernColors.PRIMARY_DARK};'><tr>"
-    for j, col in enumerate(df.columns):
-        if j == 0:
-            val = "TOTAIS GERADOS"
-            align = "left"
-        else:
-            val = str(df[col].sum())
-            align = "center"
-        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align};'>{val}</td>"
+    
+    sums = [
+        "TOTAIS",
+        df["INC Abertos"].sum(), df["INC Resolvidos"].sum(),
+        df["REQ Abertos"].sum(), df["REQ Encerrados"].sum(),
+        df["UAM Abertos"].sum(), df["UAM Encerrados"].sum(),
+        df["Total Abertos"].sum(), df["Total Encerrados"].sum(), df["Total Cancelados"].sum(),
+        df["Saldo Global"].sum(),
+        df["Backlog Global"].iloc[-1] if not df.empty else 0
+    ]
+    
+    for j, val in enumerate(sums):
+        align = "left" if j == 0 else "center"
+        color = ModernColors.PRIMARY_DARK
+        if j == 10: # Saldo Total
+            color = ModernColors.PRIMARY_DARK if int(val) > 0 else (ModernColors.PRIMARY if int(val) < 0 else ModernColors.GRAY_DARK)
+            if int(val) > 0: val = f"+{val}"
+            
+        html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align}; color: {color};'>{val}</td>"
+        
     html += "</tr></tfoot></table>"
 
     return html
@@ -1413,10 +1371,15 @@ def build_combined_table_html(df):
 def build_stacked_chart_cfg(df, col_labels, title):
     # Lógica para as labels (se for diário exibe os primeiros caracteres dd/mm, senão o mês inteiro)
     labels_raw = df[col_labels].tolist()
-    if col_labels == "Data":
-        labels = [str(x)[:5] for x in labels_raw]
-    else:
-        labels = labels_raw
+    tot_abertos = df["Total Abertos"].tolist()
+    # Para o "Out" da barra consideramos Resolvidos + Cancelados 
+    tot_saidas = (df["Total Encerrados"] + df["Total Cancelados"]).tolist()
+
+    labels = []
+    for i, raw in enumerate(labels_raw):
+        lbl = str(raw)[:5] if col_labels == "Data" else str(raw)
+        # Array multi-linha na legenda do eixo X para exibir as somas embaixo da barra
+        labels.append([lbl, f"In: {tot_abertos[i]} | Out: {tot_saidas[i]}"])
         
     datasets = [
         {"label": "INC Abertos", "data": hide_zeros(df["INC Abertos"].tolist()), "backgroundColor": ModernColors.GRAY_DARK, "stack": "Abertos"},
@@ -1470,6 +1433,7 @@ def montar_bloco_consolidado(inc_m, req_m, uam_m, inc_d, req_d, uam_d, q):
     {build_card("📑 3. TABELA DE EVOLUÇÃO E VOLUMETRIA (MENSAL)", tabela_html)}
     """
     return html
+
 
 # ============================================================================
 # ORQUESTRADOR DE CRIAÇÃO DO RELATÓRIO 2 (COM DADOS REAIS DO EXCEL)
