@@ -7,7 +7,8 @@ utilizando DADOS REAIS carregados do ServiceNow.
 Separa rigorosamente em 3 Sessões: INCs, REQs (Suporte) e UAMs (Acessos).
 Nova Sessão global para PRB TASKs Abertas (RCA e PTASK).
 Exporta Dados Brutos para Anexo no E-mail.
-Botão "Ver Detalhes" com Âncora HTML que salta para o Apêndice no rodapé da tabela (Solução Definitiva Outlook).
+Botão "Saiba Mais" (Âncora + Tooltip) filtrando EXCLUSIVAMENTE os comentários do Solicitante (Requester).
+Exibe TODOS os chamados estourados sem limite de quantidade.
 """
 
 import os
@@ -397,7 +398,7 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
         df, ["Short description", "Descrição Curta", "Description", "Descrição"])
     on_hold_col = _pick_col(df, ["On hold reason", "Motivo de espera", "On Hold Reason"])
     
-    # Captura a coluna de Additional Comments para jogar no Apêndice via Âncora
+    # Captura a coluna de Comments
     add_comments_col = _pick_col(df, ["Additional comments", "Comentários Adicionais", "Comments", "Comentários", "Additional details"])
 
     def extract_prb(row):
@@ -433,9 +434,56 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
         str).fillna("N/A") if state_col else "N/A"
     
     df["PRB"] = df.apply(extract_prb, axis=1)
-    
     df["On hold reason"] = df[on_hold_col].astype(str).fillna("").replace("nan", "") if on_hold_col else ""
-    df["Additional_Comments"] = df[add_comments_col].astype(str).fillna("").replace("nan", "") if add_comments_col else "Sem comentários"
+    
+    # ========================================================================
+    # FILTRO AVANÇADO DE COMENTÁRIOS: APENAS DO REQUESTER
+    # ========================================================================
+    def filter_requester_comments(row):
+        ac_val = str(row.get(add_comments_col, "")) if add_comments_col and pd.notna(row.get(add_comments_col)) else ""
+        req_val = str(row.get("Requester", ""))
+        
+        if not ac_val or ac_val.lower() == "nan":
+            return ""
+            
+        # Regex captura o cabeçalho de histórico padrão do ServiceNow: yyyy-mm-dd hh:mm:ss - Nome
+        # O lookahead (?=...) permite separar blocos mantendo o cabeçalho neles
+        blocks = re.split(r'(?=\d{2,4}[-/]\d{2}[-/]\d{2,4} \d{2}:\d{2}:\d{2} - )', ac_val)
+        
+        # Se existem múltiplos blocos (ou seja, é um campo diário) e há um solicitante conhecido
+        if len(blocks) > 1 and req_val and req_val != "—":
+            req_name_lower = req_val.strip().lower()
+            req_name_parts = req_name_lower.split()
+            
+            requester_blocks = []
+            for block in blocks:
+                # Isola a primeira linha (cabeçalho) para validação
+                header = block.split('\n', 1)[0].lower()
+                
+                # Verifica se o nome do Solicitante está presente no cabeçalho
+                # Flexibilidade: nome exato OU (primeiro nome E último nome presentes)
+                if req_name_lower in header or (len(req_name_parts) >= 2 and req_name_parts[0] in header and req_name_parts[-1] in header):
+                    # Removemos o cabeçalho e espaços extras, deixando apenas o texto do usuário
+                    clean_block = block.split('\n', 1)[-1].strip()
+                    if clean_block:
+                        # Re-adicionamos a data extraída do cabeçalho original para contexto (opcional, mas bom pra UX)
+                        data_match = re.search(r'\d{2,4}[-/]\d{2}[-/]\d{2,4} \d{2}:\d{2}:\d{2}', block)
+                        data_str = f"[{data_match.group(0)}] " if data_match else ""
+                        requester_blocks.append(f"{data_str}{clean_block}")
+            
+            if requester_blocks:
+                # Une todos os comentários do solicitante separados por duas quebras de linha
+                return "\n\n".join(requester_blocks)
+            else:
+                return "Nenhum comentário adicional registrado pelo Solicitante."
+        
+        # Fallback: Se não for um campo de diário formatado (ex: for apenas o texto "Additional details"), retorna tudo
+        return ac_val
+
+    if add_comments_col:
+        df["Additional_Comments"] = df.apply(filter_requester_comments, axis=1)
+    else:
+        df["Additional_Comments"] = "Sem comentários mapeados."
 
     return df
 
@@ -1015,8 +1063,8 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
             # ========================================================================
             elif col_name == "Info (Saiba Mais)":
                 safe_text = str(val).strip()
-                if safe_text in ["", "N/A", "Sem comentários", "nan", "None"]:
-                    v_str = "<span style='color: #999; font-size: 10px; font-style: italic;'>Sem Info</span>"
+                if safe_text in ["", "N/A", "Sem comentários", "nan", "None", "Nenhum comentário adicional registrado pelo Solicitante."]:
+                    v_str = "<span style='color: #999; font-size: 10px; font-style: italic;'>Sem Info do User</span>"
                 else:
                     # Cria a âncora que aponta para o ID no rodapé da seção
                     v_str = f"<a href='#desc_{ticket_val}' style='display: inline-block; background-color: {ModernColors.INFO}; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; text-decoration: none;'>VER DETALHES ⬇️</a>"
@@ -1088,8 +1136,8 @@ def build_appendix_html(df, color_main):
         ticket = str(row.get("Ticket", "")).strip()
         desc_raw = str(row.get("Info (Saiba Mais)", "Sem informações")).strip()
         
-        # Ignora chamados que não tem nada útil para não poluir o apêndice
-        if desc_raw in ["", "N/A", "Sem comentários", "nan", "None"]:
+        # Ignora chamados que não tem nada útil do requester para não poluir o apêndice
+        if desc_raw in ["", "N/A", "Sem comentários", "nan", "None", "Nenhum comentário adicional registrado pelo Solicitante."]:
             continue
             
         # Trata o texto para pular linha bonitinho no HTML
@@ -1768,7 +1816,7 @@ def main_simples2(configs, q=None):
             else:
                 in_sla, out_sla = 0, 0
 
-            # Tabela Crítica + Tabela Auxiliar de Sem PRB (Com injeção da Coluna Tooltip)
+            # Tabela Crítica + Tabela Auxiliar de Sem PRB (Com injeção da Coluna Tooltip/Âncora)
             df_missing_prb = pd.DataFrame()
             if "SLA_BREACH_OPEN" in open_df.columns:
                 df_critical = open_df[open_df["SLA_BREACH_OPEN"]
@@ -1777,12 +1825,17 @@ def main_simples2(configs, q=None):
                 df_critical = pd.DataFrame()
 
             if not df_critical.empty:
+                # ============================================================================
+                # REMOVIDO O LIMITE .head(50) - EXIBE ABSOLUTAMENTE TODOS OS ESTOURADOS
+                # ============================================================================
                 df_critical = df_critical.sort_values(
-                    by="AGING_OPEN", ascending=False).head(50)
+                    by="AGING_OPEN", ascending=False)
+                    
                 df_critical["Opened_Str"] = df_critical["Opened"].dt.strftime(
                     '%d/%m/%Y').fillna("-")
 
                 if is_inc:
+                    # Garantir que a coluna Additional_Comments está presente
                     for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "On hold reason", "PRB", "Additional_Comments"]:
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
@@ -1799,6 +1852,7 @@ def main_simples2(configs, q=None):
                     df_critical.columns = [
                         "Ticket", "Info (Saiba Mais)", "Analista", "Solicitante", "Grupo", "Status", "Motivo Espera", "Abertura", "Aging", "PRB"]
                 else:
+                    # Garantir que a coluna Additional_Comments está presente
                     for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "Additional_Comments"]:
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
