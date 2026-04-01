@@ -7,7 +7,7 @@ utilizando DADOS REAIS carregados do ServiceNow.
 Separa rigorosamente em 3 Sessões: INCs, REQs (Suporte) e UAMs (Acessos).
 Nova Sessão global para PRB TASKs Abertas (RCA e PTASK).
 Exporta Dados Brutos para Anexo no E-mail.
-Botão "Saiba Mais" nas tabelas de SLA Crítico com comentários adicionais em Tooltip (Hover forçado via Link para Outlook).
+Botão "Saiba Mais" nas tabelas de SLA Crítico com comentários adicionais em Tooltip (Solução Nativa Outlook).
 """
 
 import os
@@ -986,6 +986,7 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
             v_str = str(val)
             color = ModernColors.PRIMARY_DARK
             font_weight = "bold" if j == 0 else "normal"
+            td_title = "" # Inicializa vazio
 
             if "Aging" in df.columns and j == list(df.columns).index("Aging"):
                 try:
@@ -1001,23 +1002,34 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
                 color = ModernColors.PRIMARY_DARK if str(val).strip() != "N/A" else ModernColors.GRAY
                 font_weight = "bold" if str(val).strip() != "N/A" else "normal"
                 bg_cell = "transparent"
-            
-            # NOVA LÓGICA DO BOTÃO SAIBA MAIS (HOVER NO EMAIL - CORRIGIDO PARA OUTLOOK)
+                
+            # ========================================================================
+            # NOVA LÓGICA DO BOTÃO SAIBA MAIS (HOVER FORÇADO PARA OUTLOOK)
+            # ========================================================================
             elif col_name == "Info (Saiba Mais)":
-                safe_text = str(val).replace('"', '&quot;').replace("'", "&apos;").replace('<', '&lt;').replace('>', '&gt;').replace('\n', ' &#13; ')
-                safe_text = safe_text[:1500] + ('...' if len(safe_text) > 1500 else '')
+                # Escapa os caracteres e converte quebras de linha em Pipe ( | ) para não quebrar o HTML do Outlook
+                safe_text = str(val).replace('"', '&quot;').replace("'", "&apos;").replace('<', '&lt;').replace('>', '&gt;')
+                safe_text = safe_text.replace('\n', ' | ').replace('\r', '') 
+                safe_text = safe_text[:1000] + ('...' if len(safe_text) > 1000 else '')
+                
                 if safe_text.strip() in ["", "N/A", "Sem comentários", "nan", "None"]:
                     v_str = "<span style='color: #999; font-size: 10px; font-style: italic;'>Sem Info</span>"
+                    td_title = ""
                 else:
-                    # Outlook ignora 'title' em <span>. O truque para forçar a exibição no Outlook é usar uma tag de link <a> cega.
-                    v_str = f"<a href='#' title=\"{safe_text}\" style='display: inline-block; background-color: {ModernColors.INFO}; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; text-decoration: none; cursor: pointer;'>SAIBA MAIS 📄</a>"
+                    # Injeta o TITLE na célula <td> E na tag <acronym> (tag altamente respeitada pelo Outlook Word Engine)
+                    td_title = f" title=\"{safe_text}\""
+                    v_str = f"<acronym title=\"{safe_text}\" style='display: inline-block; background-color: {ModernColors.INFO}; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; text-decoration: none; cursor: help; border-bottom: 1px dotted #ffffff;'>SAIBA MAIS 📄</acronym>"
+                
                 bg_cell = "transparent"
                 font_weight = "normal"
             else:
                 bg_cell = "transparent"
 
             align = "left" if j == 0 else "center"
-            html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align}; color: {color}; font-weight: {font_weight}; background-color: {bg_cell};'>{v_str}</td>"
+            
+            # Aqui é onde o td_title é aplicado no HTML
+            html += f"<td{td_title} style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align}; color: {color}; font-weight: {font_weight}; background-color: {bg_cell};'>{v_str}</td>"
+            
         html += "</tr>"
     html += "</tbody>"
 
