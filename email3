@@ -7,6 +7,7 @@ utilizando DADOS REAIS carregados do ServiceNow.
 Separa rigorosamente em 3 Sessões: INCs, REQs (Suporte) e UAMs (Acessos).
 Nova Sessão global para PRB TASKs Abertas (RCA e PTASK).
 Exporta Dados Brutos para Anexo no E-mail.
+Botão "Saiba Mais" nas tabelas de SLA Crítico com comentários adicionais em Tooltip (Hover).
 """
 
 import os
@@ -396,7 +397,8 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
         df, ["Short description", "Descrição Curta", "Description", "Descrição"])
     on_hold_col = _pick_col(df, ["On hold reason", "Motivo de espera", "On Hold Reason"])
     
-    add_comments_col = _pick_col(df, ["Additional comments", "Comentários Adicionais", "Comments", "Comentários"])
+    # Captura a coluna de Additional Comments para os Tooltips
+    add_comments_col = _pick_col(df, ["Additional comments", "Comentários Adicionais", "Comments", "Comentários", "Additional details"])
 
     def extract_prb(row):
         prb_val = str(row.get(prb_col, "")).strip() if prb_col and pd.notna(row.get(prb_col)) else ""
@@ -980,6 +982,7 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
         bg = ModernColors.GRAY_LIGHT if zebra and i % 2 == 0 else ModernColors.WHITE
         html += f"<tr style='background-color: {bg};'>"
         for j, val in enumerate(row):
+            col_name = df.columns[j]
             v_str = str(val)
             color = ModernColors.PRIMARY_DARK
             font_weight = "bold" if j == 0 else "normal"
@@ -995,10 +998,20 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
                 except:
                     bg_cell = "transparent"
             elif "PRB" in df.columns and j == list(df.columns).index("PRB"):
-                color = ModernColors.PRIMARY_DARK if str(
-                    val).strip() != "N/A" else ModernColors.GRAY
+                color = ModernColors.PRIMARY_DARK if str(val).strip() != "N/A" else ModernColors.GRAY
                 font_weight = "bold" if str(val).strip() != "N/A" else "normal"
                 bg_cell = "transparent"
+            # NOVA LÓGICA DO BOTÃO SAIBA MAIS (HOVER NO EMAIL)
+            elif col_name == "Info (Saiba Mais)":
+                safe_text = str(val).replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+                safe_text = safe_text[:1500] + ('...' if len(safe_text) > 1500 else '') # Limita para não quebrar o HTML
+                if safe_text.strip() in ["", "N/A", "Sem comentários"]:
+                    v_str = "<span style='color: #999; font-size: 10px; font-style: italic;'>Sem Info</span>"
+                else:
+                    # O atributo TITLE cria o tooltip nativo de mouse hover nos navegadores/Outlook
+                    v_str = f"<span title=\"{safe_text}\" style='background-color: {ModernColors.INFO}; color: #fff; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: help;'>SAIBA MAIS 📄</span>"
+                bg_cell = "transparent"
+                font_weight = "normal"
             else:
                 bg_cell = "transparent"
 
@@ -1017,6 +1030,9 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
             elif "backlog acumulado" in col_lower:
                 last_val = df.iloc[-1][col_name]
                 val = int(last_val) if pd.notna(last_val) else 0
+                align = "center"
+            elif col_name == "Info (Saiba Mais)":
+                val = "—"
                 align = "center"
             elif pd.api.types.is_numeric_dtype(df[col_name]):
                 if "%" in col_lower or col_name == "%":
@@ -1544,7 +1560,7 @@ def main_simples2(configs, q=None):
     IMAGE_ATTACHMENTS = []
 
     log_q(q, "\n" + "=" * 80)
-    log_q(q, "🚀 GERANDO RELATÓRIO 2 (NOVO LAYOUT MONOCROMÁTICO) COM DADOS REAIS")
+    log_q(q, "🚀 GERANDO RELATÓRIO 2 (NOVO LAYOUT MONOCROMÁTICO) COM DADOS REAIS E HOVER DE COMENTÁRIOS")
     log_q(q, "=" * 80)
 
     try:
@@ -1631,7 +1647,7 @@ def main_simples2(configs, q=None):
             end_date = now_floor
 
         # ========================================================================
-        # FUNÇÃO INTERNA PARA PROCESSAR UMA SESSÃO
+        # FUNÇÃO INTERNA PARA PROCESSAR UMA SESSÃO (CRIANDO COLUNA "SAIBA MAIS")
         # ========================================================================
         def process_section(df_full, df_open, ticket_type, sla_days, real_backlog, is_inc=False):
             df_m = compute_monthly_throughput_table_html(
@@ -1696,7 +1712,7 @@ def main_simples2(configs, q=None):
             else:
                 in_sla, out_sla = 0, 0
 
-            # Tabela Crítica + Tabela Auxiliar de Sem PRB (apenas INCs)
+            # Tabela Crítica + Tabela Auxiliar de Sem PRB (Com injeção da Coluna Tooltip)
             df_missing_prb = pd.DataFrame()
             if "SLA_BREACH_OPEN" in open_df.columns:
                 df_critical = open_df[open_df["SLA_BREACH_OPEN"]
@@ -1711,6 +1727,7 @@ def main_simples2(configs, q=None):
                     '%d/%m/%Y').fillna("-")
 
                 if is_inc:
+                    # Garantir que a coluna Additional_Comments está presente
                     for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "On hold reason", "PRB", "Additional_Comments"]:
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
@@ -1721,25 +1738,29 @@ def main_simples2(configs, q=None):
                         df_missing_prb["Additional_Comments"] = df_missing_prb["Additional_Comments"].apply(lambda x: (str(x)[:150] + '...') if len(str(x)) > 150 else str(x))
                         df_missing_prb.columns = ["Ticket", "Analista", "Último Comentário Registrado"]
                     
+                    # === INSERINDO A COLUNA DO BOTÃO SAIBA MAIS (Additional_Comments) ===
                     df_critical = df_critical[[
-                        "Number", "Assigned to", "Requester", "Assignment group", "State", "On hold reason", "Opened_Str", "AGING_OPEN", "PRB"]]
+                        "Number", "Additional_Comments", "Assigned to", "Requester", "Assignment group", "State", "On hold reason", "Opened_Str", "AGING_OPEN", "PRB"]]
                     df_critical.columns = [
-                        "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Motivo Espera", "Abertura", "Aging", "PRB"]
+                        "Ticket", "Info (Saiba Mais)", "Analista", "Solicitante", "Grupo", "Status", "Motivo Espera", "Abertura", "Aging", "PRB"]
                 else:
-                    for col in ["Number", "Assignment group", "Assigned to", "Requester", "State"]:
+                    # Garantir que a coluna Additional_Comments está presente
+                    for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "Additional_Comments"]:
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
+                            
+                    # === INSERINDO A COLUNA DO BOTÃO SAIBA MAIS (Additional_Comments) ===
                     df_critical = df_critical[[
-                        "Number", "Assigned to", "Requester", "Assignment group", "State", "Opened_Str", "AGING_OPEN"]]
+                        "Number", "Additional_Comments", "Assigned to", "Requester", "Assignment group", "State", "Opened_Str", "AGING_OPEN"]]
                     df_critical.columns = [
-                        "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"]
+                        "Ticket", "Info (Saiba Mais)", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"]
             else:
                 if is_inc:
                     df_critical = pd.DataFrame(columns=[
-                                               "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Motivo Espera", "Abertura", "Aging", "PRB"])
+                                               "Ticket", "Info (Saiba Mais)", "Analista", "Solicitante", "Grupo", "Status", "Motivo Espera", "Abertura", "Aging", "PRB"])
                 else:
                     df_critical = pd.DataFrame(columns=[
-                                               "Ticket", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"])
+                                               "Ticket", "Info (Saiba Mais)", "Analista", "Solicitante", "Grupo", "Status", "Abertura", "Aging"])
 
             return df_m, df_d, df_a, df_ag, df_critical, mttr_val, in_sla, out_sla, in_sla_closed, out_sla_closed, in_sla_pct, df_missing_prb
 
@@ -1797,6 +1818,8 @@ def main_simples2(configs, q=None):
 
             tabela_throughput = build_full_monthly_table_html(
                 df_m, "TABELA DE THROUGHPUT ACUMULADO", lbl_resolved)
+                
+            # Geração da Tabela com o Botão Interativo "Saiba Mais"
             tabela_sla_critica = build_html_table_html(
                 df_sla, ModernColors.PRIMARY_DARK, show_totals=False, sla_days=sla_days)
 
