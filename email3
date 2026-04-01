@@ -7,7 +7,7 @@ utilizando DADOS REAIS carregados do ServiceNow.
 Separa rigorosamente em 3 Sessões: INCs, REQs (Suporte) e UAMs (Acessos).
 Nova Sessão global para PRB TASKs Abertas (RCA e PTASK).
 Exporta Dados Brutos para Anexo no E-mail.
-Botão "Saiba Mais" nas tabelas de SLA Crítico com comentários adicionais em Tooltip (Solução Nativa Outlook).
+Botão "Ver Detalhes" com Âncora HTML que salta para o Apêndice no rodapé da tabela (Solução Definitiva Outlook).
 """
 
 import os
@@ -397,7 +397,7 @@ def normalize_ticket_df_html(df, ticket_type_label="REQ"):
         df, ["Short description", "Descrição Curta", "Description", "Descrição"])
     on_hold_col = _pick_col(df, ["On hold reason", "Motivo de espera", "On Hold Reason"])
     
-    # Captura a coluna de Additional Comments para os Tooltips
+    # Captura a coluna de Additional Comments para jogar no Apêndice via Âncora
     add_comments_col = _pick_col(df, ["Additional comments", "Comentários Adicionais", "Comments", "Comentários", "Additional details"])
 
     def extract_prb(row):
@@ -971,6 +971,11 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
     if df is None or df.empty:
         return f"<div style='padding: 15px; color: {ModernColors.PRIMARY_DARK}; background-color: {ModernColors.PRIMARY_LIGHT}; text-align: center; font-weight: bold; border: 1px solid {ModernColors.PRIMARY_DARK}; border-radius: 4px; font-family: Calibri, sans-serif;'>✅ Sem dados aplicáveis para o período.</div>"
 
+    try:
+        ticket_idx = list(df.columns).index("Ticket")
+    except ValueError:
+        ticket_idx = 0
+
     html = f"<table width='100%' cellpadding='0' cellspacing='0' border='0' style='border-collapse: collapse; font-size: 11px; font-family: Calibri, Arial, sans-serif; white-space: nowrap; margin: 0 auto;'>"
     html += "<thead><tr>"
     for col in df.columns:
@@ -981,12 +986,14 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
     for i, row in df.iterrows():
         bg = ModernColors.GRAY_LIGHT if zebra and i % 2 == 0 else ModernColors.WHITE
         html += f"<tr style='background-color: {bg};'>"
+        
+        ticket_val = str(row.iloc[ticket_idx]).strip()
+
         for j, val in enumerate(row):
             col_name = df.columns[j]
             v_str = str(val)
             color = ModernColors.PRIMARY_DARK
             font_weight = "bold" if j == 0 else "normal"
-            td_title = "" # Inicializa vazio
 
             if "Aging" in df.columns and j == list(df.columns).index("Aging"):
                 try:
@@ -1002,24 +1009,17 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
                 color = ModernColors.PRIMARY_DARK if str(val).strip() != "N/A" else ModernColors.GRAY
                 font_weight = "bold" if str(val).strip() != "N/A" else "normal"
                 bg_cell = "transparent"
-                
+            
             # ========================================================================
-            # NOVA LÓGICA DO BOTÃO SAIBA MAIS (HOVER FORÇADO PARA OUTLOOK)
+            # LÓGICA DA ÂNCORA (OUTLOOK DEFINITIVE FIX)
             # ========================================================================
             elif col_name == "Info (Saiba Mais)":
-                # Escapa os caracteres e converte quebras de linha em Pipe ( | ) para não quebrar o HTML do Outlook
-                safe_text = str(val).replace('"', '&quot;').replace("'", "&apos;").replace('<', '&lt;').replace('>', '&gt;')
-                safe_text = safe_text.replace('\n', ' | ').replace('\r', '') 
-                safe_text = safe_text[:1000] + ('...' if len(safe_text) > 1000 else '')
-                
-                if safe_text.strip() in ["", "N/A", "Sem comentários", "nan", "None"]:
+                safe_text = str(val).strip()
+                if safe_text in ["", "N/A", "Sem comentários", "nan", "None"]:
                     v_str = "<span style='color: #999; font-size: 10px; font-style: italic;'>Sem Info</span>"
-                    td_title = ""
                 else:
-                    # Injeta o TITLE na célula <td> E na tag <acronym> (tag altamente respeitada pelo Outlook Word Engine)
-                    td_title = f" title=\"{safe_text}\""
-                    v_str = f"<acronym title=\"{safe_text}\" style='display: inline-block; background-color: {ModernColors.INFO}; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; text-decoration: none; cursor: help; border-bottom: 1px dotted #ffffff;'>SAIBA MAIS 📄</acronym>"
-                
+                    # Cria a âncora que aponta para o ID no rodapé da seção
+                    v_str = f"<a href='#desc_{ticket_val}' style='display: inline-block; background-color: {ModernColors.INFO}; color: #ffffff; padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: bold; text-decoration: none;'>VER DETALHES ⬇️</a>"
                 bg_cell = "transparent"
                 font_weight = "normal"
             else:
@@ -1027,8 +1027,7 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
 
             align = "left" if j == 0 else "center"
             
-            # Aqui é onde o td_title é aplicado no HTML
-            html += f"<td{td_title} style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align}; color: {color}; font-weight: {font_weight}; background-color: {bg_cell};'>{v_str}</td>"
+            html += f"<td style='padding: 4px 6px; border: 1px solid #ddd; text-align: {align}; color: {color}; font-weight: {font_weight}; background-color: {bg_cell};'>{v_str}</td>"
             
         html += "</tr>"
     html += "</tbody>"
@@ -1064,6 +1063,50 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
         html += "</tr></tfoot>"
 
     html += "</table>"
+    return html
+
+
+# ============================================================================
+# CONSTRUTOR DO APÊNDICE (ONDE O GESTOR LÊ O TEXTO APÓS CLICAR NA ÂNCORA)
+# ============================================================================
+def build_appendix_html(df, color_main):
+    if df is None or df.empty:
+        return ""
+    
+    html = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 5px; border-collapse: collapse; font-family: 'Calibri', Arial, sans-serif; font-size: 12px; border: 1px solid #ddd;">
+        <thead>
+            <tr><td colspan="2" style="background-color: {color_main}; color: #FFF; padding: 10px; font-size: 13px; font-weight: bold; text-transform: uppercase; text-align: center;">
+                📋 DETALHES DOS CHAMADOS ACIMA DO SLA (APÊNDICE)
+            </td></tr>
+        </thead>
+        <tbody>
+    """
+    
+    for i, row in df.iterrows():
+        bg = ModernColors.GRAY_LIGHT if i % 2 == 0 else ModernColors.WHITE
+        ticket = str(row.get("Ticket", "")).strip()
+        desc_raw = str(row.get("Info (Saiba Mais)", "Sem informações")).strip()
+        
+        # Ignora chamados que não tem nada útil para não poluir o apêndice
+        if desc_raw in ["", "N/A", "Sem comentários", "nan", "None"]:
+            continue
+            
+        # Trata o texto para pular linha bonitinho no HTML
+        desc_html = desc_raw.replace('\n', '<br>')
+        
+        html += f"""
+        <tr style="background-color: {bg}; border-bottom: 1px solid #ddd;">
+            <td width="15%" valign="top" style="padding: 12px; border-right: 1px solid #ddd; font-weight: bold; color: {ModernColors.PRIMARY_DARK}; text-align: center;">
+                <a name="desc_{ticket}"></a>{ticket}
+            </td>
+            <td width="85%" valign="top" style="padding: 12px; color: #333; line-height: 1.4;">
+                {desc_html}
+            </td>
+        </tr>
+        """
+        
+    html += "</tbody></table><br>"
     return html
 
 
@@ -1573,7 +1616,7 @@ def main_simples2(configs, q=None):
     IMAGE_ATTACHMENTS = []
 
     log_q(q, "\n" + "=" * 80)
-    log_q(q, "🚀 GERANDO RELATÓRIO 2 (NOVO LAYOUT MONOCROMÁTICO) COM DADOS REAIS E HOVER DE COMENTÁRIOS")
+    log_q(q, "🚀 GERANDO RELATÓRIO 2 (COM ÂNCORA DE DETALHES PARA OUTLOOK)")
     log_q(q, "=" * 80)
 
     try:
@@ -1660,7 +1703,7 @@ def main_simples2(configs, q=None):
             end_date = now_floor
 
         # ========================================================================
-        # FUNÇÃO INTERNA PARA PROCESSAR UMA SESSÃO (CRIANDO COLUNA "SAIBA MAIS")
+        # FUNÇÃO INTERNA PARA PROCESSAR UMA SESSÃO
         # ========================================================================
         def process_section(df_full, df_open, ticket_type, sla_days, real_backlog, is_inc=False):
             df_m = compute_monthly_throughput_table_html(
@@ -1740,7 +1783,6 @@ def main_simples2(configs, q=None):
                     '%d/%m/%Y').fillna("-")
 
                 if is_inc:
-                    # Garantir que a coluna Additional_Comments está presente
                     for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "On hold reason", "PRB", "Additional_Comments"]:
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
@@ -1757,7 +1799,6 @@ def main_simples2(configs, q=None):
                     df_critical.columns = [
                         "Ticket", "Info (Saiba Mais)", "Analista", "Solicitante", "Grupo", "Status", "Motivo Espera", "Abertura", "Aging", "PRB"]
                 else:
-                    # Garantir que a coluna Additional_Comments está presente
                     for col in ["Number", "Assignment group", "Assigned to", "Requester", "State", "Additional_Comments"]:
                         if col not in df_critical.columns:
                             df_critical[col] = "N/A"
@@ -1832,9 +1873,12 @@ def main_simples2(configs, q=None):
             tabela_throughput = build_full_monthly_table_html(
                 df_m, "TABELA DE THROUGHPUT ACUMULADO", lbl_resolved)
                 
-            # Geração da Tabela com o Botão Interativo "Saiba Mais"
+            # Geração da Tabela com o Botão Interativo "Saiba Mais" que tem os Links das Âncoras
             tabela_sla_critica = build_html_table_html(
                 df_sla, ModernColors.PRIMARY_DARK, show_totals=False, sla_days=sla_days)
+            
+            # Geração do Apêndice HTML (Alvo das Âncoras)
+            apendice_html = build_appendix_html(df_sla, color_main)
 
             # Nova Tabela Auxiliar (Somente INCs Críticos sem PRB)
             tabela_auxiliar_html = ""
@@ -1915,7 +1959,7 @@ def main_simples2(configs, q=None):
             </table>
             """
 
-            # LAYOUT FINAL DO BLOCO
+            # LAYOUT FINAL DO BLOCO (AGORA COM O APÊNDICE RENDERIZADO LOGO APÓS A TABELA CRÍTICA)
             return f"""
             {build_section_title(titulo, color_main)}
             {cards_html}
@@ -1936,7 +1980,7 @@ def main_simples2(configs, q=None):
                 build_card("6. STATUS DE SLA DOS VIGENTES", f'<img src="{qc_url_html(cfg_sla_pie, q)}" width="100%">')
             )}
             
-            {build_card(f"⚠️ CHAMADOS ACIMA DO SLA PENDENTES (TOTAL: {len(df_sla)})", tabela_sla_critica)}
+            {build_card(f"⚠️ CHAMADOS ACIMA DO SLA PENDENTES (TOTAL: {len(df_sla)})", tabela_sla_critica + apendice_html)}
             {tabela_auxiliar_html}
             <br><br>
             """
