@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELITE MASTER V6.4 - Sistema Analítico ITSM</title>
+    <title>ELITE MASTER V6.5 - Sistema Analítico ITSM</title>
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,7 +19,7 @@
 
     <style>
         /* =========================================================
-           PALETA DE CORES MASTER
+           PALETA DE CORES MASTER (FIEL AO PYTHON)
            ========================================================= */
         :root {
             --primary-dark: #001871;
@@ -39,7 +39,7 @@
         }
 
         body {
-            font-family: 'Inter', 'Calibri', sans-serif;
+            font-family: 'Calibri', Arial, sans-serif;
             background-color: var(--background);
             color: #333;
             margin: 0;
@@ -88,7 +88,7 @@
         }
 
         .animate-fade {
-            animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         .transition-all-smooth {
@@ -96,7 +96,7 @@
         }
 
         /* =========================================================
-           SIDEBAR
+           SIDEBAR E HEADER DO SISTEMA
            ========================================================= */
         .sidebar {
             width: var(--sidebar-width);
@@ -106,7 +106,7 @@
             display: flex;
             flex-direction: column;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 200;
+            z-index: 500;
             height: 100vh;
             flex-shrink: 0;
             box-shadow: 4px 0 15px rgba(0, 0, 0, 0.03);
@@ -151,7 +151,7 @@
                 position: fixed;
                 inset: 0;
                 background: rgba(15, 23, 42, 0.4);
-                z-index: 100;
+                z-index: 400;
                 backdrop-filter: blur(4px);
                 opacity: 0;
                 transition: 0.3s;
@@ -174,9 +174,6 @@
             min-width: 0;
         }
 
-        /* =========================================================
-           HEADER E TABS FIXOS (STICKY)
-           ========================================================= */
         .top-header {
             background-color: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -186,55 +183,11 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 2rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-            z-index: 40;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+            position: sticky;
+            top: 0;
+            z-index: 200;
             min-width: 0;
-            position: sticky;
-            top: 0;
-        }
-
-        .tabs-sticky {
-            background-color: #fff;
-            border-bottom: 2px solid #e2e8f0;
-            padding: 0 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 30;
-            width: 100%;
-            box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.05);
-        }
-
-        .tabs-nav {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            padding-top: 10px;
-        }
-
-        .tab-btn {
-            padding: 12px 20px;
-            background: transparent;
-            border: none;
-            border-bottom: 3px solid transparent;
-            color: #64748b;
-            font-weight: 700;
-            font-size: 13px;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: 0.3s;
-            letter-spacing: 0.5px;
-            border-radius: 6px 6px 0 0;
-        }
-
-        .tab-btn:hover {
-            color: var(--primary-dark);
-            background: #f8fafc;
-        }
-
-        .tab-btn.active {
-            color: var(--primary-dark);
-            border-bottom-color: var(--primary-dark);
-            background: #eff6ff;
         }
 
         .btn-toggle {
@@ -299,6 +252,50 @@
             font-size: 14px;
         }
 
+        /* TABS STICKY */
+        .tabs-sticky {
+            background-color: #fff;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 150;
+            width: 100%;
+        }
+
+        .tabs-nav {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding-top: 8px;
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #64748b;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+            letter-spacing: 0.5px;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary-dark);
+            background: #f8fafc;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-dark);
+            border-bottom-color: var(--primary-dark);
+            background: #eff6ff;
+        }
+
         .content-area {
             padding: 2rem;
             overflow-y: auto;
@@ -318,9 +315,7 @@
             padding-bottom: 50px;
         }
 
-        /* =========================================================
-           UPLOADER E WIDGETS
-           ========================================================= */
+        /* Uploader e Sidebar Widgets */
         .dropzone-discreet {
             border: 2px dashed #cbd5e1;
             border-radius: 8px;
@@ -397,8 +392,9 @@
             box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
         }
 
+        /* CORREÇÃO DO CARD DATA DE REFERÊNCIA - COR AZUL PRIMÁRIA DA PALETA */
         .time-machine {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
             padding: 1.2rem;
             border-radius: 10px;
             color: #fff;
@@ -460,6 +456,9 @@
             margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .report-card {
@@ -489,9 +488,6 @@
             border-bottom: 1px solid #f1f5f9;
             margin-bottom: 20px;
             letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         /* Grids Protegidos contra Overflow */
@@ -503,14 +499,18 @@
             min-width: 0;
         }
 
-        .chart-wrapper {
+        /* CORREÇÃO: Gráfico Panorâmico agora tem altura fixa também no Desktop */
+        .chart-wrapper,
+        .chart-full-width {
             position: relative;
             width: 100%;
-            height: 320px;
+            height: 350px;
             min-width: 0;
         }
 
-        /* Tabelas Altamente Responsivas */
+        /* =========================================================
+           TABELAS ALTAMENTE RESPONSIVAS E DENSAS (CORREÇÃO DESKTOP)
+           ========================================================= */
         .st-dataframe-container {
             overflow-x: auto;
             max-height: 500px;
@@ -522,28 +522,26 @@
 
         .st-table {
             width: 100%;
-            table-layout: fixed;
             border-collapse: separate;
             border-spacing: 0;
-            font-size: 12px;
+            font-size: 11px;
             font-family: 'Inter', sans-serif;
-            min-width: 900px;
         }
 
         .w-tk {
-            width: 12%;
+            width: 10%;
         }
 
         .w-as {
-            width: 15%;
+            width: 12%;
         }
 
         .w-gp {
-            width: 15%;
+            width: 12%;
         }
 
         .w-st {
-            width: 12%;
+            width: 10%;
         }
 
         .w-age {
@@ -551,35 +549,37 @@
         }
 
         .w-prb {
-            width: 10%;
+            width: 8%;
         }
 
         .w-info {
-            width: 28%;
+            width: auto;
         }
 
         .st-table th {
             color: #fff;
-            padding: 12px;
+            padding: 8px 4px;
             border-right: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: left;
+            text-align: center;
             position: sticky;
             top: 0;
             z-index: 10;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-size: 10px;
         }
 
         .st-table td {
-            padding: 12px;
+            padding: 8px 4px;
             border-bottom: 1px solid #e2e8f0;
-            text-align: left;
-            vertical-align: top;
+            text-align: center;
+            vertical-align: middle;
+            transition: 0.2s;
+            word-wrap: break-word;
         }
 
         .st-table tbody tr {
-            transition: background 0.2s ease;
             cursor: default;
         }
 
@@ -597,8 +597,9 @@
             background-color: var(--gray-light);
             border-top: 2px solid var(--primary-dark);
             color: var(--primary-dark);
-            padding: 10px 12px;
+            padding: 8px 4px;
             font-weight: 800;
+            font-size: 11px;
         }
 
         /* Expansão e Textos */
@@ -611,6 +612,7 @@
             color: #475569;
             line-height: 1.4;
             transition: all 0.3s;
+            text-align: left;
         }
 
         .text-expandable.expanded {
@@ -637,6 +639,7 @@
             text-decoration: underline;
         }
 
+        /* Accordions para Apêndice */
         details.saas-accordion {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -834,6 +837,250 @@
         .hidden-st {
             display: none !important;
         }
+
+        /* =========================================================
+           RESPONSIVIDADE E ADAPTAÇÃO PARA MOBILE
+           ========================================================= */
+        @media (max-width: 1024px) {
+            body {
+                font-size: 14px;
+            }
+
+            .content-area {
+                padding: 1rem;
+                overflow-x: hidden;
+            }
+
+            .top-header {
+                padding: 1rem;
+                flex-wrap: wrap;
+                height: auto;
+                min-height: 70px;
+                gap: 10px;
+                justify-content: flex-start;
+            }
+
+            .search-wrapper {
+                max-width: 100%;
+                flex: 1 1 100%;
+                display: block;
+                margin-top: 10px;
+                order: 3;
+            }
+
+            .report-section-title {
+                font-size: 13px !important;
+                text-align: center;
+                justify-content: center;
+                padding: 12px;
+                line-height: 1.4;
+                flex-wrap: wrap;
+            }
+
+            .report-card {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .report-card-title {
+                font-size: 11px !important;
+                text-align: center;
+            }
+
+            div[style*="font-size:38px"],
+            div[style*="font-size:54px"],
+            div[style*="font-size:64px"] {
+                font-size: 32px !important;
+            }
+
+            div[style*="font-size:22px"] {
+                font-size: 20px !important;
+            }
+
+            .top-header h1 {
+                font-size: 16px !important;
+            }
+
+            .st-dataframe-container {
+                overflow-x: hidden !important;
+                border: none;
+                box-shadow: none;
+                background: transparent;
+                max-height: none;
+            }
+
+            .st-table {
+                min-width: 0;
+                width: 100%;
+                display: block;
+            }
+
+            .st-table thead {
+                display: none;
+            }
+
+            .st-table tbody {
+                display: block;
+                width: 100%;
+            }
+
+            .st-table tbody tr {
+                display: flex;
+                flex-direction: column;
+                margin-bottom: 15px;
+                background: #fff !important;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            }
+
+            .st-table td {
+                display: flex;
+                justify-content: space-between;
+                text-align: right !important;
+                padding: 12px 15px !important;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: 12px;
+                align-items: center;
+                width: 100%;
+                box-sizing: border-box;
+                gap: 10px;
+            }
+
+            .st-table td::before {
+                content: attr(data-label);
+                font-weight: 800;
+                color: #475569;
+                font-size: 11px;
+                text-transform: uppercase;
+                text-align: left;
+                flex-shrink: 0;
+                max-width: 45%;
+            }
+
+            .st-table td:last-child {
+                border-bottom: none;
+            }
+
+            .st-table td .text-expandable,
+            .st-table td>div {
+                text-align: right;
+                max-width: 100%;
+                word-break: break-word;
+            }
+
+            .st-table td[data-label="Assunto / Info (Expansível)"],
+            .st-table td[data-label="Último Comentário"],
+            .st-table td[data-label="Descrição da Causa Raiz"],
+            .st-table td[data-label="Assunto / Info"] {
+                flex-direction: column;
+                align-items: flex-start;
+                text-align: left !important;
+                background: #f8fafc;
+            }
+
+            .st-table td[data-label="Assunto / Info (Expansível)"]::before,
+            .st-table td[data-label="Último Comentário"]::before,
+            .st-table td[data-label="Descrição da Causa Raiz"]::before,
+            .st-table td[data-label="Assunto / Info"]::before {
+                margin-bottom: 8px;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .st-table td[data-label="Assunto / Info (Expansível)"] .text-expandable,
+            .st-table td[data-label="Último Comentário"] .text-expandable {
+                text-align: left;
+            }
+
+            .st-table td[colspan] {
+                justify-content: center !important;
+                text-align: center !important;
+                padding: 20px !important;
+                background-color: #f8fafc;
+                font-weight: bold;
+                color: #64748b;
+            }
+
+            .st-table td[colspan]::before {
+                display: none;
+            }
+
+            .st-table tfoot {
+                display: block;
+                width: 100%;
+            }
+
+            .st-table tfoot tr {
+                display: flex;
+                flex-direction: column;
+                background: #f8fafc;
+                border: 2px solid var(--primary-dark);
+                border-radius: 8px;
+                margin-top: 15px;
+                overflow: hidden;
+            }
+
+            .st-table tfoot th {
+                display: flex;
+                justify-content: space-between;
+                padding: 12px 15px;
+                border-bottom: 1px solid #e2e8f0;
+                font-size: 13px;
+                width: 100%;
+                box-sizing: border-box;
+                text-align: right !important;
+            }
+
+            .st-table tfoot th::before {
+                content: attr(data-label);
+                font-weight: 800;
+                color: #475569;
+                font-size: 11px;
+                text-transform: uppercase;
+                text-align: left;
+                flex-shrink: 0;
+            }
+
+            .st-table tfoot th:last-child {
+                border-bottom: none;
+            }
+
+            .tabs-sticky {
+                padding: 0 1rem;
+            }
+
+            .tab-btn {
+                flex: 1 1 calc(50% - 8px);
+                text-align: center;
+                font-size: 11px;
+                padding: 10px 5px;
+            }
+
+            .todo-update-wrapper {
+                flex-direction: column;
+            }
+
+            .todo-update-wrapper .btn-process {
+                width: 100% !important;
+                margin-top: 8px;
+            }
+
+            #global-tooltip {
+                max-width: 90vw;
+            }
+
+            .chart-wrapper,
+            .chart-full-width {
+                height: 300px;
+            }
+
+            .grid-2 {
+                gap: 15px;
+                margin-bottom: 15px;
+            }
+        }
     </style>
 </head>
 
@@ -864,11 +1111,10 @@
         <div class="sidebar-header">
             <div class="flex items-center gap-3">
                 <div
-                    class="w-8 h-8 rounded-lg bg-blue-800 text-white flex items-center justify-center font-bold text-lg shadow-md">
+                    class="w-8 h-8 rounded-lg bg-[#001871] text-white flex items-center justify-center font-bold text-lg shadow-md">
                     <i class="fas fa-chart-pie"></i>
                 </div>
-                <h2 class="text-lg font-bold text-gray-800" style="color: var(--primary-dark); margin:0;">Elite Master
-                </h2>
+                <h2 class="text-lg font-bold text-[#001871]" style="margin:0;">Elite Master</h2>
             </div>
             <button class="btn-toggle lg:hidden" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
         </div>
@@ -939,7 +1185,7 @@
             </div>
         </header>
 
-        <div class="tabs-sticky hidden-st" id="main-tabs-container">
+        <div class="tabs-sticky hidden-st" id="tabs-container">
             <div class="tabs-nav">
                 <button class="tab-btn active" onclick="switchTab('tab-inc', this)"><i
                         class="fas fa-fire-extinguisher mr-1"></i> INCs</button>
@@ -975,8 +1221,8 @@
                     <i class="fas fa-circle-notch fa-spin"
                         style="font-size: 48px; margin-bottom: 20px; color: var(--accent);"></i>
                     <div style="font-size: 18px; font-weight: 800;">Processando Métricas Históricas...</div>
-                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Cruzando dados temporais e
-                        renderizando visualizações</div>
+                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Cruzando dados e renderizando
+                        visualizações via Chart.js</div>
                 </div>
 
                 <div id="report-content" class="hidden-st">
@@ -987,15 +1233,12 @@
                     <div id="tab-prb" class="animate-fade hidden-st tab-pane"></div>
 
                     <div id="tab-todo" class="animate-fade hidden-st tab-pane">
-                        <div class="report-section-title"
-                            style="background-color: var(--primary-dark); display:flex; align-items:center; gap:10px;">
-                            <i class="fas fa-clipboard-check"></i> Gerenciador de Tarefas e Histórico
-                        </div>
+                        <div class="report-section-title" style="background-color: var(--primary-dark);"><i
+                                class="fas fa-clipboard-check mr-2"></i> Gerenciador de Tarefas e Histórico</div>
 
                         <div class="grid-2" style="grid-template-columns: 1fr 2fr;">
                             <div class="report-card">
-                                <div class="report-card-title" style="color: var(--primary-dark);"><i
-                                        class="fas fa-plus"></i> Nova Tarefa</div>
+                                <div class="report-card-title"><i class="fas fa-plus"></i> Nova Tarefa Inicial</div>
                                 <div style="display:flex; flex-direction:column; gap:15px;">
                                     <div>
                                         <label class="form-label">Analista Responsável</label>
@@ -1022,9 +1265,8 @@
                             </div>
 
                             <div class="report-card">
-                                <div class="report-card-title" style="color: var(--primary-dark);"><i
-                                        class="fas fa-list"></i> Suas Tarefas Ativas (<span id="todo-count">0</span>)
-                                </div>
+                                <div class="report-card-title"><i class="fas fa-list"></i> Suas Tarefas Ativas (<span
+                                        id="todo-count">0</span>)</div>
                                 <div id="todo-list" style="overflow-y:auto; max-height:500px; padding-right:10px;">
                                 </div>
                             </div>
@@ -1037,7 +1279,7 @@
 
     <script>
         // ==========================================
-        // 0. INICIALIZAÇÃO E UI CONTROLS
+        // 0. INICIALIZAÇÃO, UI E TOOLTIPS
         // ==========================================
         document.getElementById('ref-date').valueAsDate = new Date();
 
@@ -1050,10 +1292,10 @@
             const textDiv = btn.previousElementSibling;
             if (textDiv.classList.contains('expanded')) {
                 textDiv.classList.remove('expanded');
-                btn.innerHTML = '<i class="fas fa-chevron-down"></i> Expandir';
+                btn.innerHTML = 'Expandir';
             } else {
                 textDiv.classList.add('expanded');
-                btn.innerHTML = '<i class="fas fa-chevron-up"></i> Recolher';
+                btn.innerHTML = 'Recolher';
             }
         }
 
@@ -1096,9 +1338,7 @@
                 document.getElementById('tt-st').innerText = row.dataset.st || '-';
                 document.getElementById('tt-desc').innerText = row.dataset.desc || 'Sem assunto registrado.';
                 document.getElementById('tt-as').innerText = row.dataset.as || 'Não atribuído';
-                document.getElementById('tt-gp').innerText = row.dataset.gp || 'N/A';
                 document.getElementById('tt-age').innerText = (row.dataset.age || '0') + ' dias';
-                document.getElementById('tt-op').innerText = row.dataset.op || '-';
 
                 let st = (row.dataset.st || '').toLowerCase();
                 let bColor = 'rgba(255,255,255,0.1)';
@@ -1164,8 +1404,8 @@
 
             document.getElementById('report-content').classList.add('hidden-st');
             document.getElementById('search-container').classList.remove('visible');
+            document.getElementById('tabs-container').classList.add('hidden-st');
             document.getElementById('init-alert').classList.remove('hidden-st');
-            document.getElementById('main-tabs-container').classList.add('hidden-st');
             document.getElementById('globalSearch').value = '';
 
             if (window.chartInstances) { window.chartInstances.forEach(c => c.destroy()); window.chartInstances = []; }
@@ -1189,7 +1429,7 @@
         // ==========================================
         // 2. MOTOR CORE (MÁQUINA DO TEMPO + REGRAS)
         // ==========================================
-        let GlobalOpenTickets = []; // Base unificada para extrair Analistas para o TODO
+        let GlobalOpenTickets = [];
 
         function calculateSection(data, slaDays, type, refDateObj) {
             const refDate = new Date(refDateObj);
@@ -1347,23 +1587,31 @@
                 tA += m.a; tR += m.r; tC += m.c; tS += saldo; lastB = m.b;
 
                 rows += `<tr>
-                    <td style="text-align:center; font-weight:600;">${mesStr}</td><td>${m.a}</td><td>${m.r}</td><td>${m.c}</td>
-                    <td style="color:${colorS}; font-weight:bold;">${saldo > 0 ? '+' + saldo : saldo}</td>
-                    <td style="font-weight:bold;">${m.b}</td>
-                    <td style="background-color:${bgPct}; color:#fff; font-weight:bold;">${pctStr}%</td>
+                    <td data-label="Mês" style="text-align:center; font-weight:600;">${mesStr}</td>
+                    <td data-label="Abertos">${m.a}</td>
+                    <td data-label="${lblRes}">${m.r}</td>
+                    <td data-label="Cancelados">${m.c}</td>
+                    <td data-label="Saldo" style="color:${colorS}; font-weight:bold;">${saldo > 0 ? '+' + saldo : saldo}</td>
+                    <td data-label="Backlog" style="font-weight:bold;">${m.b}</td>
+                    <td data-label="% no Prazo" style="background-color:${bgPct}; color:#fff; font-weight:bold;">${pctStr}%</td>
                 </tr>`;
             });
 
             return `<div class="st-dataframe-container"><table class="st-table">
-                <thead><tr style="background-color:${C.GRY_L}; border-bottom: 2px solid ${C.PRI_D};">
-                    <th style="color:${C.PRI_D}; width:15%; background:${C.GRY_L}; border:1px solid #ddd; text-align:center;">Mês</th><th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">Abertos</th>
-                    <th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">${lblRes}</th><th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">Cancelados</th>
-                    <th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">Saldo</th><th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">Backlog</th><th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">% no Prazo</th>
+                <thead><tr>
+                    <th>Mês</th><th>Abertos</th>
+                    <th>${lblRes}</th><th>Cancelados</th>
+                    <th>Saldo</th><th>Backlog</th><th>% no Prazo</th>
                 </tr></thead>
                 <tbody>${rows || `<tr><td colspan="7" style="text-align:center;">Sem histórico.</td></tr>`}</tbody>
-                <tfoot><tr><th style="text-align:right;">TOTAIS:</th><th>${tA}</th><th>${tR}</th><th>${tC}</th>
-                <th style="color:${tS > 0 ? C.PRI_D : C.PRI}; font-weight:bold;">${tS > 0 ? '+' + tS : tS}</th>
-                <th>${lastB}</th><th>-</th></tr></tfoot>
+                <tfoot><tr>
+                <th data-label="TOTAIS:" style="text-align:right;">TOTAIS:</th>
+                <th data-label="Abertos">${tA}</th>
+                <th data-label="${lblRes}">${tR}</th>
+                <th data-label="Cancelados">${tC}</th>
+                <th data-label="Saldo" style="color:${tS > 0 ? C.PRI_D : C.PRI}; font-weight:bold;">${tS > 0 ? '+' + tS : tS}</th>
+                <th data-label="Backlog">${lastB}</th>
+                <th data-label="% no Prazo">-</th></tr></tfoot>
             </table></div>`;
         }
 
@@ -1383,49 +1631,51 @@
                 <div style="display:flex; flex-direction:column;">${apendiceRows}</div></div>` : "";
 
             let noPrbHtml = typeStr === 'INC' && d.noPrb.length > 0 ? `
-            <div class="report-card" style="margin-top:20px; border-color: #fbd38d;">
-                <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i> INCIDENTES CRÍTICOS SEM PRB (${d.noPrb.length})</div>
+            <div class="report-card" style="margin-top:20px; border-color: ${C.PRI_D};">
+                <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle mr-2"></i> INCIDENTES CRÍTICOS SEM PRB (${d.noPrb.length})</div>
                 <div class="st-dataframe-container"><table class="st-table">
-                <thead><tr><th class="w-tk" style="background-color:${C.PRI_D};">Ticket</th><th class="w-as" style="background-color:${C.PRI_D};">Analista</th><th class="w-info" style="background-color:${C.PRI_D}; text-align:left;">Último Comentário</th></tr></thead>
+                <thead><tr><th class="w-tk">Ticket</th><th class="w-as">Analista</th><th class="w-info" style="text-align:left;">Último Comentário</th></tr></thead>
                 <tbody>${d.noPrb.map(t => `
                     <tr ${buildRowAttrs(t)}>
-                        <td style="color:${C.PRI_D}; font-weight:bold;">${t.tk}</td><td>${t.as}</td>
-                        <td style="text-align:left;">
+                        <td data-label="Ticket" style="color:${C.PRI_D}; font-weight:bold;">${t.tk}</td>
+                        <td data-label="Analista">${t.as}</td>
+                        <td data-label="Último Comentário" style="text-align:left;">
                             <div class="text-expandable">${t.info}</div>
-                            ${t.info.length > 80 ? `<button onclick="toggleText(this)" class="btn-expand"><i class="fas fa-chevron-down"></i> Expandir</button>` : ''}
+                            ${t.info.length > 80 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
                         </td>
                     </tr>`).join('')}
                 </tbody></table></div>
             </div>` : "";
 
+            /* CORREÇÃO AQUI: Tamanho das fontes dos cards principais (KPIs) foram reduzidos para ficarem equilibrados e não "enormes" */
             return `
-            <div class="report-section-title" style="background-color: ${C.PRI_D}; display:flex; align-items:center; gap:10px;"><i class="fas fa-chart-line"></i> ${title}</div>
+            <div class="report-section-title" style="background-color: ${color};"><i class="fas fa-chart-line mr-2"></i> ${title}</div>
             
             <div class="grid-2">
                 <div class="report-card" style="text-align:center;">
                     <div class="report-card-title">⏱️ TEMPO MÉDIO DE RESOLUÇÃO (MTTR)</div>
                     <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-                        <div style="font-size:48px; font-weight:800; color:${C.PRI_D}; line-height:1;">${d.mttr}</div>
-                        <div style="font-size:14px; font-weight:bold; color:${C.GRY_D}; text-transform:uppercase; margin-top:5px;">Dias Corridos</div>
+                        <div style="font-size:38px; font-weight:800; color:${C.PRI_D}; line-height:1;">${d.mttr}</div>
+                        <div style="font-size:13px; font-weight:bold; color:${C.GRY_D}; text-transform:uppercase; margin-top:5px;">Dias Corridos</div>
                     </div>
                 </div>
                 <div class="report-card" style="text-align:center;">
                     <div class="report-card-title">📊 ${lblRes.toUpperCase()} NO MÊS VIGENTE</div>
                     <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-                        <div style="font-size:18px; font-weight:bold; color:${C.GRY_D}; margin-bottom:8px; display:flex; justify-content:center; gap:15px;">
+                        <div style="font-size:16px; font-weight:bold; color:${C.GRY_D}; margin-bottom:8px; display:flex; justify-content:center; gap:15px;">
                             <span style="color:${C.SUC}; background:#ecfdf5; padding:4px 12px; border-radius:20px; border:1px solid #a7f3d0;">✅ ${d.inSla} no Prazo</span>
                             <span style="color:${C.DAN}; background:#fee2e2; padding:4px 12px; border-radius:20px; border:1px solid #fecaca;">❌ ${d.outSla} Fora</span>
                         </div>
-                        <div style="color:${pctColor}; font-size:26px; font-weight:800;">${d.pct}% Dentro do Prazo</div>
+                        <div style="color:${pctColor}; font-size:22px; font-weight:800;">${d.pct}% Dentro do Prazo</div>
                     </div>
                 </div>
             </div>
 
-            <div class="report-card" style="margin-bottom:25px;">
+            <div class="report-card">
                 <div class="report-card-title">1. ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE)</div>
                 <div class="chart-full-width"><canvas id="c-d-${id}"></canvas></div>
             </div>
-            <div class="report-card" style="margin-bottom:25px;">
+            <div class="report-card">
                 <div class="report-card-title">2. VISÃO MENSAL / ANUAL</div>
                 <div class="chart-full-width"><canvas id="c-m-${id}"></canvas></div>
             </div>
@@ -1435,7 +1685,7 @@
                 <div class="report-card"><div class="report-card-title">4. VOLUME E PRODUTIVIDADE POR ANALISTA</div><div class="chart-wrapper"><canvas id="c-a-${id}"></canvas></div></div>
             </div>
 
-            <div class="report-section-title" style="background-color: ${C.PRI_D}; text-align:center; font-size:14px; opacity:0.9;">ANÁLISE DE MATURIDADE E SLA</div>
+            <div class="report-section-title" style="background-color: ${color}; text-align:center; font-size:14px; opacity:0.9;">ANÁLISE DE MATURIDADE E SLA</div>
             
             <div class="grid-2">
                 <div class="report-card"><div class="report-card-title">5. MATURIDADE (AGING) DOS VIGENTES</div><div class="chart-wrapper" style="height:260px;"><canvas id="c-ag-${id}"></canvas></div></div>
@@ -1443,26 +1693,28 @@
             </div>
 
             <div class="report-card">
-                <div class="report-card-title text-red-600"><i class="fas fa-exclamation-circle"></i> CHAMADOS ACIMA DO SLA PENDENTES (TOTAL: ${d.crits.length})</div>
+                <div class="report-card-title text-red-600"><i class="fas fa-exclamation-circle mr-2"></i> CHAMADOS ACIMA DO SLA PENDENTES (TOTAL: ${d.crits.length})</div>
                 <div class="st-dataframe-container">
                     <table class="st-table">
                         <thead><tr>
-                            <th class="w-tk" style="background-color:${C.PRI_D};">Ticket</th>
-                            <th class="w-info" style="background-color:${C.PRI_D}; text-align:left;">Assunto / Info (Expansível)</th>
-                            <th class="w-as" style="background-color:${C.PRI_D};">Analista</th><th class="w-gp" style="background-color:${C.PRI_D};">Grupo</th><th class="w-st" style="background-color:${C.PRI_D};">Status</th><th class="w-prb" style="background-color:${C.PRI_D};">PRB</th><th class="w-age" style="background-color:${C.PRI_D};">Aging</th>
+                            <th class="w-tk">Ticket</th>
+                            <th class="w-info" style="text-align:left;">Assunto / Info (Expansível)</th>
+                            <th class="w-as">Analista</th><th class="w-gp">Grupo</th><th class="w-st">Status</th><th class="w-prb">PRB</th><th class="w-age">Aging</th>
                         </tr></thead>
                         <tbody>
                             ${d.crits.length ? d.crits.map(t => `
                             <tr ${buildRowAttrs(t)}>
-                                <td style="color:${C.PRI_D}; font-weight:bold;">${t.tk}</td>
-                                <td style="text-align:left;">
+                                <td data-label="Ticket" style="color:${C.PRI_D}; font-weight:bold;">${t.tk}</td>
+                                <td data-label="Assunto / Info (Expansível)" style="text-align:left;">
                                     <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 1;">${t.desc}</div>
                                     <div class="text-expandable text-[11px] text-slate-500">${t.info}</div>
-                                    ${t.info.length > 60 || t.desc.length > 50 ? `<button onclick="toggleText(this)" class="btn-expand"><i class="fas fa-chevron-down"></i> Expandir</button>` : ''}
+                                    ${t.info.length > 60 || t.desc.length > 50 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
                                 </td>
-                                <td class="font-medium">${t.as}</td><td>${t.gp}</td><td><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:10px; border:1px solid #e2e8f0; color:#475569; display:inline-block;">${t.st}</span></td>
-                                <td style="font-weight:${t.prb !== 'N/A' ? 'bold' : 'normal'}; color:${t.prb !== 'N/A' ? C.PRI_D : C.GRY}">${t.prb}</td>
-                                <td style="color:${C.DAN}; font-weight:bold; font-size:14px;">${t.age}</td>
+                                <td data-label="Analista" class="font-medium">${t.as}</td>
+                                <td data-label="Grupo">${t.gp}</td>
+                                <td data-label="Status"><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:10px; border:1px solid #e2e8f0; color:#475569; display:inline-block;">${t.st}</span></td>
+                                <td data-label="PRB" style="font-weight:${t.prb !== 'N/A' ? 'bold' : 'normal'}; color:${t.prb !== 'N/A' ? C.PRI_D : C.GRY}">${t.prb}</td>
+                                <td data-label="Aging" style="color:${C.DAN}; font-weight:bold; font-size:14px;">${t.age}</td>
                             </tr>`).join('') : `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Nenhum chamado crítico no momento. Parabéns à equipe! 🎉</td></tr>`}
                         </tbody>
                     </table>
@@ -1534,7 +1786,7 @@
             let totOut = getTotals(i, 'r') + getTotals(i, 'c') + getTotals(r, 'r') + getTotals(r, 'c') + getTotals(u, 'r') + getTotals(u, 'c');
 
             return `
-            <div class="report-section-title" style="background-color: ${C.PRI_D}; display:flex; align-items:center; gap:10px;"><i class="fas fa-globe"></i> VISÃO ORGANIZACIONAL CONSOLIDADA (INCs + REQs + UAMs)</div>
+            <div class="report-section-title" style="background-color: ${C.PRI_D};"><i class="fas fa-globe mr-2"></i> VISÃO ORGANIZACIONAL CONSOLIDADA (INCs + REQs + UAMs)</div>
             <div class="grid-2">
                 <div class="report-card" style="text-align:center;">
                     <div class="report-card-title">TOTAL ENTRADAS (Visão Histórica)</div>
@@ -1547,16 +1799,16 @@
                     <div class="text-sm text-slate-500 font-bold">Soma de Resolvidos e Cancelados</div>
                 </div>
             </div>
-            <div class="report-card" style="text-align:center; background: linear-gradient(to right, #f8fafc, #ffffff); margin-bottom:25px;">
+            <div class="report-card" style="text-align:center; background: linear-gradient(to right, #f8fafc, #ffffff);">
                 <div class="report-card-title" style="color:${C.PRI_D}">BACKLOG GLOBAL VIGENTE (No momento da Auditoria)</div>
                 <div style="font-size:64px; font-weight:900; color:${C.ORG}; margin:10px 0;">${i.backlog + r.backlog + u.backlog}</div>
                 <div class="text-sm text-slate-500 font-bold uppercase tracking-wider">Tickets aguardando atendimento em todos os fluxos</div>
             </div>
-            <div class="report-card" style="margin-bottom:25px;">
+            <div class="report-card">
                 <div class="report-card-title">1. ACOMPANHAMENTO DIÁRIO CONSOLIDADO (MÊS VIGENTE)</div>
                 <div class="chart-full-width"><canvas id="c-d-cons"></canvas></div>
             </div>
-            <div class="report-card" style="margin-bottom:25px;">
+            <div class="report-card">
                 <div class="report-card-title">2. VISÃO MENSAL CONSOLIDADA</div>
                 <div class="chart-full-width"><canvas id="c-m-cons"></canvas></div>
             </div>
@@ -1592,7 +1844,7 @@
 
         function generatePRBTab(rcaData, ptaskData, slaPTask, refDateObj) {
             const refDate = new Date(refDateObj); refDate.setHours(23, 59, 59, 999); const refTime = refDate.getTime();
-            let html = `<div class="report-section-title" style="background-color: ${C.PRI_D}; display:flex; align-items:center; gap:10px;"><i class="fas fa-bullseye"></i> SESSÃO PRB TASKs (TODAS AS ABERTAS NO SISTEMA)</div>`;
+            let html = `<div class="report-section-title" style="background-color: ${C.PRI_D};"><i class="fas fa-bullseye mr-2"></i> SESSÃO PRB TASKs (TODAS AS ABERTAS NO SISTEMA)</div>`;
 
             let rcaRows = "";
             rcaData.forEach(r => {
@@ -1607,19 +1859,19 @@
                 let dummyT = { tk: tk, desc: descClean, as: getCol(r, ['Assigned to', 'Analista']) || '-', gp: '-', st: getCol(r, ['RCA Status', 'State', 'Status']) || '-', age: Math.floor((refDate - op) / 86400000), opStr: op.toLocaleDateString('pt-BR'), info: 'RCA pendente.' };
 
                 rcaRows += `<tr ${buildRowAttrs(dummyT)}>
-                    <td style="color:${C.PRI_D}; font-weight:bold;">${tk}</td>
-                    <td style="text-align:left;">
+                    <td data-label="Problem" style="color:${C.PRI_D}; font-weight:bold;">${tk}</td>
+                    <td data-label="Descrição da Causa Raiz" style="text-align:left;">
                         <div class="text-expandable text-[12px] font-semibold text-slate-700">${descClean}</div>
-                        ${descClean.length > 70 ? `<button onclick="toggleText(this)" class="btn-expand"><i class="fas fa-chevron-down"></i> Expandir</button>` : ''}
+                        ${descClean.length > 70 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
                     </td>
-                    <td class="font-medium">${dummyT.as}</td>
-                    <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:10px; border:1px solid #e2e8f0; color:#475569;">${dummyT.st}</span></td>
+                    <td data-label="Analista Responsável" class="font-medium">${dummyT.as}</td>
+                    <td data-label="Status RCA"><span class="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-[10px] uppercase">${dummyT.st}</span></td>
                 </tr>`;
             });
 
-            html += `<div class="report-card mb-6"><div class="report-card-title"><i class="fas fa-search mr-2"></i> 1. PROBLEM RCA - CAUSAS RAIZ EM ABERTO</div>
+            html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-search mr-2"></i> 1. PROBLEM RCA - CAUSAS RAIZ EM ABERTO</div>
                 <div class="st-dataframe-container"><table class="st-table">
-                <thead><tr><th class="w-tk" style="background-color:${C.PRI_D};">Problem</th><th class="w-info" style="background-color:${C.PRI_D}; text-align:left;">Descrição da Causa Raiz</th><th class="w-as" style="background-color:${C.PRI_D};">Analista Responsável</th><th class="w-st" style="background-color:${C.PRI_D};">Status RCA</th></tr></thead>
+                <thead><tr><th class="w-tk">Problem</th><th class="w-info" style="text-align:left;">Descrição da Causa Raiz</th><th class="w-as">Analista Responsável</th><th class="w-st">Status RCA</th></tr></thead>
                 <tbody>${rcaRows || `<tr><td colspan="4" class="text-center text-slate-500 py-6">Nenhuma RCA aberta no momento.</td></tr>`}</tbody>
                 </table></div></div>`;
 
@@ -1637,17 +1889,17 @@
                 let dummyT = { tk: tk, desc: desc, as: getCol(r, ['Assigned to', 'Analista']) || '-', gp: getCol(r, ['Assignment group', 'Grupo']) || '-', st: st.toUpperCase(), age: age, opStr: op.toLocaleDateString('pt-BR'), info: 'Task secundária' };
 
                 ptaskRows += `<tr ${buildRowAttrs(dummyT)}>
-                    <td class="font-bold text-slate-700">${desc}</td>
-                    <td style="color:${C.PRI_D}; font-weight:bold;">${tk}</td>
-                    <td class="font-medium">${dummyT.as}</td>
-                    <td>${dummyT.gp}</td>
-                    <td style="color:${age > slaPTask ? C.DAN : C.SUC}; font-weight:bold; font-size:13px;">${age > slaPTask ? `Estourado (${age}d)` : `No Prazo (${age}d)`}</td>
+                    <td data-label="Problem (Pai)" class="font-bold text-slate-700">${desc}</td>
+                    <td data-label="PTASK" style="color:${C.PRI_D}; font-weight:bold;">${tk}</td>
+                    <td data-label="Analista" class="font-medium">${dummyT.as}</td>
+                    <td data-label="Grupo Resolutor">${dummyT.gp}</td>
+                    <td data-label="SLA / Aging" style="color:${age > slaPTask ? C.DAN : C.SUC}; font-weight:bold; font-size:13px;">${age > slaPTask ? `Estourado (${age}d)` : `No Prazo (${age}d)`}</td>
                 </tr>`;
             });
 
             html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-tasks mr-2"></i> 2. TASKS DE PROBLEMA (PTASK) ABERTAS</div>
                 <div class="st-dataframe-container"><table class="st-table">
-                <thead><tr><th class="w-prb" style="background-color:${C.PRI_D};">Problem (Pai)</th><th class="w-tk" style="background-color:${C.PRI_D};">PTASK</th><th class="w-as" style="background-color:${C.PRI_D};">Analista</th><th class="w-gp" style="background-color:${C.PRI_D};">Grupo Resolutor</th><th class="w-age" style="background-color:${C.PRI_D};">SLA / Aging</th></tr></thead>
+                <thead><tr><th class="w-prb">Problem (Pai)</th><th class="w-tk">PTASK</th><th class="w-as">Analista</th><th class="w-gp">Grupo Resolutor</th><th class="w-age">SLA / Aging</th></tr></thead>
                 <tbody>${ptaskRows || `<tr><td colspan="5" class="text-center text-slate-500 py-6">Nenhuma PTASK aberta no momento.</td></tr>`}</tbody>
                 </table></div></div>`;
             return html;
@@ -1733,7 +1985,7 @@
 
             let html = "";
             todoList.sort((a, b) => b.id - a.id).forEach(t => {
-                let tkBadges = t.tickets.map(tk => `<span class="todo-badge"><i class="fas fa-ticket-alt"></i> ${tk}</span>`).join('');
+                let tkBadges = t.tickets.map(tk => `<span class="todo-badge">${tk}</span>`).join('');
                 if (!t.history) { t.history = [{ date: t.date, text: t.desc }]; }
 
                 let historyHtml = t.history.map(h => `<div class="history-entry"><div class="history-date">${h.date}</div><div class="text-[12px] text-slate-700 whitespace-pre-wrap leading-relaxed">${h.text}</div></div>`).join('');
@@ -1749,9 +2001,9 @@
                     </div>
                     ${tkBadges ? `<div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;">${tkBadges}</div>` : ''}
                     <div class="todo-history">${historyHtml}</div>
-                    <div style="display:flex; gap:8px; margin-top:10px; border-top:1px solid #e2e8f0; padding-top:10px;">
+                    <div class="todo-update-wrapper">
                         <input type="text" id="update-input-${t.id}" class="form-input" style="padding: 6px 10px; font-size: 11px;" placeholder="Adicionar nova atualização...">
-                        <button onclick="addTodoUpdate('${t.id}')" class="btn-process" style="width: auto; padding: 6px 12px; font-size: 11px; background: var(--primary-dark);">Add</button>
+                        <button onclick="addTodoUpdate('${t.id}')" class="btn-process" style="width: auto; padding: 6px 12px; font-size: 11px; margin:0; background: var(--primary-dark);">Add</button>
                     </div>
                 </div>`;
             });
@@ -1779,13 +2031,12 @@
             document.getElementById('loader').classList.remove('hidden-st');
             document.getElementById('report-content').classList.add('hidden-st');
 
-            // Revelar Tabs Nav
-            document.getElementById('main-tabs-container').classList.remove('hidden-st');
+            document.getElementById('tabs-container').classList.remove('hidden-st');
 
             if (window.innerWidth < 1024) toggleSidebar();
 
             if (window.chartInstances) { window.chartInstances.forEach(c => c.destroy()); window.chartInstances = []; }
-            GlobalOpenTickets = []; // Reset array de tickets
+            GlobalOpenTickets = [];
 
             setTimeout(() => {
                 const slaI = parseInt(document.getElementById('sla-incs').value) || 7;
@@ -1833,7 +2084,7 @@
                     populateTodoAnalystDropdown();
                     renderTodos();
                 });
-            }, 500);
+            }, 600);
         }
     </script>
 </body>
