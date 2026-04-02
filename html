@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELITE MASTER V6.3 - Sistema Analítico ITSM</title>
+    <title>ELITE MASTER V6.4 - Sistema Analítico ITSM</title>
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -96,7 +96,7 @@
         }
 
         /* =========================================================
-           SIDEBAR E HEADER DO SISTEMA
+           SIDEBAR
            ========================================================= */
         .sidebar {
             width: var(--sidebar-width);
@@ -106,7 +106,7 @@
             display: flex;
             flex-direction: column;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 50;
+            z-index: 200;
             height: 100vh;
             flex-shrink: 0;
             box-shadow: 4px 0 15px rgba(0, 0, 0, 0.03);
@@ -151,7 +151,7 @@
                 position: fixed;
                 inset: 0;
                 background: rgba(15, 23, 42, 0.4);
-                z-index: 40;
+                z-index: 100;
                 backdrop-filter: blur(4px);
                 opacity: 0;
                 transition: 0.3s;
@@ -174,8 +174,11 @@
             min-width: 0;
         }
 
+        /* =========================================================
+           HEADER E TABS FIXOS (STICKY)
+           ========================================================= */
         .top-header {
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             height: 70px;
             border-bottom: 1px solid #e2e8f0;
@@ -183,9 +186,55 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-            z-index: 20;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            z-index: 40;
             min-width: 0;
+            position: sticky;
+            top: 0;
+        }
+
+        .tabs-sticky {
+            background-color: #fff;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            width: 100%;
+            box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+        }
+
+        .tabs-nav {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding-top: 10px;
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #64748b;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+            letter-spacing: 0.5px;
+            border-radius: 6px 6px 0 0;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary-dark);
+            background: #f8fafc;
+        }
+
+        .tab-btn.active {
+            color: var(--primary-dark);
+            border-bottom-color: var(--primary-dark);
+            background: #eff6ff;
         }
 
         .btn-toggle {
@@ -253,6 +302,7 @@
         .content-area {
             padding: 2rem;
             overflow-y: auto;
+            overflow-x: hidden;
             flex: 1;
             scroll-behavior: smooth;
             min-width: 0;
@@ -265,9 +315,12 @@
             flex-direction: column;
             gap: 1.5rem;
             min-width: 0;
+            padding-bottom: 50px;
         }
 
-        /* Uploader e Sidebar Widgets */
+        /* =========================================================
+           UPLOADER E WIDGETS
+           ========================================================= */
         .dropzone-discreet {
             border: 2px dashed #cbd5e1;
             border-radius: 8px;
@@ -392,41 +445,6 @@
             background: #001255;
             transform: translateY(-2px);
             box-shadow: 0 10px 15px rgba(0, 24, 113, 0.3);
-        }
-
-        /* Tabs */
-        .tabs-nav {
-            display: flex;
-            gap: 8px;
-            border-bottom: 2px solid #e2e8f0;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .tab-btn {
-            padding: 12px 20px;
-            background: transparent;
-            border: none;
-            border-bottom: 3px solid transparent;
-            color: #64748b;
-            font-weight: 700;
-            font-size: 13px;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: 0.3s;
-            letter-spacing: 0.5px;
-            border-radius: 6px 6px 0 0;
-        }
-
-        .tab-btn:hover {
-            color: var(--primary-dark);
-            background: #f8fafc;
-        }
-
-        .tab-btn.active {
-            color: var(--primary-dark);
-            border-bottom-color: var(--primary-dark);
-            background: #eff6ff;
         }
 
         /* =========================================================
@@ -763,7 +781,7 @@
 
         .todo-badge {
             background: #eff6ff;
-            color: #1e3a8a;
+            color: var(--primary-dark);
             border: 1px solid #bfdbfe;
             font-size: 10px;
             font-weight: 700;
@@ -786,7 +804,7 @@
 
         .todo-history-item {
             background: var(--gray-light);
-            border-left: 3px solid var(--accent);
+            border-left: 3px solid var(--primary-dark);
             padding: 8px 12px;
             border-radius: 0 6px 6px 0;
         }
@@ -847,7 +865,8 @@
             <div class="flex items-center gap-3">
                 <div
                     class="w-8 h-8 rounded-lg bg-blue-800 text-white flex items-center justify-center font-bold text-lg shadow-md">
-                    <i class="fas fa-chart-pie"></i></div>
+                    <i class="fas fa-chart-pie"></i>
+                </div>
                 <h2 class="text-lg font-bold text-gray-800" style="color: var(--primary-dark); margin:0;">Elite Master
                 </h2>
             </div>
@@ -910,7 +929,7 @@
                         style="margin: 0; font-size: 20px; font-weight: 800; color: var(--primary-dark); text-transform: uppercase; letter-spacing: 0.5px;">
                         Painel Executivo ITSM</h1>
                     <span style="font-size: 12px; color: #64748b; font-weight: 500;">Sistema Analítico de Performance e
-                        SLA V6.3</span>
+                        SLA V6.4</span>
                 </div>
             </div>
             <div class="search-wrapper" id="search-container">
@@ -919,6 +938,24 @@
                     placeholder="Pesquisar ticket, assunto, status, analista..." onkeyup="filterTables()">
             </div>
         </header>
+
+        <div class="tabs-sticky hidden-st" id="main-tabs-container">
+            <div class="tabs-nav">
+                <button class="tab-btn active" onclick="switchTab('tab-inc', this)"><i
+                        class="fas fa-fire-extinguisher mr-1"></i> INCs</button>
+                <button class="tab-btn" onclick="switchTab('tab-req', this)"><i class="fas fa-tools mr-1"></i>
+                    REQs</button>
+                <button class="tab-btn" onclick="switchTab('tab-uam', this)"><i class="fas fa-key mr-1"></i>
+                    UAMs</button>
+                <button class="tab-btn" onclick="switchTab('tab-cons', this)"><i class="fas fa-globe mr-1"></i>
+                    Consolidado</button>
+                <button class="tab-btn" onclick="switchTab('tab-prb', this)"><i class="fas fa-bullseye mr-1"></i> PRB /
+                    PTASK</button>
+                <button class="tab-btn" onclick="switchTab('tab-todo', this)"
+                    style="margin-left: auto; color: var(--primary-dark);"><i class="fas fa-clipboard-list mr-1"></i>
+                    TODOs (Tarefas)</button>
+            </div>
+        </div>
 
         <div class="content-area">
             <div class="content-container">
@@ -938,27 +975,11 @@
                     <i class="fas fa-circle-notch fa-spin"
                         style="font-size: 48px; margin-bottom: 20px; color: var(--accent);"></i>
                     <div style="font-size: 18px; font-weight: 800;">Processando Métricas Históricas...</div>
-                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Cruzando dados e renderizando
-                        visualizações via Chart.js</div>
+                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Cruzando dados temporais e
+                        renderizando visualizações</div>
                 </div>
 
                 <div id="report-content" class="hidden-st">
-                    <div class="tabs-nav">
-                        <button class="tab-btn active" onclick="switchTab('tab-inc', this)"><i
-                                class="fas fa-fire-extinguisher mr-1"></i> INCs</button>
-                        <button class="tab-btn" onclick="switchTab('tab-req', this)"><i class="fas fa-tools mr-1"></i>
-                            REQs</button>
-                        <button class="tab-btn" onclick="switchTab('tab-uam', this)"><i class="fas fa-key mr-1"></i>
-                            UAMs</button>
-                        <button class="tab-btn" onclick="switchTab('tab-cons', this)"><i class="fas fa-globe mr-1"></i>
-                            Consolidado</button>
-                        <button class="tab-btn" onclick="switchTab('tab-prb', this)"><i
-                                class="fas fa-bullseye mr-1"></i> PRB / PTASK</button>
-                        <button class="tab-btn" onclick="switchTab('tab-todo', this)"
-                            style="margin-left: auto; color: var(--orange); border-bottom: 3px solid transparent;"><i
-                                class="fas fa-clipboard-list mr-1"></i> TODOs (Tarefas)</button>
-                    </div>
-
                     <div id="tab-inc" class="animate-fade tab-pane"></div>
                     <div id="tab-req" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-uam" class="animate-fade hidden-st tab-pane"></div>
@@ -967,12 +988,14 @@
 
                     <div id="tab-todo" class="animate-fade hidden-st tab-pane">
                         <div class="report-section-title"
-                            style="background-color: var(--orange); display:flex; align-items:center; gap:10px;"><i
-                                class="fas fa-clipboard-check"></i> Gerenciador de Tarefas e Histórico</div>
+                            style="background-color: var(--primary-dark); display:flex; align-items:center; gap:10px;">
+                            <i class="fas fa-clipboard-check"></i> Gerenciador de Tarefas e Histórico
+                        </div>
 
                         <div class="grid-2" style="grid-template-columns: 1fr 2fr;">
                             <div class="report-card">
-                                <div class="report-card-title">➕ Nova Tarefa Inicial</div>
+                                <div class="report-card-title" style="color: var(--primary-dark);"><i
+                                        class="fas fa-plus"></i> Nova Tarefa</div>
                                 <div style="display:flex; flex-direction:column; gap:15px;">
                                     <div>
                                         <label class="form-label">Analista Responsável</label>
@@ -993,13 +1016,14 @@
                                         <textarea id="todo-desc" class="form-input" rows="3"
                                             placeholder="Ex: Analista notificado via Teams..."></textarea>
                                     </div>
-                                    <button class="btn-process" style="background: var(--orange);"
+                                    <button class="btn-process" style="background: var(--primary-dark);"
                                         onclick="addTodo()">Criar Tarefa</button>
                                 </div>
                             </div>
 
                             <div class="report-card">
-                                <div class="report-card-title">📋 Suas Tarefas Ativas (<span id="todo-count">0</span>)
+                                <div class="report-card-title" style="color: var(--primary-dark);"><i
+                                        class="fas fa-list"></i> Suas Tarefas Ativas (<span id="todo-count">0</span>)
                                 </div>
                                 <div id="todo-list" style="overflow-y:auto; max-height:500px; padding-right:10px;">
                                 </div>
@@ -1052,13 +1076,7 @@
             document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(c => { c.classList.add('hidden-st'); c.classList.remove('animate-fade'); });
 
-            // Tratamento especial para cor da aba TODO
-            if (tabId === 'tab-todo') {
-                el.style.borderBottomColor = 'var(--orange)';
-            } else {
-                document.querySelector('.tab-btn:last-child').style.borderBottomColor = 'transparent';
-                el.classList.add('active');
-            }
+            el.classList.add('active');
 
             const targetTab = document.getElementById(tabId);
             targetTab.classList.remove('hidden-st');
@@ -1147,6 +1165,7 @@
             document.getElementById('report-content').classList.add('hidden-st');
             document.getElementById('search-container').classList.remove('visible');
             document.getElementById('init-alert').classList.remove('hidden-st');
+            document.getElementById('main-tabs-container').classList.add('hidden-st');
             document.getElementById('globalSearch').value = '';
 
             if (window.chartInstances) { window.chartInstances.forEach(c => c.destroy()); window.chartInstances = []; }
@@ -1187,6 +1206,7 @@
                 : [{ l: "1-3 dias", min: 0, max: 3 }, { l: "4-7 dias", min: 4, max: 7 }, { l: "7+ dias", min: 8, max: 9999 }];
             bucketsDef.forEach(b => agingBuckets[b.l] = { count: 0, color: b.min > slaDays ? '#D50000' : '#1E3A8A' });
 
+            // GERAÇÃO MANUAL SEGURA CONTRA TIMEZONE (EIXO X)
             let rDay = refDate.getDate(); let rMonth = refDate.getMonth(); let rYear = refDate.getFullYear();
             for (let i = 1; i <= rDay; i++) {
                 let sD = `${rYear}-${String(rMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
@@ -1209,6 +1229,7 @@
                 let age = cl ? Math.floor((cl - opOrig) / 86400000) : Math.floor((refDate - opOrig) / 86400000);
                 if (age < 0) age = 0;
 
+                // Extração Manual para Eixo (Ignora Timezone Local)
                 let oY = opOrig.getFullYear(); let oM = String(opOrig.getMonth() + 1).padStart(2, '0');
                 let mKey = `${oY}-${oM}`;
                 if (!trendM[mKey]) trendM[mKey] = { a: 0, r: 0, c: 0, inSla: 0 };
@@ -1333,11 +1354,11 @@
                 </tr>`;
             });
 
-            return `<div class="table-container"><table class="st-table">
+            return `<div class="st-dataframe-container"><table class="st-table">
                 <thead><tr style="background-color:${C.GRY_L}; border-bottom: 2px solid ${C.PRI_D};">
-                    <th style="color:${C.PRI_D}; width:15%;">Mês</th><th style="color:${C.PRI_D}; width:10%;">Abertos</th>
-                    <th style="color:${C.PRI_D}; width:10%;">${lblRes}</th><th style="color:${C.PRI_D}; width:10%;">Cancelados</th>
-                    <th style="color:${C.PRI_D}; width:10%;">Saldo</th><th style="color:${C.PRI_D}; width:10%;">Backlog</th><th style="color:${C.PRI_D}; width:10%;">% no Prazo</th>
+                    <th style="color:${C.PRI_D}; width:15%; background:${C.GRY_L}; border:1px solid #ddd; text-align:center;">Mês</th><th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">Abertos</th>
+                    <th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">${lblRes}</th><th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">Cancelados</th>
+                    <th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">Saldo</th><th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">Backlog</th><th style="color:${C.PRI_D}; width:10%; background:${C.GRY_L}; border:1px solid #ddd;">% no Prazo</th>
                 </tr></thead>
                 <tbody>${rows || `<tr><td colspan="7" style="text-align:center;">Sem histórico.</td></tr>`}</tbody>
                 <tfoot><tr><th style="text-align:right;">TOTAIS:</th><th>${tA}</th><th>${tR}</th><th>${tC}</th>
@@ -1358,14 +1379,14 @@
                     <div class="acc-content">${t.info}</div>
                 </details>`).join('');
 
-            let apendiceHtml = apendiceRows ? `<div style="margin-top:25px;"><div class="report-section-title" style="background-color: ${C.GRY_D}; font-size:13px; padding:10px;"><i class="fas fa-list-alt mr-2"></i> DETALHES DE COMENTÁRIOS DOS SOLICITANTES (APÊNDICE)</div>
+            let apendiceHtml = apendiceRows ? `<div style="margin-top:25px;"><div class="report-section-title" style="background-color: ${C.PRI_D}; font-size:13px; padding:10px;"><i class="fas fa-list-alt mr-2"></i> DETALHES DE COMENTÁRIOS DOS SOLICITANTES (APÊNDICE)</div>
                 <div style="display:flex; flex-direction:column;">${apendiceRows}</div></div>` : "";
 
             let noPrbHtml = typeStr === 'INC' && d.noPrb.length > 0 ? `
             <div class="report-card" style="margin-top:20px; border-color: #fbd38d;">
-                <div class="report-card-title" style="color:${C.ORG}"><i class="fas fa-exclamation-triangle"></i> INCIDENTES CRÍTICOS SEM PRB (${d.noPrb.length})</div>
-                <div class="table-container"><table class="st-table">
-                <thead><tr><th class="w-tk" style="background-color:${C.ORG};">Ticket</th><th class="w-as" style="background-color:${C.ORG};">Analista</th><th class="w-info" style="background-color:${C.ORG}; text-align:left;">Último Comentário</th></tr></thead>
+                <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i> INCIDENTES CRÍTICOS SEM PRB (${d.noPrb.length})</div>
+                <div class="st-dataframe-container"><table class="st-table">
+                <thead><tr><th class="w-tk" style="background-color:${C.PRI_D};">Ticket</th><th class="w-as" style="background-color:${C.PRI_D};">Analista</th><th class="w-info" style="background-color:${C.PRI_D}; text-align:left;">Último Comentário</th></tr></thead>
                 <tbody>${d.noPrb.map(t => `
                     <tr ${buildRowAttrs(t)}>
                         <td style="color:${C.PRI_D}; font-weight:bold;">${t.tk}</td><td>${t.as}</td>
@@ -1378,7 +1399,7 @@
             </div>` : "";
 
             return `
-            <div class="report-section-title" style="background-color: ${color}; display:flex; align-items:center; gap:10px;"><i class="fas fa-chart-line"></i> ${title}</div>
+            <div class="report-section-title" style="background-color: ${C.PRI_D}; display:flex; align-items:center; gap:10px;"><i class="fas fa-chart-line"></i> ${title}</div>
             
             <div class="grid-2">
                 <div class="report-card" style="text-align:center;">
@@ -1402,11 +1423,11 @@
 
             <div class="report-card" style="margin-bottom:25px;">
                 <div class="report-card-title">1. ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE)</div>
-                <div class="chart-wrapper"><canvas id="c-d-${id}"></canvas></div>
+                <div class="chart-full-width"><canvas id="c-d-${id}"></canvas></div>
             </div>
             <div class="report-card" style="margin-bottom:25px;">
                 <div class="report-card-title">2. VISÃO MENSAL / ANUAL</div>
-                <div class="chart-wrapper"><canvas id="c-m-${id}"></canvas></div>
+                <div class="chart-full-width"><canvas id="c-m-${id}"></canvas></div>
             </div>
             
             <div class="grid-2">
@@ -1414,7 +1435,7 @@
                 <div class="report-card"><div class="report-card-title">4. VOLUME E PRODUTIVIDADE POR ANALISTA</div><div class="chart-wrapper"><canvas id="c-a-${id}"></canvas></div></div>
             </div>
 
-            <div class="report-section-title" style="background-color: ${color}; text-align:center; font-size:14px; opacity:0.9;">ANÁLISE DE MATURIDADE E SLA</div>
+            <div class="report-section-title" style="background-color: ${C.PRI_D}; text-align:center; font-size:14px; opacity:0.9;">ANÁLISE DE MATURIDADE E SLA</div>
             
             <div class="grid-2">
                 <div class="report-card"><div class="report-card-title">5. MATURIDADE (AGING) DOS VIGENTES</div><div class="chart-wrapper" style="height:260px;"><canvas id="c-ag-${id}"></canvas></div></div>
@@ -1423,12 +1444,12 @@
 
             <div class="report-card">
                 <div class="report-card-title text-red-600"><i class="fas fa-exclamation-circle"></i> CHAMADOS ACIMA DO SLA PENDENTES (TOTAL: ${d.crits.length})</div>
-                <div class="table-container">
+                <div class="st-dataframe-container">
                     <table class="st-table">
                         <thead><tr>
-                            <th class="w-tk" style="background-color:${color};">Ticket</th>
-                            <th class="w-info" style="background-color:${color}; text-align:left;">Assunto / Info (Expansível)</th>
-                            <th class="w-as" style="background-color:${color};">Analista</th><th class="w-gp" style="background-color:${color};">Grupo</th><th class="w-st" style="background-color:${color};">Status</th><th class="w-prb" style="background-color:${color};">PRB</th><th class="w-age" style="background-color:${color};">Aging</th>
+                            <th class="w-tk" style="background-color:${C.PRI_D};">Ticket</th>
+                            <th class="w-info" style="background-color:${C.PRI_D}; text-align:left;">Assunto / Info (Expansível)</th>
+                            <th class="w-as" style="background-color:${C.PRI_D};">Analista</th><th class="w-gp" style="background-color:${C.PRI_D};">Grupo</th><th class="w-st" style="background-color:${C.PRI_D};">Status</th><th class="w-prb" style="background-color:${C.PRI_D};">PRB</th><th class="w-age" style="background-color:${C.PRI_D};">Aging</th>
                         </tr></thead>
                         <tbody>
                             ${d.crits.length ? d.crits.map(t => `
@@ -1513,7 +1534,7 @@
             let totOut = getTotals(i, 'r') + getTotals(i, 'c') + getTotals(r, 'r') + getTotals(r, 'c') + getTotals(u, 'r') + getTotals(u, 'c');
 
             return `
-            <div class="report-section-title" style="background-color: ${C.GRY_D}; display:flex; align-items:center; gap:10px;"><i class="fas fa-globe"></i> VISÃO ORGANIZACIONAL CONSOLIDADA (INCs + REQs + UAMs)</div>
+            <div class="report-section-title" style="background-color: ${C.PRI_D}; display:flex; align-items:center; gap:10px;"><i class="fas fa-globe"></i> VISÃO ORGANIZACIONAL CONSOLIDADA (INCs + REQs + UAMs)</div>
             <div class="grid-2">
                 <div class="report-card" style="text-align:center;">
                     <div class="report-card-title">TOTAL ENTRADAS (Visão Histórica)</div>
@@ -1527,17 +1548,17 @@
                 </div>
             </div>
             <div class="report-card" style="text-align:center; background: linear-gradient(to right, #f8fafc, #ffffff); margin-bottom:25px;">
-                <div class="report-card-title" style="color:${C.ORG}">BACKLOG GLOBAL VIGENTE (No momento da Auditoria)</div>
+                <div class="report-card-title" style="color:${C.PRI_D}">BACKLOG GLOBAL VIGENTE (No momento da Auditoria)</div>
                 <div style="font-size:64px; font-weight:900; color:${C.ORG}; margin:10px 0;">${i.backlog + r.backlog + u.backlog}</div>
                 <div class="text-sm text-slate-500 font-bold uppercase tracking-wider">Tickets aguardando atendimento em todos os fluxos</div>
             </div>
             <div class="report-card" style="margin-bottom:25px;">
                 <div class="report-card-title">1. ACOMPANHAMENTO DIÁRIO CONSOLIDADO (MÊS VIGENTE)</div>
-                <div class="chart-wrapper"><canvas id="c-d-cons"></canvas></div>
+                <div class="chart-full-width"><canvas id="c-d-cons"></canvas></div>
             </div>
             <div class="report-card" style="margin-bottom:25px;">
                 <div class="report-card-title">2. VISÃO MENSAL CONSOLIDADA</div>
-                <div class="chart-wrapper"><canvas id="c-m-cons"></canvas></div>
+                <div class="chart-full-width"><canvas id="c-m-cons"></canvas></div>
             </div>
             `;
         }
@@ -1571,7 +1592,7 @@
 
         function generatePRBTab(rcaData, ptaskData, slaPTask, refDateObj) {
             const refDate = new Date(refDateObj); refDate.setHours(23, 59, 59, 999); const refTime = refDate.getTime();
-            let html = `<div class="report-section-title" style="background-color: ${C.GRY_D}; display:flex; align-items:center; gap:10px;"><i class="fas fa-bullseye"></i> SESSÃO PRB TASKs (TODAS AS ABERTAS NO SISTEMA)</div>`;
+            let html = `<div class="report-section-title" style="background-color: ${C.PRI_D}; display:flex; align-items:center; gap:10px;"><i class="fas fa-bullseye"></i> SESSÃO PRB TASKs (TODAS AS ABERTAS NO SISTEMA)</div>`;
 
             let rcaRows = "";
             rcaData.forEach(r => {
@@ -1592,7 +1613,7 @@
                         ${descClean.length > 70 ? `<button onclick="toggleText(this)" class="btn-expand"><i class="fas fa-chevron-down"></i> Expandir</button>` : ''}
                     </td>
                     <td class="font-medium">${dummyT.as}</td>
-                    <td><span class="kpi-badge badge-neutral">${dummyT.st}</span></td>
+                    <td><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:10px; border:1px solid #e2e8f0; color:#475569;">${dummyT.st}</span></td>
                 </tr>`;
             });
 
@@ -1635,7 +1656,7 @@
         // ==========================================
         // SISTEMA DE TODO (COM HISTÓRICO)
         // ==========================================
-        let todoList = JSON.parse(localStorage.getItem('eliteMasterTodos')) || [];
+        let todoList = JSON.parse(localStorage.getItem('eliteMasterTodosV64')) || [];
 
         function updateTicketsDropdown() {
             const analyst = document.getElementById('todo-analyst').value;
@@ -1648,13 +1669,8 @@
             }
 
             let tkSet = new Set();
-            GlobalOpenTickets.forEach(t => {
-                if (t.asg === analyst) tkSet.add(t.tk);
-            });
-
-            tkSet.forEach(tk => {
-                selectTk.innerHTML += `<option value="${tk}">${tk}</option>`;
-            });
+            GlobalOpenTickets.forEach(t => { if (t.asg === analyst) tkSet.add(t.tk); });
+            tkSet.forEach(tk => { selectTk.innerHTML += `<option value="${tk}">${tk}</option>`; });
         }
 
         function addTodo() {
@@ -1668,37 +1684,24 @@
 
             const newTodo = {
                 id: Date.now().toString(),
-                analyst: analyst,
-                tickets: selectedTks,
-                desc: desc,
-                history: [{
-                    date: new Date().toLocaleString('pt-BR'),
-                    text: desc
-                }],
+                analyst: analyst, tickets: selectedTks, desc: desc,
+                history: [{ date: new Date().toLocaleString('pt-BR'), text: desc }],
                 date: new Date().toLocaleDateString('pt-BR')
             };
 
-            todoList.push(newTodo);
-            saveTodos();
-            renderTodos();
-
-            document.getElementById('todo-desc').value = '';
-            selectTk.selectedIndex = -1;
+            todoList.push(newTodo); saveTodos(); renderTodos();
+            document.getElementById('todo-desc').value = ''; selectTk.selectedIndex = -1;
         }
 
         function completeTodo(id) {
-            if (confirm("Confirmar a conclusão desta tarefa? O card será removido permanentemente da lista.")) {
-                todoList = todoList.filter(t => t.id !== id);
-                saveTodos();
-                renderTodos();
+            if (confirm("Confirmar a conclusão desta tarefa? O card será removido permanentemente.")) {
+                todoList = todoList.filter(t => t.id !== id); saveTodos(); renderTodos();
             }
         }
 
         function deleteTodo(id) {
             if (confirm("Apagar esta tarefa permanentemente?")) {
-                todoList = todoList.filter(t => t.id !== id);
-                saveTodos();
-                renderTodos();
+                todoList = todoList.filter(t => t.id !== id); saveTodos(); renderTodos();
             }
         }
 
@@ -1710,25 +1713,19 @@
             const todo = todoList.find(t => t.id === id);
             if (todo) {
                 if (!todo.history) todo.history = [{ date: todo.date, text: todo.desc }];
-                todo.history.push({
-                    date: new Date().toLocaleString('pt-BR'),
-                    text: text
-                });
-                saveTodos();
-                renderTodos();
+                todo.history.push({ date: new Date().toLocaleString('pt-BR'), text: text });
+                saveTodos(); renderTodos();
             }
         }
 
-        function saveTodos() { localStorage.setItem('eliteMasterTodos', JSON.stringify(todoList)); }
+        function saveTodos() { localStorage.setItem('eliteMasterTodosV64', JSON.stringify(todoList)); }
 
         function renderTodos() {
             const container = document.getElementById('todo-list');
             const countEl = document.getElementById('todo-count');
-
             if (!container) return;
 
             countEl.innerText = todoList.length;
-
             if (todoList.length === 0) {
                 container.innerHTML = `<div class="text-center py-10 text-slate-400 font-bold"><i class="fas fa-check-circle text-4xl mb-3 text-emerald-400"></i><br>Nenhuma tarefa ativa.</div>`;
                 return;
@@ -1737,36 +1734,24 @@
             let html = "";
             todoList.sort((a, b) => b.id - a.id).forEach(t => {
                 let tkBadges = t.tickets.map(tk => `<span class="todo-badge"><i class="fas fa-ticket-alt"></i> ${tk}</span>`).join('');
+                if (!t.history) { t.history = [{ date: t.date, text: t.desc }]; }
 
-                if (!t.history) {
-                    t.history = [{ date: t.date, text: t.desc }];
-                }
-
-                let historyHtml = t.history.map(h => `
-                    <div class="todo-history-item">
-                        <div class="todo-history-date">${h.date}</div>
-                        <div class="todo-history-text">${h.text}</div>
-                    </div>
-                `).join('');
+                let historyHtml = t.history.map(h => `<div class="history-entry"><div class="history-date">${h.date}</div><div class="text-[12px] text-slate-700 whitespace-pre-wrap leading-relaxed">${h.text}</div></div>`).join('');
 
                 html += `
                 <div class="todo-item">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 8px;">
                         <div style="font-size:13px; font-weight:bold; color:var(--primary-dark);"><i class="fas fa-user text-slate-400 mr-1"></i> ${t.analyst} <span class="text-[10px] text-slate-400 font-normal ml-2">Criado em: ${t.date}</span></div>
                         <div style="display:flex; gap:8px;">
-                            <button onclick="completeTodo('${t.id}')" title="Marcar como Concluído (Remover)" style="background:transparent; border:none; cursor:pointer; color:#10b981; font-size:16px; transition:0.2s;"><i class="fas fa-check-circle"></i></button>
+                            <button onclick="completeTodo('${t.id}')" title="Concluir Tarefa" style="background:transparent; border:none; cursor:pointer; color:#10b981; font-size:16px; transition:0.2s;"><i class="fas fa-check-circle"></i></button>
                             <button onclick="deleteTodo('${t.id}')" title="Apagar Tarefa" style="background:transparent; border:none; cursor:pointer; color:#f87171; font-size:14px; transition:0.2s;"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
-                    ${tkBadges ? `<div style="display:flex; gap:5px; flex-wrap:wrap; margin-top:5px; margin-bottom:5px;">${tkBadges}</div>` : ''}
-                    
-                    <div class="todo-history">
-                        ${historyHtml}
-                    </div>
-
-                    <div class="todo-update-wrapper">
-                        <input type="text" id="update-input-${t.id}" class="form-input" style="padding: 6px 10px; font-size: 12px; margin:0;" placeholder="Adicionar nova atualização...">
-                        <button onclick="addTodoUpdate('${t.id}')" class="btn-process" style="width: auto; padding: 6px 12px; font-size: 11px; margin:0; background: var(--accent);"><i class="fas fa-plus"></i> Add</button>
+                    ${tkBadges ? `<div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;">${tkBadges}</div>` : ''}
+                    <div class="todo-history">${historyHtml}</div>
+                    <div style="display:flex; gap:8px; margin-top:10px; border-top:1px solid #e2e8f0; padding-top:10px;">
+                        <input type="text" id="update-input-${t.id}" class="form-input" style="padding: 6px 10px; font-size: 11px;" placeholder="Adicionar nova atualização...">
+                        <button onclick="addTodoUpdate('${t.id}')" class="btn-process" style="width: auto; padding: 6px 12px; font-size: 11px; background: var(--primary-dark);">Add</button>
                     </div>
                 </div>`;
             });
@@ -1776,14 +1761,11 @@
         function populateTodoAnalystDropdown() {
             const select = document.getElementById('todo-analyst');
             if (!select) return;
-
             let analystSet = new Set();
             GlobalOpenTickets.forEach(t => { if (t.asg !== 'Não Atribuído' && t.asg !== '-' && t.asg !== 'N/A') analystSet.add(t.asg); });
-
             let html = '<option value="">Selecione um analista...</option>';
             Array.from(analystSet).sort().forEach(a => { html += `<option value="${a}">${a}</option>`; });
             select.innerHTML = html;
-
             document.getElementById('todo-tickets').innerHTML = '<option value="" disabled>Selecione um analista primeiro...</option>';
         }
 
@@ -1796,6 +1778,9 @@
             document.getElementById('init-alert').classList.add('hidden-st');
             document.getElementById('loader').classList.remove('hidden-st');
             document.getElementById('report-content').classList.add('hidden-st');
+
+            // Revelar Tabs Nav
+            document.getElementById('main-tabs-container').classList.remove('hidden-st');
 
             if (window.innerWidth < 1024) toggleSidebar();
 
@@ -1822,8 +1807,8 @@
                     const isUam = r => String(r['Assignment group'] || r['Grupo'] || '').toLowerCase().includes('access');
                     let rS = RawData.reqs.filter(r => !isUam(r)); let rU = RawData.reqs.filter(r => isUam(r));
 
-                    if (rS.length) { dRS = calculateSection(rS, slaR, "REQ", dateMachine); document.getElementById('tab-req').innerHTML = generateSectionHTML('req', "SESSÃO REQs (SUPORTE GERAL)", C.PRI, dRS, "REQ"); }
-                    if (rU.length) { dRU = calculateSection(rU, slaR, "REQ", dateMachine); document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "SESSÃO UAMs (ACESSOS)", C.ACC_D, dRU, "REQ"); }
+                    if (rS.length) { dRS = calculateSection(rS, slaR, "REQ", dateMachine); document.getElementById('tab-req').innerHTML = generateSectionHTML('req', "SESSÃO REQs (SUPORTE GERAL)", C.PRI_D, dRS, "REQ"); }
+                    if (rU.length) { dRU = calculateSection(rU, slaR, "REQ", dateMachine); document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "SESSÃO UAMs (ACESSOS)", C.PRI_D, dRU, "REQ"); }
                 }
 
                 if (dI && dRS && dRU) document.getElementById('tab-cons').innerHTML = generateConsolidadoHTML(dI, dRS, dRU);
@@ -1848,7 +1833,7 @@
                     populateTodoAnalystDropdown();
                     renderTodos();
                 });
-            }, 600);
+            }, 500);
         }
     </script>
 </body>
