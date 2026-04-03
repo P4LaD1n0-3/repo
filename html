@@ -392,7 +392,6 @@
             box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1);
         }
 
-        /* CORREÇÃO DO CARD DATA DE REFERÊNCIA - COR AZUL PRIMÁRIA DA PALETA */
         .time-machine {
             background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
             padding: 1.2rem;
@@ -490,7 +489,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* Grids Protegidos contra Overflow */
         .grid-2 {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
@@ -499,7 +497,6 @@
             min-width: 0;
         }
 
-        /* CORREÇÃO: Gráfico Panorâmico agora tem altura fixa também no Desktop */
         .chart-wrapper,
         .chart-full-width {
             position: relative;
@@ -509,7 +506,7 @@
         }
 
         /* =========================================================
-           TABELAS ALTAMENTE RESPONSIVAS E DENSAS (CORREÇÃO DESKTOP)
+           TABELAS ALTAMENTE RESPONSIVAS E DENSAS - ATUALIZADAS (ORDENAÇÃO)
            ========================================================= */
         .st-dataframe-container {
             overflow-x: auto;
@@ -528,37 +525,11 @@
             font-family: 'Inter', sans-serif;
         }
 
-        .w-tk {
-            width: 10%;
-        }
-
-        .w-as {
-            width: 12%;
-        }
-
-        .w-gp {
-            width: 12%;
-        }
-
-        .w-st {
-            width: 10%;
-        }
-
-        .w-age {
-            width: 8%;
-        }
-
-        .w-prb {
-            width: 8%;
-        }
-
-        .w-info {
-            width: auto;
-        }
-
+        /* CORREÇÃO DO CABEÇALHO PARA FICAR VISÍVEL COM FUNDO AZUL ESCURO E ORDENÁVEL */
         .st-table th {
+            background-color: var(--primary-dark);
             color: #fff;
-            padding: 8px 4px;
+            padding: 8px 6px;
             border-right: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
             position: sticky;
@@ -568,6 +539,13 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-size: 10px;
+            cursor: pointer;
+            user-select: none;
+            transition: 0.2s;
+        }
+
+        .st-table th:hover {
+            background-color: var(--primary);
         }
 
         .st-table td {
@@ -602,7 +580,6 @@
             font-size: 11px;
         }
 
-        /* Expansão e Textos */
         .text-expandable {
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -639,7 +616,6 @@
             text-decoration: underline;
         }
 
-        /* Accordions para Apêndice */
         details.saas-accordion {
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -689,7 +665,6 @@
             background: #fff;
         }
 
-        /* Tooltip Flutuante */
         #global-tooltip {
             position: fixed;
             top: 0;
@@ -762,9 +737,6 @@
             display: block;
         }
 
-        /* =========================================================
-           SISTEMA DE TODO (COM HISTÓRICO)
-           ========================================================= */
         .todo-item {
             background: #fff;
             border: 1px solid #e2e8f0;
@@ -839,7 +811,7 @@
         }
 
         /* =========================================================
-           RESPONSIVIDADE E ADAPTAÇÃO PARA MOBILE
+           RESPONSIVIDADE - CABEÇALHOS AGORA VISÍVEIS COMO BOTÕES NO MOBILE
            ========================================================= */
         @media (max-width: 1024px) {
             body {
@@ -889,11 +861,13 @@
 
             div[style*="font-size:38px"],
             div[style*="font-size:54px"],
-            div[style*="font-size:64px"] {
+            div[style*="font-size:64px"],
+            div[style*="font-size:48px"] {
                 font-size: 32px !important;
             }
 
-            div[style*="font-size:22px"] {
+            div[style*="font-size:22px"],
+            div[style*="font-size:32px"] {
                 font-size: 20px !important;
             }
 
@@ -915,8 +889,35 @@
                 display: block;
             }
 
+            /* CORREÇÃO DO THEAD NO MOBILE: Transforma em uma barra de botões de ordenação rolável horizontalmente */
             .st-table thead {
-                display: none;
+                display: flex;
+                padding: 10px;
+                background: #f8fafc;
+                overflow-x: auto;
+                white-space: nowrap;
+                -webkit-overflow-scrolling: touch;
+                border-bottom: 2px solid var(--primary-dark);
+                margin-bottom: 15px;
+                border-radius: 8px;
+            }
+
+            .st-table thead tr {
+                display: flex;
+                gap: 5px;
+                width: max-content;
+            }
+
+            .st-table th {
+                position: static;
+                flex: 0 0 auto;
+                font-size: 10px;
+                padding: 8px 12px !important;
+                border-radius: 4px;
+                border: 1px solid var(--primary-dark);
+                background: var(--primary-dark);
+                color: white;
+                cursor: pointer;
             }
 
             .st-table tbody {
@@ -973,7 +974,9 @@
             .st-table td[data-label="Assunto / Info (Expansível)"],
             .st-table td[data-label="Último Comentário"],
             .st-table td[data-label="Descrição da Causa Raiz"],
-            .st-table td[data-label="Assunto / Info"] {
+            .st-table td[data-label="Assunto / Info"],
+            .st-table td[data-label="Descrição"],
+            .st-table td[data-label="Descrição Completa"] {
                 flex-direction: column;
                 align-items: flex-start;
                 text-align: left !important;
@@ -983,14 +986,18 @@
             .st-table td[data-label="Assunto / Info (Expansível)"]::before,
             .st-table td[data-label="Último Comentário"]::before,
             .st-table td[data-label="Descrição da Causa Raiz"]::before,
-            .st-table td[data-label="Assunto / Info"]::before {
+            .st-table td[data-label="Assunto / Info"]::before,
+            .st-table td[data-label="Descrição"]::before,
+            .st-table td[data-label="Descrição Completa"]::before {
                 margin-bottom: 8px;
                 width: 100%;
                 max-width: 100%;
             }
 
             .st-table td[data-label="Assunto / Info (Expansível)"] .text-expandable,
-            .st-table td[data-label="Último Comentário"] .text-expandable {
+            .st-table td[data-label="Último Comentário"] .text-expandable,
+            .st-table td[data-label="Descrição"] .text-expandable,
+            .st-table td[data-label="Descrição Completa"] .text-expandable {
                 text-align: left;
             }
 
@@ -1104,6 +1111,12 @@
             <div><span>Grupo Resolutor:</span><strong id="tt-gp">...</strong></div>
             <div><span>Abertura:</span><strong id="tt-op">...</strong></div>
             <div><span>Aging Atual:</span><strong id="tt-age" style="color: #f87171;">...</strong></div>
+            <div
+                style="grid-column: span 2; margin-top: 4px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                <span style="font-size: 10px; text-transform: uppercase; color:#cbd5e1;">Ociosidade (Sem ação do
+                    analista)</span>
+                <strong id="tt-idle" style="display: block; font-size: 14px; margin-top: 2px;">...</strong>
+            </div>
         </div>
     </div>
 
@@ -1112,8 +1125,7 @@
             <div class="flex items-center gap-3">
                 <div
                     class="w-8 h-8 rounded-lg bg-[#001871] text-white flex items-center justify-center font-bold text-lg shadow-md">
-                    <i class="fas fa-chart-pie"></i>
-                </div>
+                    <i class="fas fa-chart-pie"></i></div>
                 <h2 class="text-lg font-bold text-[#001871]" style="margin:0;">Elite Master</h2>
             </div>
             <button class="btn-toggle lg:hidden" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
@@ -1181,7 +1193,7 @@
             <div class="search-wrapper" id="search-container">
                 <i class="fas fa-search search-icon"></i>
                 <input type="text" id="globalSearch" class="search-input"
-                    placeholder="Pesquisar ticket, assunto, status, analista..." onkeyup="filterTables()">
+                    placeholder="Pesquisar ticket, assunto, status, analista..." onkeyup="performGlobalSearch(event)">
             </div>
         </header>
 
@@ -1197,6 +1209,8 @@
                     Consolidado</button>
                 <button class="tab-btn" onclick="switchTab('tab-prb', this)"><i class="fas fa-bullseye mr-1"></i> PRB /
                     PTASK</button>
+                <button class="tab-btn" onclick="switchTab('tab-class', this)"><i class="fas fa-exchange-alt mr-1"></i>
+                    Erros Classificação</button>
                 <button class="tab-btn" onclick="switchTab('tab-todo', this)"
                     style="margin-left: auto; color: var(--primary-dark);"><i class="fas fa-clipboard-list mr-1"></i>
                     TODOs (Tarefas)</button>
@@ -1231,6 +1245,8 @@
                     <div id="tab-uam" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-cons" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-prb" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-class" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-search" class="animate-fade hidden-st tab-pane"></div>
 
                     <div id="tab-todo" class="animate-fade hidden-st tab-pane">
                         <div class="report-section-title" style="background-color: var(--primary-dark);"><i
@@ -1275,11 +1291,95 @@
                 </div>
             </div>
         </div>
+
+        <div id="ticket-modal-backdrop"
+            class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] hidden-st opacity-0 transition-opacity duration-300 flex items-center justify-center p-4 sm:p-6">
+            <div id="ticket-modal-content"
+                class="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col transform scale-95 opacity-0 transition-all duration-300">
+                <div
+                    class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-xl">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-lg bg-[var(--primary-dark)] text-white flex items-center justify-center font-bold text-xl">
+                            <i class="fas fa-ticket-alt"></i></div>
+                        <div>
+                            <h3 id="modal-tk" class="text-lg font-black text-slate-800 m-0 leading-tight">INC0000000
+                            </h3>
+                            <span id="modal-state"
+                                class="text-[10px] uppercase font-bold text-white bg-blue-500 px-2 py-0.5 rounded mt-1 inline-block shadow-sm">STATUS</span>
+                        </div>
+                    </div>
+                    <button onclick="closeTicketDetails()"
+                        class="text-slate-400 hover:text-red-500 transition-colors focus:outline-none"><i
+                            class="fas fa-times text-2xl"></i></button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6 bg-slate-100/50">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                        <div class="lg:col-span-1 flex flex-col gap-4">
+                            <div class="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+                                <h4
+                                    class="text-xs font-black text-[var(--primary-dark)] uppercase tracking-wider mb-4 pb-2 border-b border-slate-100">
+                                    <i class="fas fa-info-circle mr-1 text-slate-400"></i> Informações Gerais</h4>
+                                <div class="flex flex-col gap-4">
+                                    <div><span
+                                            class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Solicitante
+                                            / Caller</span><strong id="modal-req"
+                                            class="text-sm text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 block">...</strong>
+                                    </div>
+                                    <div><span
+                                            class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Analista
+                                            Atribuído</span><strong id="modal-asg"
+                                            class="text-sm text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-100 block">...</strong>
+                                    </div>
+                                    <div><span class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Grupo
+                                            Resolutor</span><strong id="modal-gp"
+                                            class="text-sm text-slate-700 bg-slate-50 px-2 py-1 rounded border border-slate-100 block">...</strong>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 mt-2 pt-4 border-t border-slate-100">
+                                        <div><span
+                                                class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Abertura</span><span
+                                                id="modal-op"
+                                                class="text-xs font-semibold text-slate-600 block bg-slate-50 px-2 py-1 rounded border border-slate-100">...</span>
+                                        </div>
+                                        <div><span
+                                                class="block text-[10px] text-slate-400 font-bold uppercase mb-1">Fechamento</span><span
+                                                id="modal-cl"
+                                                class="text-xs font-semibold text-slate-600 block bg-slate-50 px-2 py-1 rounded border border-slate-100">...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-2 flex flex-col gap-4">
+                            <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+                                <h4 id="modal-title"
+                                    class="text-lg font-black text-[var(--primary-dark)] mb-3 leading-tight">Assunto do
+                                    Chamado</h4>
+                                <p id="modal-desc"
+                                    class="text-sm text-slate-600 mb-8 italic border-l-4 border-blue-200 pl-4 py-1">
+                                    Descrição não fornecida.</p>
+
+                                <h4
+                                    class="text-xs font-black text-[var(--primary-dark)] uppercase tracking-wider mb-5 pb-2 border-b border-slate-100">
+                                    <i class="fas fa-comments mr-1 text-slate-400"></i> Histórico de Interações (Thread)
+                                </h4>
+                                <div id="modal-timeline" class="pl-2">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <script>
         // ==========================================
-        // 0. INICIALIZAÇÃO, UI E TOOLTIPS
+        // 0. INICIALIZAÇÃO, ORDENAÇÃO E UI
         // ==========================================
         document.getElementById('ref-date').valueAsDate = new Date();
 
@@ -1320,15 +1420,327 @@
 
             el.classList.add('active');
 
+            const searchInput = document.getElementById("globalSearch");
+            if (searchInput && searchInput.value.trim() !== "") {
+                searchInput.value = "";
+            }
+
             const targetTab = document.getElementById(tabId);
             targetTab.classList.remove('hidden-st');
-            void targetTab.offsetWidth; // Reflow 
+            void targetTab.offsetWidth;
             targetTab.classList.add('animate-fade');
             window.dispatchEvent(new Event('resize'));
             filterTables();
         }
 
-        // TOOLTIP ENGINE
+        // ==========================================
+        // FUNÇÃO DE ORDENAÇÃO (SORT TABLE)
+        // ==========================================
+        function sortTable(th) {
+            const table = th.closest('table');
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            if (rows.length === 1 && rows[0].children[0].colSpan > 1) return;
+
+            let tr = th.closest('tr');
+            let colIndex = Array.from(tr.children).indexOf(th);
+            let isAsc = th.dataset.dir !== 'asc';
+            let dirMultiplier = isAsc ? 1 : -1;
+
+            table.querySelectorAll('th i.fa-sort, th i.fa-sort-up, th i.fa-sort-down').forEach(i => {
+                i.className = 'fas fa-sort ml-1 opacity-50';
+            });
+            th.dataset.dir = isAsc ? 'asc' : 'desc';
+            const icon = th.querySelector('i');
+            if (icon) icon.className = isAsc ? 'fas fa-sort-up ml-1' : 'fas fa-sort-down ml-1';
+
+            rows.sort((a, b) => {
+                let cellA = a.children[colIndex].innerText.trim();
+                let cellB = b.children[colIndex].innerText.trim();
+
+                let dateMatchA = cellA.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                let dateMatchB = cellB.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                if (dateMatchA && dateMatchB) {
+                    let dA = new Date(dateMatchA[3], dateMatchA[2] - 1, dateMatchA[1]).getTime();
+                    let dB = new Date(dateMatchB[3], dateMatchB[2] - 1, dateMatchB[1]).getTime();
+                    return (dA - dB) * dirMultiplier;
+                }
+
+                let numA = parseFloat(cellA.replace(/[^\d.-]/g, ''));
+                let numB = parseFloat(cellB.replace(/[^\d.-]/g, ''));
+
+                let isNumA = cellA.match(/^[\d.,R$+\-%\s]+(d totais|d ocioso|d)?$/i);
+                let isNumB = cellB.match(/^[\d.,R$+\-%\s]+(d totais|d ocioso|d)?$/i);
+
+                if (isNumA && isNumB && !isNaN(numA) && !isNaN(numB)) {
+                    return (numA - numB) * dirMultiplier;
+                }
+
+                return cellA.localeCompare(cellB, undefined, { numeric: true, sensitivity: 'base' }) * dirMultiplier;
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        // ==========================================
+        // CONTROLADOR DO MODAL DE THREAD (HISTÓRICO)
+        // ==========================================
+        function openTicketDetails(tkNumber) {
+            let ticketData = null;
+            let tType = '';
+            const allSources = [
+                { name: 'INC', data: RawData.incs },
+                { name: 'REQ', data: RawData.reqs },
+                { name: 'RCA', data: RawData.rca },
+                { name: 'PTASK', data: RawData.ptask }
+            ];
+
+            for (let source of allSources) {
+                let found = source.data.find(r => {
+                    let num = getCol(r, ['Number', 'number', 'Ticket', 'RITM', 'Problem', 'Problema', 'Task']);
+                    return num === tkNumber;
+                });
+                if (found) {
+                    ticketData = found;
+                    tType = source.name;
+                    break;
+                }
+            }
+
+            if (!ticketData) {
+                alert("Detalhes do ticket não encontrados na base importada.");
+                return;
+            }
+
+            let title = String(getCol(ticketData, ['Short description', 'Descrição Curta', 'Item', 'Descrição']) || 'Sem assunto');
+            let desc = String(getCol(ticketData, ['Description', 'Descrição Completa', 'description']) || '');
+            let state = String(getCol(ticketData, ['State', 'Status', 'Estado', 'RCA Status']) || '');
+            let asg = getCol(ticketData, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
+            let gp = getCol(ticketData, ['Assignment group', 'Grupo']) || 'N/A';
+            let req = getCol(ticketData, ['Requester', 'Caller', 'Solicitante']) || 'N/A';
+            let opDate = safeDate(getCol(ticketData, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+            let clDate = safeDate(getCol(ticketData, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+
+            let opStr = opDate ? opDate.toLocaleString('pt-BR') : '-';
+            let clStr = clDate ? clDate.toLocaleString('pt-BR') : 'Aberto';
+
+            let stLower = state.toLowerCase();
+            let badgeColor = 'bg-blue-500';
+            if (stLower.includes('resolv') || stLower.includes('complet')) { badgeColor = 'bg-emerald-500'; }
+            else if (stLower.includes('cancel') || stLower.includes('incomplet')) { badgeColor = 'bg-red-500'; }
+            else if (stLower.includes('pend') || stLower.includes('hold')) { badgeColor = 'bg-amber-500'; }
+
+            let interactionCols = ['Work notes', 'Work Notes', 'Work notes list', 'Work notes lists', 'Work notes list(s)', 'Additional comments', 'Close notes', 'Closing notes'];
+            let allEntries = [];
+            let regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(([^)]+)\)/gm;
+
+            let rawCombined = "";
+            let processedCols = new Set();
+            interactionCols.forEach(col => {
+                if (ticketData[col] && typeof ticketData[col] === 'string' && !processedCols.has(col)) {
+                    rawCombined += ticketData[col] + "\n\n";
+                    processedCols.add(col);
+                }
+            });
+
+            if (rawCombined.trim() !== "") {
+                let matches = [...rawCombined.matchAll(regex)];
+                if (matches.length > 0) {
+                    for (let i = 0; i < matches.length; i++) {
+                        let match = matches[i];
+                        let dateStr = match[1];
+                        let author = match[2].trim();
+                        let type = match[3].trim();
+
+                        let startIndex = match.index + match[0].length;
+                        let endIndex = (i + 1 < matches.length) ? matches[i + 1].index : rawCombined.length;
+                        let text = rawCombined.substring(startIndex, endIndex).trim();
+
+                        let d = new Date(dateStr.replace(/-/g, '/'));
+                        allEntries.push({ dateObj: d, dateStr, author, type, text });
+                    }
+                } else {
+                    allEntries.push({ dateObj: new Date(0), dateStr: 'Histórico Bruto', author: 'Sistema', type: 'Nota do Sistema', text: rawCombined.trim() });
+                }
+            }
+
+            allEntries.sort((a, b) => b.dateObj - a.dateObj);
+
+            document.getElementById('modal-tk').innerText = tkNumber + ' (' + tType + ')';
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-desc').innerText = desc ? desc : 'Nenhuma descrição detalhada fornecida no ticket original.';
+            document.getElementById('modal-state').innerText = state;
+            document.getElementById('modal-state').className = `text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded mt-1 inline-block shadow-sm ${badgeColor}`;
+            document.getElementById('modal-req').innerText = req;
+            document.getElementById('modal-asg').innerText = asg;
+            document.getElementById('modal-gp').innerText = gp;
+            document.getElementById('modal-op').innerText = opStr;
+            document.getElementById('modal-cl').innerText = clStr;
+
+            let timelineHtml = '';
+            if (allEntries.length === 0) {
+                timelineHtml = '<div class="text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-lg text-slate-400 text-sm font-semibold"><i class="fas fa-comment-slash text-3xl mb-3 block text-slate-300"></i>Nenhuma interação técnica registrada no histórico.</div>';
+            } else {
+                timelineHtml = allEntries.map(e => {
+                    let isInternal = e.type.toLowerCase().includes('work note') || e.type.toLowerCase().includes('nota de trabalho');
+                    let borderColor = isInternal ? 'border-orange-300' : 'border-blue-300';
+                    let dotBorder = isInternal ? 'border-orange-500' : 'border-blue-500';
+                    let badgeClass = isInternal ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200';
+                    let bgClass = isInternal ? 'bg-orange-50/30' : 'bg-blue-50/30';
+
+                    return `
+                    <div class="mb-5 relative pl-6 border-l-2 ${borderColor}">
+                        <div class="absolute w-3.5 h-3.5 rounded-full bg-white border-2 ${dotBorder} -left-[8px] top-1 shadow-sm"></div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="font-bold text-xs text-slate-800"><i class="fas fa-user mr-1.5 text-slate-400"></i>${e.author}</span>
+                            <span class="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded shadow-sm border border-slate-100"><i class="far fa-clock mr-1"></i>${e.dateStr}</span>
+                        </div>
+                        <div class="text-[9px] uppercase font-black px-2 py-0.5 rounded inline-block mb-2 border shadow-sm ${badgeClass}">${e.type}</div>
+                        <div class="text-xs text-slate-600 whitespace-pre-wrap ${bgClass} p-3.5 rounded-r-lg rounded-bl-lg border border-slate-100 shadow-sm">${e.text}</div>
+                    </div>
+                `}).join('');
+            }
+            document.getElementById('modal-timeline').innerHTML = timelineHtml;
+
+            document.getElementById('ticket-modal-backdrop').classList.remove('hidden-st');
+            setTimeout(() => {
+                document.getElementById('ticket-modal-backdrop').classList.remove('opacity-0');
+                document.getElementById('ticket-modal-content').classList.remove('scale-95', 'opacity-0');
+            }, 10);
+        }
+
+        function closeTicketDetails() {
+            document.getElementById('ticket-modal-backdrop').classList.add('opacity-0');
+            document.getElementById('ticket-modal-content').classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                document.getElementById('ticket-modal-backdrop').classList.add('hidden-st');
+            }, 300);
+        }
+
+        // ==========================================
+        // MOTOR DE PESQUISA GLOBAL AVANÇADO
+        // ==========================================
+        let searchTimeout = null;
+        function performGlobalSearch(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const inputVal = document.getElementById("globalSearch").value.trim();
+                const term = removeAccents(inputVal.toUpperCase());
+
+                if (term.length === 0) {
+                    let activeBtn = document.querySelector('.tab-btn.active');
+                    if (activeBtn) {
+                        activeBtn.click();
+                    } else {
+                        switchTab('tab-inc', document.querySelector('.tab-btn'));
+                    }
+                    return;
+                }
+
+                document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(c => { c.classList.add('hidden-st'); c.classList.remove('animate-fade'); });
+
+                const searchTab = document.getElementById('tab-search');
+                searchTab.classList.remove('hidden-st');
+                searchTab.classList.add('animate-fade');
+
+                let results = [];
+                const allSources = [
+                    { name: 'INC', data: RawData.incs },
+                    { name: 'REQ', data: RawData.reqs },
+                    { name: 'RCA', data: RawData.rca },
+                    { name: 'PTASK', data: RawData.ptask }
+                ];
+
+                const refDateObj = new Date(document.getElementById('ref-date').value + 'T12:00:00');
+
+                allSources.forEach(source => {
+                    source.data.forEach(r => {
+                        let rowString = removeAccents(Object.values(r).join(" ").toUpperCase());
+                        if (rowString.includes(term)) {
+                            let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
+                            let opOrig = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                            let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                            let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, opOrig) : '-';
+
+                            results.push({
+                                type: source.name,
+                                tk: getCol(r, ['Number', 'number', 'Ticket', 'RITM', 'Problem', 'Problema', 'Task']) || '-',
+                                desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Item', 'Descrição']) || '-').replace(/"/g, '&quot;'),
+                                asg: asg,
+                                gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
+                                st: String(getCol(r, ['State', 'Status', 'Estado', 'RCA Status']) || '').toUpperCase(),
+                                opOrig: opOrig,
+                                clOrig: clOrig,
+                                idle: idle
+                            });
+                        }
+                    });
+                });
+
+                results.sort((a, b) => {
+                    if (!a.opOrig) return 1;
+                    if (!b.opOrig) return -1;
+                    return b.opOrig - a.opOrig;
+                });
+
+                let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-search mr-2"></i> RESULTADOS DA PESQUISA GLOBAL: "${inputVal}" (${results.length} encontrados)</div>`;
+
+                if (results.length === 0) {
+                    html += `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold text-lg"><i class="fas fa-folder-open text-4xl mb-4 text-slate-300 block"></i>Nenhum registro encontrado em toda a base de dados.</h3><p class="text-slate-400 mt-2 text-sm">Tente pesquisar por outro termo, ticket ou nome de analista.</p></div>`;
+                } else {
+                    let rows = results.map(t => {
+                        let opStr = t.opOrig ? t.opOrig.toLocaleDateString('pt-BR') : '-';
+                        let clStr = t.clOrig ? t.clOrig.toLocaleDateString('pt-BR') : 'Aberto';
+                        let age = (t.opOrig && t.clOrig) ? Math.floor((t.clOrig - t.opOrig) / 86400000) : (t.opOrig ? Math.floor((new Date() - t.opOrig) / 86400000) : '-');
+                        if (age < 0) age = 0;
+
+                        let stLower = t.st.toLowerCase();
+                        let badgeColor = '#f1f5f9'; let fontColor = '#475569';
+                        if (stLower.includes('resolv') || stLower.includes('complet')) { badgeColor = '#ecfdf5'; fontColor = '#10b981'; }
+                        else if (stLower.includes('cancel') || stLower.includes('incomplet')) { badgeColor = '#fee2e2'; fontColor = '#ef4444'; }
+                        else if (stLower.includes('pend') || stLower.includes('hold')) { badgeColor = '#fef3c7'; fontColor = '#f59e0b'; }
+
+                        return `<tr class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-as="${t.asg}" data-gp="${t.gp}" data-st="${t.st}" data-age="${age}" data-op="${opStr}" data-info="Ticket encontrado via Pesquisa Global" data-idle="${t.idle}">
+                            <td data-label="Ticket Original" style="color:var(--primary-dark); font-weight:bold;">
+                                ${t.tk} <div style="font-size:9px; background:#e2e8f0; padding:2px 4px; border-radius:4px; color:#475569; display:inline-block; margin-top:4px;">${t.type}</div>
+                                <button onclick="openTicketDetails('${t.tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                            </td>
+                            <td data-label="Descrição Completa" style="text-align:left;">
+                                <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 2;">${t.desc}</div>
+                            </td>
+                            <td data-label="Analista / Grupo">${t.asg}<br><span style="font-size:9px; color:#64748b;">${t.gp}</span></td>
+                            <td data-label="Status / Abertura"><span style="background:${badgeColor}; color:${fontColor}; padding:2px 6px; border-radius:4px; font-size:9px; font-weight:bold; display:inline-block; margin-bottom:4px; border:1px solid ${fontColor}40;">${t.st}</span><br><span style="font-size:10px; color:#64748b;"><i class="far fa-calendar-alt"></i> ${opStr}</span></td>
+                            <td data-label="Fechamento / Aging / Ocioso" style="text-align:right;">
+                                <div style="font-weight:bold; font-size:12px; color:${t.clOrig ? 'var(--primary-dark)' : 'var(--orange)'};">${clStr}</div>
+                                ${age !== '-' ? `<div style="font-size:10px; color:#94a3b8; margin-top:2px;">${age}d de vida</div>` : ''}
+                                ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : ``}
+                            </td>
+                        </tr>`;
+                    }).join('');
+
+                    html += `<div class="report-card">
+                        <div class="st-dataframe-container">
+                            <table class="st-table">
+                                <thead><tr>
+                                    <th style="width:15%;" onclick="sortTable(this)">Ticket Original <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                                    <th style="width:40%; text-align:left;" onclick="sortTable(this)">Descrição Completa <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                                    <th style="width:15%;" onclick="sortTable(this)">Analista / Grupo <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                                    <th style="width:15%;" onclick="sortTable(this)">Status / Abertura <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                                    <th style="width:15%;" onclick="sortTable(this)">Fechamento / Aging <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                                </tr></thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+                }
+                document.getElementById('tab-search').innerHTML = html;
+            }, 300);
+        }
+
+        // TOOLTIP ENGINE COM OCIOSIDADE (ESTAGNAÇÃO)
         const tooltip = document.getElementById('global-tooltip');
 
         document.addEventListener('mouseover', e => {
@@ -1338,12 +1750,23 @@
                 document.getElementById('tt-st').innerText = row.dataset.st || '-';
                 document.getElementById('tt-desc').innerText = row.dataset.desc || 'Sem assunto registrado.';
                 document.getElementById('tt-as').innerText = row.dataset.as || 'Não atribuído';
-                document.getElementById('tt-age').innerText = (row.dataset.age || '0') + ' dias';
+                document.getElementById('tt-age').innerText = (row.dataset.age || '0') + ' dias totais';
+
+                let idleVal = row.dataset.idle;
+                let idleEl = document.getElementById('tt-idle');
+                if (idleVal && idleVal !== '-' && idleVal !== 'undefined') {
+                    let idNum = parseInt(idleVal);
+                    idleEl.innerHTML = `<i class="fas fa-user-clock mr-1"></i> ${idNum} dias inativo`;
+                    idleEl.style.color = idNum > 3 ? '#ef4444' : '#10b981';
+                } else {
+                    idleEl.innerText = 'N/A (Fechado ou Não Atribuído)';
+                    idleEl.style.color = '#94a3b8';
+                }
 
                 let st = (row.dataset.st || '').toLowerCase();
                 let bColor = 'rgba(255,255,255,0.1)';
                 if (st.includes('resolv') || st.includes('complet')) bColor = '#10b981';
-                else if (st.includes('cancel')) bColor = '#ef4444';
+                else if (st.includes('cancel') || st.includes('incomplet')) bColor = '#ef4444';
                 else if (st.includes('hold') || st.includes('pend')) bColor = '#f59e0b';
                 else bColor = '#3b82f6';
                 document.getElementById('tt-st').style.backgroundColor = bColor;
@@ -1427,6 +1850,44 @@
         const getCol = (row, keys) => { for (let k of keys) if (row[k] !== undefined && row[k] !== "") return row[k]; return null; };
 
         // ==========================================
+        // 1.5 MOTOR PYTHON: TEMPO DE OCIOSIDADE (DAYS_SILENT)
+        // ==========================================
+        function getDaysSilent(r, refDateObj, assignedTo, opDateObj) {
+            if (!assignedTo || assignedTo === 'Não Atribuído' || assignedTo === 'N/A' || assignedTo === '-') return '-';
+
+            let interactionCols = ['Work notes', 'Work Notes', 'Work notes list', 'Work notes lists', 'Work notes list(s)', 'Additional comments'];
+            let maxDate = opDateObj ? new Date(opDateObj) : new Date(refDateObj);
+            let foundInteraction = false;
+
+            let regex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(/g;
+
+            interactionCols.forEach(col => {
+                let text = r[col];
+                if (text && typeof text === 'string') {
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        let dateStr = match[1];
+                        let author = match[2].trim();
+
+                        if (author === assignedTo) {
+                            let d = new Date(dateStr.replace(/-/g, '/'));
+                            if (!isNaN(d) && d.getTime() > maxDate.getTime() && d.getTime() <= refDateObj.getTime()) {
+                                maxDate = d;
+                                foundInteraction = true;
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (!opDateObj && !foundInteraction) return '-';
+
+            let diff = Math.floor((refDateObj - maxDate) / 86400000);
+            return diff > 0 ? diff : 0;
+        }
+
+
+        // ==========================================
         // 2. MOTOR CORE (MÁQUINA DO TEMPO + REGRAS)
         // ==========================================
         let GlobalOpenTickets = [];
@@ -1446,7 +1907,6 @@
                 : [{ l: "1-3 dias", min: 0, max: 3 }, { l: "4-7 dias", min: 4, max: 7 }, { l: "7+ dias", min: 8, max: 9999 }];
             bucketsDef.forEach(b => agingBuckets[b.l] = { count: 0, color: b.min > slaDays ? '#D50000' : '#1E3A8A' });
 
-            // GERAÇÃO MANUAL SEGURA CONTRA TIMEZONE (EIXO X)
             let rDay = refDate.getDate(); let rMonth = refDate.getMonth(); let rYear = refDate.getFullYear();
             for (let i = 1; i <= rDay; i++) {
                 let sD = `${rYear}-${String(rMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
@@ -1469,7 +1929,6 @@
                 let age = cl ? Math.floor((cl - opOrig) / 86400000) : Math.floor((refDate - opOrig) / 86400000);
                 if (age < 0) age = 0;
 
-                // Extração Manual para Eixo (Ignora Timezone Local)
                 let oY = opOrig.getFullYear(); let oM = String(opOrig.getMonth() + 1).padStart(2, '0');
                 let mKey = `${oY}-${oM}`;
                 if (!trendM[mKey]) trendM[mKey] = { a: 0, r: 0, c: 0, inSla: 0 };
@@ -1512,6 +1971,8 @@
                     let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
                     let tk = getCol(r, ['Number', 'Ticket']) || '-';
 
+                    let idle = getDaysSilent(r, refDate, asg, opOrig);
+
                     if (!analistas[asg]) analistas[asg] = { ab: 0, res: 0 };
                     analistas[asg].ab++;
 
@@ -1530,10 +1991,10 @@
                         criticals.push({
                             tk: tk, desc: descClean, as: asg, gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
                             st: (clOrig ? stOrig : st).toUpperCase(), age: age, prb: hasPrb ? prb : 'N/A', info: infoClean,
-                            opStr: opOrig.toLocaleDateString('pt-BR')
+                            opStr: opOrig.toLocaleDateString('pt-BR'), idle: idle
                         });
 
-                        if (!isReq && !hasPrb) noPrb.push({ tk: tk, as: asg, info: infoClean, desc: descClean, gp: getCol(r, ['Assignment group', 'Grupo']) || '-', st: (clOrig ? stOrig : st).toUpperCase(), age: age, opStr: opOrig.toLocaleDateString('pt-BR') });
+                        if (!isReq && !hasPrb) noPrb.push({ tk: tk, as: asg, info: infoClean, desc: descClean, gp: getCol(r, ['Assignment group', 'Grupo']) || '-', st: (clOrig ? stOrig : st).toUpperCase(), age: age, opStr: opOrig.toLocaleDateString('pt-BR'), idle: idle });
                     }
                 }
 
@@ -1570,7 +2031,146 @@
         const C = { PRI_D: "#001871", PRI: "#1E3A8A", ACC_D: "#0F172A", SUC: "#00C853", DAN: "#D50000", ORG: "#FF8C00", GRY_D: "#334155", GRY_L: "#F8FAFC" };
 
         // ==========================================
-        // 3. HTML BUILDERS (SAAS CLONE DO PYTHON)
+        // ABA ERROS DE CLASSIFICAÇÃO
+        // ==========================================
+        function calculateClassifications(allData, refDateObj) {
+            let incorrectTickets = [];
+            let totalDays = 0;
+            let maxDays = 0;
+            let withLink = 0;
+            let withoutLink = 0;
+
+            allData.forEach(r => {
+                let stOrig = String(getCol(r, ['State', 'Status', 'Estado']) || '').toLowerCase();
+                let reason = String(getCol(r, ['Reason', 'reason', 'REASON', 'Motivo']) || '').toUpperCase();
+
+                if (stOrig.includes('incomplet') && reason.includes('INCORRECT CLASSIFICATION')) {
+                    let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                    let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                    if (!op) return;
+
+                    if (op.getTime() > refDateObj.getTime()) return;
+
+                    let closeNotes = String(getCol(r, ['Close notes', 'Close Notes', 'close_notes', 'Closing notes']) || '');
+
+                    let linkedMatch = closeNotes.match(/(INC|RITM|REQ|TASK)[\s\-]?(\d{6,8})/i);
+                    let linkedTicket = linkedMatch ? (linkedMatch[1].toUpperCase() + linkedMatch[2]) : null;
+
+                    let days = cl ? Math.floor((cl - op) / 86400000) : Math.floor((refDateObj - op) / 86400000);
+                    if (days < 0) days = 0;
+
+                    let asg = getCol(r, ['Assigned to', 'Analista']) || 'N/A';
+                    let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
+
+                    if (linkedTicket) withLink++; else withoutLink++;
+                    totalDays += days;
+                    if (days > maxDays) maxDays = days;
+
+                    incorrectTickets.push({
+                        tk: getCol(r, ['Number', 'number', 'Ticket', 'RITM']) || '-',
+                        req: getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
+                        as: asg,
+                        gp: getCol(r, ['Assignment group', 'Grupo']) || 'N/A',
+                        linked: linkedTicket || '⚠️ Não encontrado',
+                        reason: reason,
+                        st: stOrig.toUpperCase(),
+                        age: days,
+                        idle: idle,
+                        opStr: op.toLocaleDateString('pt-BR'),
+                        desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição']) || '-').replace(/"/g, '&quot;'),
+                        info: closeNotes.replace(/"/g, '&quot;') || 'Nenhuma nota de fechamento registrada.'
+                    });
+                }
+            });
+
+            return {
+                total: incorrectTickets.length,
+                withLink,
+                withoutLink,
+                avgDays: incorrectTickets.length ? (totalDays / incorrectTickets.length).toFixed(1).replace('.', ',') : "0,0",
+                maxDays,
+                tickets: incorrectTickets.sort((a, b) => b.age - a.age)
+            };
+        }
+
+        function generateClassificationsHTML(d) {
+            if (d.total === 0) {
+                return `<div class="report-card text-center py-10" style="border-left: 4px solid var(--success);"><h3 class="text-emerald-600 font-bold text-lg"><i class="fas fa-check-circle mr-2"></i> Nenhuma classificação incorreta identificada no período.</h3><p class="text-slate-500 mt-2 text-sm">Parabéns à equipe. Nenhum ticket foi fechado como Incompleto por Classificação Incorreta.</p></div>`;
+            }
+
+            let rows = d.tickets.map(t => `
+                <tr class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.age}" data-op="${t.opStr}" data-info="${t.info}" data-idle="${t.idle}">
+                    <td data-label="Ticket Original" style="color:var(--primary-dark); font-weight:bold;">
+                        ${t.tk}
+                        <button onclick="openTicketDetails('${t.tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                    </td>
+                    <td data-label="Ticket Vinculado" style="font-weight:bold; color:${t.linked.includes('⚠️') ? 'var(--danger)' : 'var(--success)'}">${t.linked}</td>
+                    <td data-label="Descrição" style="text-align:left;">
+                        <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 1;">${t.desc}</div>
+                        <div class="text-expandable text-[10px] text-slate-500">Close Notes: ${t.info}</div>
+                        ${t.desc.length > 50 || t.info.length > 50 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
+                    </td>
+                    <td data-label="Solicitante">${t.req}</td>
+                    <td data-label="Analista / Grupo">${t.as}<br><span style="font-size:9px; color:#64748b;">${t.gp}</span></td>
+                    <td data-label="Reason / Status"><span style="background:#fee2e2; color:#b91c1c; padding:2px 6px; border-radius:4px; font-size:9px; font-weight:bold; display:inline-block; margin-bottom:4px;">${t.reason}</span><br><span style="font-size:9px; color:#475569; background:#f1f5f9; padding:2px 6px; border-radius:4px; border:1px solid #e2e8f0;">${t.st}</span></td>
+                    <td data-label="Dias / Ocioso" style="text-align:right;">
+                        <div style="color:var(--danger); font-weight:bold; font-size:14px;">${t.age}d totais</div>
+                        ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                    </td>
+                </tr>
+            `).join('');
+
+            return `
+            <div class="report-section-title" style="background-color: var(--danger);"><i class="fas fa-exchange-alt mr-2"></i> CLASSIFICAÇÕES INCORRETAS (REQ ⇄ INC)</div>
+            
+            <div class="grid-2" style="grid-template-columns: 1fr 2.5fr;">
+                <div class="report-card" style="text-align:center; border-left: 4px solid var(--danger); display:flex; flex-direction:column; justify-content:center;">
+                    <div class="report-card-title text-red-700">⛔ TOTAL INCORRETOS</div>
+                    <div style="font-size:54px; font-weight:900; color:var(--danger); line-height:1; margin: 10px 0;">${d.total}</div>
+                    <div class="text-xs text-slate-500 font-bold uppercase">Registros no Período</div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div class="report-card" style="text-align:center; padding: 15px; border-left: 4px solid var(--success); margin-bottom:0;">
+                        <div class="report-card-title text-green-700" style="margin-bottom: 10px; font-size: 11px;">🔗 COM TICKET VINCULADO</div>
+                        <div style="font-size:32px; font-weight:900; color:var(--success);">${d.withLink}</div>
+                    </div>
+                    <div class="report-card" style="text-align:center; padding: 15px; border-left: 4px solid var(--orange); margin-bottom:0;">
+                        <div class="report-card-title text-orange-600" style="margin-bottom: 10px; font-size: 11px;">🚫 SEM VÍNCULO (ERRO)</div>
+                        <div style="font-size:32px; font-weight:900; color:var(--orange);">${d.withoutLink}</div>
+                    </div>
+                    <div class="report-card" style="text-align:center; padding: 15px; border-left: 4px solid var(--info); margin-bottom:0;">
+                        <div class="report-card-title text-blue-600" style="margin-bottom: 10px; font-size: 11px;">⏱️ DETECÇÃO MÉDIA</div>
+                        <div style="font-size:32px; font-weight:900; color:var(--info);">${d.avgDays}d</div>
+                    </div>
+                    <div class="report-card" style="text-align:center; padding: 15px; border-left: 4px solid var(--gray-dark); margin-bottom:0;">
+                        <div class="report-card-title text-slate-600" style="margin-bottom: 10px; font-size: 11px;">⚡ DETECÇÃO MÁXIMA</div>
+                        <div style="font-size:32px; font-weight:900; color:var(--gray-dark);">${d.maxDays}d</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <div class="report-card-title" style="color:var(--primary-dark)"><i class="fas fa-list mr-2"></i> LISTA DETALHADA DE CLASSIFICAÇÕES INCORRETAS</div>
+                <div class="st-dataframe-container">
+                    <table class="st-table">
+                        <thead><tr>
+                            <th style="width:12%;" onclick="sortTable(this)">Ticket Original <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th style="width:12%;" onclick="sortTable(this)">Ticket Vinculado <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th style="width:25%; text-align:left;" onclick="sortTable(this)">Descrição / Close Notes <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th style="width:15%;" onclick="sortTable(this)">Solicitante <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th style="width:15%;" onclick="sortTable(this)">Analista / Grupo <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th style="width:13%;" onclick="sortTable(this)">Reason / Status <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th style="width:8%;" onclick="sortTable(this)">Dias / Ocioso <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>
+            `;
+        }
+
+        // ==========================================
+        // 3. HTML BUILDERS GERAIS (INCs/REQs)
         // ==========================================
         function buildThroughputTable(d, lblRes) {
             let rows = "", tA = 0, tR = 0, tC = 0, tS = 0, lastB = 0;
@@ -1599,9 +2199,13 @@
 
             return `<div class="st-dataframe-container"><table class="st-table">
                 <thead><tr>
-                    <th>Mês</th><th>Abertos</th>
-                    <th>${lblRes}</th><th>Cancelados</th>
-                    <th>Saldo</th><th>Backlog</th><th>% no Prazo</th>
+                    <th onclick="sortTable(this)">Mês <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th onclick="sortTable(this)">Abertos <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th onclick="sortTable(this)">${lblRes} <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th onclick="sortTable(this)">Cancelados <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th onclick="sortTable(this)">Saldo <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th onclick="sortTable(this)">Backlog <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th onclick="sortTable(this)">% no Prazo <i class="fas fa-sort ml-1 opacity-50"></i></th>
                 </tr></thead>
                 <tbody>${rows || `<tr><td colspan="7" style="text-align:center;">Sem histórico.</td></tr>`}</tbody>
                 <tfoot><tr>
@@ -1615,7 +2219,7 @@
             </table></div>`;
         }
 
-        function buildRowAttrs(t) { return `class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.age}" data-op="${t.opStr}" data-info="${t.info}"`; }
+        function buildRowAttrs(t) { return `class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.age}" data-op="${t.opStr}" data-info="${t.info}" data-idle="${t.idle !== undefined ? t.idle : '-'}"`; }
 
         function generateSectionHTML(id, title, color, d, typeStr) {
             let lblRes = typeStr === 'INC' ? 'Resolvidos' : 'Encerrados';
@@ -1634,20 +2238,31 @@
             <div class="report-card" style="margin-top:20px; border-color: ${C.PRI_D};">
                 <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle mr-2"></i> INCIDENTES CRÍTICOS SEM PRB (${d.noPrb.length})</div>
                 <div class="st-dataframe-container"><table class="st-table">
-                <thead><tr><th class="w-tk">Ticket</th><th class="w-as">Analista</th><th class="w-info" style="text-align:left;">Último Comentário</th></tr></thead>
+                <thead><tr>
+                    <th class="w-tk" onclick="sortTable(this)">Ticket <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th class="w-as" onclick="sortTable(this)">Analista <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th class="w-info" style="text-align:left;" onclick="sortTable(this)">Último Comentário <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th class="w-age" title="Aging Total / Dias Ociosos (Sem Interação)" onclick="sortTable(this)">Aging / Ocioso <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                </tr></thead>
                 <tbody>${d.noPrb.map(t => `
                     <tr ${buildRowAttrs(t)}>
-                        <td data-label="Ticket" style="color:${C.PRI_D}; font-weight:bold;">${t.tk}</td>
+                        <td data-label="Ticket" style="color:${C.PRI_D}; font-weight:bold;">
+                            ${t.tk}
+                            <button onclick="openTicketDetails('${t.tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                        </td>
                         <td data-label="Analista">${t.as}</td>
                         <td data-label="Último Comentário" style="text-align:left;">
                             <div class="text-expandable">${t.info}</div>
                             ${t.info.length > 80 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
                         </td>
+                        <td data-label="Aging / Ocioso" style="text-align: right;">
+                            <div style="color:${C.DAN}; font-weight:bold; font-size:13px;">${t.age}d totais</div>
+                            ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                        </td>
                     </tr>`).join('')}
                 </tbody></table></div>
             </div>` : "";
 
-            /* CORREÇÃO AQUI: Tamanho das fontes dos cards principais (KPIs) foram reduzidos para ficarem equilibrados e não "enormes" */
             return `
             <div class="report-section-title" style="background-color: ${color};"><i class="fas fa-chart-line mr-2"></i> ${title}</div>
             
@@ -1697,14 +2312,21 @@
                 <div class="st-dataframe-container">
                     <table class="st-table">
                         <thead><tr>
-                            <th class="w-tk">Ticket</th>
-                            <th class="w-info" style="text-align:left;">Assunto / Info (Expansível)</th>
-                            <th class="w-as">Analista</th><th class="w-gp">Grupo</th><th class="w-st">Status</th><th class="w-prb">PRB</th><th class="w-age">Aging</th>
+                            <th class="w-tk" onclick="sortTable(this)">Ticket <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th class="w-info" style="text-align:left;" onclick="sortTable(this)">Assunto / Info (Expansível) <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th class="w-as" onclick="sortTable(this)">Analista <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th class="w-gp" onclick="sortTable(this)">Grupo <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th class="w-st" onclick="sortTable(this)">Status <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th class="w-prb" onclick="sortTable(this)">PRB <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                            <th class="w-age" title="Aging Total / Dias Ociosos (Sem Interação)" onclick="sortTable(this)">Aging / Ocioso <i class="fas fa-sort ml-1 opacity-50"></i></th>
                         </tr></thead>
                         <tbody>
                             ${d.crits.length ? d.crits.map(t => `
                             <tr ${buildRowAttrs(t)}>
-                                <td data-label="Ticket" style="color:${C.PRI_D}; font-weight:bold;">${t.tk}</td>
+                                <td data-label="Ticket" style="color:${C.PRI_D}; font-weight:bold;">
+                                    ${t.tk}
+                                    <button onclick="openTicketDetails('${t.tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                                </td>
                                 <td data-label="Assunto / Info (Expansível)" style="text-align:left;">
                                     <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 1;">${t.desc}</div>
                                     <div class="text-expandable text-[11px] text-slate-500">${t.info}</div>
@@ -1714,7 +2336,10 @@
                                 <td data-label="Grupo">${t.gp}</td>
                                 <td data-label="Status"><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:10px; border:1px solid #e2e8f0; color:#475569; display:inline-block;">${t.st}</span></td>
                                 <td data-label="PRB" style="font-weight:${t.prb !== 'N/A' ? 'bold' : 'normal'}; color:${t.prb !== 'N/A' ? C.PRI_D : C.GRY}">${t.prb}</td>
-                                <td data-label="Aging" style="color:${C.DAN}; font-weight:bold; font-size:14px;">${t.age}</td>
+                                <td data-label="Aging / Ocioso" style="text-align:right;">
+                                    <div style="color:${C.DAN}; font-weight:bold; font-size:13px;">${t.age}d totais</div>
+                                    ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                                </td>
                             </tr>`).join('') : `<tr><td colspan="7" style="text-align:center; padding:30px; color:#64748b;">Nenhum chamado crítico no momento. Parabéns à equipe! 🎉</td></tr>`}
                         </tbody>
                     </table>
@@ -1726,7 +2351,7 @@
         }
 
         // ==========================================
-        // GRÁFICOS CHART.JS (COMPATÍVEL QUICKCHART)
+        // GRÁFICOS CHART.JS COM FORMATAÇÃO PARA OMISSÃO DE ZEROS
         // ==========================================
         window.chartInstances = [];
 
@@ -1742,9 +2367,9 @@
                     data: {
                         labels: labels,
                         datasets: [
-                            { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y2', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 } } },
-                            { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 } } },
-                            { type: 'bar', label: lblRes, data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 } } },
+                            { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y2', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'bar', label: lblRes, data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
                             { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
                         ]
                     },
@@ -1757,7 +2382,7 @@
             let instA = new Chart(document.getElementById(`c-a-${id}`), {
                 type: 'horizontalBar',
                 data: { labels: d.topAnalistas.map(a => a.nome), datasets: [{ label: 'Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C.PRI_D }, { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C.SUC }] },
-                options: { maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } }, scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' } }], yAxes: [{ stacked: true, gridLines: { display: false } }] }, plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 } } } }
+                options: { maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } }, scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' } }], yAxes: [{ stacked: true, gridLines: { display: false } }] }, plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } } }
             });
             window.chartInstances.push(instA);
 
@@ -1765,7 +2390,7 @@
             let instAg = new Chart(document.getElementById(`c-ag-${id}`), {
                 type: 'horizontalBar',
                 data: { labels: agKeys, datasets: [{ data: agKeys.map(k => d.agingBuckets[k].count), backgroundColor: agKeys.map(k => d.agingBuckets[k].color), barPercentage: 0.7, categoryPercentage: 0.8 }] },
-                options: { maintainAspectRatio: false, legend: { display: false }, scales: { xAxes: [{ gridLines: { color: '#f1f5f9' } }], yAxes: [{ gridLines: { display: false } }] }, plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' } } } }
+                options: { maintainAspectRatio: false, legend: { display: false }, scales: { xAxes: [{ gridLines: { color: '#f1f5f9' } }], yAxes: [{ gridLines: { display: false } }] }, plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } } }
             });
             window.chartInstances.push(instAg);
 
@@ -1829,9 +2454,9 @@
                     type: 'bar',
                     data: {
                         labels: labels, datasets: [
-                            { type: 'line', label: 'Backlog Global', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y2', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 } } },
-                            { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 } } },
-                            { type: 'bar', label: 'Resolvidos/Encerrados', data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 } } },
+                            { type: 'line', label: 'Backlog Global', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y2', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'bar', label: 'Resolvidos/Encerrados', data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
                             { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
                         ]
                     },
@@ -1854,12 +2479,18 @@
                 let st = String(getCol(r, ['State', 'Status', 'RCA Status']) || '').toLowerCase();
                 if (clOrig && clOrig.getTime() <= refTime) { if (st.includes('clos') || st.includes('resolv') || st.includes('cancel') || st.includes('fech')) return; }
 
+                let asg = getCol(r, ['Assigned to', 'Analista']) || '-';
+                let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
+
                 let tk = getCol(r, ['Problem', 'Problema']) || '-';
                 let descClean = String(getCol(r, ['Short description', 'Descrição']) || '-').replace(/"/g, '&quot;');
-                let dummyT = { tk: tk, desc: descClean, as: getCol(r, ['Assigned to', 'Analista']) || '-', gp: '-', st: getCol(r, ['RCA Status', 'State', 'Status']) || '-', age: Math.floor((refDate - op) / 86400000), opStr: op.toLocaleDateString('pt-BR'), info: 'RCA pendente.' };
+                let dummyT = { tk: tk, desc: descClean, as: asg, gp: '-', st: getCol(r, ['RCA Status', 'State', 'Status']) || '-', age: Math.floor((refDate - op) / 86400000), idle: idle, opStr: op.toLocaleDateString('pt-BR'), info: 'RCA pendente.' };
 
                 rcaRows += `<tr ${buildRowAttrs(dummyT)}>
-                    <td data-label="Problem" style="color:${C.PRI_D}; font-weight:bold;">${tk}</td>
+                    <td data-label="Problem" style="color:${C.PRI_D}; font-weight:bold;">
+                        ${tk}
+                        <button onclick="openTicketDetails('${tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                    </td>
                     <td data-label="Descrição da Causa Raiz" style="text-align:left;">
                         <div class="text-expandable text-[12px] font-semibold text-slate-700">${descClean}</div>
                         ${descClean.length > 70 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
@@ -1871,7 +2502,12 @@
 
             html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-search mr-2"></i> 1. PROBLEM RCA - CAUSAS RAIZ EM ABERTO</div>
                 <div class="st-dataframe-container"><table class="st-table">
-                <thead><tr><th class="w-tk">Problem</th><th class="w-info" style="text-align:left;">Descrição da Causa Raiz</th><th class="w-as">Analista Responsável</th><th class="w-st">Status RCA</th></tr></thead>
+                <thead><tr>
+                    <th class="w-tk" onclick="sortTable(this)">Problem <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th class="w-info" style="text-align:left;" onclick="sortTable(this)">Descrição da Causa Raiz <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th class="w-as" onclick="sortTable(this)">Analista Responsável <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th class="w-st" onclick="sortTable(this)">Status RCA <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                </tr></thead>
                 <tbody>${rcaRows || `<tr><td colspan="4" class="text-center text-slate-500 py-6">Nenhuma RCA aberta no momento.</td></tr>`}</tbody>
                 </table></div></div>`;
 
@@ -1886,20 +2522,36 @@
                 let age = Math.floor((refDate - op) / 86400000);
                 let tk = getCol(r, ['Number', 'Task']) || '-';
                 let desc = getCol(r, ['Problem', 'Problema']) || '-';
-                let dummyT = { tk: tk, desc: desc, as: getCol(r, ['Assigned to', 'Analista']) || '-', gp: getCol(r, ['Assignment group', 'Grupo']) || '-', st: st.toUpperCase(), age: age, opStr: op.toLocaleDateString('pt-BR'), info: 'Task secundária' };
+
+                let asg = getCol(r, ['Assigned to', 'Analista']) || '-';
+                let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
+
+                let dummyT = { tk: tk, desc: desc, as: asg, gp: getCol(r, ['Assignment group', 'Grupo']) || '-', st: st.toUpperCase(), age: age, idle: idle, opStr: op.toLocaleDateString('pt-BR'), info: 'Task secundária' };
 
                 ptaskRows += `<tr ${buildRowAttrs(dummyT)}>
                     <td data-label="Problem (Pai)" class="font-bold text-slate-700">${desc}</td>
-                    <td data-label="PTASK" style="color:${C.PRI_D}; font-weight:bold;">${tk}</td>
+                    <td data-label="PTASK" style="color:${C.PRI_D}; font-weight:bold;">
+                        ${tk}
+                        <button onclick="openTicketDetails('${tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                    </td>
                     <td data-label="Analista" class="font-medium">${dummyT.as}</td>
                     <td data-label="Grupo Resolutor">${dummyT.gp}</td>
-                    <td data-label="SLA / Aging" style="color:${age > slaPTask ? C.DAN : C.SUC}; font-weight:bold; font-size:13px;">${age > slaPTask ? `Estourado (${age}d)` : `No Prazo (${age}d)`}</td>
+                    <td data-label="SLA / Aging / Ocioso" style="text-align:right;">
+                        <div style="color:${age > slaPTask ? C.DAN : C.SUC}; font-weight:bold; font-size:13px;">${age > slaPTask ? `Estourado (${age}d)` : `No Prazo (${age}d)`}</div>
+                        ${dummyT.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${dummyT.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${dummyT.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                    </td>
                 </tr>`;
             });
 
             html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-tasks mr-2"></i> 2. TASKS DE PROBLEMA (PTASK) ABERTAS</div>
                 <div class="st-dataframe-container"><table class="st-table">
-                <thead><tr><th class="w-prb">Problem (Pai)</th><th class="w-tk">PTASK</th><th class="w-as">Analista</th><th class="w-gp">Grupo Resolutor</th><th class="w-age">SLA / Aging</th></tr></thead>
+                <thead><tr>
+                    <th class="w-prb" onclick="sortTable(this)">Problem (Pai) <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th class="w-tk" onclick="sortTable(this)">PTASK <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th class="w-as" onclick="sortTable(this)">Analista <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th class="w-gp" onclick="sortTable(this)">Grupo Resolutor <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                    <th class="w-age" title="Aging Total / Dias Ociosos (Sem Interação)" onclick="sortTable(this)">SLA / Ocioso <i class="fas fa-sort ml-1 opacity-50"></i></th>
+                </tr></thead>
                 <tbody>${ptaskRows || `<tr><td colspan="5" class="text-center text-slate-500 py-6">Nenhuma PTASK aberta no momento.</td></tr>`}</tbody>
                 </table></div></div>`;
             return html;
@@ -2046,7 +2698,11 @@
                 const refDateInput = document.getElementById('ref-date').value;
                 const dateMachine = refDateInput ? new Date(refDateInput + 'T12:00:00') : new Date();
 
-                ['tab-inc', 'tab-req', 'tab-uam', 'tab-cons', 'tab-prb'].forEach(id => document.getElementById(id).innerHTML = "");
+                // Limpa as abas
+                ['tab-inc', 'tab-req', 'tab-uam', 'tab-cons', 'tab-prb', 'tab-class', 'tab-search'].forEach(id => {
+                    let el = document.getElementById(id);
+                    if (el) el.innerHTML = "";
+                });
                 let dI = null, dRS = null, dRU = null;
 
                 if (RawData.incs.length) {
@@ -2070,6 +2726,13 @@
                     document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK importado.</h3></div>`;
                 }
 
+                // Geração da Aba: Erros de Classificação
+                let allCombinedData = [...RawData.incs, ...RawData.reqs];
+                if (allCombinedData.length > 0) {
+                    let dClass = calculateClassifications(allCombinedData, dateMachine);
+                    document.getElementById('tab-class').innerHTML = generateClassificationsHTML(dClass);
+                }
+
                 document.getElementById('loader').classList.add('hidden-st');
                 document.getElementById('report-content').classList.remove('hidden-st');
                 document.getElementById('search-container').classList.add('visible');
@@ -2079,10 +2742,15 @@
                     if (dRS) drawChartsAll('req', dRS, 'Encerrados');
                     if (dRU) drawChartsAll('uam', dRU, 'Encerrados');
                     if (dI && dRS && dRU) drawConsolidadoCharts(dI, dRS, dRU);
-                    filterTables();
 
                     populateTodoAnalystDropdown();
                     renderTodos();
+
+                    if (document.getElementById("globalSearch").value.trim() !== "") {
+                        performGlobalSearch();
+                    } else {
+                        filterTables();
+                    }
                 });
             }, 600);
         }
