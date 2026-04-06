@@ -167,9 +167,21 @@
         details.saas-accordion summary::-webkit-details-marker { display: none; }
         details.saas-accordion summary::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: #94a3b8; transition: transform 0.3s; }
         details.saas-accordion[open] summary::after { transform: rotate(180deg); }
-        details.saas-accordion .acc-content { padding: 0; border-top: 1px solid #e2e8f0; background: #fff; }
+        
+        /* ITEM 3 CORRIGIDO: Padding correto, fonte do sistema e formatação para o texto interno dos apêndices */
+        details.saas-accordion .acc-content { 
+            padding: 16px 20px; 
+            border-top: 1px solid #e2e8f0; 
+            background: #f8fafc; 
+            font-family: 'Inter', 'Calibri', Arial, sans-serif; 
+            font-size: 13px; 
+            color: #334155; 
+            line-height: 1.6; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+        }
 
-        /* GLOBAL TOOLTIP ENRIQUECIDO */
+        /* GLOBAL TOOLTIP ENRIQUECIDO (ITEM 4 INCLUSO NA ESTILIZAÇÃO E ESTRUTURA) */
         #global-tooltip {
             position: fixed; top: 0; left: 0; opacity: 0; visibility: hidden; z-index: 9999; pointer-events: none;
             background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1);
@@ -284,15 +296,15 @@
             <div><span>Grupo Resolutor:</span><strong id="tt-gp">...</strong></div>
             <div><span>Data Abertura:</span><strong id="tt-op">...</strong></div>
             <div><span>Aging Atual:</span><strong id="tt-age" style="color: #f87171;">...</strong></div>
-            <div style="grid-column: span 2; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 6px;">
+            <div id="tt-sla-container" style="grid-column: span 2; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 6px;">
                 <span>SLA % Consumido</span>
                 <div class="w-full bg-slate-700 rounded-full h-2.5 mt-1 relative overflow-hidden">
-                    <div id="tt-sla-bar" class="h-2.5 flex items-center justify-center text-[7px] text-white font-bold" style="width: 0%; background-color: #10b981;">0%</div>
+                    <div id="tt-sla-bar" class="h-2.5 flex items-center justify-center text-[7px] text-white font-bold transition-all" style="width: 0%; background-color: #10b981;">0%</div>
                 </div>
             </div>
             <div style="grid-column: span 2; margin-top: 2px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.2);">
-                <span>Ociosidade (Sem ação)</span>
-                <strong id="tt-idle" style="display: block; font-size: 11px; margin-top: 1px;">...</strong>
+                <span>Ociosidade / Motivo da Espera</span>
+                <strong id="tt-idle" style="display: block; font-size: 11px; margin-top: 1px; color:#e2e8f0; font-weight:normal;">...</strong>
             </div>
         </div>
     </div>
@@ -645,7 +657,7 @@
                          saveTodos(); 
                          alert("Backup de tarefas importado com sucesso!"); 
                          renderTodos();
-                    } 
+                     } 
                  } catch(err) { 
                      alert("Erro ao ler o arquivo JSON."); 
                  } 
@@ -815,7 +827,7 @@
         }
 
         // ==========================================
-        // HOVER TOOLTIP SYSTEM
+        // HOVER TOOLTIP SYSTEM (ITEM 4 CORRIGIDO)
         // ==========================================
         const tooltip = document.getElementById('global-tooltip');
         document.addEventListener('mouseover', e => {
@@ -830,12 +842,12 @@
                 let op = row.dataset.op || '-';
                 let age = row.dataset.age || '0';
                 let idleVal = row.dataset.idle;
-                let slaPct = row.dataset.pct || null; 
+                let slaPct = row.dataset.pct; // Atualizado para suportar a barra corretamente
                 
                 let bC = '#3b82f6';
                 if(st.includes('resolv')||st.includes('complet')) bC='#10b981'; 
                 else if(st.includes('cancel')||st.includes('incomplet')) bC='#ef4444'; 
-                else if(st.includes('hold')||st.includes('pend')) bC='#f59e0b';
+                else if(st.includes('hold')||st.includes('pend')||st.includes('espera')) bC='#f59e0b';
                 
                 document.getElementById('tt-tk').innerText = tk;
                 document.getElementById('tt-st').innerText = row.dataset.st || '-'; 
@@ -848,25 +860,34 @@
                 document.getElementById('tt-age').innerText = age + ' dias totais';
                 
                 let idleEl = document.getElementById('tt-idle');
-                if (idleVal && idleVal !== '-' && idleVal !== 'undefined') { 
+                
+                // Trata a renderização do texto para status Ocioso vs Motivo da Espera (On Hold)
+                let holdReason = row.dataset.info || '';
+                if (st.includes('hold') || st.includes('espera')) {
+                    idleEl.innerHTML = `<i class="fas fa-pause-circle mr-1 text-amber-400"></i> ${holdReason}`;
+                    idleEl.style.color = '#fef3c7'; // Amarelo bem claro para leitura
+                } else if (idleVal && idleVal !== '-' && idleVal !== 'undefined') { 
                      let idNum = parseInt(idleVal); 
-                     idleEl.innerHTML = `<i class="fas fa-user-clock mr-1"></i> ${idNum} dias`; 
+                     idleEl.innerHTML = `<i class="fas fa-user-clock mr-1"></i> ${idNum} dias ocioso`; 
                      idleEl.style.color = idNum > 3 ? '#fca5a5' : '#6ee7b7'; 
                  } else { 
                      idleEl.innerText = 'N/A'; idleEl.style.color = '#94a3b8'; 
                  }
                  
+                // ITEM 4 - Lógica da Barra Percentual Progressiva Garantida
                 let bar = document.getElementById('tt-sla-bar');
-                if(slaPct) {
+                let barContainer = document.getElementById('tt-sla-container');
+                if(slaPct && slaPct !== 'undefined' && slaPct !== '') {
                     let p = parseInt(slaPct);
                     let color = p > 100 ? '#ef4444' : (p > 75 ? '#f59e0b' : '#10b981');
                     bar.style.width = Math.min(p, 100) + '%';
                     bar.style.backgroundColor = color;
                     bar.innerText = p + '%';
-                    bar.parentElement.parentElement.style.display = 'block';
+                    barContainer.style.display = 'block';
                 } else {
-                    bar.parentElement.parentElement.style.display = 'none';
+                    barContainer.style.display = 'none';
                 }
+                
                 tooltip.style.opacity = 1; tooltip.style.visibility = 'visible';
             }
         });
@@ -1031,9 +1052,7 @@
             ).join('');
         }
 
-// --- FIM DA PARTE 1 (Corte feito exatamente aqui para início da Parte 2) ---
-
-        let currentModalTk = null;
+let currentModalTk = null;
         function openTicketDetails(tkNumber) {
             currentModalTk = tkNumber; 
             let ticketData = null; 
@@ -1399,7 +1418,7 @@
         }
 
         // ==========================================
-        // 4. MOTOR CORE DE DADOS (AGORA COM ARRAYS PARA DRILL-DOWN)
+        // 4. MOTOR CORE DE DADOS (AGORA COM ARRAYS PARA DRILL-DOWN E PRB CORRIGIDO)
         // ==========================================
         const C = { 
              PRI_D: "#001871", PRI: "#1E3A8A", ACC_D: "#0F172A", 
@@ -1407,8 +1426,25 @@
              GRY_D: "#334155", GRY_L: "#F8FAFC", INFO: "#0284C7"
         };
         
-        function buildTicketObject(r, refDateObj, asg, opOrig, clOrig, stOrig, st, age, typeStr) {
+        // CORREÇÃO: Variáveis slaDays injetadas para cálculo interno no Objeto (Tooltip)
+        function buildTicketObject(r, refDateObj, asg, opOrig, clOrig, stOrig, st, age, typeStr, slaDays) {
             let tk = (typeStr === 'REQ' || typeStr === 'UAM') ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'number', 'Ticket', 'Problem', 'Task']) || '-');
+            
+            // CORREÇÃO PRB: Identificando valor correto para o Problem vinculado (N/A se ausente)
+            let prbRaw = getCol(r, ['Problem', 'PRB', 'Problema', 'problem_id']);
+            let prbVal = (prbRaw && String(prbRaw).trim() !== "" && String(prbRaw).trim() !== "undefined") ? String(prbRaw).trim() : 'N/A';
+
+            // CORREÇÃO ON HOLD REASON: Extração específica do motivo se em status de espera
+            let stLower = (st || '').toLowerCase();
+            let holdReason = getCol(r, ['On hold reason', 'Motivo da espera', 'on_hold_reason']);
+            let defaultInfo = String(getCol(r, ['Additional comments', 'Comentários Adicionais', 'Close notes', 'Descrição']) || '').replace(/"/g, '&quot;');
+            let infoFinal = (stLower.includes('hold') || stLower.includes('espera')) && holdReason 
+                            ? String(holdReason).replace(/"/g, '&quot;') 
+                            : defaultInfo;
+            
+            // CORREÇÃO TOOLTIP SLA: Variável processada localmente para repasse nos data-attributes
+            let pctSla = slaDays ? Math.round((age / slaDays) * 100) : '';
+
             return {
                 tk: tk,
                 desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Item', 'Problem', 'Problema']) || '-').replace(/"/g, '&quot;'),
@@ -1419,7 +1455,9 @@
                 age: age,
                 opStr: opOrig ? opOrig.toLocaleDateString('pt-BR') : '-',
                 idle: (!clOrig || clOrig > refDateObj) ? getDaysSilent(r, refDateObj, asg, opOrig) : '-',
-                info: String(getCol(r, ['Additional comments', 'Comentários Adicionais', 'Close notes', 'Descrição']) || '').replace(/"/g, '&quot;')
+                info: infoFinal,
+                prb: prbVal,
+                pctSla: pctSla
             };
         }
 
@@ -1468,7 +1506,7 @@
                 trendM[mKey].a++;
                 
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
-                let tObj = buildTicketObject(r, refDate, asg, opOrig, clOrig, stOrig, st, age, type);
+                let tObj = buildTicketObject(r, refDate, asg, opOrig, clOrig, stOrig, st, age, type, slaDays);
                 
                 trendM[mKey].tks_a.push(tObj);
                 
@@ -1512,19 +1550,14 @@
                     backlog++;
                     allBacklogTks.push(tObj);
                     
-                    let req = getCol(r, ['Requester','Caller','Solicitante']) || 'N/A';
-                    let tk = isReq ? (getCol(r, ['RITM', 'Request Item', 'Request item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'number', 'Ticket']) || '-');
-                    let idle = getDaysSilent(r, refDate, asg, opOrig);
-                    
                     if (!analistas[asg]) analistas[asg] = { ab: 0, res: 0, tks_ab: [], tks_res: [] };
                     analistas[asg].ab++;
                     analistas[asg].tks_ab.push(tObj);
                     
-                    GlobalOpenTickets.push({ tk: tk, asg: asg });
+                    GlobalOpenTickets.push({ tk: tObj.tk, asg: asg });
                     bucketsDef.forEach(b => { if (age >= b.min && age <= b.max) { agingBuckets[b.l].count++; agingBuckets[b.l].tks.push(tObj); } });
                     
-                    let prb = getCol(r, ['Problem', 'PRB', 'Problema']);
-                    let hasPrb = prb && prb.trim() !== "" && prb.trim() !== "N/A";
+                    let hasPrb = tObj.prb !== "N/A";
                     if (age > slaDays) {
                         criticals.push(tObj);
                         if (!isReq && !hasPrb) noPrb.push(tObj);
@@ -1632,7 +1665,7 @@
         }
 
         // ==========================================
-        // SISTEMA DE DRILLDOWN MODAL
+        // SISTEMA DE DRILLDOWN MODAL E ATRIBUTOS (INJETANDO % SLA NO ROW)
         // ==========================================
         function openDrilldown(title, ticketArrayStrKey, vaultCat) {
             let tks = window.DrilldownVault[vaultCat][ticketArrayStrKey] || [];
@@ -1700,7 +1733,7 @@
         // 5. HTML GENERATORS
         // ==========================================
         function buildRowAttrs(t) { 
-             return `class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req || ''}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.age !== undefined ? t.age : t.d}" data-op="${t.opStr || t.opS}" data-info="${t.info}" data-idle="${t.idle !== undefined ? t.idle : '-'}" data-pct="${t.pctSla !== undefined ? t.pctSla : ''}"`; 
+             return `class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req || ''}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.age !== undefined ? t.age : (t.d || 0)}" data-op="${t.opStr || t.opS || '-'}" data-info="${t.info || ''}" data-idle="${t.idle !== undefined ? t.idle : '-'}" data-pct="${t.pctSla !== undefined ? t.pctSla : ''}"`; 
          }
 
         function generateOpenTicketsHTML(incs, reqs, uams, slaI, slaR, refDateObj) {
@@ -1718,10 +1751,16 @@
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
                 let gp = getCol(r, ['Assignment group', 'Grupo']) || 'Sem Grupo';
                 let st = getCol(r, ['State', 'Status', 'Estado']) || 'Open';
+                
+                // Repassando on hold logic para tickets abertos genéricos tb
+                let holdReason = getCol(r, ['On hold reason', 'Motivo da espera', 'on_hold_reason']);
+                let stLower = st.toLowerCase();
+                let infoFinal = (stLower.includes('hold') || stLower.includes('espera')) && holdReason ? String(holdReason).replace(/"/g, '&quot;') : '';
+
                 let idle = getDaysSilent(r, refDateObj, asg, op);
                 let pctSla = Math.round((age / slaConfig) * 100);
                 let stSla = age > slaConfig ? "Estourado" : "No Prazo";
-                openTks.push({ tk, type, desc, req, as: asg, gp, st: st.toUpperCase(), opStr: op.toLocaleDateString('pt-BR'), age, pctSla, stSla, slaConfig, idle });
+                openTks.push({ tk, type, desc, req, as: asg, gp, st: st.toUpperCase(), opStr: op.toLocaleDateString('pt-BR'), age, pctSla, stSla, slaConfig, idle, info: infoFinal });
             }
             incs.forEach(r => processRow(r, 'INC', slaI));
             reqs.forEach(r => processRow(r, 'REQ', slaR));
@@ -1740,7 +1779,6 @@
                 return html;
             }
             
-            // NOVO: Barra de pesquisa e agrupamento focada nos "Tickets Abertos"
             html += `
             <div class="flex flex-col sm:flex-row justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm border border-slate-200 gap-3">
                 <div class="flex items-center gap-2 w-full sm:w-auto flex-1 max-w-md bg-slate-50 border border-slate-200 px-3 py-2 rounded-full focus-within:border-blue-500 focus-within:bg-white transition-all shadow-inner">
@@ -1810,7 +1848,6 @@
             return html;
         }
 
-        // NOVO: Lógica de filtragem reativa exclusiva para a guia de Tickets Abertos
         window.filterOpenTickets = function(term) {
             const cleanTerm = term.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             document.querySelectorAll('#tab-open details.saas-accordion').forEach(acc => {
@@ -1885,7 +1922,7 @@
                     <summary><span style="color:${C.PRI_D};">${t.tk}</span> <span style="font-weight:400; color:#64748b; font-size:11px;">- ${t.as}</span></summary>
                     <div class="acc-content">${t.info}</div>
                 </details>`).join('');
-            let apendiceHtml = apendiceRows ? `<div style="margin-top:25px;"><div class="report-section-title" style="background-color: ${C.PRI_D}; font-size:13px; padding:10px;"><i class="fas fa-list-alt mr-2"></i> DETALHES DE COMENTÁRIOS DOS SOLICITANTES (APÊNDICE)</div>
+            let apendiceHtml = apendiceRows ? `<div style="margin-top:25px;"><div class="report-section-title" style="background-color: ${C.PRI_D}; font-size:13px; padding:10px;"><i class="fas fa-list-alt mr-2"></i> DETALHES DE COMENTÁRIOS DOS SOLICITANTES E OCIOSIDADE (APÊNDICE)</div>
                 <div style="display:flex; flex-direction:column;">${apendiceRows}</div></div>` : "";
                 
             let noPrbHtml = typeStr === 'INC' && d.noPrb.length > 0 ? `
@@ -1893,7 +1930,7 @@
                 <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle mr-2"></i> INCIDENTES CRÍTICOS SEM PRB (${d.noPrb.length})</div>
                 <div class="st-dataframe-container"><table class="st-table">
                 <thead><tr>
-                    ${createTh("Ticket", "12%")} ${createTh("Analista", "18%")} ${createTh("Último Comentário", "auto", "left")} ${createTh("Aging / Ocioso", "15%", "right")}
+                    ${createTh("Ticket", "12%")} ${createTh("Analista", "18%")} ${createTh("Último Comentário / On Hold", "auto", "left")} ${createTh("Aging / Ocioso", "15%", "right")}
                 </tr></thead>
                 <tbody>${d.noPrb.map(t => `
                     <tr ${buildRowAttrs(t)}>
@@ -1902,7 +1939,7 @@
                             <button onclick="openTicketDetails('${t.tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
                         </td>
                         <td data-label="Analista">${t.as}</td>
-                        <td data-label="Último Comentário" style="text-align:left;">
+                        <td data-label="Último Comentário / On Hold" style="text-align:left;">
                             <div class="text-expandable">${t.info}</div>
                             ${t.info.length > 80 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
                         </td>
@@ -2252,7 +2289,6 @@
                 </tr>`;
             });
             
-            // Cards interativos para PRB
             window.DrilldownVault['class']['all_prbs'] = allPrbs;
             window.DrilldownVault['class']['all_ptasks'] = allPtasks;
 
@@ -2493,7 +2529,6 @@
             document.getElementById('tabs-container').classList.remove('hidden-st');
             if (window.innerWidth < 1024) toggleSidebar();
             
-            // Agora window.chartInstances está garantido que é um Array
             if (window.chartInstances.length > 0) { 
                 window.chartInstances.forEach(c => c.destroy()); 
                 window.chartInstances = []; 
@@ -2584,7 +2619,6 @@
                 document.getElementById('report-content').classList.remove('hidden-st');
                 document.getElementById('search-container').classList.add('visible');
                 
-                // SOLUÇÃO PARA O CHART.JS EM ABAS OCULTAS
                 let tabs = document.querySelectorAll('.tab-pane');
                 tabs.forEach(c => {
                     c.style.display = 'block';
@@ -2599,7 +2633,6 @@
                     if (dRU) drawChartsAll('uam', dRU, 'Encerrados');
                     if (dI && dRS && dRU) drawConsolidadoCharts(dI, dRS, dRU);
                     
-                    // Restaura visibilidade normal das abas
                     tabs.forEach(c => {
                         c.style.display = '';
                         c.style.visibility = '';
