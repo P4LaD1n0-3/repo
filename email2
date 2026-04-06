@@ -537,6 +537,9 @@
         let GlobalOpenTickets = [];
         let activeTableFilters = {};
         
+        // CORREÇÃO DEFINITIVA: Inicialização global do ChartInstances para evitar erro de .push() undefined
+        window.chartInstances = [];
+
         // NOVO: Armazém global para o Drill-down
         window.DrilldownVault = {
             inc: {}, req: {}, uam: {}, cons: {}, class: {}
@@ -1381,7 +1384,6 @@
              GRY_D: "#334155", GRY_L: "#F8FAFC", INFO: "#0284C7"
         };
         
-        // NOVO: Função para padronizar extração de Ticket Object
         function buildTicketObject(r, refDateObj, asg, opOrig, clOrig, stOrig, st, age, typeStr) {
             let tk = (typeStr === 'REQ' || typeStr === 'UAM') ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'number', 'Ticket', 'Problem', 'Task']) || '-');
             return {
@@ -1406,7 +1408,6 @@
             let trendD = {}, trendM = {}, analistas = {}, criticals = [], noPrb = [];
             let agingBuckets = {};
             
-            // NOVO: Arrays para Drilldown Global
             let allBacklogTks = [];
             let allResolvedTks = [];
             let allCanceledTks = [];
@@ -2435,7 +2436,12 @@
             document.getElementById('tabs-container').classList.remove('hidden-st');
             if (window.innerWidth < 1024) toggleSidebar();
             
-            if (window.chartInstances) { window.chartInstances.forEach(c => c.destroy()); window.chartInstances = []; }
+            // Agora window.chartInstances está garantido que é um Array
+            if (window.chartInstances.length > 0) { 
+                window.chartInstances.forEach(c => c.destroy()); 
+                window.chartInstances = []; 
+            }
+            
             GlobalOpenTickets = [];
             activeTableFilters = {}; 
             
