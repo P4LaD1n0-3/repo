@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ELITE MASTER V6.6 - Sistema Analítico ITSM</title>
+
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.7.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Calibri:wght@400;700&display=swap" rel="stylesheet">
+
     <style>
         :root { --primary-dark: #001871; --primary: #1E3A8A; --primary-light: #E3F2FD; --accent-dark: #0F172A; --accent: #2563EB; --success: #00C853; --danger: #D50000; --orange: #FF8C00; --gray-dark: #334155; --gray: #94A3B8; --gray-light: #F8FAFC; --info: #0284C7; --background: #F1F5F9; --sidebar-width: 320px; }
         body { font-family: 'Calibri', Arial, sans-serif; background-color: var(--background); color: #333; margin: 0; display: flex; height: 100vh; overflow: hidden; }
@@ -19,73 +22,100 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid var(--background); }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        
         .sidebar { width: var(--sidebar-width); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 500; height: 100vh; flex-shrink: 0; box-shadow: 4px 0 15px rgba(0, 0, 0, 0.03); }
         .sidebar-header { padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; background: #fff; }
         .sidebar-content { padding: 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+        
         @media (min-width: 1024px) { .sidebar.collapsed { margin-left: calc(var(--sidebar-width) * -1); } }
-        @media (max-width: 1023px) { .sidebar { position: fixed; left: calc(var(--sidebar-width) * -1); } .sidebar.open { left: 0; } .overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 400; backdrop-filter: blur(4px); opacity: 0; transition: 0.3s; } .overlay.open { display: block; opacity: 1; } }
+        @media (max-width: 1023px) { 
+            .sidebar { position: fixed; left: calc(var(--sidebar-width) * -1); } 
+            .sidebar.open { left: 0; } 
+            .overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 400; backdrop-filter: blur(4px); opacity: 0; transition: 0.3s; } 
+            .overlay.open { display: block; opacity: 1; } 
+        }
+        
         .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; width: 100%; background: var(--background); min-width: 0; }
         .top-header { background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); height: 70px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); position: sticky; top: 0; z-index: 200; min-width: 0; }
+        
         .btn-toggle { background: #fff; border: 1px solid #cbd5e1; color: var(--primary-dark); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
         .btn-toggle:hover { background: var(--gray-light); border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
-        .search-wrapper { position: relative; width: 100%; max-width: 350px; display: none; }
+        
+        .search-wrapper { position: relative; width: 100%; max-width: 300px; display: none; }
         .search-wrapper.visible { display: block; }
         .search-input { width: 100%; padding: 10px 16px 10px 38px; border-radius: 99px; border: 1px solid #cbd5e1; font-size: 12px; font-family: 'Inter'; outline: none; transition: 0.3s; background: #f8fafc; }
         .search-input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
         .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px; }
+        
         .tabs-sticky { background-color: #fff; border-bottom: 2px solid #e2e8f0; padding: 0 2rem; position: sticky; top: 0; z-index: 150; width: 100%; }
         .tabs-nav { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; }
         .tab-btn { padding: 12px 20px; background: transparent; border: none; border-bottom: 3px solid transparent; color: #64748b; font-weight: 700; font-size: 13px; text-transform: uppercase; cursor: pointer; transition: 0.3s; border-radius: 6px 6px 0 0; }
         .tab-btn.active { color: var(--primary-dark); border-bottom-color: var(--primary-dark); background: #eff6ff; }
+        
         .content-area { padding: 2rem; overflow-y: auto; overflow-x: hidden; flex: 1; scroll-behavior: smooth; min-width: 0; }
         .content-container { max-width: 1600px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; padding-bottom: 50px;}
+        
         .dropzone-discreet { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; transition: 0.3s; background: #f8fafc; }
         .dropzone-discreet:hover { border-color: var(--primary); background: #eff6ff; transform: translateY(-2px); }
+        .file-badge { display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 6px 10px; border-radius: 6px; background: #ecfdf5; color: #166534; border: 1px solid #bbf7d0; font-weight: 600; margin-bottom: 6px; }
         .btn-clear { background: transparent; border: none; color: var(--danger); font-size: 12px; cursor: pointer; transition: 0.2s; font-weight: bold; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; width: 100%; justify-content: center; border: 1px solid var(--danger); margin-top:10px;}
         .btn-clear:hover { background: #fee2e2; }
+        
         .form-label { display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
         .form-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-family: 'Inter'; outline: none; transition: 0.2s; background: #fff; }
         .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
+        
         .time-machine { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); padding: 1.2rem; border-radius: 10px; color: #fff; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); position: relative; overflow: hidden; transition: 0.3s; }
         .time-machine input { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; color-scheme: dark; }
-        .btn-process { background: var(--primary-dark); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; width: 100%; box-shadow: 0 4px 6px rgba(0, 24, 113, 0.2); font-size: 13px; }
+        
+        .btn-process { background: var(--primary-dark); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; width: 100%; box-shadow: 0 4px 6px rgba(0, 24, 113, 0.2); letter-spacing: 1px; font-size: 13px; }
         .btn-process:hover { background: #001255; transform: translateY(-2px); box-shadow: 0 10px 15px rgba(0, 24, 113, 0.3); }
+
         .report-section-title { font-size: 18px; font-weight: 800; color: #FFFFFF; padding: 15px; border-radius: 8px; text-transform: uppercase; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); display: flex; align-items: center; gap: 10px;}
         .report-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; height: 100%; transition: 0.3s; min-width: 0; margin-bottom: 25px; }
         .st-dataframe-container { overflow-x: auto; max-height: 500px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
+        
         .st-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; font-family: 'Inter', sans-serif; }
         .st-table th { background-color: var(--primary-dark); color: #fff; padding: 10px 8px; text-align: center; position: sticky; top: 0; z-index: 10; font-weight: 700; text-transform: uppercase; cursor: pointer; user-select: none; border-right: 1px solid rgba(255,255,255,0.1); }
         .st-table th:hover { background-color: var(--primary); }
         .st-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center; vertical-align: middle; }
         .st-table tbody tr:nth-child(even) { background-color: var(--gray-light); }
+        
         .history-text.striked { text-decoration: line-through; opacity: 0.5; color: var(--gray); }
         .history-entry { cursor: pointer; padding: 5px; border-radius: 4px; transition: 0.2s; }
         .history-entry:hover { background: rgba(0,0,0,0.03); }
+        
         .todo-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02); }
         .todo-badge { background: #eff6ff; color: var(--primary-dark); border: 1px solid #bfdbfe; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
+        
         #custom-confirm-modal { z-index: 10000; }
         .modal-btn { padding: 8px 20px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; }
         .modal-btn-confirm { background: var(--danger); color: white; }
         .modal-btn-cancel { background: var(--gray-light); color: var(--gray-dark); border: 1px solid #cbd5e1; }
+        
         .chart-wrapper, .chart-full-width { height: 350px; position: relative; }
         .hidden-st { display: none !important; }
+        
         .custom-filter-dropdown { position: fixed; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 10500; min-width: 200px; max-height: 250px; display: flex; flex-direction: column; overflow: hidden; font-family: 'Inter', sans-serif;}
         .filter-items { flex: 1; overflow-y: auto; padding: 10px; font-size: 11px; color: #334155; }
         .filter-items label { display: flex; align-items: center; gap: 8px; padding: 4px; cursor: pointer; border-radius: 4px; }
         .filter-items label:hover { background: #f1f5f9; }
+        .filter-items input[type="checkbox"] { accent-color: var(--primary-dark); }
         .filter-actions { padding: 10px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; gap: 5px; }
 
         @media (max-width: 1024px) {
             body { font-size: 14px; }
             .content-area { padding: 1rem; overflow-x: hidden; }
             .top-header { padding: 1rem; flex-wrap: wrap; height: auto; min-height: 70px; gap: 10px; justify-content: flex-start; }
+            .search-wrapper { max-width: 100%; flex: 1 1 100%; display: block; margin-top: 10px; order: 3; }
             .st-dataframe-container { overflow-x: hidden !important; border: none; box-shadow: none; background: transparent; max-height: none; }
             .st-table { display: block; }
             .st-table thead { display: flex; padding: 10px; background: #f8fafc; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid var(--primary-dark); margin-bottom: 15px; border-radius: 8px;}
             .st-table thead tr { display: flex; gap: 5px; width: max-content; }
-            .st-table th { position: static; flex: 0 0 auto; font-size: 10px; padding: 8px 12px !important; border-radius: 4px; border: 1px solid var(--primary-dark); }
+            .st-table th { position: static; flex: 0 0 auto; font-size: 10px; padding: 8px 12px !important; border-radius: 4px; border: 1px solid var(--primary-dark); background: var(--primary-dark); color: white; }
             .st-table tbody { display: block; width: 100%; }
             .st-table tbody tr { display: flex; flex-direction: column; margin-bottom: 15px; background: #fff !important; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
             .st-table td { display: flex; justify-content: space-between; text-align: right !important; padding: 12px 15px !important; border-bottom: 1px solid #f1f5f9; font-size: 12px; align-items: center; width: 100%; gap: 10px;}
@@ -146,11 +176,11 @@
                 </div>
                 <input type="file" id="file-upload" multiple accept=".xlsx, .xls" class="hidden-st" onchange="handleFiles(event.target.files)">
                 <div id="file-status" class="mt-2 text-[10px]"></div>
-                <button id="btn-clear-files" class="btn-clear mt-2 hidden-st" onclick="clearFiles()">Limpar Arquivos</button>
+                <button id="btn-clear-files" class="btn-clear mt-2 hidden-st" onclick="clearFiles()">Limpar Arquivos Carregados</button>
             </div>
             <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                <label class="form-label"><i class="fas fa-database text-blue-600 mr-1"></i> Memória (Backup)</label>
-                <div class="text-[9px] text-slate-500 mb-3 leading-tight">Exporte seus TODOs para não perdê-los se limpar o cache.</div>
+                <label class="form-label"><i class="fas fa-database text-blue-600 mr-1"></i> Memória Permanente</label>
+                <div class="text-[9px] text-slate-500 mb-3 leading-tight">Faça backup dos seus TODOs para não perdê-los ao limpar o cache do navegador.</div>
                 <div class="flex flex-col gap-2">
                     <button onclick="exportBackupJSON()" class="w-full bg-slate-800 text-white text-[10px] font-bold py-2 rounded shadow hover:bg-slate-700 transition"><i class="fas fa-download mr-1"></i> Exportar JSON</button>
                     <button onclick="document.getElementById('import-json').click()" class="w-full bg-white text-slate-700 border border-slate-300 text-[10px] font-bold py-2 rounded shadow-sm hover:bg-slate-50 transition"><i class="fas fa-upload mr-1"></i> Importar JSON</button>
@@ -162,6 +192,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div><span class="text-[9px] font-bold text-slate-400">INC</span><input type="number" id="sla-incs" value="7" class="form-input"></div>
                     <div><span class="text-[9px] font-bold text-slate-400">REQ</span><input type="number" id="sla-reqs" value="10" class="form-input"></div>
+                    <div class="col-span-2"><span class="text-[9px] font-bold text-slate-400">PTASK (Problemas)</span><input type="number" id="sla-ptask" value="10" class="form-input"></div>
                 </div>
             </div>
             <button class="btn-process mt-auto" onclick="processDashboard()"><i class="fas fa-bolt mr-2"></i> Gerar Relatório</button>
@@ -180,9 +211,9 @@
             <div class="flex items-center gap-3 w-full justify-end max-w-[450px]">
                 <div class="search-wrapper visible w-full">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="globalSearch" class="search-input" placeholder="Pesquisa Global em toda a base..." onkeyup="performGlobalSearch(event)">
+                    <input type="text" id="globalSearch" class="search-input" placeholder="Pesquisa Global de Tickets..." onkeyup="performGlobalSearch(event)">
                 </div>
-                <button onclick="takeScreenshot()" class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-blue-100 hover:text-blue-600 transition shadow-sm w-10 h-10 flex items-center justify-center" title="Tirar Foto da Tela (Baixar PNG)"><i class="fas fa-camera text-sm"></i></button>
+                <button onclick="takeScreenshot()" class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-blue-100 hover:text-blue-600 transition shadow-sm w-10 h-10 flex items-center justify-center" title="Tirar Foto da Tela (Screenshot)"><i class="fas fa-camera text-sm"></i></button>
             </div>
         </header>
 
@@ -203,12 +234,12 @@
                 <div id="init-alert" class="bg-blue-50 p-10 rounded-xl border border-blue-100 text-center">
                     <i class="fas fa-file-import text-5xl text-blue-300 mb-4"></i>
                     <h2 class="text-xl font-black text-blue-900">Aguardando Importação de Dados</h2>
-                    <p class="text-blue-700 text-sm mt-2">Importe os arquivos do ServiceNow na barra lateral para iniciar.</p>
+                    <p class="text-blue-700 text-sm mt-2">Importe os arquivos do ServiceNow (INC, REQ, PTASK) na barra lateral.</p>
                 </div>
 
                 <div id="loader" class="hidden-st text-center p-20">
                     <i class="fas fa-circle-notch fa-spin text-5xl text-blue-600"></i>
-                    <p class="mt-4 font-bold text-slate-600">Processando e Analisando Dados...</p>
+                    <p class="mt-4 font-bold text-slate-600">Processando Cruzamentos...</p>
                 </div>
 
                 <div id="report-content" class="hidden-st">
@@ -231,7 +262,7 @@
                                         <select id="todo-tickets" class="form-input" multiple style="height: 100px;"></select>
                                         <div class="text-[9px] text-slate-500 leading-tight">Segure CTRL para selecionar múltiplos chamados.</div>
                                         <textarea id="todo-desc" class="form-input" rows="3" placeholder="Descrição da tarefa..."></textarea>
-                                        <button class="btn-process" onclick="addTodo()"><i class="fas fa-plus mr-1"></i> Adicionar</button>
+                                        <button class="btn-process" onclick="addTodo()">Adicionar Tarefa</button>
                                     </div>
                                 </div>
                             </div>
@@ -247,41 +278,41 @@
             </div>
         </div>
 
-        <div id="ticket-modal-backdrop" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[9999] hidden-st flex items-center justify-center p-4 transition-opacity opacity-0">
-            <div id="ticket-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col transform transition-all scale-95">
+        <div id="ticket-modal-backdrop" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[9999] hidden-st flex items-center justify-center p-4">
+            <div id="ticket-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col transform transition-all">
                 <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50 rounded-t-xl">
                     <div class="flex items-center gap-3">
                         <h3 id="modal-tk" class="text-xl font-black text-slate-800">...</h3>
-                        <span id="modal-state" class="text-[10px] uppercase font-bold text-white px-2 py-1 rounded shadow-sm">...</span>
+                        <span id="modal-state" class="text-[10px] uppercase font-bold text-white px-2 py-1 rounded">...</span>
                     </div>
-                    <button onclick="closeTicketDetails()" class="text-slate-400 hover:text-red-500 text-2xl outline-none"><i class="fas fa-times"></i></button>
+                    <button onclick="closeTicketDetails()" class="text-slate-400 hover:text-red-500 text-2xl"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="flex-1 overflow-hidden flex flex-col lg:flex-row">
                     <div class="w-full lg:w-1/3 border-r overflow-y-auto p-6 bg-slate-50">
-                        <div class="mb-6 bg-white p-4 rounded shadow-sm border border-slate-200">
-                            <h4 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2"><i class="fas fa-info-circle mr-1"></i> Informações</h4>
+                        <div class="mb-6 bg-white p-3 border rounded shadow-sm">
+                            <h4 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2">Informações</h4>
                             <div class="space-y-2">
-                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Solicitante</label><div id="modal-req" class="text-sm font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded">...</div></div>
-                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Analista</label><div id="modal-asg" class="text-sm font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded">...</div></div>
-                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Grupo</label><div id="modal-gp" class="text-xs font-bold bg-slate-50 px-2 py-1 rounded">...</div></div>
-                                <div class="grid grid-cols-2 gap-2 border-t pt-2 mt-2">
-                                    <div><label class="text-[10px] uppercase font-bold text-slate-400">Abertura</label><div id="modal-op" class="text-xs font-semibold bg-slate-50 px-2 py-1 rounded">...</div></div>
-                                    <div><label class="text-[10px] uppercase font-bold text-slate-400">Fechamento</label><div id="modal-cl" class="text-xs font-semibold bg-slate-50 px-2 py-1 rounded">...</div></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Solicitante</label><div id="modal-req" class="text-sm font-bold text-slate-700">...</div></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Analista</label><div id="modal-asg" class="text-sm font-bold text-blue-700">...</div></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Grupo</label><div id="modal-gp" class="text-xs font-bold">...</div></div>
+                                <div class="grid grid-cols-2 gap-2 border-t pt-2">
+                                    <div><label class="text-[10px] uppercase font-bold text-slate-400">Abertura</label><div id="modal-op" class="text-xs">...</div></div>
+                                    <div><label class="text-[10px] uppercase font-bold text-slate-400">Fechamento</label><div id="modal-cl" class="text-xs">...</div></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="bg-blue-50/50 p-4 rounded-lg border border-blue-200 shadow-sm">
-                            <h4 class="text-xs font-black text-blue-600 uppercase mb-3 border-b border-blue-100 pb-2"><i class="fas fa-tasks mr-1"></i> Ações (TODO)</h4>
-                            <div id="modal-todo-container" class="space-y-2 max-h-[250px] overflow-y-auto pr-1"></div>
-                            <textarea id="modal-new-todo" class="w-full mt-3 p-2 text-xs rounded border border-blue-200 outline-none focus:border-blue-500" rows="2" placeholder="Nova ação para este ticket..."></textarea>
-                            <button onclick="addTodoFromModal()" class="w-full mt-2 bg-blue-600 text-white text-[10px] font-bold py-2 rounded uppercase shadow hover:bg-blue-700"><i class="fas fa-plus mr-1"></i> Salvar Ação</button>
+                        <div class="bg-blue-50/50 p-4 rounded border border-blue-200">
+                            <h4 class="text-xs font-black text-blue-600 uppercase mb-3"><i class="fas fa-tasks mr-1"></i> Ações (TODO)</h4>
+                            <div id="modal-todo-container" class="space-y-2 max-h-[250px] overflow-y-auto"></div>
+                            <textarea id="modal-new-todo" class="w-full mt-3 p-2 text-xs rounded border border-blue-200" rows="2" placeholder="Nova ação para este ticket..."></textarea>
+                            <button onclick="addTodoFromModal()" class="w-full mt-2 bg-blue-600 text-white text-[10px] font-bold py-2 rounded uppercase shadow hover:bg-blue-700">Salvar Ação</button>
                         </div>
                     </div>
                     <div class="flex-1 overflow-y-auto p-6 bg-white relative">
                         <h4 id="modal-title" class="text-lg font-black text-slate-800 mb-2">...</h4>
-                        <p id="modal-desc" class="text-sm text-slate-600 mb-6 pb-4 border-b border-blue-100 italic bg-blue-50/30 p-3 rounded-lg">...</p>
-                        <h4 class="text-xs font-black text-slate-400 uppercase mb-4 sticky top-0 bg-white py-2 z-10"><i class="fas fa-comments mr-1"></i> Histórico de Interações (Thread)</h4>
-                        <div id="modal-timeline" class="pl-2"></div>
+                        <p id="modal-desc" class="text-sm text-slate-500 mb-6 pb-4 border-b border-slate-100 italic bg-slate-50 p-3 rounded">...</p>
+                        <h4 class="text-xs font-black text-slate-400 uppercase mb-4 sticky top-0 bg-white py-2 z-10"><i class="fas fa-history mr-1"></i> Histórico de Interações (Thread)</h4>
+                        <div id="modal-timeline"></div>
                     </div>
                 </div>
             </div>
@@ -548,12 +579,12 @@
             if (todoList.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-300 font-bold"><i class="fas fa-check-circle text-4xl mb-3 block"></i>Nenhuma tarefa pendente.</div>`; return; }
             let sortedTodos = [...todoList].sort((a, b) => b.id.localeCompare(a.id));
             container.innerHTML = sortedTodos.map(t => `
-                <div class="todo-item border-l-4 border-blue-600">
+                <div class="todo-item border-l-4 border-[var(--primary)]">
                     <div class="flex justify-between items-start mb-2">
-                        <div class="font-black text-sm text-[var(--primary-dark)]"><i class="fas fa-user text-slate-400 mr-1"></i> ${t.analyst} <span class="text-[9px] text-slate-400 ml-2 font-normal">Criado: ${t.date}</span></div>
-                        <div class="flex gap-2"><button onclick="completeTodo('${t.id}')" class="text-emerald-500 hover:text-emerald-600"><i class="fas fa-check-circle"></i></button><button onclick="deleteTodo('${t.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button></div>
+                        <div class="font-bold text-sm text-[var(--primary-dark)]"><i class="fas fa-user text-slate-400 mr-1"></i> ${t.analyst} <span class="text-[9px] text-slate-400 ml-2 font-normal">Criado: ${t.date}</span></div>
+                        <div class="flex gap-2"><button onclick="completeTodo('${t.id}')" title="Concluir" class="text-emerald-500 hover:text-emerald-600 transition text-lg"><i class="fas fa-check-circle"></i></button><button onclick="deleteTodo('${t.id}')" title="Apagar" class="text-red-400 hover:text-red-600 transition"><i class="fas fa-trash"></i></button></div>
                     </div>
-                    ${t.ticket ? `<div class="mb-2"><span onclick="openTicketDetails('${t.ticket}')" class="todo-badge hover:bg-blue-100 cursor-pointer">${t.ticket} <i class="fas fa-external-link-alt ml-1 opacity-50"></i></span></div>` : ''}
+                    ${t.ticket ? `<div class="mb-2"><span onclick="openTicketDetails('${t.ticket}')" class="todo-badge hover:bg-blue-200 cursor-pointer">${t.ticket} <i class="fas fa-external-link-alt ml-1 opacity-50"></i></span></div>` : ''}
                     <div class="space-y-2 mt-3">${t.history.map((h, idx) => `<div class="history-entry border border-transparent hover:border-slate-200" onclick="toggleStrike('${t.id}', ${idx})" title="Clique para riscar a atividade"><div class="text-[9px] font-bold text-slate-400">${h.date}</div><div class="history-text ${h.striked ? 'striked' : ''}">${h.text}</div></div>`).join('')}</div>
                     <div class="todo-update-wrapper"><input type="text" id="update-input-${t.id}" class="form-input px-2 py-1 text-xs" placeholder="Adicionar nova nota..."><button onclick="addTodoUpdate('${t.id}')" class="bg-blue-800 text-white px-3 rounded text-[10px] font-bold uppercase hover:bg-blue-900">Add</button></div>
                 </div>`).join('');
@@ -688,6 +719,9 @@
                 let st = (row.dataset.st || '').toLowerCase(), bC = '#3b82f6';
                 if(st.includes('resolv')||st.includes('complet')) bC='#10b981'; else if(st.includes('cancel')||st.includes('incomplet')) bC='#ef4444'; else if(st.includes('hold')||st.includes('pend')) bC='#f59e0b';
                 
+                let tt = document.getElementById('global-tooltip');
+                if(!tt) return;
+                
                 document.getElementById('tt-tk').innerText = row.dataset.tk || '-';
                 document.getElementById('tt-st').innerText = row.dataset.st || '-'; document.getElementById('tt-st').style.backgroundColor = bC;
                 document.getElementById('tt-desc').innerText = row.dataset.desc || 'Sem assunto';
@@ -698,11 +732,11 @@
                 if (idleVal && idleVal !== '-' && idleVal !== 'undefined') { let idNum = parseInt(idleVal); idleEl.innerHTML = `<i class="fas fa-user-clock mr-1"></i> ${idNum}d inativo`; idleEl.style.color = idNum > 3 ? '#ef4444' : '#10b981'; } 
                 else { idleEl.innerText = 'N/A'; idleEl.style.color = '#94a3b8'; }
 
-                tooltip.style.opacity = 1; tooltip.style.visibility = 'visible';
+                tt.style.opacity = 1; tt.style.visibility = 'visible';
             }
         });
-        document.addEventListener('mousemove', e => { if (tooltip.style.visibility === 'visible') { let x = e.pageX + 15, y = e.pageY + 15; if (x + tooltip.offsetWidth > window.innerWidth) x = e.pageX - tooltip.offsetWidth - 15; if (y + tooltip.offsetHeight > window.innerHeight) y = window.innerHeight - tooltip.offsetHeight - 10; tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px'; } });
-        document.addEventListener('mouseout', e => { if (e.target.closest('.ticket-row')) { tooltip.style.opacity = 0; tooltip.style.visibility = 'hidden'; } });
+        document.addEventListener('mousemove', e => { let tt = document.getElementById('global-tooltip'); if (tt && tt.style.visibility === 'visible') { let x = e.pageX + 15, y = e.pageY + 15; if (x + tt.offsetWidth > window.innerWidth) x = e.pageX - tt.offsetWidth - 15; if (y + tt.offsetHeight > window.innerHeight) y = window.innerHeight - tt.offsetHeight - 10; tt.style.left = x + 'px'; tt.style.top = y + 'px'; } });
+        document.addEventListener('mouseout', e => { if (e.target.closest('.ticket-row')) { let tt = document.getElementById('global-tooltip'); if(tt) { tt.style.opacity = 0; tt.style.visibility = 'hidden'; } } });
 
         function filterTables() {
             const term = removeAccents(searchGlobalInput.value.toUpperCase());
@@ -769,6 +803,8 @@
             return { mttr: countRes ? (totalMttr/countRes).toFixed(1).replace('.',',') : "0,0", pct: resMes ? Math.round((inSlaMes/resMes)*100) : 0, inSla: inSlaMes, outSla: resMes-inSlaMes, backlog, inSlaTot: inS, outSlaTot: outS, trendM, trendD, topAnalistas: Object.keys(analistas).map(k=>({nome:k, ...analistas[k]})).sort((a,b)=>(b.ab+b.res)-(a.ab+a.res)).slice(0,10), agingBuckets, crits: criticals.sort((a,b)=>b.age-a.age) };
         }
 
+        const C = { PRI_D: "#001871", SUC: "#00C853", DAN: "#D50000", ORG: "#FF8C00", GRY_D: "#334155" };
+
         function generateSectionHTML(id, title, d, typeStr) {
             let lblRes = typeStr === 'INC' ? 'Resolvidos' : 'Encerrados';
             let tR = `<div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh("Mês")}${createTh("Abertos")}${createTh(lblRes)}${createTh("Cancelados")}${createTh("Saldo")}${createTh("Backlog")}${createTh("% no Prazo")}</tr></thead><tbody>` + Object.keys(d.trendM).sort().map(k => {
@@ -785,37 +821,31 @@
             <div class="report-card border-red-200"><div class="report-card-title text-red-600"><i class="fas fa-exclamation-triangle"></i> CRÍTICOS PENDENTES (${d.crits.length})</div>
             <div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh("Ticket")}${createTh("Assunto/Info","auto","left")}${createTh("Solicitante")}${createTh("Analista")}${createTh("Status")}${createTh("Ocioso/Aging","auto","right")}</tr></thead>
             <tbody>${d.crits.map(t=>`<tr class="ticket-row" data-tk="${t.tk}" data-st="${t.st}" data-idle="${t.idle}">
-                <td class="font-bold text-blue-800">${t.tk}<button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-1 bg-blue-50 hover:bg-blue-100 border p-1 rounded text-[9px] uppercase"><i class="fas fa-history"></i> Saiba mais</button></td>
+                <td class="font-bold text-blue-800">${t.tk}<button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-1 bg-blue-50 hover:bg-blue-100 border p-1 rounded text-[9px]"><i class="fas fa-history"></i> Detalhes</button></td>
                 <td class="text-left"><div class="text-xs font-bold line-clamp-1">${t.desc}</div><div class="text-[10px] text-slate-500 mt-1">${t.info}</div></td>
                 <td>${t.req}</td><td>${t.as}<br><span class="text-[9px] text-slate-400">${t.gp}</span></td>
                 <td><span class="bg-slate-100 border px-2 py-0.5 rounded text-[9px]">${t.st}</span><br><span class="text-[9px] text-blue-600 font-bold mt-1 block">PRB: ${t.prb}</span></td>
                 <td class="text-right"><div class="text-red-600 font-black text-sm">${t.age}d totais</div>${t.idle!=='-'?`<div class="text-[10px] font-bold ${t.idle>3?'text-red-500':'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>`:''}</td>
-            </tr>`).join('') || `<tr><td colspan="6" class="p-8 text-center text-slate-400">Nenhum crítico no momento.</td></tr>`}</tbody></table></div></div>`;
+            </tr>`).join('') || `<tr><td colspan="6" class="p-8 text-center text-slate-400">Nenhum crítico.</td></tr>`}</tbody></table></div></div>`;
         }
 
         // ==========================================
-        // 9. CÁLCULO DE ERROS DE CLASSIFICAÇÃO (PYTHON PORT)
+        // 4. TABELA PRB / ERROS CLASSIFICAÇÃO
         // ==========================================
         function calculateClassifications(allData, refDateObj) {
             let res = { total:0, link:0, noLink:0, days:0, max:0, req:{}, gp:{}, asg:{}, m:{}, tks:[] };
             allData.forEach(r => {
                 let st = String(getCol(r, ['State','Status'])||'').toLowerCase(), rea = String(getCol(r, ['Reason','Motivo'])||'').toUpperCase();
-                if(st.includes('incomplet') && reason.includes('INCORRECT CLASSIFICATION')) {
+                if(st.includes('incomplet') && rea.includes('INCORRECT CLASSIFICATION')) {
                     let op = safeDate(getCol(r, ['Opened','opened_at'])), cl = safeDate(getCol(r, ['Resolved','Closed']));
                     if(!op || op > refDateObj) return;
-
                     let cn = String(getCol(r, ['Close notes','Closing notes'])||''), match = cn.match(/(INC|RITM|REQ|TASK)[\s\-]?(\d{6,8})/i);
                     let tk = getCol(r, ['Number','Ticket']), asg = getCol(r, ['Assigned to'])||'N/A', req = getCol(r, ['Requester','Caller'])||'N/A', gp = getCol(r, ['Assignment group'])||'N/A';
                     let d = cl ? Math.floor((cl-op)/86400000) : Math.floor((refDateObj-op)/86400000); if(d<0) d=0;
                     
                     res.total++; if(match) res.link++; else res.noLink++; res.days+=d; if(d>res.max) res.max=d;
                     let mStr = op.toLocaleDateString('pt-BR',{month:'short',year:'numeric'}).toUpperCase().replace('.','');
-                    
-                    // Condição do Mês Vigente (Apenas popular tabelas se o erro for do mesmo mês/ano selecionado)
-                    if(op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()) {
-                        res.req[req] = (res.req[req]||0)+1; res.gp[gp] = (res.gp[gp]||0)+1; res.asg[asg] = (res.asg[asg]||0)+1;
-                    }
-                    res.m[mStr] = (res.m[mStr]||0)+1; // Gráfico de tendência recebe todos
+                    res.req[req]=(res.req[req]||0)+1; res.gp[gp]=(res.gp[gp]||0)+1; res.asg[asg]=(res.asg[asg]||0)+1; res.m[mStr]=(res.m[mStr]||0)+1;
                     
                     res.tks.push({tk, req, as:asg, gp, l:match?(match[1].toUpperCase()+match[2]):'⚠️ Erro', rea, st:st.toUpperCase(), d, idle: (!cl||cl>refDateObj)?getDaysSilent(r,refDateObj,asg,op):'-', opS:op.toLocaleDateString('pt-BR'), desc:getCol(r,['Short description'])||'-', info:cn });
                 }
@@ -825,21 +855,17 @@
         }
 
         function generateClassificationsHTML(d) {
-            const tH = (t, data, l, isMonth=false) => {
-                let t_vol = Object.values(data).reduce((a,b)=>a+b,0);
-                return `<div class="report-card"><div class="report-card-title">${t}</div><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh(l,"auto","left")}${createTh("Qtd")}${isMonth?createTh("%"):''}</tr></thead><tbody>${Object.entries(data).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td class="text-left font-bold text-slate-700">${k}</td><td>${v}</td>${isMonth?`<td>${Math.round((v/t_vol)*100)}%</td>`:''}</tr>`).join('')}</tbody></table></div></div>`;
-            };
-
+            const tH = (t, data, l) => `<div class="report-card"><div class="report-card-title">${t}</div><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh(l,"auto","left")}${createTh("Qtd")}</tr></thead><tbody>${Object.entries(data).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td class="text-left font-bold text-slate-700">${k}</td><td>${v}</td></tr>`).join('')}</tbody></table></div></div>`;
             return `<div class="report-section-title bg-red-600"><i class="fas fa-exchange-alt"></i> ERROS DE CLASSIFICAÇÃO (REQ ⇄ INC)</div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div class="report-card h-[300px]"><div class="report-card-title">Tendência Mensal Histórica</div><canvas id="chart-class-trend"></canvas></div><div class="grid grid-cols-2 gap-4"><div class="report-card text-center border-l-4 border-red-500 justify-center"><div class="text-[10px] font-black text-red-600 mb-2 uppercase">Total Incorretos</div><div class="text-4xl font-black">${d.total}</div></div><div class="report-card text-center border-l-4 border-green-500 justify-center"><div class="text-[10px] font-black text-green-600 mb-2 uppercase">Com Vínculo</div><div class="text-4xl font-black">${d.link}</div></div><div class="report-card text-center border-l-4 border-orange-500 justify-center"><div class="text-[10px] font-black text-orange-500 mb-2 uppercase">Sem Vínculo (Erro)</div><div class="text-4xl font-black">${d.noLink}</div></div><div class="report-card text-center border-l-4 border-blue-500 justify-center"><div class="text-[10px] font-black text-blue-600 mb-2 uppercase">Detecção Média</div><div class="text-4xl font-black">${d.avg}d</div></div></div></div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">${tH("Por Solicitante (Mês Vigente)", d.req, "Solicitante")}${tH("Por Grupo (Mês Vigente)", d.gp, "Grupo")}${tH("Por Analista (Mês Vigente)", d.asg, "Analista")}${tH("Consolidado (Todos os Meses)", d.m, "Mês", true)}</div>
-            <div class="report-card"><div class="report-card-title"><i class="fas fa-list"></i> LISTA DETALHADA (TODOS OS PERÍODOS)</div><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh("Ticket Original")}${createTh("Ticket Vinculado")}${createTh("Descrição / Close Notes","auto","left")}${createTh("Solicitante")}${createTh("Analista/Grupo")}${createTh("Reason / Status")}${createTh("Ocioso/Dias","auto","right")}</tr></thead><tbody>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div class="report-card h-[300px]"><canvas id="chart-class-trend"></canvas></div><div class="grid grid-cols-2 gap-4"><div class="report-card text-center border-l-4 border-red-500 justify-center"><div class="text-[10px] font-black text-red-600 mb-2 uppercase">Total Incorretos</div><div class="text-4xl font-black">${d.total}</div></div><div class="report-card text-center border-l-4 border-green-500 justify-center"><div class="text-[10px] font-black text-green-600 mb-2 uppercase">Com Vínculo</div><div class="text-4xl font-black">${d.link}</div></div><div class="report-card text-center border-l-4 border-orange-500 justify-center"><div class="text-[10px] font-black text-orange-500 mb-2 uppercase">Sem Vínculo (Erro)</div><div class="text-4xl font-black">${d.noLink}</div></div><div class="report-card text-center border-l-4 border-blue-500 justify-center"><div class="text-[10px] font-black text-blue-600 mb-2 uppercase">Detecção Média</div><div class="text-4xl font-black">${d.avg}d</div></div></div></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">${tH("Por Solicitante", d.req, "Solicitante")}${tH("Por Grupo", d.gp, "Grupo")}${tH("Por Analista", d.asg, "Analista")}${tH("Por Mês", d.m, "Mês")}</div>
+            <div class="report-card"><div class="report-card-title"><i class="fas fa-list"></i> LISTA DETALHADA</div><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh("Ticket Original")}${createTh("Ticket Vinculado")}${createTh("Descrição / Close Notes","auto","left")}${createTh("Solicitante")}${createTh("Analista/Grupo")}${createTh("Reason / Status")}${createTh("Ocioso/Dias","auto","right")}</tr></thead><tbody>
             ${d.tks.map(t=>`<tr class="ticket-row" data-tk="${t.tk}" data-st="${t.st}" data-idle="${t.idle}"><td class="font-bold text-[var(--primary-dark)]">${t.tk}<button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-1 bg-blue-50 hover:bg-blue-100 border p-1 rounded text-[9px] uppercase"><i class="fas fa-history"></i> Saiba mais</button></td><td class="font-bold ${t.l.includes('⚠️')?'text-red-500':'text-green-500'}">${t.l}</td><td class="text-left"><div class="text-xs font-bold line-clamp-1">${t.desc}</div><div class="text-[10px] text-slate-500 mt-1">Notas: ${t.info}</div></td><td>${t.req}</td><td>${t.as}<br><span class="text-[9px] text-slate-400">${t.gp}</span></td><td><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[9px] font-bold block mb-1">${t.rea}</span><span class="bg-slate-100 border px-2 py-0.5 rounded text-[9px] block">${t.st}</span></td><td class="text-right"><div class="text-red-600 font-black text-sm">${t.d}d totais</div>${t.idle!=='-'?`<div class="text-[10px] font-bold ${t.idle>3?'text-red-500':'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>`:''}</td></tr>`).join('')}
             </tbody></table></div></div>`;
         }
 
         // ==========================================
-        // 9. ORQUESTRADOR E PLUGINS CHART
+        // 5. CHART.JS & UI RENDER
         // ==========================================
         function drawChartsAll(id, d, lblRes) {
             const common = (cId, data, isLine) => {
@@ -863,11 +889,14 @@
             window.chartInstances.push(new Chart(document.getElementById(`c-p-${id}`), { type: 'doughnut', data: { labels: ['No Prazo', 'Estourado'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN] }] }, options: { cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right' }, plugins: { datalabels: { color: '#fff', font: {weight:'bold', size:14}, formatter: (v, ctx) => v>0 ? Math.round((v/ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0))*100)+'%' : "" } } } }));
         }
 
+        // ==========================================
+        // 6. ORQUESTRADOR PRINCIPAL
+        // ==========================================
         function processDashboard() {
             if (!RawData.incs.length && !RawData.reqs.length) return alert("Por favor, importe os arquivos na aba lateral.");
 
             let now = new Date();
-            document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extração: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`;
+            document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extração: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
 
             document.getElementById('init-alert').classList.add('hidden-st');
             document.getElementById('loader').classList.remove('hidden-st');
