@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELITE MASTER V6.6 - Sistema Analítico ITSM</title>
+    <title>ELITE MASTER V6.7 - Sistema Analítico ITSM</title>
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -14,13 +14,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Calibri:wght@400;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Calibri:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
         /* =========================================================
-           PALETA DE CORES MASTER (FIEL AO PYTHON)
+           PALETA DE CORES MASTER
            ========================================================= */
         :root {
             --primary-dark: #001871;
@@ -49,29 +47,13 @@
             overflow: hidden;
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         /* Scrollbars Premium */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-            border: 2px solid var(--background);
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid var(--background); }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
         /* =========================================================
            ANIMAÇÕES E TRANSIÇÕES
@@ -80,14 +62,8 @@
             from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        .animate-fade {
-            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-
-        .transition-all-smooth {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        .animate-fade { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        .transition-all-smooth { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 
         /* =========================================================
            SIDEBAR E HEADER DO SISTEMA
@@ -105,29 +81,12 @@
             flex-shrink: 0;
             box-shadow: 4px 0 15px rgba(0, 0, 0, 0.03);
         }
-
-        .sidebar-header {
-            padding: 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #e2e8f0;
-            background: #fff;
-        }
-
-        .sidebar-content {
-            padding: 1.5rem;
-            overflow-y: auto;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
+        .sidebar-header { padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; background: #fff; }
+        .sidebar-content { padding: 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
 
         @media (min-width: 1024px) {
             .sidebar.collapsed { margin-left: calc(var(--sidebar-width) * -1); }
         }
-
         @media (max-width: 1023px) {
             .sidebar { position: fixed; left: calc(var(--sidebar-width) * -1); }
             .sidebar.open { left: 0; }
@@ -135,17 +94,8 @@
             .overlay.open { display: block; opacity: 1; }
         }
 
-        .main-wrapper {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-            width: 100%;
-            background: var(--background);
-            min-width: 0;
-        }
-
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; width: 100%; background: var(--background); min-width: 0; }
+        
         .top-header {
             background-color: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -163,31 +113,15 @@
         }
 
         .btn-toggle {
-            background: #fff;
-            border: 1px solid #cbd5e1;
-            color: var(--primary-dark);
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            transition: 0.2s;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            background: #fff; border: 1px solid #cbd5e1; color: var(--primary-dark);
+            width: 40px; height: 40px; border-radius: 8px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; transition: 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
-
-        .btn-toggle:hover {
-            background: var(--gray-light);
-            border-color: var(--primary);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
+        .btn-toggle:hover { background: var(--gray-light); border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
 
         .search-wrapper { position: relative; width: 100%; max-width: 400px; display: none; }
         .search-wrapper.visible { display: block; }
-        
         .search-input {
             width: 100%; padding: 10px 16px 10px 42px; border-radius: 99px; border: 1px solid #cbd5e1;
             font-size: 13px; font-family: 'Inter'; outline: none; transition: 0.3s; background: #f8fafc;
@@ -238,7 +172,7 @@
         .chart-wrapper, .chart-full-width { position: relative; width: 100%; height: 350px; min-width: 0; }
 
         /* =========================================================
-           TABELAS ALTAMENTE RESPONSIVAS E DENSAS (COM FILTRO)
+           TABELAS ALTAMENTE RESPONSIVAS E DENSAS (COM FILTRO E SORT)
            ========================================================= */
         .st-dataframe-container { overflow-x: auto; max-height: 500px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02); background: #fff; }
         .st-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; font-family: 'Inter', sans-serif; }
@@ -262,7 +196,7 @@
         .btn-expand { background: transparent; border: none; color: var(--accent); font-size: 10px; font-weight: 800; cursor: pointer; margin-top: 4px; padding: 0; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; }
         .btn-expand:hover { text-decoration: underline; }
 
-        details.saas-accordion { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; background: #fff; overflow: hidden; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); }
+        details.saas-accordion { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; background: #fff; overflow: hidden; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02); transition: 0.3s; }
         details.saas-accordion summary { padding: 12px 16px; font-weight: 600; color: var(--primary-dark); cursor: pointer; background: #f8fafc; outline: none; list-style: none; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
         details.saas-accordion summary::-webkit-details-marker { display: none; }
         details.saas-accordion summary::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: #94a3b8; transition: transform 0.3s; }
@@ -291,6 +225,7 @@
         .todo-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; transition: 0.3s; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02); }
         .todo-item:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
         .todo-badge { background: #eff6ff; color: var(--primary-dark); border: 1px solid #bfdbfe; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: 0.2s; }
+        .todo-badge:hover { background: #dbeafe; }
         .todo-history { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; padding-right: 4px; }
         
         .history-entry { cursor: pointer; padding: 4px; border-radius: 4px; transition: 0.2s; border: 1px solid transparent; }
@@ -307,7 +242,7 @@
         .hidden-st { display: none !important; }
 
         /* =========================================================
-           RESPONSIVIDADE MOBILE
+           RESPONSIVIDADE MOBILE / TABLET
            ========================================================= */
         @media (max-width: 1024px) {
             body { font-size: 14px; }
@@ -342,6 +277,9 @@
             #global-tooltip { max-width: 90vw; }
             .chart-wrapper, .chart-full-width { height: 300px; }
             .grid-2 { gap: 15px; margin-bottom: 15px; }
+            details.saas-accordion summary { flex-direction: column; align-items: flex-start; gap: 10px; }
+            details.saas-accordion summary .w-full { flex-direction: column; gap: 10px; }
+            details.saas-accordion summary .w-full span:last-child { align-self: flex-end; }
         }
     </style>
 </head>
@@ -463,6 +401,7 @@
 
         <div class="tabs-sticky hidden-st" id="tabs-container">
             <div class="tabs-nav">
+                <button class="tab-btn" onclick="switchTab('tab-open', this)" style="color: var(--orange); font-weight: 900;"><i class="fas fa-folder-open mr-1"></i> Tickets Abertos</button>
                 <button class="tab-btn active" onclick="switchTab('tab-inc', this)"><i class="fas fa-fire-extinguisher mr-1"></i> INCs</button>
                 <button class="tab-btn" onclick="switchTab('tab-req', this)"><i class="fas fa-tools mr-1"></i> REQs</button>
                 <button class="tab-btn" onclick="switchTab('tab-uam', this)"><i class="fas fa-key mr-1"></i> UAMs</button>
@@ -491,6 +430,8 @@
                 </div>
 
                 <div id="report-content" class="hidden-st">
+                    <div id="tab-open" class="animate-fade hidden-st tab-pane"></div>
+
                     <div id="tab-inc" class="animate-fade tab-pane"></div>
                     <div id="tab-req" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-uam" class="animate-fade hidden-st tab-pane"></div>
@@ -598,7 +539,7 @@
         const RawData = { incs: [], reqs: [], rca: [], ptask: [] };
         let todoList = JSON.parse(localStorage.getItem('eliteMasterTodosV66')) || [];
         let GlobalOpenTickets = [];
-        let activeTableFilters = {}; // V6.6: Mantém os filtros ativos por tabela
+        let activeTableFilters = {}; // Mantém os filtros ativos por tabela
 
         document.getElementById('ref-date').valueAsDate = new Date();
 
@@ -611,7 +552,7 @@
                     const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
                     
-                    // Limpa quebras de linha e limpa as chaves (cabeçalhos) para não dar erro
+                    // Limpa quebras de linha e espaços extras nos cabeçalhos
                     const cleanJson = json.map(r => { 
                         let o = {}; 
                         Object.keys(r).forEach(k => o[k.replace(/\ufffd/g, "").replace(/\s+/g, " ").trim()] = r[k]); 
@@ -661,7 +602,7 @@
             } 
         }
 
-        // Feature V6.6: Screenshot Engine
+        // Export / Import Tools
         function takeScreenshot() {
             const btn = document.querySelector('.fa-camera').parentElement;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
@@ -677,7 +618,6 @@
             });
         }
 
-        // Feature V6.6: Export/Import JSON (Backup de Tarefas)
         function exportBackupJSON() {
             const link = document.createElement('a');
             link.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(JSON.stringify(todoList));
@@ -703,7 +643,7 @@
                 } 
             };
             reader.readAsText(file);
-            e.target.value = ''; // Reset input
+            e.target.value = '';
         }
 
         // ==========================================
@@ -760,13 +700,11 @@
             
             rows.forEach(r => tbody.appendChild(r));
             
-            // Corrige ícones visuais para não sobrescrever o funil de filtro (Feature V6.6)
             th.parentNode.querySelectorAll('i.fa-sort, i.fa-sort-up, i.fa-sort-down').forEach(i => i.className = "fas fa-sort opacity-30 text-[10px]");
             let sortIcon = th.querySelector('i:not(.fa-filter)');
             if(sortIcon) sortIcon.className = isAsc ? "fas fa-sort-up ml-1 text-white text-[10px]" : "fas fa-sort-down ml-1 text-white text-[10px]";
         }
 
-        // Feature V6.6: Filtro Avançado em Cascata nas Tabelas
         function openFilter(e, iconEl) {
             e.stopPropagation();
             const th = iconEl.closest('th'); 
@@ -790,7 +728,6 @@
             drop.className = 'custom-filter-dropdown fixed bg-white shadow-2xl border border-slate-200 rounded p-3 z-[10500] flex flex-col gap-1 w-64 animate-fade';
             
             let rect = iconEl.getBoundingClientRect(); 
-            // Posiciona o dropdown tentando não sair da tela
             let dTop = rect.bottom + 5;
             let dLeft = rect.left - 100;
             if (dLeft < 10) dLeft = 10;
@@ -822,7 +759,6 @@
             
             document.body.appendChild(drop);
 
-            // Ações do Filtro
             selectAll.querySelector('input').onchange = ev => drop.querySelectorAll('input[type="checkbox"]:not(.filter-all)').forEach(cb => cb.checked = ev.target.checked);
             
             btn.onclick = () => {
@@ -832,7 +768,7 @@
                 activeTableFilters[table.id][colIdx] = checked;
                 
                 Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
-                    if(tr.children.length === 1) return; // ignora linha de aviso
+                    if(tr.children.length === 1) return;
                     let show = true;
                     for(let c in activeTableFilters[table.id]) { 
                         if(!activeTableFilters[table.id][c].includes(tr.children[c].innerText.trim().replace(/\n/g, ' '))) { 
@@ -843,12 +779,10 @@
                     tr.style.display = show ? '' : 'none';
                 });
                 
-                // Pinta o ícone de filtro caso haja itens filtrados
                 iconEl.style.color = checked.length < valsArr.length ? '#f59e0b' : ''; 
                 drop.remove();
             };
 
-            // Fecha dropdown ao clicar fora
             setTimeout(() => { 
                 const closeFn = evClick => { 
                     if(!drop.contains(evClick.target) && evClick.target !== iconEl) { 
@@ -860,7 +794,6 @@
             }, 100);
         }
 
-        // Construtor robusto de cabeçalhos de tabela suportando Filtro + Sort (Feature V6.6)
         function createTh(label, width="auto", align="center") {
             return `<th style="width:${width}; text-align:${align};" onclick="sortTable(this)">
                         <div class="flex justify-between items-center w-full">
@@ -874,9 +807,8 @@
         }
 
         // ==========================================
-        // 2. TODO SYSTEM & CROSSOVER MODAL (V6.6)
+        // 2. TODO SYSTEM & CROSSOVER MODAL 
         // ==========================================
-        
         function showConfirm(title, msg, onConfirm) {
             const modal = document.getElementById('custom-confirm-modal');
             document.getElementById('confirm-title').innerText = title; 
@@ -926,15 +858,13 @@
             if (!analyst || !desc.trim()) return alert("Selecione um analista e preencha a descrição da tarefa.");
             
             let selectedTks = Array.from(selectTk.selectedOptions).map(opt => opt.value);
-            if(selectedTks.length === 0) selectedTks = [null]; // Aceita tarefa sem ticket vinculado
+            if(selectedTks.length === 0) selectedTks = [null];
             
             selectedTks.forEach(tk => {
                 let existing = tk ? todoList.find(t => t.ticket === tk && t.analyst === analyst) : null;
                 if (existing) { 
-                    // Incrementa histórico se já existir card para analista/ticket
                     existing.history.push({ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false }); 
                 } else { 
-                    // Cria novo card
                     todoList.push({ 
                         id: Date.now().toString() + Math.random().toString(36).substr(2,9), 
                         analyst: analyst, 
@@ -954,7 +884,7 @@
             let todo = todoList.find(t => t.id === todoId);
             if (todo && todo.history[index]) {
                 todo.history[index].striked = !todo.history[index].striked; 
-                saveTodos(); // O renderTodos é chamado aqui
+                saveTodos(); 
                 if (currentModalTk && todo.ticket === currentModalTk) renderModalTodos(currentModalTk);
             }
         }
@@ -1026,8 +956,6 @@
             ).join('');
         }
 
-        let currentModalTk = null;
-
         function openTicketDetails(tkNumber) {
             currentModalTk = tkNumber; 
             let ticketData = null; 
@@ -1064,7 +992,6 @@
             document.getElementById('modal-state').className = `text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded mt-1 inline-block shadow-sm ${bC}`;
             document.getElementById('modal-state').innerText = st;
 
-            // Motor robusto de extração de Thread / Interações (Work Notes)
             let regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(([^)]+)\)/gm;
             let rawC = ""; 
             let cols = new Set();
@@ -1110,7 +1037,7 @@
                         </div>`;
             }).join('') : '<div class="text-center py-10 bg-slate-50 border border-dashed rounded-lg text-slate-400 text-sm font-bold"><i class="fas fa-comment-slash text-3xl mb-3 block opacity-30"></i>Nenhum registro de interação técnica encontrado.</div>';
 
-            renderModalTodos(tkNumber); // Injeta Todos vinculados a este ticket no Modal
+            renderModalTodos(tkNumber); 
             
             document.getElementById('ticket-modal-backdrop').classList.remove('hidden-st');
             setTimeout(() => { 
@@ -1194,7 +1121,6 @@
             select.innerHTML = '<option value="">Selecione um analista...</option>' + Array.from(set).sort().map(a => `<option value="${a}">${a}</option>`).join('');
             document.getElementById('todo-tickets').innerHTML = '<option value="" disabled>Selecione um analista primeiro...</option>';
         }
-
 
         // ==========================================
         // 3. MOTOR DE OCIOSIDADE E PESQUISA GLOBAL
@@ -1345,7 +1271,7 @@
             document.querySelectorAll('.tab-pane:not(.hidden-st) table tbody').forEach(tbody => {
                 Array.from(tbody.getElementsByTagName("tr")).forEach(r => {
                     let rT = removeAccents(r.innerText).toUpperCase();
-                    if(!rT.includes("NENHUM") && !rT.includes("TOTAL")) {
+                    if(!rT.includes("NENHUM") && !rT.includes("TOTAL") && !rT.includes("SEM DADOS")) {
                         r.style.display = rT.includes(term) ? "" : "none";
                     }
                 });
@@ -1500,7 +1426,7 @@
         }
 
         // ==========================================
-        // 5. ERROS DE CLASSIFICAÇÃO (Com Views Analíticas V6.6)
+        // 5. ERROS DE CLASSIFICAÇÃO (Com Views Analíticas)
         // ==========================================
         function calculateClassifications(allData, refDateObj) {
             let res = { total: 0, link: 0, noLink: 0, days: 0, max: 0, req: {}, gp: {}, asg: {}, m: {}, tks: [] };
@@ -1538,7 +1464,6 @@
                     let mStr = op.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
                     res.m[mStr] = (res.m[mStr] || 0) + 1; 
 
-                    // Stats Analíticas do Mês Vigente (Feature V6.6)
                     if (op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()) {
                         res.req[reqName] = (res.req[reqName] || 0) + 1; 
                         res.gp[gpName] = (res.gp[gpName] || 0) + 1; 
@@ -1568,7 +1493,118 @@
         }
 
         // ==========================================
-        // 6. RENDERIZADORES HTML
+        // FEATURE V6.7: TICKETS ABERTOS GERAIS
+        // ==========================================
+        function generateOpenTicketsHTML(incs, reqs, uams, slaI, slaR, refDateObj) {
+            let openTks = [];
+            
+            function processRow(r, type, slaConfig) {
+                let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                if (!op || op.getTime() > refDateObj.getTime()) return;
+
+                let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                if (cl && cl.getTime() <= refDateObj.getTime()) return; // Fechado antes ou no dia da refDate
+
+                let age = Math.floor((refDateObj - op) / 86400000);
+                if (age < 0) age = 0;
+
+                let tk = getCol(r, ['Number', 'Ticket', 'RITM']) || '-';
+                let req = getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A';
+                let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
+                let gp = getCol(r, ['Assignment group', 'Grupo']) || 'Sem Grupo';
+                let st = getCol(r, ['State', 'Status', 'Estado']) || 'Open';
+
+                let pctSla = Math.round((age / slaConfig) * 100);
+                let stSla = age > slaConfig ? "Estourado" : "No Prazo";
+
+                openTks.push({
+                    tk, type, req, asg, gp, st: st.toUpperCase(), 
+                    opStr: op.toLocaleDateString('pt-BR'), 
+                    age, pctSla, stSla, slaConfig 
+                });
+            }
+
+            incs.forEach(r => processRow(r, 'INC', slaI));
+            reqs.forEach(r => processRow(r, 'REQ', slaR));
+            uams.forEach(r => processRow(r, 'UAM', slaR));
+
+            let groups = {};
+            openTks.forEach(t => {
+                if(!groups[t.gp]) groups[t.gp] = [];
+                groups[t.gp].push(t);
+            });
+
+            let html = `<div class="report-section-title" style="background-color: var(--orange);"><i class="fas fa-folder-open mr-2"></i> VISÃO DE TICKETS ABERTOS POR GRUPO RESOLUTOR</div>`;
+
+            let sortedGroups = Object.keys(groups).sort();
+            
+            if(sortedGroups.length === 0) {
+                html += `<div class="report-card text-center py-10 text-slate-400 font-bold"><i class="fas fa-check-circle text-5xl mb-4 block text-emerald-400"></i>Nenhum ticket aberto encontrado na base para a data de referência selecionada. Parabéns!</div>`;
+                return html;
+            }
+
+            sortedGroups.forEach(gp => {
+                let tks = groups[gp].sort((a, b) => b.pctSla - a.pctSla); // Maior SLA (mais crítico) em cima
+                let rows = tks.map(t => {
+                    let pctColor = t.pctSla > 100 ? 'bg-red-500' : (t.pctSla > 75 ? 'bg-orange-500' : 'bg-emerald-500');
+                    let stColor = t.pctSla > 100 ? 'text-red-600' : 'text-emerald-600';
+                    return `
+                    <tr class="ticket-row hover:bg-slate-50 transition" style="border-bottom: 1px solid #f1f5f9;">
+                        <td data-label="Número" class="font-bold text-[var(--primary-dark)] text-center py-3">
+                            ${t.tk}
+                            <div class="text-[9px] bg-slate-200 px-1 rounded inline-block text-slate-500 ml-1">${t.type}</div>
+                            <button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-2 bg-blue-50 border border-blue-200/50 p-1.5 rounded text-[9px] uppercase hover:bg-blue-100 transition shadow-sm"><i class="fas fa-history"></i> Saiba mais</button>
+                        </td>
+                        <td data-label="Requester" class="text-center">${t.req}</td>
+                        <td data-label="Analista" class="text-center font-medium">${t.asg}</td>
+                        <td data-label="Grupo" class="text-center"><span class="text-xs bg-slate-100 px-2 py-1 rounded border border-slate-200">${t.gp}</span></td>
+                        <td data-label="State" class="text-center"><span class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-[9px] uppercase font-bold block mx-auto w-max">${t.st}</span></td>
+                        <td data-label="Abertura" class="text-center"><i class="far fa-calendar-alt text-slate-400 mr-1"></i>${t.opStr}</td>
+                        <td data-label="Aging (dias)" class="text-center font-bold text-lg ${t.age > t.slaConfig ? 'text-red-600' : 'text-slate-700'}">${t.age}</td>
+                        <td data-label="% SLA" class="text-center w-32">
+                            <div class="w-full bg-slate-200 rounded-full h-4 relative overflow-hidden shadow-inner mx-auto max-w-[100px]">
+                                <div class="${pctColor} h-4 flex items-center justify-center text-[9px] text-white font-bold transition-all" style="width: ${Math.min(t.pctSla, 100)}%">${t.pctSla}%</div>
+                            </div>
+                        </td>
+                        <td data-label="Status SLA" class="text-center font-black ${stColor} uppercase text-[10px]">${t.stSla}</td>
+                    </tr>`;
+                }).join('');
+
+                html += `
+                <details class="saas-accordion mb-4" open>
+                    <summary class="bg-slate-50 border-b border-slate-200 text-slate-800 font-bold text-sm p-4 hover:bg-blue-50 transition">
+                        <div class="flex justify-between w-full pr-4 items-center">
+                            <span class="flex items-center"><i class="fas fa-users mr-2 text-[var(--primary-dark)] opacity-70"></i> ${gp}</span>
+                            <span class="bg-[var(--primary-dark)] text-white px-2.5 py-0.5 rounded-full text-xs shadow-sm">${tks.length} tickets</span>
+                        </div>
+                    </summary>
+                    <div class="acc-content p-0">
+                        <div class="st-dataframe-container border-0 rounded-none shadow-none">
+                            <table class="st-table w-full">
+                                <thead><tr>
+                                    ${createTh("Número", "12%")}
+                                    ${createTh("Requester", "15%")}
+                                    ${createTh("Analista", "15%")}
+                                    ${createTh("Grupo", "15%")}
+                                    ${createTh("State", "10%")}
+                                    ${createTh("Abertura", "10%")}
+                                    ${createTh("Aging", "8%")}
+                                    ${createTh("% SLA", "10%")}
+                                    ${createTh("Status", "auto")}
+                                </tr></thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                </details>`;
+            });
+
+            return html;
+        }
+
+
+        // ==========================================
+        // 6. RENDERIZADORES HTML ESPECÍFICOS
         // ==========================================
         function buildRowAttrs(t) { 
             return `class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.age}" data-op="${t.opStr || t.opS}" data-info="${t.info}" data-idle="${t.idle !== undefined ? t.idle : '-'}"`; 
@@ -1754,7 +1790,6 @@
         }
 
         function generateClassificationsHTML(d) {
-            // Função de auxílio V6.6 resgatada e perfeitamente indentada
             const buildAnalyticalTable = (title, dataObj, labelCol, isMonth = false) => {
                 let total = Object.values(dataObj).reduce((a,b) => a+b, 0);
                 let rows = Object.entries(dataObj).sort((a,b) => b[1] - a[1]).map(([key, value]) => `
@@ -2014,7 +2049,7 @@
         }
 
         // ==========================================
-        // 7. GRÁFICOS CHART.JS
+        // 7. GRÁFICOS CHART.JS COM FIX Y-AXIS (V6.7)
         // ==========================================
         window.chartInstances = [];
 
@@ -2030,23 +2065,29 @@
                     data: {
                         labels: labels,
                         datasets: [
-                            { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y2', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
                             { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
                             { type: 'bar', label: lblRes, data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
                             { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
                         ]
                     },
-                    options: { maintainAspectRatio: false, legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }, scales: { xAxes: [{ stacked: true, gridLines: { display: false } }], yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false } }, { id: 'y2', position: 'right', gridLines: { display: false } }] } }
+                    options: { 
+                        maintainAspectRatio: false, 
+                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }, 
+                        scales: { 
+                            xAxes: [{ stacked: true, gridLines: { display: false } }], 
+                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }] 
+                        } 
+                    }
                 });
                 window.chartInstances.push(instance);
             };
-            drawTrend(`c-d-${id}`, d.trendD, true); 
-            drawTrend(`c-m-${id}`, d.trendM, false);
+            drawTrend(`c-d-${id}`, d.trendD, true); drawTrend(`c-m-${id}`, d.trendM, false);
 
             let instA = new Chart(document.getElementById(`c-a-${id}`), {
                 type: 'horizontalBar',
                 data: { labels: d.topAnalistas.map(a => a.nome), datasets: [{ label: 'Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C.PRI_D }, { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C.SUC }] },
-                options: { maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } }, scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' } }], yAxes: [{ stacked: true, gridLines: { display: false } }] }, plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } } }
+                options: { maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } }, scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ stacked: true, gridLines: { display: false } }] }, plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } } }
             });
             window.chartInstances.push(instA);
 
@@ -2054,7 +2095,7 @@
             let instAg = new Chart(document.getElementById(`c-ag-${id}`), {
                 type: 'horizontalBar',
                 data: { labels: agKeys, datasets: [{ data: agKeys.map(k => d.agingBuckets[k].count), backgroundColor: agKeys.map(k => d.agingBuckets[k].color), barPercentage: 0.7, categoryPercentage: 0.8 }] },
-                options: { maintainAspectRatio: false, legend: { display: false }, scales: { xAxes: [{ gridLines: { color: '#f1f5f9' } }], yAxes: [{ gridLines: { display: false } }] }, plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } } }
+                options: { maintainAspectRatio: false, legend: { display: false }, scales: { xAxes: [{ gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ gridLines: { display: false } }] }, plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } } }
             });
             window.chartInstances.push(instAg);
 
@@ -2078,20 +2119,24 @@
                 let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
                 let instance = new Chart(document.getElementById(canvas), {
                     type: 'bar',
-                    data: {
-                        labels: labels, datasets: [
-                            { type: 'line', label: 'Backlog Global', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y2', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: 'Resolvidos/Encerrados', data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
-                        ]
-                    },
-                    options: { maintainAspectRatio: false, legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }, scales: { xAxes: [{ stacked: true, gridLines: { display: false } }], yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9' } }, { id: 'y2', position: 'right', gridLines: { display: false } }] } }
+                    data: { labels: labels, datasets: [
+                        { type: 'line', label: 'Backlog Global', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                        { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                        { type: 'bar', label: 'Resolvidos/Encerrados', data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                        { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
+                    ]},
+                    options: { 
+                        maintainAspectRatio: false, 
+                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }, 
+                        scales: { 
+                            xAxes: [{ stacked: true, gridLines: { display: false } }], 
+                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }] 
+                        } 
+                    }
                 });
                 window.chartInstances.push(instance);
             };
-            drawC('c-d-cons', cTrendD, true); 
-            drawC('c-m-cons', cTrendM, false);
+            drawC('c-d-cons', cTrendD, true); drawC('c-m-cons', cTrendM, false);
         }
 
         // ==========================================
@@ -2100,7 +2145,6 @@
         function processDashboard() {
             if (!RawData.incs.length && !RawData.reqs.length) return alert("Erro: Carregue as planilhas do ServiceNow na aba lateral primeiro.");
 
-            // Feature V6.6: Horário de extração
             let now = new Date(); 
             document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extração: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
 
@@ -2113,7 +2157,7 @@
 
             if (window.chartInstances) { window.chartInstances.forEach(c => c.destroy()); window.chartInstances = []; }
             GlobalOpenTickets = [];
-            activeTableFilters = {}; // Reseta os filtros salvos ao gerar novo relatório
+            activeTableFilters = {}; 
 
             setTimeout(() => {
                 const slaI = parseInt(document.getElementById('sla-incs').value) || 7;
@@ -2123,8 +2167,7 @@
                 const refDateInput = document.getElementById('ref-date').value;
                 const dateMachine = refDateInput ? new Date(refDateInput + 'T12:00:00') : new Date();
 
-                // Limpa as abas
-                ['tab-inc', 'tab-req', 'tab-uam', 'tab-cons', 'tab-prb', 'tab-class', 'tab-search'].forEach(id => {
+                ['tab-inc', 'tab-req', 'tab-uam', 'tab-cons', 'tab-prb', 'tab-class', 'tab-search', 'tab-open'].forEach(id => {
                     let el = document.getElementById(id);
                     if (el) el.innerHTML = "";
                 });
@@ -2136,14 +2179,18 @@
                     document.getElementById('tab-inc').innerHTML = generateSectionHTML('inc', "SESSÃO INCs (INCIDENTES GERAIS)", C.PRI_D, dI, "INC");
                 }
 
+                let rS = [], rU = [];
                 if (RawData.reqs.length) {
                     const isUam = r => String(r['Assignment group'] || r['Grupo'] || '').toLowerCase().includes('access');
-                    let rS = RawData.reqs.filter(r => !isUam(r)); 
-                    let rU = RawData.reqs.filter(r => isUam(r));
+                    rS = RawData.reqs.filter(r => !isUam(r)); 
+                    rU = RawData.reqs.filter(r => isUam(r));
 
                     if (rS.length) { dRS = calculateSection(rS, slaR, "REQ", dateMachine); document.getElementById('tab-req').innerHTML = generateSectionHTML('req', "SESSÃO REQs (SUPORTE GERAL)", C.PRI_D, dRS, "REQ"); }
                     if (rU.length) { dRU = calculateSection(rU, slaR, "REQ", dateMachine); document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "SESSÃO UAMs (ACESSOS)", C.PRI_D, dRU, "REQ"); }
                 }
+
+                // GERAÇÃO DA NOVA ABA: TICKETS ABERTOS V6.7
+                document.getElementById('tab-open').innerHTML = generateOpenTicketsHTML(RawData.incs, rS, rU, slaI, slaR, dateMachine);
 
                 if (dI && dRS && dRU) document.getElementById('tab-cons').innerHTML = generateConsolidadoHTML(dI, dRS, dRU);
 
@@ -2153,13 +2200,11 @@
                     document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK importado.</h3></div>`;
                 }
 
-                // Geração da Aba: Erros de Classificação (com views analíticas V6.6)
                 let allCombinedData = [...RawData.incs, ...RawData.reqs];
                 if (allCombinedData.length > 0) {
                     let dClass = calculateClassifications(allCombinedData, dateMachine);
                     document.getElementById('tab-class').innerHTML = generateClassificationsHTML(dClass);
                     
-                    // Renderiza Gráfico da Tendência Mensal de Erros V6.6
                     requestAnimationFrame(() => {
                         let cnv = document.getElementById('chart-class-trend');
                         if (cnv) {
