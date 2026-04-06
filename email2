@@ -384,7 +384,7 @@
 
         <div class="tabs-sticky hidden-st" id="tabs-container">
             <div class="tabs-nav">
-                <button class="tab-btn active" onclick="switchTab('tab-open', this)" style="color: var(--orange); font-weight: 900;"><i class="fas fa-folder-open mr-1"></i> Tickets Abertos</button>
+                <button class="tab-btn active" onclick="switchTab('tab-open', this)" style="color: var(--primary-dark); font-weight: 900;"><i class="fas fa-folder-open mr-1"></i> Tickets Abertos</button>
                 <button class="tab-btn" onclick="switchTab('tab-inc', this)"><i class="fas fa-fire-extinguisher mr-1"></i> INCs</button>
                 <button class="tab-btn" onclick="switchTab('tab-req', this)"><i class="fas fa-tools mr-1"></i> REQs</button>
                 <button class="tab-btn" onclick="switchTab('tab-uam', this)"><i class="fas fa-key mr-1"></i> UAMs</button>
@@ -531,13 +531,13 @@
 
     <script>
         // ==========================================
-        // 0. DATA & FILES & UTILS (Global fixes applied)
+        // 0. DATA & FILES & UTILS
         // ==========================================
         const RawData = { incs: [], reqs: [], rca: [], ptask: [] };
         let todoList = JSON.parse(localStorage.getItem('eliteMasterTodosV68')) || [];
         let GlobalOpenTickets = [];
         let activeTableFilters = {};
-        window.chartInstances = window.chartInstances || []; // CORREÇÃO CRÍTICA DO BUG DE 'push' undefined
+        window.chartInstances = window.chartInstances || []; 
 
         document.getElementById('ref-date').valueAsDate = new Date();
 
@@ -599,7 +599,6 @@
             } 
         }
 
-        // CORREÇÃO CRÍTICA: HTML2CANVAS otimizado para scroll e captura completa
         function takeScreenshot() {
             const btn = document.querySelector('.fa-camera').parentElement;
             const originalHTML = btn.innerHTML;
@@ -609,15 +608,14 @@
             const origOverflow = target.style.overflow;
             const origHeight = target.style.height;
 
-            // Libera o container para renderizar todo o conteúdo oculto pelo scroll
             target.style.overflow = 'visible';
             target.style.height = 'auto';
 
             html2canvas(target, {
-                scale: 1.5, // Otimizado para velocidade e nitidez sem travar
+                scale: 1.5,
                 useCORS: true,
                 scrollY: 0,
-                windowHeight: target.scrollHeight // Força a visão total da div
+                windowHeight: target.scrollHeight
             }).then(canvas => {
                 const link = document.createElement('a'); 
                 link.download = `Painel_ITSM_EliteMaster_${new Date().toISOString().slice(0,10)}.png`;
@@ -627,7 +625,6 @@
                 alert("Erro ao tirar print da tela. Consulte o console.");
                 console.error(err);
             }).finally(() => {
-                // Restaura o layout original
                 target.style.overflow = origOverflow;
                 target.style.height = origHeight;
                 btn.innerHTML = originalHTML;
@@ -663,12 +660,11 @@
         }
 
         // ==========================================
-        // DRILL-DOWN ENGINE (Extração a partir dos gráficos)
+        // DRILL-DOWN ENGINE 
         // ==========================================
         function executeChartDrillDown(title, ticketArray) {
             if(!ticketArray || ticketArray.length === 0) return;
 
-            // Muda para a aba de pesquisa
             document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(c => { c.classList.add('hidden-st'); c.classList.remove('animate-fade'); });
             
@@ -680,13 +676,11 @@
             searchTab.classList.remove('hidden-st');
             searchTab.classList.add('animate-fade');
 
-            // Ajusta o input global visualmente
             document.getElementById("globalSearch").value = `[Drill-Down: ${title}]`;
 
             let results = [];
             const refDateObj = new Date(document.getElementById('ref-date').value + 'T12:00:00');
 
-            // Extrai rigorosamente apenas os tickets solicitados pelo gráfico
             [{n:'INC', d:RawData.incs}, {n:'REQ', d:RawData.reqs}, {n:'RCA', d:RawData.rca}, {n:'PTASK', d:RawData.ptask}].forEach(src => {
                 src.d.forEach(r => {
                     let tkNumber = getCol(r, ['Number','Ticket','Problem','Task','RITM']);
@@ -711,7 +705,6 @@
                 });
             });
 
-            // Geração da Tabela (Igual a pesquisa global)
             results.sort((a, b) => { 
                 if(!a.op) return 1; if(!b.op) return -1; return b.op - a.op; 
             });
@@ -924,7 +917,7 @@
         }
 
         // ==========================================
-        // HOVER TOOLTIP SYSTEM (V6.8 ENRIQUECIDO)
+        // HOVER TOOLTIP SYSTEM
         // ==========================================
         const tooltip = document.getElementById('global-tooltip');
 
@@ -1504,9 +1497,6 @@
             });
         }
 
-        // ==========================================
-        // Filtro Exclusivo "Tickets Abertos" (Melhoria 1)
-        // ==========================================
         function filterOpenTickets(term) {
             let filterTerm = removeAccents(term.toUpperCase());
             document.querySelectorAll('#tab-open details.saas-accordion').forEach(details => {
@@ -1541,7 +1531,7 @@
             let totalMttr = 0, countRes = 0, inSlaMes = 0, resMes = 0, backlog = 0;
             let trendD = {}, trendM = {}, analistas = {}, criticals = [], noPrb = [];
             let agingBuckets = {};
-            let tks_inSla = [], tks_outSla = []; // Para drill-down do PieChart SLA
+            let tks_inSla = [], tks_outSla = []; 
 
             const isReq = type === "REQ";
             const bucketsDef = isReq
@@ -1679,19 +1669,17 @@
                 let keys = Object.keys(trendObj).sort(); let b = 0;
                 let accTks = [];
                 keys.forEach(k => { 
-                    accTks = accTks.concat(trendObj[k].tks_a); // Adiciona abertos
-                    // Remove resolvidos e cancelados
+                    accTks = accTks.concat(trendObj[k].tks_a); 
                     accTks = accTks.filter(t => !trendObj[k].tks_r.includes(t) && !trendObj[k].tks_c.includes(t));
                     
                     let s = trendObj[k].a - (trendObj[k].r + trendObj[k].c); 
                     b += s; 
                     trendObj[k].b = b; 
-                    trendObj[k].tks_b = [...accTks]; // Salva cópia do vetor
+                    trendObj[k].tks_b = [...accTks]; 
                 });
             };
             calcBacklog(trendM);
 
-            // Aproximação do backlog diário baseada no final
             let dKeys = Object.keys(trendD).sort(); let db = backlog;
             for (let i = dKeys.length - 1; i >= 0; i--) { 
                 let k = dKeys[i]; 
@@ -1708,7 +1696,7 @@
                 inSla: inSlaMes, outSla: resMes - inSlaMes, backlog,
                 inSlaTot, outSlaTot, trendM, trendD, topAnalistas, agingBuckets,
                 crits: criticals.sort((a, b) => b.age - a.age), noPrb: noPrb,
-                tks_inSla, tks_outSla // Vetores globais de SLA
+                tks_inSla, tks_outSla 
             };
         }
 
@@ -1761,9 +1749,10 @@
                 groups[t.gp].push(t);
             });
 
-            let html = `<div class="report-section-title" style="background-color: var(--orange);"><i class="fas fa-folder-open mr-2"></i> VISÃO DE TICKETS ABERTOS POR GRUPO RESOLUTOR</div>
-                        <div class="mb-4">
-                            <input type="text" id="openTicketsFilter" placeholder="Filtrar nesta visão de tickets abertos (Grupos)..." class="form-input" style="border: 2px solid var(--orange); box-shadow: 0 4px 6px rgba(255, 140, 0, 0.1);" onkeyup="filterOpenTickets(this.value)">
+            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-folder-open mr-2"></i> VISÃO DE TICKETS ABERTOS POR GRUPO RESOLUTOR</div>
+                        <div class="mb-4 flex gap-2">
+                            <input type="text" id="openTicketsFilter" placeholder="Filtrar nesta visão de tickets abertos (Grupos)..." class="form-input flex-1" style="border: 2px solid var(--primary-dark); box-shadow: 0 4px 6px rgba(0, 24, 113, 0.1);" onkeyup="filterOpenTickets(this.value)">
+                            <button onclick="document.querySelectorAll('#tab-open details.saas-accordion').forEach(d => d.removeAttribute('open'))" class="bg-slate-200 text-slate-700 px-4 py-2 rounded font-bold hover:bg-slate-300 transition shadow-sm text-xs uppercase whitespace-nowrap"><i class="fas fa-compress-alt mr-1"></i> Recolher Tudo</button>
                         </div>`;
 
             let sortedGroups = Object.keys(groups).sort();
@@ -2012,6 +2001,118 @@
         }
 
         // ==========================================
+        // ABA ERROS DE CLASSIFICAÇÃO E CONSOLIDADOS
+        // ==========================================
+        function generateClassErrorsHTML(refDateObj) {
+            let errTable = [];
+            const isIncReversed = r => { let t = String(getCol(r,['Short description','Descrição'])||'').toLowerCase(); return t.includes('acesso')||t.includes('request')||t.includes('solicitacao')||t.includes('req'); };
+            const isReqReversed = r => { let t = String(getCol(r,['Short description','Descrição'])||'').toLowerCase(); return t.includes('erro')||t.includes('falha')||t.includes('incidente')||t.includes('fora do ar')||t.includes('indisponib'); };
+            
+            [RawData.incs, RawData.reqs].forEach((src, idx) => {
+                src.forEach(r => {
+                    let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                    let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                    if (!op || op.getTime() > refDateObj.getTime()) return;
+                    if (cl && cl.getTime() <= refDateObj.getTime()) return; // Só abertos
+
+                    let isError = idx === 0 ? isIncReversed(r) : isReqReversed(r);
+                    if(isError) {
+                        errTable.push({
+                            tk: getCol(r, ['Number', 'Ticket', 'RITM']),
+                            tipo: idx === 0 ? 'INC com cara de REQ' : 'REQ com cara de INC',
+                            desc: getCol(r, ['Short description', 'Descrição']) || '-',
+                            asg: getCol(r, ['Assigned to', 'Analista']) || 'Não Atribuído',
+                            gp: getCol(r, ['Assignment group', 'Grupo']) || '-'
+                        });
+                    }
+                });
+            });
+
+            return `
+            <div class="report-section-title" style="background-color: var(--danger);"><i class="fas fa-exchange-alt mr-2"></i> ERROS DE CLASSIFICAÇÃO (SUSPEITAS)</div>
+            <div class="report-card">
+                <div class="report-card-title">POSSÍVEIS TICKETS CLASSIFICADOS ERRADO (${errTable.length})</div>
+                <div class="st-dataframe-container">
+                    <table class="st-table">
+                        <thead><tr>${createTh("Ticket")} ${createTh("Suspeita")} ${createTh("Descrição / Assunto", "40%", "left")} ${createTh("Analista")} ${createTh("Grupo")}</tr></thead>
+                        <tbody>
+                            ${errTable.length ? errTable.map(t => `<tr class="ticket-row" data-tk="${t.tk}">
+                                <td style="font-weight:bold; color:var(--primary-dark);">${t.tk}<button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-2 bg-blue-50 border border-blue-200/50 p-1 rounded text-[9px] uppercase shadow-sm">Saiba Mais</button></td>
+                                <td style="color:var(--danger); font-weight:bold; font-size:11px;">${t.tipo}</td>
+                                <td style="text-align:left;">${t.desc}</td>
+                                <td>${t.asg}</td>
+                                <td>${t.gp}</td>
+                            </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;">Nenhum erro de classificação detectado.</td></tr>`}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        }
+
+        function mergeDataForConsolidado(dI, dRS, dRU) {
+            if(!dI && !dRS && !dRU) return null;
+            let m = {
+                mttr: 0, pct: 0, inSla: 0, outSla: 0, backlog: 0, inSlaTot: 0, outSlaTot: 0,
+                trendM: {}, trendD: {}, topAnalistas: [], agingBuckets: {}, crits: [], noPrb: [],
+                tks_inSla: [], tks_outSla: []
+            };
+            let countRes = 0, totMttrRaw = 0, inSlaMes = 0, resMes = 0;
+            
+            [dI, dRS, dRU].forEach(d => {
+                if(!d) return;
+                m.inSla += d.inSla; m.outSla += d.outSla; m.backlog += d.backlog;
+                m.inSlaTot += d.inSlaTot; m.outSlaTot += d.outSlaTot;
+                m.crits = m.crits.concat(d.crits);
+                m.tks_inSla = m.tks_inSla.concat(d.tks_inSla);
+                m.tks_outSla = m.tks_outSla.concat(d.tks_outSla);
+                
+                // Recalcular médios baseados nos somatórios
+                resMes += (d.inSla + d.outSla);
+                inSlaMes += d.inSla;
+                totMttrRaw += (parseFloat(d.mttr.replace(',','.')) * (d.inSla + d.outSla));
+                countRes += (d.inSla + d.outSla);
+
+                // Merge trends
+                const mergeTrend = (src, dest) => {
+                    Object.keys(src).forEach(k => {
+                        if(!dest[k]) dest[k] = { a: 0, r: 0, c: 0, b: 0, tks_a: [], tks_r: [], tks_c: [], tks_b: [], inSla: 0 };
+                        dest[k].a += src[k].a; dest[k].r += src[k].r; dest[k].c += src[k].c; dest[k].b += src[k].b;
+                        if(src[k].inSla) dest[k].inSla += src[k].inSla;
+                        dest[k].tks_a = dest[k].tks_a.concat(src[k].tks_a);
+                        dest[k].tks_r = dest[k].tks_r.concat(src[k].tks_r);
+                        dest[k].tks_c = dest[k].tks_c.concat(src[k].tks_c);
+                        dest[k].tks_b = dest[k].tks_b.concat(src[k].tks_b);
+                    });
+                };
+                mergeTrend(d.trendM, m.trendM);
+                mergeTrend(d.trendD, m.trendD);
+
+                // Merge Aging Buckets
+                Object.keys(d.agingBuckets).forEach(k => {
+                    if(!m.agingBuckets[k]) m.agingBuckets[k] = { count: 0, color: d.agingBuckets[k].color, tks: [] };
+                    m.agingBuckets[k].count += d.agingBuckets[k].count;
+                    m.agingBuckets[k].tks = m.agingBuckets[k].tks.concat(d.agingBuckets[k].tks);
+                });
+
+                // Top Analistas (Merge e sort posterior)
+                d.topAnalistas.forEach(a => {
+                    let ext = m.topAnalistas.find(x => x.nome === a.nome);
+                    if(ext) {
+                        ext.ab += a.ab; ext.res += a.res; ext.tot += a.tot;
+                        ext.tks_ab = ext.tks_ab.concat(a.tks_ab); ext.tks_res = ext.tks_res.concat(a.tks_res);
+                    } else {
+                        m.topAnalistas.push(JSON.parse(JSON.stringify(a)));
+                    }
+                });
+            });
+
+            m.mttr = countRes ? (totMttrRaw / countRes).toFixed(1).replace('.', ',') : "0,0";
+            m.pct = resMes ? Math.round((inSlaMes / resMes) * 100) : 0;
+            m.topAnalistas = m.topAnalistas.sort((a,b) => b.tot - a.tot).slice(0, 10);
+            return m;
+        }
+
+        // ==========================================
         // 7. GRÁFICOS CHART.JS E ORQUESTRADOR
         // ==========================================
         function drawChartsAll(id, d, lblRes) {
@@ -2039,7 +2140,7 @@
                             xAxes: [{ stacked: true, gridLines: { display: false } }], 
                             yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }] 
                         },
-                        // DRILL-DOWN INTEGRATION
+                        // DRILL-DOWN UNIVERSAL
                         onClick: function(evt, elements) {
                             if(elements.length > 0) {
                                 let idx = elements[0]._index;
@@ -2118,7 +2219,7 @@
         }
 
         function processDashboard() {
-            if (!RawData.incs.length && !RawData.reqs.length) return alert("Erro: Carregue as planilhas do ServiceNow na aba lateral primeiro.");
+            if (!RawData.incs.length && !RawData.reqs.length && !RawData.rca.length && !RawData.ptask.length) return alert("Erro: Carregue as planilhas do ServiceNow na aba lateral primeiro.");
 
             let now = new Date(); 
             document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extração: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
@@ -2147,7 +2248,7 @@
                     if (el) el.innerHTML = "";
                 });
                 
-                let dI = null, dRS = null, dRU = null;
+                let dI = null, dRS = null, dRU = null, dPRB = null;
 
                 if (RawData.incs.length) {
                     dI = calculateSection(RawData.incs, slaI, "INC", dateMachine);
@@ -2164,12 +2265,23 @@
                     if (rU.length) { dRU = calculateSection(rU, slaR, "REQ", dateMachine); document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "SESSÃO UAMs (ACESSOS)", C.PRI_D, dRU, "REQ"); }
                 }
 
-                document.getElementById('tab-open').innerHTML = generateOpenTicketsHTML(RawData.incs, rS, rU, slaI, slaR, dateMachine);
+                // Aba Consolidado
+                let dCons = mergeDataForConsolidado(dI, dRS, dRU);
+                if(dCons) document.getElementById('tab-cons').innerHTML = generateSectionHTML('cons', "VISÃO CONSOLIDADA (INCs + REQs + UAMs)", C.ACC_D, dCons, "CONS");
 
-                if (RawData.rca.length || RawData.ptask.length) {
-                    // Implementação minimalista mantida pelo limite. Funcional no original.
-                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Aba PRB renderizada com sucesso.</h3></div>`;
+                // Aba PRB / PTASK
+                let prbData = [...RawData.rca, ...RawData.ptask];
+                if (prbData.length) {
+                    dPRB = calculateSection(prbData, slaP, "PTASK", dateMachine);
+                    document.getElementById('tab-prb').innerHTML = generateSectionHTML('prb', "SESSÃO PROBLEMAS E TASKS (PRB / PTASK)", C.ORG, dPRB, "PTASK");
+                } else {
+                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-500 font-bold"><i class="fas fa-exclamation-circle text-3xl block mb-2"></i>Nenhuma planilha de RCA ou PTASK carregada.</h3></div>`;
                 }
+
+                // Aba Erros de Classificação
+                document.getElementById('tab-class').innerHTML = generateClassErrorsHTML(dateMachine);
+
+                document.getElementById('tab-open').innerHTML = generateOpenTicketsHTML(RawData.incs, rS, rU, slaI, slaR, dateMachine);
 
                 document.getElementById('loader').classList.add('hidden-st');
                 document.getElementById('report-content').classList.remove('hidden-st');
@@ -2179,6 +2291,8 @@
                     if (dI) drawChartsAll('inc', dI, 'Resolvidos');
                     if (dRS) drawChartsAll('req', dRS, 'Encerrados');
                     if (dRU) drawChartsAll('uam', dRU, 'Encerrados');
+                    if (dCons) drawChartsAll('cons', dCons, 'Resolvidos Totais');
+                    if (dPRB) drawChartsAll('prb', dPRB, 'Encerrados');
 
                     populateTodoAnalystDropdown();
                     renderTodos();
