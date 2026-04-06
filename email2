@@ -22,108 +22,128 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid var(--background); }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
         
         .sidebar { width: var(--sidebar-width); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 500; height: 100vh; flex-shrink: 0; box-shadow: 4px 0 15px rgba(0, 0, 0, 0.03); }
         .sidebar-header { padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; background: #fff; }
         .sidebar-content { padding: 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
-        
         @media (min-width: 1024px) { .sidebar.collapsed { margin-left: calc(var(--sidebar-width) * -1); } }
-        @media (max-width: 1023px) { 
-            .sidebar { position: fixed; left: calc(var(--sidebar-width) * -1); } 
-            .sidebar.open { left: 0; } 
-            .overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 400; backdrop-filter: blur(4px); opacity: 0; transition: 0.3s; } 
-            .overlay.open { display: block; opacity: 1; } 
-        }
+        @media (max-width: 1023px) { .sidebar { position: fixed; left: calc(var(--sidebar-width) * -1); } .sidebar.open { left: 0; } .overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 400; backdrop-filter: blur(4px); opacity: 0; transition: 0.3s; } .overlay.open { display: block; opacity: 1; } }
         
         .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; width: 100%; background: var(--background); min-width: 0; }
         .top-header { background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); height: 70px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); position: sticky; top: 0; z-index: 200; min-width: 0; }
-        
         .btn-toggle { background: #fff; border: 1px solid #cbd5e1; color: var(--primary-dark); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
         .btn-toggle:hover { background: var(--gray-light); border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
         
-        .search-wrapper { position: relative; width: 100%; max-width: 300px; display: none; }
+        .search-wrapper { position: relative; width: 100%; max-width: 400px; display: none; }
         .search-wrapper.visible { display: block; }
-        .search-input { width: 100%; padding: 10px 16px 10px 38px; border-radius: 99px; border: 1px solid #cbd5e1; font-size: 12px; font-family: 'Inter'; outline: none; transition: 0.3s; background: #f8fafc; }
+        .search-input { width: 100%; padding: 10px 16px 10px 42px; border-radius: 99px; border: 1px solid #cbd5e1; font-size: 13px; font-family: 'Inter'; outline: none; transition: 0.3s; background: #f8fafc; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02); }
         .search-input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
-        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px; }
+        .search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 14px; }
         
         .tabs-sticky { background-color: #fff; border-bottom: 2px solid #e2e8f0; padding: 0 2rem; position: sticky; top: 0; z-index: 150; width: 100%; }
         .tabs-nav { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; }
-        .tab-btn { padding: 12px 20px; background: transparent; border: none; border-bottom: 3px solid transparent; color: #64748b; font-weight: 700; font-size: 13px; text-transform: uppercase; cursor: pointer; transition: 0.3s; border-radius: 6px 6px 0 0; }
+        .tab-btn { padding: 12px 20px; background: transparent; border: none; border-bottom: 3px solid transparent; color: #64748b; font-weight: 700; font-size: 13px; text-transform: uppercase; cursor: pointer; transition: 0.3s; letter-spacing: 0.5px; border-radius: 6px 6px 0 0; }
+        .tab-btn:hover { color: var(--primary-dark); background: #f8fafc; }
         .tab-btn.active { color: var(--primary-dark); border-bottom-color: var(--primary-dark); background: #eff6ff; }
         
         .content-area { padding: 2rem; overflow-y: auto; overflow-x: hidden; flex: 1; scroll-behavior: smooth; min-width: 0; }
-        .content-container { max-width: 1600px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; padding-bottom: 50px;}
+        .content-container { max-width: 1500px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; padding-bottom: 50px;}
         
         .dropzone-discreet { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; transition: 0.3s; background: #f8fafc; }
         .dropzone-discreet:hover { border-color: var(--primary); background: #eff6ff; transform: translateY(-2px); }
         .file-badge { display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 6px 10px; border-radius: 6px; background: #ecfdf5; color: #166534; border: 1px solid #bbf7d0; font-weight: 600; margin-bottom: 6px; }
-        .btn-clear { background: transparent; border: none; color: var(--danger); font-size: 12px; cursor: pointer; transition: 0.2s; font-weight: bold; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; width: 100%; justify-content: center; border: 1px solid var(--danger); margin-top:10px;}
+        .btn-clear { background: transparent; border: none; color: var(--danger); font-size: 12px; cursor: pointer; transition: 0.2s; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 4px 8px; border-radius: 4px; width: 100%; border: 1px solid var(--danger); margin-top: 10px; }
         .btn-clear:hover { background: #fee2e2; }
-        
         .form-label { display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
         .form-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-family: 'Inter'; outline: none; transition: 0.2s; background: #fff; }
         .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
         
         .time-machine { background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); padding: 1.2rem; border-radius: 10px; color: #fff; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); position: relative; overflow: hidden; transition: 0.3s; }
         .time-machine input { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; color-scheme: dark; }
-        
         .btn-process { background: var(--primary-dark); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; width: 100%; box-shadow: 0 4px 6px rgba(0, 24, 113, 0.2); letter-spacing: 1px; font-size: 13px; }
         .btn-process:hover { background: #001255; transform: translateY(-2px); box-shadow: 0 10px 15px rgba(0, 24, 113, 0.3); }
 
         .report-section-title { font-size: 18px; font-weight: 800; color: #FFFFFF; padding: 15px; border-radius: 8px; text-transform: uppercase; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); display: flex; align-items: center; gap: 10px;}
-        .report-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; height: 100%; transition: 0.3s; min-width: 0; margin-bottom: 25px; }
+        .report-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); display: flex; flex-direction: column; height: 100%; transition: 0.3s; min-width: 0; margin-bottom: 25px; }
+        .report-card-title { color: #475569; font-size: 13px; font-weight: 800; text-transform: uppercase; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; margin-bottom: 20px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); gap: 25px; margin-bottom: 25px; min-width: 0; }
+        .chart-wrapper, .chart-full-width { position: relative; width: 100%; height: 350px; min-width: 0; }
+
+        /* TABELAS - ORDENAÇÃO E FILTRO AVANÇADO */
         .st-dataframe-container { overflow-x: auto; max-height: 500px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
-        
         .st-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; font-family: 'Inter', sans-serif; }
-        .st-table th { background-color: var(--primary-dark); color: #fff; padding: 10px 8px; text-align: center; position: sticky; top: 0; z-index: 10; font-weight: 700; text-transform: uppercase; cursor: pointer; user-select: none; border-right: 1px solid rgba(255,255,255,0.1); }
+        .st-table th { background-color: var(--primary-dark); color: #fff; padding: 10px 6px; border-right: 1px solid rgba(255, 255, 255, 0.1); text-align: center; position: sticky; top: 0; z-index: 10; font-weight: 600; text-transform: uppercase; font-size: 10px; cursor: pointer; user-select: none; transition: 0.2s;}
         .st-table th:hover { background-color: var(--primary); }
-        .st-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center; vertical-align: middle; }
+        .st-table td { padding: 8px 4px; border-bottom: 1px solid #e2e8f0; text-align: center; vertical-align: middle; word-wrap: break-word;}
         .st-table tbody tr:nth-child(even) { background-color: var(--gray-light); }
-        
-        .history-text.striked { text-decoration: line-through; opacity: 0.5; color: var(--gray); }
-        .history-entry { cursor: pointer; padding: 5px; border-radius: 4px; transition: 0.2s; }
-        .history-entry:hover { background: rgba(0,0,0,0.03); }
-        
-        .todo-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02); }
-        .todo-badge { background: #eff6ff; color: var(--primary-dark); border: 1px solid #bfdbfe; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
-        
-        #custom-confirm-modal { z-index: 10000; }
-        .modal-btn { padding: 8px 20px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; }
-        .modal-btn-confirm { background: var(--danger); color: white; }
-        .modal-btn-cancel { background: var(--gray-light); color: var(--gray-dark); border: 1px solid #cbd5e1; }
-        
-        .chart-wrapper, .chart-full-width { height: 350px; position: relative; }
-        .hidden-st { display: none !important; }
-        
-        .custom-filter-dropdown { position: fixed; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 10500; min-width: 200px; max-height: 250px; display: flex; flex-direction: column; overflow: hidden; font-family: 'Inter', sans-serif;}
+        .st-table tbody tr:hover { background-color: #eff6ff; }
+        .st-table tfoot th { position: sticky; bottom: 0; background-color: var(--gray-light); border-top: 2px solid var(--primary-dark); color: var(--primary-dark); padding: 8px 4px; font-weight: 800; font-size: 11px;}
+
+        /* FILTRO AVANÇADO DROPDOWN */
+        .custom-filter-dropdown { position: fixed; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 10500; min-width: 200px; max-height: 250px; display: flex; flex-direction: column; font-family: 'Inter', sans-serif; }
         .filter-items { flex: 1; overflow-y: auto; padding: 10px; font-size: 11px; color: #334155; }
-        .filter-items label { display: flex; align-items: center; gap: 8px; padding: 4px; cursor: pointer; border-radius: 4px; }
+        .filter-items label { display: flex; align-items: flex-start; gap: 8px; padding: 4px; cursor: pointer; border-radius: 4px; }
         .filter-items label:hover { background: #f1f5f9; }
-        .filter-items input[type="checkbox"] { accent-color: var(--primary-dark); }
-        .filter-actions { padding: 10px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; gap: 5px; }
+        .filter-items input[type="checkbox"] { accent-color: var(--primary-dark); margin-top: 2px; }
+
+        .text-expandable { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; color: #475569; line-height: 1.4; text-align: left;}
+        .text-expandable.expanded { -webkit-line-clamp: unset; display: block; }
+        .btn-expand { background: transparent; border: none; color: var(--accent); font-size: 10px; font-weight: 800; cursor: pointer; margin-top: 4px; padding: 0; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; }
+
+        details.saas-accordion { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 8px; background: #fff; overflow: hidden; }
+        details.saas-accordion summary { padding: 12px 16px; font-weight: 600; color: var(--primary-dark); cursor: pointer; background: #f8fafc; outline: none; list-style: none; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+        details.saas-accordion summary::-webkit-details-marker { display: none; }
+        details.saas-accordion summary::after { content: '\f078'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: #94a3b8; transition: transform 0.3s; }
+        details.saas-accordion[open] summary::after { transform: rotate(180deg); }
+        details.saas-accordion .acc-content { padding: 16px; font-size: 12px; color: #334155; line-height: 1.6; border-top: 1px solid #e2e8f0; white-space: pre-wrap; background: #fff; }
+
+        /* TOOLTIP AVANÇADO */
+        #global-tooltip { position: fixed; top: 0; left: 0; opacity: 0; visibility: hidden; z-index: 9999; pointer-events: none; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px; width: max-content; max-width: 350px; color: #f8fafc; font-family: 'Inter', sans-serif; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); transition: opacity 0.2s ease, visibility 0.2s ease; }
+        #global-tooltip .tt-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 8px; margin-bottom: 8px; }
+        #global-tooltip .tt-title { font-weight: 800; font-size: 16px; color: #38bdf8; }
+        #global-tooltip .tt-badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; background: rgba(255, 255, 255, 0.1); color: #fff; }
+        #global-tooltip .tt-meta { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; }
+
+        /* SISTEMA TODO E MODAIS */
+        .todo-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; transition: 0.3s; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02); }
+        .todo-item:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+        .todo-badge { background: #eff6ff; color: var(--primary-dark); border: 1px solid #bfdbfe; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+        .todo-history { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; padding-right: 4px; }
+        .history-entry { cursor: pointer; padding: 4px; border-radius: 4px; transition: 0.2s; border: 1px solid transparent; }
+        .history-entry:hover { background: #f8fafc; border-color: #e2e8f0; }
+        .history-text { font-size: 12px; color: var(--gray-dark); word-wrap: break-word; white-space: pre-wrap; }
+        .history-text.striked { text-decoration: line-through; opacity: 0.4; color: var(--gray); }
+        
+        .modal-btn { padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; outline: none; }
+        .modal-btn-confirm { background: var(--danger); color: white; border: 1px solid var(--danger); }
+        .modal-btn-cancel { background: #fff; color: #475569; border: 1px solid #cbd5e1; }
+        
+        .hidden-st { display: none !important; }
 
         @media (max-width: 1024px) {
             body { font-size: 14px; }
             .content-area { padding: 1rem; overflow-x: hidden; }
             .top-header { padding: 1rem; flex-wrap: wrap; height: auto; min-height: 70px; gap: 10px; justify-content: flex-start; }
             .search-wrapper { max-width: 100%; flex: 1 1 100%; display: block; margin-top: 10px; order: 3; }
+            .report-section-title { font-size: 13px !important; text-align: center; justify-content: center; flex-wrap: wrap; }
+            div[style*="font-size:38px"], div[style*="font-size:54px"], div[style*="font-size:64px"] { font-size: 32px !important; }
             .st-dataframe-container { overflow-x: hidden !important; border: none; box-shadow: none; background: transparent; max-height: none; }
-            .st-table { display: block; }
+            .st-table { display: block; width: 100%; }
             .st-table thead { display: flex; padding: 10px; background: #f8fafc; overflow-x: auto; white-space: nowrap; border-bottom: 2px solid var(--primary-dark); margin-bottom: 15px; border-radius: 8px;}
             .st-table thead tr { display: flex; gap: 5px; width: max-content; }
-            .st-table th { position: static; flex: 0 0 auto; font-size: 10px; padding: 8px 12px !important; border-radius: 4px; border: 1px solid var(--primary-dark); background: var(--primary-dark); color: white; }
+            .st-table th { position: static; flex: 0 0 auto; font-size: 10px; padding: 8px 12px !important; border-radius: 4px; border: 1px solid var(--primary-dark); }
             .st-table tbody { display: block; width: 100%; }
             .st-table tbody tr { display: flex; flex-direction: column; margin-bottom: 15px; background: #fff !important; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
             .st-table td { display: flex; justify-content: space-between; text-align: right !important; padding: 12px 15px !important; border-bottom: 1px solid #f1f5f9; font-size: 12px; align-items: center; width: 100%; gap: 10px;}
             .st-table td::before { content: attr(data-label); font-weight: 800; color: #475569; font-size: 11px; text-transform: uppercase; text-align: left; max-width: 45%;}
-            .st-table td:last-child { border-bottom: none; }
             .st-table td[data-label="Descrição Completa"], .st-table td[data-label="Assunto / Info (Expansível)"] { flex-direction: column; align-items: flex-start; text-align: left !important; background: #f8fafc; }
-            .st-table td[data-label="Descrição Completa"]::before, .st-table td[data-label="Assunto / Info (Expansível)"]::before { margin-bottom: 8px; width: 100%; max-width: 100%; }
+            .st-table td[data-label="Descrição Completa"]::before, .st-table td[data-label="Assunto / Info (Expansível)"]::before { margin-bottom: 8px; width: 100%; }
             .st-table tfoot { display: none; }
+            .tabs-sticky { padding: 0 1rem; }
+            .tab-btn { flex: 1 1 calc(50% - 8px); text-align: center; font-size: 11px; padding: 10px 5px; }
+            .chart-wrapper, .chart-full-width { height: 300px; }
         }
     </style>
 </head>
@@ -134,7 +154,7 @@
     <div id="custom-confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade">
             <div class="text-center mb-6">
-                <div id="confirm-icon" class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"><i class="fas fa-exclamation-triangle"></i></div>
                 <h3 id="confirm-title" class="text-lg font-black text-slate-800 mb-2">Confirmar Ação?</h3>
                 <p id="confirm-msg" class="text-sm text-slate-500">Esta ação não poderá ser desfeita.</p>
             </div>
@@ -145,132 +165,165 @@
         </div>
     </div>
 
-    <div id="global-tooltip" style="padding: 10px;">
-        <div class="tt-header"><div class="tt-title" id="tt-tk">INC</div><div class="tt-badge" id="tt-st">STATUS</div></div>
-        <div class="tt-body"><div style="color: #94a3b8; font-size: 10px; font-weight: bold;">Assunto Registrado</div><div id="tt-desc" style="font-size: 12px; color: #fff;">...</div></div>
-        <div class="tt-meta mt-2 border-t border-slate-700 pt-2">
-            <div><span style="color:#94a3b8">Atribuído a:</span> <strong style="color:#fff" id="tt-as">...</strong></div>
-            <div><span style="color:#94a3b8">Abertura:</span> <strong style="color:#fff" id="tt-op">...</strong></div>
-            <div class="col-span-2 mt-1"><span style="color:#94a3b8">Ociosidade:</span> <strong id="tt-idle">...</strong></div>
+    <div id="global-tooltip">
+        <div class="tt-header">
+            <div class="tt-title" id="tt-tk">INC0000000</div>
+            <div class="tt-badge" id="tt-st">STATUS</div>
+        </div>
+        <div class="tt-body">
+            <div style="color: #94a3b8; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; font-weight: bold;">Assunto Registrado</div>
+            <div id="tt-desc" style="margin-bottom: 10px; font-size: 13px; color: #fff;">...</div>
+        </div>
+        <div class="tt-meta">
+            <div><span>Atribuído a:</span><strong id="tt-as">...</strong></div>
+            <div><span>Grupo Resolutor:</span><strong id="tt-gp">...</strong></div>
+            <div><span>Abertura:</span><strong id="tt-op">...</strong></div>
+            <div><span>Aging Atual:</span><strong id="tt-age" style="color: #f87171;">...</strong></div>
+            <div style="grid-column: span 2; margin-top: 4px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                <span style="font-size: 10px; text-transform: uppercase; color:#cbd5e1;">Ociosidade (Sem ação do analista)</span>
+                <strong id="tt-idle" style="display: block; font-size: 14px; margin-top: 2px;">...</strong>
+            </div>
         </div>
     </div>
 
     <aside id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-[#001871] text-white flex items-center justify-center font-bold text-lg"><i class="fas fa-chart-pie"></i></div>
-                <h2 class="text-lg font-bold text-[#001871] m-0">Elite Master</h2>
+                <div class="w-8 h-8 rounded-lg bg-[#001871] text-white flex items-center justify-center font-bold text-lg shadow-md"><i class="fas fa-chart-pie"></i></div>
+                <h2 class="text-lg font-bold text-[#001871]" style="margin:0;">Elite Master</h2>
             </div>
             <button class="btn-toggle lg:hidden" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
         </div>
+
         <div class="sidebar-content">
             <div class="time-machine">
-                <label class="text-[10px] font-bold mb-2 block text-white/70 uppercase">Data de Referência</label>
-                <input type="date" id="ref-date" class="form-input text-slate-800" onchange="processDashboard()">
+                <label style="font-size: 12px; font-weight: bold; margin-bottom: 8px; display: block; color:#94a3b8; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-history mr-1"></i> Data de Referência</label>
+                <input type="date" id="ref-date" class="form-input" title="Recalcula todo o painel como se hoje fosse este dia.">
+                <div style="font-size: 10px; color: #cbd5e1; margin-top: 8px; line-height: 1.4;">Selecione um dia do passado para auditar o backlog retroativamente.</div>
             </div>
+
             <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                <label class="form-label">Fontes de Dados</label>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <label class="form-label" style="margin:0;">Fontes de Dados</label>
+                    <button id="btn-clear-files" class="btn-clear hidden-st" onclick="clearFiles()"><i class="fas fa-trash-alt"></i> Limpar</button>
+                </div>
                 <div id="dropzone" class="dropzone-discreet border-2 border-dashed p-4 text-center cursor-pointer hover:bg-blue-50 transition" onclick="document.getElementById('file-upload').click()">
-                    <i class="fas fa-cloud-upload-alt text-2xl text-blue-500 mb-2"></i>
-                    <div class="text-xs font-bold text-slate-600">Arraste as planilhas</div>
+                    <i class="fas fa-cloud-upload-alt text-3xl text-blue-500 mb-2"></i>
+                    <div style="font-size: 13px; font-weight: bold; color: #334155;">Arraste suas planilhas</div>
+                    <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">incident, sc_task, rca, ptask</div>
                 </div>
                 <input type="file" id="file-upload" multiple accept=".xlsx, .xls" class="hidden-st" onchange="handleFiles(event.target.files)">
-                <div id="file-status" class="mt-2 text-[10px]"></div>
-                <button id="btn-clear-files" class="btn-clear mt-2 hidden-st" onclick="clearFiles()">Limpar Arquivos Carregados</button>
+                <div id="file-status" class="mt-3 text-[10px]"></div>
             </div>
+
             <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                <label class="form-label"><i class="fas fa-database text-blue-600 mr-1"></i> Memória Permanente</label>
-                <div class="text-[9px] text-slate-500 mb-3 leading-tight">Faça backup dos seus TODOs para não perdê-los ao limpar o cache do navegador.</div>
+                <label class="form-label"><i class="fas fa-database text-blue-600 mr-1"></i> Backup Memória (JSON)</label>
+                <div class="text-[9px] text-slate-500 mb-3 leading-tight">Exporte seus TODOs para não perdê-los se limpar o cache.</div>
                 <div class="flex flex-col gap-2">
                     <button onclick="exportBackupJSON()" class="w-full bg-slate-800 text-white text-[10px] font-bold py-2 rounded shadow hover:bg-slate-700 transition"><i class="fas fa-download mr-1"></i> Exportar JSON</button>
                     <button onclick="document.getElementById('import-json').click()" class="w-full bg-white text-slate-700 border border-slate-300 text-[10px] font-bold py-2 rounded shadow-sm hover:bg-slate-50 transition"><i class="fas fa-upload mr-1"></i> Importar JSON</button>
                     <input type="file" id="import-json" accept=".json" class="hidden-st" onchange="importBackupJSON(event)">
                 </div>
             </div>
+
             <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                <label class="form-label mb-3">SLA Alvo (Dias)</label>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><span class="text-[9px] font-bold text-slate-400">INC</span><input type="number" id="sla-incs" value="7" class="form-input"></div>
-                    <div><span class="text-[9px] font-bold text-slate-400">REQ</span><input type="number" id="sla-reqs" value="10" class="form-input"></div>
-                    <div class="col-span-2"><span class="text-[9px] font-bold text-slate-400">PTASK (Problemas)</span><input type="number" id="sla-ptask" value="10" class="form-input"></div>
+                <label class="form-label mb-3">Configuração de SLA (Dias)</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div><span style="font-size:11px; font-weight:600; color:#64748b;">INC / Geral</span><input type="number" id="sla-incs" value="7" class="form-input mt-1"></div>
+                    <div><span style="font-size:11px; font-weight:600; color:#64748b;">REQ / UAM</span><input type="number" id="sla-reqs" value="10" class="form-input mt-1"></div>
+                    <div style="grid-column: span 2;"><span style="font-size:11px; font-weight:600; color:#64748b;">PTASK (Problemas)</span><input type="number" id="sla-ptask" value="10" class="form-input mt-1"></div>
                 </div>
             </div>
-            <button class="btn-process mt-auto" onclick="processDashboard()"><i class="fas fa-bolt mr-2"></i> Gerar Relatório</button>
+
+            <div style="margin-top: auto;">
+                <button class="btn-process" onclick="processDashboard()"><i class="fas fa-bolt mr-2"></i> Gerar Relatório</button>
+            </div>
         </div>
     </aside>
 
     <main class="main-wrapper">
         <header class="top-header">
-            <div class="flex items-center gap-4">
+            <div style="display: flex; align-items: center; gap: 20px;">
                 <button class="btn-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
                 <div class="hidden sm:block">
-                    <h1 class="m-0 text-lg font-black text-[var(--primary-dark)] uppercase">Painel ITSM V6.6</h1>
-                    <div id="extraction-time" class="text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded shadow-sm inline-block mt-1"><i class="fas fa-clock mr-1"></i> Aguardando extração...</div>
+                    <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: var(--primary-dark); text-transform: uppercase; letter-spacing: 0.5px;">Painel Executivo ITSM</h1>
+                    <span id="extraction-time" class="text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded shadow-sm inline-block mt-1"><i class="fas fa-clock mr-1"></i> Aguardando extração...</span>
                 </div>
             </div>
             <div class="flex items-center gap-3 w-full justify-end max-w-[450px]">
-                <div class="search-wrapper visible w-full">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="globalSearch" class="search-input" placeholder="Pesquisa Global de Tickets..." onkeyup="performGlobalSearch(event)">
+                <div class="search-wrapper visible w-full" id="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="globalSearch" class="search-input" placeholder="Pesquisar ticket, assunto, status, analista..." onkeyup="performGlobalSearch(event)">
                 </div>
-                <button onclick="takeScreenshot()" class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-blue-100 hover:text-blue-600 transition shadow-sm w-10 h-10 flex items-center justify-center" title="Tirar Foto da Tela (Screenshot)"><i class="fas fa-camera text-sm"></i></button>
+                <button onclick="takeScreenshot()" class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-blue-100 hover:text-blue-600 transition shadow-sm w-10 h-10 flex items-center justify-center" title="Tirar Foto da Tela (Baixar PNG)"><i class="fas fa-camera text-sm"></i></button>
             </div>
         </header>
 
         <div class="tabs-sticky hidden-st" id="tabs-container">
             <div class="tabs-nav">
-                <button class="tab-btn active" onclick="switchTab('tab-inc', this)">INCs</button>
-                <button class="tab-btn" onclick="switchTab('tab-req', this)">REQs</button>
-                <button class="tab-btn" onclick="switchTab('tab-uam', this)">UAMs</button>
-                <button class="tab-btn" onclick="switchTab('tab-cons', this)">Consolidado</button>
-                <button class="tab-btn" onclick="switchTab('tab-prb', this)">PRB/PTASK</button>
-                <button class="tab-btn" onclick="switchTab('tab-class', this)">Erros Classificação</button>
-                <button class="tab-btn" onclick="switchTab('tab-todo', this)" style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i class="fas fa-tasks mr-1"></i> TODOs</button>
+                <button class="tab-btn active" onclick="switchTab('tab-inc', this)"><i class="fas fa-fire-extinguisher mr-1"></i> INCs</button>
+                <button class="tab-btn" onclick="switchTab('tab-req', this)"><i class="fas fa-tools mr-1"></i> REQs</button>
+                <button class="tab-btn" onclick="switchTab('tab-uam', this)"><i class="fas fa-key mr-1"></i> UAMs</button>
+                <button class="tab-btn" onclick="switchTab('tab-cons', this)"><i class="fas fa-globe mr-1"></i> Consolidado</button>
+                <button class="tab-btn" onclick="switchTab('tab-prb', this)"><i class="fas fa-bullseye mr-1"></i> PRB / PTASK</button>
+                <button class="tab-btn" onclick="switchTab('tab-class', this)"><i class="fas fa-exchange-alt mr-1"></i> Erros Classificação</button>
+                <button class="tab-btn" onclick="switchTab('tab-todo', this)" style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i class="fas fa-tasks mr-1"></i> TODOs (Tarefas)</button>
             </div>
         </div>
 
         <div class="content-area" id="capture-area">
             <div class="content-container">
-                <div id="init-alert" class="bg-blue-50 p-10 rounded-xl border border-blue-100 text-center">
-                    <i class="fas fa-file-import text-5xl text-blue-300 mb-4"></i>
-                    <h2 class="text-xl font-black text-blue-900">Aguardando Importação de Dados</h2>
-                    <p class="text-blue-700 text-sm mt-2">Importe os arquivos do ServiceNow (INC, REQ, PTASK) na barra lateral.</p>
+
+                <div id="init-alert" style="background-color: var(--primary-light); color: var(--primary-dark); padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 15px;">
+                    <i class="fas fa-file-import text-3xl text-blue-600"></i>
+                    <div>
+                        <div class="font-bold text-blue-900 mb-1">Aguardando Importação</div>
+                        <div class="text-blue-800 text-sm font-normal">Utilize o menu lateral esquerdo para carregar os relatórios extraídos do ServiceNow.</div>
+                    </div>
                 </div>
 
-                <div id="loader" class="hidden-st text-center p-20">
-                    <i class="fas fa-circle-notch fa-spin text-5xl text-blue-600"></i>
-                    <p class="mt-4 font-bold text-slate-600">Processando Cruzamentos...</p>
+                <div id="loader" class="hidden-st" style="text-align: center; padding: 80px 20px; color: var(--primary-dark);">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 48px; margin-bottom: 20px; color: var(--accent);"></i>
+                    <div style="font-size: 18px; font-weight: 800;">Processando Métricas Históricas...</div>
+                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Cruzando dados e renderizando visualizações via Chart.js</div>
                 </div>
 
                 <div id="report-content" class="hidden-st">
-                    <div id="tab-inc" class="tab-pane"></div>
-                    <div id="tab-req" class="tab-pane hidden-st"></div>
-                    <div id="tab-uam" class="tab-pane hidden-st"></div>
-                    <div id="tab-cons" class="tab-pane hidden-st"></div>
-                    <div id="tab-prb" class="tab-pane hidden-st"></div>
-                    <div id="tab-class" class="tab-pane hidden-st"></div>
-                    <div id="tab-search" class="tab-pane hidden-st"></div>
-                    
-                    <div id="tab-todo" class="tab-pane hidden-st">
-                        <div class="report-section-title bg-slate-800"><i class="fas fa-clipboard-check mr-2"></i> Gerenciador de Tarefas Global</div>
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div class="lg:col-span-1">
-                                <div class="report-card">
-                                    <div class="report-card-title">Criar Nova Tarefa</div>
-                                    <div class="flex flex-col gap-3">
-                                        <select id="todo-analyst" class="form-input"></select>
-                                        <select id="todo-tickets" class="form-input" multiple style="height: 100px;"></select>
-                                        <div class="text-[9px] text-slate-500 leading-tight">Segure CTRL para selecionar múltiplos chamados.</div>
-                                        <textarea id="todo-desc" class="form-input" rows="3" placeholder="Descrição da tarefa..."></textarea>
-                                        <button class="btn-process" onclick="addTodo()">Adicionar Tarefa</button>
+                    <div id="tab-inc" class="animate-fade tab-pane"></div>
+                    <div id="tab-req" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-uam" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-cons" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-prb" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-class" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-search" class="animate-fade hidden-st tab-pane"></div>
+
+                    <div id="tab-todo" class="animate-fade hidden-st tab-pane">
+                        <div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-clipboard-check mr-2"></i> Gerenciador de Tarefas e Histórico</div>
+
+                        <div class="grid-2" style="grid-template-columns: 1fr 2fr;">
+                            <div class="report-card">
+                                <div class="report-card-title"><i class="fas fa-plus"></i> Nova Tarefa Inicial</div>
+                                <div style="display:flex; flex-direction:column; gap:15px;">
+                                    <div>
+                                        <label class="form-label">Analista Responsável</label>
+                                        <select id="todo-analyst" class="form-input" onchange="updateTicketsDropdown()"><option value="">Selecione um analista...</option></select>
                                     </div>
+                                    <div>
+                                        <label class="form-label">Vincular Chamados Abertos</label>
+                                        <select id="todo-tickets" class="form-input" multiple style="height: 100px;"><option value="" disabled>Selecione um analista primeiro...</option></select>
+                                        <div class="text-[10px] text-slate-500 mt-1">Segure CTRL para selecionar múltiplos chamados.</div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Descrição / Primeira Ação</label>
+                                        <textarea id="todo-desc" class="form-input" rows="3" placeholder="Ex: Analista notificado via Teams..."></textarea>
+                                    </div>
+                                    <button class="btn-process" style="background: var(--primary-dark);" onclick="addTodo()">Criar Tarefa</button>
                                 </div>
                             </div>
-                            <div class="lg:col-span-2">
-                                <div class="report-card">
-                                    <div class="report-card-title">Tarefas Ativas (<span id="todo-count">0</span>)</div>
-                                    <div id="todo-list" class="max-h-[600px] overflow-y-auto pr-2"></div>
-                                </div>
+
+                            <div class="report-card">
+                                <div class="report-card-title"><i class="fas fa-list"></i> Suas Tarefas Ativas (<span id="todo-count">0</span>)</div>
+                                <div id="todo-list" style="overflow-y:auto; max-height:500px; padding-right:10px;"></div>
                             </div>
                         </div>
                     </div>
@@ -278,41 +331,46 @@
             </div>
         </div>
 
-        <div id="ticket-modal-backdrop" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[9999] hidden-st flex items-center justify-center p-4">
-            <div id="ticket-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col transform transition-all">
-                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50 rounded-t-xl">
+        <div id="ticket-modal-backdrop" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[9999] hidden-st flex items-center justify-center p-4 transition-opacity opacity-0">
+            <div id="ticket-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col transform transition-all scale-95 overflow-hidden">
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
                     <div class="flex items-center gap-3">
-                        <h3 id="modal-tk" class="text-xl font-black text-slate-800">...</h3>
-                        <span id="modal-state" class="text-[10px] uppercase font-bold text-white px-2 py-1 rounded">...</span>
+                        <div class="w-10 h-10 rounded-lg bg-[var(--primary-dark)] text-white flex items-center justify-center font-bold text-xl shadow-sm"><i class="fas fa-ticket-alt"></i></div>
+                        <div>
+                            <h3 id="modal-tk" class="text-xl font-black text-[var(--primary-dark)] m-0 leading-tight">INC0000000</h3>
+                            <span id="modal-state" class="text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded mt-1 inline-block shadow-sm">STATUS</span>
+                        </div>
                     </div>
-                    <button onclick="closeTicketDetails()" class="text-slate-400 hover:text-red-500 text-2xl"><i class="fas fa-times"></i></button>
+                    <button onclick="closeTicketDetails()" class="text-slate-400 hover:text-red-500 text-2xl outline-none"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="flex-1 overflow-hidden flex flex-col lg:flex-row">
-                    <div class="w-full lg:w-1/3 border-r overflow-y-auto p-6 bg-slate-50">
-                        <div class="mb-6 bg-white p-3 border rounded shadow-sm">
-                            <h4 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2">Informações</h4>
+                    <div class="w-full lg:w-1/3 border-r border-slate-200 overflow-y-auto p-6 bg-slate-50">
+                        <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                            <h4 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2"><i class="fas fa-info-circle mr-1"></i> Informações</h4>
                             <div class="space-y-2">
-                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Solicitante</label><div id="modal-req" class="text-sm font-bold text-slate-700">...</div></div>
-                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Analista</label><div id="modal-asg" class="text-sm font-bold text-blue-700">...</div></div>
-                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Grupo</label><div id="modal-gp" class="text-xs font-bold">...</div></div>
-                                <div class="grid grid-cols-2 gap-2 border-t pt-2">
-                                    <div><label class="text-[10px] uppercase font-bold text-slate-400">Abertura</label><div id="modal-op" class="text-xs">...</div></div>
-                                    <div><label class="text-[10px] uppercase font-bold text-slate-400">Fechamento</label><div id="modal-cl" class="text-xs">...</div></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Solicitante</label><div id="modal-req" class="text-sm font-bold text-slate-700 bg-slate-50 px-2 py-1 rounded">...</div></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Analista</label><div id="modal-asg" class="text-sm font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded">...</div></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Grupo</label><div id="modal-gp" class="text-xs font-bold bg-slate-50 px-2 py-1 rounded">...</div></div>
+                                <div class="grid grid-cols-2 gap-2 border-t pt-2 mt-2">
+                                    <div><label class="text-[10px] uppercase font-bold text-slate-400">Abertura</label><div id="modal-op" class="text-xs font-semibold bg-slate-50 px-2 py-1 rounded">...</div></div>
+                                    <div><label class="text-[10px] uppercase font-bold text-slate-400">Fechamento</label><div id="modal-cl" class="text-xs font-semibold bg-slate-50 px-2 py-1 rounded">...</div></div>
                                 </div>
                             </div>
                         </div>
-                        <div class="bg-blue-50/50 p-4 rounded border border-blue-200">
-                            <h4 class="text-xs font-black text-blue-600 uppercase mb-3"><i class="fas fa-tasks mr-1"></i> Ações (TODO)</h4>
-                            <div id="modal-todo-container" class="space-y-2 max-h-[250px] overflow-y-auto"></div>
-                            <textarea id="modal-new-todo" class="w-full mt-3 p-2 text-xs rounded border border-blue-200" rows="2" placeholder="Nova ação para este ticket..."></textarea>
-                            <button onclick="addTodoFromModal()" class="w-full mt-2 bg-blue-600 text-white text-[10px] font-bold py-2 rounded uppercase shadow hover:bg-blue-700">Salvar Ação</button>
+                        <div class="bg-blue-50/40 p-4 rounded-lg border border-blue-200 shadow-sm">
+                            <h4 class="text-xs font-black text-blue-800 uppercase mb-3 border-b border-blue-100 pb-2"><i class="fas fa-tasks mr-1"></i> Ações Pendentes (TODOs)</h4>
+                            <div id="modal-todo-container" class="space-y-2 max-h-[200px] overflow-y-auto pr-2"></div>
+                            <div class="mt-4 pt-3 border-t border-blue-100">
+                                <textarea id="modal-new-todo" class="w-full p-2 text-xs rounded border border-blue-200 outline-none focus:border-blue-500" rows="2" placeholder="Nova ação para este ticket..."></textarea>
+                                <button onclick="addTodoFromModal()" class="w-full mt-2 bg-blue-600 text-white text-[10px] font-bold py-2 rounded uppercase shadow hover:bg-blue-700"><i class="fas fa-plus mr-1"></i> Salvar Ação</button>
+                            </div>
                         </div>
                     </div>
                     <div class="flex-1 overflow-y-auto p-6 bg-white relative">
                         <h4 id="modal-title" class="text-lg font-black text-slate-800 mb-2">...</h4>
-                        <p id="modal-desc" class="text-sm text-slate-500 mb-6 pb-4 border-b border-slate-100 italic bg-slate-50 p-3 rounded">...</p>
-                        <h4 class="text-xs font-black text-slate-400 uppercase mb-4 sticky top-0 bg-white py-2 z-10"><i class="fas fa-history mr-1"></i> Histórico de Interações (Thread)</h4>
-                        <div id="modal-timeline"></div>
+                        <p id="modal-desc" class="text-sm text-slate-600 mb-6 pb-4 border-b border-slate-100 italic bg-slate-50 p-3 rounded-lg">...</p>
+                        <h4 class="text-xs font-black text-slate-400 uppercase mb-4 sticky top-0 bg-white py-2 z-10"><i class="fas fa-comments mr-1"></i> Histórico de Interações (Thread)</h4>
+                        <div id="modal-timeline" class="pl-2"></div>
                     </div>
                 </div>
             </div>
@@ -321,12 +379,14 @@
 
     <script>
         // ==========================================
-        // 1. DATA & FILES
+        // 0. DATA & FILES & UTILS
         // ==========================================
         const RawData = { incs: [], reqs: [], rca: [], ptask: [] };
         let todoList = JSON.parse(localStorage.getItem('eliteMasterTodosV66')) || [];
         let GlobalOpenTickets = [];
         let activeTableFilters = {};
+
+        document.getElementById('ref-date').valueAsDate = new Date();
 
         function handleFiles(files) {
             Array.from(files).forEach(file => {
@@ -350,87 +410,54 @@
         function clearFiles() { location.reload(); }
         const getCol = (row, keys) => { for (let k of keys) if (row[k] !== undefined && row[k] !== "") return row[k]; return null; };
         const safeDate = v => { if (!v) return null; let d = new Date(v); return isNaN(d.getTime()) ? null : d; };
-
-        // ==========================================
-        // 2. UTILITÁRIOS E UI (SCREENSHOT, JSON, TAB)
-        // ==========================================
-        document.getElementById('ref-date').valueAsDate = new Date();
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('collapsed');
-            setTimeout(() => window.dispatchEvent(new Event('resize')), 350);
-        }
-        function toggleText(btn) {
-            const textDiv = btn.previousElementSibling;
-            if (textDiv.classList.contains('expanded')) { textDiv.classList.remove('expanded'); btn.innerHTML = 'Expandir'; } 
-            else { textDiv.classList.add('expanded'); btn.innerHTML = 'Recolher'; }
-        }
         function removeAccents(str) { return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
-
-        function switchTab(tabId, el) {
-            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-pane').forEach(c => { c.classList.add('hidden-st'); c.classList.remove('animate-fade'); });
-            el.classList.add('active');
-            const searchInput = document.getElementById("globalSearch");
-            if(searchInput && searchInput.value.trim() !== "") searchInput.value = "";
-            const targetTab = document.getElementById(tabId);
-            targetTab.classList.remove('hidden-st');
-            void targetTab.offsetWidth; 
-            targetTab.classList.add('animate-fade');
-            window.dispatchEvent(new Event('resize'));
-            filterTables();
-        }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }
+        function toggleText(btn) { const t = btn.previousElementSibling; if (t.classList.contains('expanded')) { t.classList.remove('expanded'); btn.innerHTML = 'Expandir'; } else { t.classList.add('expanded'); btn.innerHTML = 'Recolher'; } }
 
         function takeScreenshot() {
             const btn = document.querySelector('.fa-camera').parentElement;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
             html2canvas(document.getElementById('capture-area'), { scrollY: -window.scrollY, scale: 2 }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `Painel_ITSM_${new Date().toISOString().slice(0,10)}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                btn.innerHTML = '<i class="fas fa-camera text-sm"></i>';
+                const link = document.createElement('a'); link.download = `Painel_ITSM_${new Date().toISOString().slice(0,10)}.png`;
+                link.href = canvas.toDataURL('image/png'); link.click(); btn.innerHTML = '<i class="fas fa-camera text-sm"></i>';
             });
         }
-
         function exportBackupJSON() {
-            const dataStr = JSON.stringify(todoList);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
             const link = document.createElement('a');
-            link.href = dataUri; link.download = `EliteMaster_Backup_${new Date().toISOString().slice(0,10)}.json`; link.click();
+            link.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(JSON.stringify(todoList));
+            link.download = `EliteMaster_Backup_${new Date().toISOString().slice(0,10)}.json`; link.click();
         }
         function importBackupJSON(e) {
             const file = e.target.files[0]; if(!file) return;
             const reader = new FileReader();
-            reader.onload = ev => {
-                try {
-                    const imp = JSON.parse(ev.target.result);
-                    if(Array.isArray(imp)) { todoList = imp; saveTodos(); alert("Backup importado com sucesso!"); }
-                } catch(err) { alert("Erro ao ler JSON."); }
-            };
+            reader.onload = ev => { try { const imp = JSON.parse(ev.target.result); if(Array.isArray(imp)) { todoList = imp; saveTodos(); alert("Backup importado com sucesso!"); } } catch(err) { alert("Erro ao ler JSON."); } };
             reader.readAsText(file);
         }
 
         // ==========================================
-        // 3. FILTROS AVANÇADOS E ORDENAÇÃO DE TABELAS
+        // 1. TABS E ORDENAÇÃO DE TABELAS (FILTROS)
         // ==========================================
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(c => { c.classList.add('hidden-st'); c.classList.remove('animate-fade'); });
+            el.classList.add('active');
+            const searchInput = document.getElementById("globalSearch"); if(searchInput && searchInput.value.trim() !== "") searchInput.value = "";
+            const targetTab = document.getElementById(tabId); targetTab.classList.remove('hidden-st'); void targetTab.offsetWidth; targetTab.classList.add('animate-fade'); window.dispatchEvent(new Event('resize'));
+            filterTables();
+        }
+
         function sortTable(th) {
-            const tbody = th.closest('table').querySelector('tbody');
-            if (!tbody) return;
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            if (rows.length < 2) return;
+            const tbody = th.closest('table').querySelector('tbody'); if (!tbody) return;
+            const rows = Array.from(tbody.querySelectorAll('tr')); if (rows.length < 2) return;
             const colIdx = Array.from(th.parentNode.children).indexOf(th);
-            const isAsc = th.dataset.dir !== 'asc';
-            th.dataset.dir = isAsc ? 'asc' : 'desc';
+            const isAsc = th.dataset.dir !== 'asc'; th.dataset.dir = isAsc ? 'asc' : 'desc';
 
             rows.sort((a, b) => {
-                let vA = a.children[colIdx].innerText.trim();
-                let vB = b.children[colIdx].innerText.trim();
-                let numA = parseFloat(vA.replace(/[^\d.-]/g, ''));
-                let numB = parseFloat(vB.replace(/[^\d.-]/g, ''));
-                if (vA.match(/^[\d.,R$+\-%\s]+(d totais|d ocioso|d|%)?$/i) && vB.match(/^[\d.,R$+\-%\s]+(d totais|d ocioso|d|%)?$/i) && !isNaN(numA) && !isNaN(numB)) {
-                    return (numA - numB) * (isAsc ? 1 : -1);
-                }
+                let vA = a.children[colIdx].innerText.trim(); let vB = b.children[colIdx].innerText.trim();
+                let dateA = vA.match(/(\d{2})\/(\d{2})\/(\d{4})/); let dateB = vB.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                if (dateA && dateB) return (new Date(dateA[3], dateA[2]-1, dateA[1]) - new Date(dateB[3], dateB[2]-1, dateB[1])) * (isAsc ? 1 : -1);
+                let numA = parseFloat(vA.replace(/[^\d.-]/g, '')); let numB = parseFloat(vB.replace(/[^\d.-]/g, ''));
+                if (vA.match(/^[\d.,R$+\-%\s]+(d totais|d ocioso|d|%)?$/i) && vB.match(/^[\d.,R$+\-%\s]+(d totais|d ocioso|d|%)?$/i) && !isNaN(numA) && !isNaN(numB)) { return (numA - numB) * (isAsc ? 1 : -1); }
                 return vA.localeCompare(vB, undefined, {numeric: true}) * (isAsc ? 1 : -1);
             });
             rows.forEach(r => tbody.appendChild(r));
@@ -440,70 +467,46 @@
 
         function openFilter(e, iconEl) {
             e.stopPropagation();
-            const th = iconEl.closest('th');
-            const table = th.closest('table');
+            const th = iconEl.closest('th'); const table = th.closest('table');
             if(!table.id) table.id = 'tbl_' + Math.random().toString(36).substr(2,9);
-            const tbody = table.querySelector('tbody');
-            const colIdx = Array.from(th.parentNode.children).indexOf(th);
-            
+            const tbody = table.querySelector('tbody'); const colIdx = Array.from(th.parentNode.children).indexOf(th);
             document.querySelectorAll('.custom-filter-dropdown').forEach(el => el.remove());
             
             let uniqueVals = new Set();
-            Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
-                if(tr.children.length > 1) uniqueVals.add(tr.children[colIdx].innerText.trim().replace(/\n/g, ' '));
-            });
+            Array.from(tbody.querySelectorAll('tr')).forEach(tr => { if(tr.children.length > 1) uniqueVals.add(tr.children[colIdx].innerText.trim().replace(/\n/g, ' ')); });
             let valsArr = Array.from(uniqueVals).sort();
 
-            let drop = document.createElement('div');
-            drop.className = 'custom-filter-dropdown fixed bg-white shadow-2xl border border-slate-200 rounded p-3 z-[10500] flex flex-col gap-1 w-64';
-            let rect = iconEl.getBoundingClientRect();
-            drop.style.top = (rect.bottom + 5) + 'px'; drop.style.left = (rect.left - 100) + 'px';
+            let drop = document.createElement('div'); drop.className = 'custom-filter-dropdown fixed bg-white shadow-2xl border border-slate-200 rounded p-3 z-[10500] flex flex-col gap-1 w-64';
+            let rect = iconEl.getBoundingClientRect(); drop.style.top = (rect.bottom + 5) + 'px'; drop.style.left = (rect.left - 100) + 'px';
 
-            let selectAll = document.createElement('label');
-            selectAll.className = 'font-bold cursor-pointer hover:bg-slate-100 p-1 flex items-center gap-2 border-b border-slate-200 pb-2 mb-2 text-xs text-slate-800';
-            selectAll.innerHTML = `<input type="checkbox" class="filter-all w-4 h-4" checked> (Selecionar Tudo)`;
-            drop.appendChild(selectAll);
+            let selectAll = document.createElement('label'); selectAll.className = 'font-bold cursor-pointer hover:bg-slate-100 p-1 flex items-center gap-2 border-b border-slate-200 pb-2 mb-2 text-xs text-slate-800';
+            selectAll.innerHTML = `<input type="checkbox" class="filter-all w-4 h-4" checked> (Selecionar Tudo)`; drop.appendChild(selectAll);
 
-            let itemsDiv = document.createElement('div');
-            itemsDiv.className = 'max-h-48 overflow-y-auto flex flex-col gap-1 pr-1';
+            let itemsDiv = document.createElement('div'); itemsDiv.className = 'max-h-48 overflow-y-auto flex flex-col gap-1 pr-1';
             valsArr.forEach(val => {
-                let lbl = document.createElement('label');
-                lbl.className = 'cursor-pointer hover:bg-slate-50 p-1 flex items-start gap-2 text-xs text-slate-600';
+                let lbl = document.createElement('label'); lbl.className = 'cursor-pointer hover:bg-slate-50 p-1 flex items-start gap-2 text-xs text-slate-600';
                 let isCh = (!activeTableFilters[table.id] || !activeTableFilters[table.id][colIdx] || activeTableFilters[table.id][colIdx].includes(val));
-                lbl.innerHTML = `<input type="checkbox" value="${val.replace(/"/g, '&quot;')}" class="w-4 h-4 mt-0.5" ${isCh ? 'checked' : ''}> <span class="break-all">${val}</span>`;
-                itemsDiv.appendChild(lbl);
+                lbl.innerHTML = `<input type="checkbox" value="${val.replace(/"/g, '&quot;')}" class="w-4 h-4 mt-0.5" ${isCh ? 'checked' : ''}> <span class="break-all">${val}</span>`; itemsDiv.appendChild(lbl);
             });
             drop.appendChild(itemsDiv);
 
-            let btn = document.createElement('button');
-            btn.className = 'mt-3 bg-blue-600 text-white p-2 rounded font-bold uppercase text-xs hover:bg-blue-700 shadow-sm';
-            btn.innerText = 'Aplicar Filtro';
-            drop.appendChild(btn);
+            let btn = document.createElement('button'); btn.className = 'mt-3 bg-blue-600 text-white p-2 rounded font-bold uppercase text-xs hover:bg-blue-700 shadow-sm'; btn.innerText = 'Aplicar Filtro'; drop.appendChild(btn);
             document.body.appendChild(drop);
 
             selectAll.querySelector('input').onchange = ev => drop.querySelectorAll('input[type="checkbox"]:not(.filter-all)').forEach(cb => cb.checked = ev.target.checked);
-            
             btn.onclick = () => {
                 let checked = Array.from(drop.querySelectorAll('input[type="checkbox"]:not(.filter-all):checked')).map(cb => cb.value);
                 if(!activeTableFilters[table.id]) activeTableFilters[table.id] = {};
                 activeTableFilters[table.id][colIdx] = checked;
-                
                 Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
                     if(tr.children.length === 1) return;
                     let show = true;
-                    for(let c in activeTableFilters[table.id]) {
-                        if(!activeTableFilters[table.id][c].includes(tr.children[c].innerText.trim().replace(/\n/g, ' '))) { show = false; break; }
-                    }
+                    for(let c in activeTableFilters[table.id]) { if(!activeTableFilters[table.id][c].includes(tr.children[c].innerText.trim().replace(/\n/g, ' '))) { show = false; break; } }
                     tr.style.display = show ? '' : 'none';
                 });
-                iconEl.style.color = checked.length < valsArr.length ? '#f59e0b' : '';
-                drop.remove();
+                iconEl.style.color = checked.length < valsArr.length ? '#f59e0b' : ''; drop.remove();
             };
-
-            setTimeout(() => {
-                const closeFn = evClick => { if(!drop.contains(evClick.target) && evClick.target !== iconEl) { drop.remove(); document.removeEventListener('click', closeFn); }};
-                document.addEventListener('click', closeFn);
-            }, 100);
+            setTimeout(() => { const closeFn = evClick => { if(!drop.contains(evClick.target) && evClick.target !== iconEl) { drop.remove(); document.removeEventListener('click', closeFn); }}; document.addEventListener('click', closeFn); }, 100);
         }
 
         function createTh(label, width="auto", align="center") {
@@ -511,20 +514,17 @@
         }
 
         // ==========================================
-        // 4. SISTEMA TODO (CROSSOVER E MODAIS)
+        // 2. TODO SYSTEM E CROSSOVER MODAL
         // ==========================================
         function showConfirm(title, msg, onConfirm) {
             const modal = document.getElementById('custom-confirm-modal');
-            document.getElementById('confirm-title').innerText = title;
-            document.getElementById('confirm-msg').innerText = msg;
+            document.getElementById('confirm-title').innerText = title; document.getElementById('confirm-msg').innerText = msg;
             modal.classList.remove('hidden-st');
-            const confirmBtn = document.getElementById('btn-modal-confirm');
-            const cancelBtn = document.getElementById('btn-modal-cancel');
+            const confirmBtn = document.getElementById('btn-modal-confirm'); const cancelBtn = document.getElementById('btn-modal-cancel');
             const cleanup = () => { modal.classList.add('hidden-st'); confirmBtn.removeEventListener('click', handleConfirm); cancelBtn.removeEventListener('click', cleanup); };
             const handleConfirm = () => { onConfirm(); cleanup(); };
             confirmBtn.addEventListener('click', handleConfirm); cancelBtn.addEventListener('click', cleanup);
         }
-
         function saveTodos() { localStorage.setItem('eliteMasterTodosV66', JSON.stringify(todoList)); renderTodos(); }
 
         function addTodo() {
@@ -537,9 +537,7 @@
             selectedTks.forEach(tk => {
                 let existing = tk ? todoList.find(t => t.ticket === tk && t.analyst === analyst) : null;
                 if (existing) { existing.history.push({ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false }); } 
-                else {
-                    todoList.push({ id: Date.now().toString() + Math.random().toString(36).substr(2, 9), analyst, ticket: tk, date: new Date().toLocaleDateString('pt-BR'), history: [{ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false }] });
-                }
+                else { todoList.push({ id: Date.now().toString()+Math.random().toString(36).substr(2,9), analyst: analyst, ticket: tk, date: new Date().toLocaleDateString('pt-BR'), history: [{ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false }] }); }
             });
             saveTodos(); document.getElementById('todo-desc').value = ''; selectTk.selectedIndex = -1;
         }
@@ -552,23 +550,11 @@
             }
         }
 
-        function deleteTodo(id) {
-            showConfirm("Apagar Tarefa?", "O histórico desta tarefa será removido permanentemente.", () => {
-                todoList = todoList.filter(t => t.id !== id); saveTodos();
-                if(currentModalTk) renderModalTodos(currentModalTk);
-            });
-        }
-
-        function completeTodo(id) {
-            showConfirm("Concluir Tarefa?", "A tarefa será marcada como concluída e arquivada.", () => {
-                todoList = todoList.filter(t => t.id !== id); saveTodos();
-                if(currentModalTk) renderModalTodos(currentModalTk);
-            });
-        }
-
+        function deleteTodo(id) { showConfirm("Apagar Tarefa?", "O histórico será removido permanentemente.", () => { todoList = todoList.filter(t => t.id !== id); saveTodos(); if(currentModalTk) renderModalTodos(currentModalTk); }); }
+        function completeTodo(id) { showConfirm("Concluir Tarefa?", "A tarefa será marcada como concluída.", () => { todoList = todoList.filter(t => t.id !== id); saveTodos(); if(currentModalTk) renderModalTodos(currentModalTk); }); }
+        
         function addTodoUpdate(id) {
-            const input = document.getElementById(`update-input-${id}`);
-            const text = input.value.trim(); if (!text) return;
+            const input = document.getElementById(`update-input-${id}`); const text = input.value.trim(); if (!text) return;
             const todo = todoList.find(t => t.id === id);
             if (todo) { todo.history.push({ date: new Date().toLocaleString('pt-BR'), text: text, striked: false }); saveTodos(); input.value = ''; }
         }
@@ -584,15 +570,12 @@
                         <div class="font-bold text-sm text-[var(--primary-dark)]"><i class="fas fa-user text-slate-400 mr-1"></i> ${t.analyst} <span class="text-[9px] text-slate-400 ml-2 font-normal">Criado: ${t.date}</span></div>
                         <div class="flex gap-2"><button onclick="completeTodo('${t.id}')" title="Concluir" class="text-emerald-500 hover:text-emerald-600 transition text-lg"><i class="fas fa-check-circle"></i></button><button onclick="deleteTodo('${t.id}')" title="Apagar" class="text-red-400 hover:text-red-600 transition"><i class="fas fa-trash"></i></button></div>
                     </div>
-                    ${t.ticket ? `<div class="mb-2"><span onclick="openTicketDetails('${t.ticket}')" class="todo-badge hover:bg-blue-200 cursor-pointer">${t.ticket} <i class="fas fa-external-link-alt ml-1 opacity-50"></i></span></div>` : ''}
+                    ${t.ticket ? `<div class="mb-2"><span onclick="openTicketDetails('${t.ticket}')" class="todo-badge hover:bg-blue-100 cursor-pointer">${t.ticket} <i class="fas fa-external-link-alt ml-1 opacity-50"></i></span></div>` : ''}
                     <div class="space-y-2 mt-3">${t.history.map((h, idx) => `<div class="history-entry border border-transparent hover:border-slate-200" onclick="toggleStrike('${t.id}', ${idx})" title="Clique para riscar a atividade"><div class="text-[9px] font-bold text-slate-400">${h.date}</div><div class="history-text ${h.striked ? 'striked' : ''}">${h.text}</div></div>`).join('')}</div>
                     <div class="todo-update-wrapper"><input type="text" id="update-input-${t.id}" class="form-input px-2 py-1 text-xs" placeholder="Adicionar nova nota..."><button onclick="addTodoUpdate('${t.id}')" class="bg-blue-800 text-white px-3 rounded text-[10px] font-bold uppercase hover:bg-blue-900">Add</button></div>
                 </div>`).join('');
         }
 
-        // ==========================================
-        // 5. CROSSOVER THREAD MODAL (SAIBA MAIS)
-        // ==========================================
         let currentModalTk = null;
         function openTicketDetails(tkNumber) {
             currentModalTk = tkNumber; let ticketData = null; let tType = '';
@@ -622,9 +605,7 @@
             if(rawC.trim()!=="") {
                 let m = [...rawC.matchAll(regex)];
                 if(m.length>0) {
-                    for(let i=0; i<m.length; i++) {
-                        entries.push({ date: new Date(m[i][1].replace(/-/g,'/')), dS: m[i][1], a: m[i][2].trim(), t: m[i][3].trim(), txt: rawC.substring(m[i].index+m[i][0].length, i+1<m.length?m[i+1].index:rawC.length).trim() });
-                    }
+                    for(let i=0; i<m.length; i++) { entries.push({ date: new Date(m[i][1].replace(/-/g,'/')), dS: m[i][1], a: m[i][2].trim(), t: m[i][3].trim(), txt: rawC.substring(m[i].index+m[i][0].length, i+1<m.length?m[i+1].index:rawC.length).trim() }); }
                 } else { entries.push({ date: new Date(0), dS: '-', a: 'Sistema', t: 'Notas Brutas', txt: rawC.trim() }); }
             }
             entries.sort((a,b) => b.date - a.date);
@@ -661,9 +642,36 @@
             document.getElementById('modal-new-todo').value = ''; saveTodos(); renderModalTodos(tk);
         }
 
+        function populateTodoAnalystDropdown() {
+            const select = document.getElementById('todo-analyst'); if (!select) return;
+            let set = new Set();
+            [RawData.incs, RawData.reqs].forEach(s => s.forEach(r => { let a = getCol(r, ['Assigned to','Analista']); if(a && a!=='-' && a!=='N/A' && !a.includes('Não Atribuído')) set.add(a); }));
+            select.innerHTML = '<option value="">Selecione um analista...</option>' + Array.from(set).sort().map(a => `<option value="${a}">${a}</option>`).join('');
+            document.getElementById('todo-tickets').innerHTML = '<option value="" disabled>Selecione um analista primeiro...</option>';
+        }
+
         // ==========================================
-        // 6. PESQUISA GLOBAL
+        // 3. MOTOR DE ESTAGNAÇÃO (PYTHON) E PESQUISA GLOBAL
         // ==========================================
+        function getDaysSilent(r, refDateObj, assignedTo, opDateObj) {
+            if (!assignedTo || assignedTo.includes('Não Atribuído') || assignedTo === 'N/A') return '-';
+            let maxDate = opDateObj ? new Date(opDateObj) : new Date(0);
+            let regex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(/g;
+            ['Work notes', 'Work notes list', 'Work notes list(s)', 'Additional comments'].forEach(col => {
+                if (r[col] && typeof r[col] === 'string') {
+                    let m; while ((m = regex.exec(r[col])) !== null) {
+                        if (m[2].trim() === assignedTo) {
+                            let d = new Date(m[1].replace(/-/g, '/'));
+                            if (d > maxDate && d <= refDateObj) maxDate = d;
+                        }
+                    }
+                }
+            });
+            if (maxDate.getTime() === 0) return '-';
+            let diff = Math.floor((refDateObj - maxDate) / 86400000);
+            return diff < 0 ? 0 : diff;
+        }
+
         function performGlobalSearch(e) {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
@@ -679,7 +687,7 @@
                         if (removeAccents(Object.values(r).join(" ").toUpperCase()).includes(term)) {
                             let asg = getCol(r, ['Assigned to', 'Analista']) || 'Não Atribuído';
                             let op = safeDate(getCol(r, ['Opened', 'opened_at'])), cl = safeDate(getCol(r, ['Resolved', 'Closed']));
-                            results.push({ type: src.n, tk: getCol(r, ['Number','Ticket','Problem','Task'])||'-', desc: String(getCol(r,['Short description','Descrição'])||'-').replace(/"/g,'&quot;'), asg, gp: getCol(r, ['Assignment group'])||'-', st: String(getCol(r,['State','Status'])||'').toUpperCase(), op, cl, idle: (!cl||cl>refDateObj)?getDaysSilent(r, refDateObj, asg, op):'-' });
+                            results.push({ type: src.n, tk: getCol(r, ['Number','Ticket','Problem','Task'])||'-', desc: String(getCol(r,['Short description','Descrição'])||'-').replace(/"/g,'&quot;'), req: getCol(r, ['Requester','Caller','Solicitante'])||'N/A', asg, gp: getCol(r, ['Assignment group'])||'-', st: String(getCol(r,['State','Status'])||'').toUpperCase(), op, cl, idle: (!cl||cl>refDateObj)?getDaysSilent(r, refDateObj, asg, op):'-' });
                         }
                     });
                 });
@@ -696,31 +704,34 @@
                         return `<tr class="ticket-row" data-tk="${t.tk}" data-st="${t.st}" data-idle="${t.idle}">
                             <td class="font-bold text-[var(--primary-dark)]">${t.tk}<div class="text-[9px] bg-slate-200 px-1 rounded inline-block ml-1 text-slate-500">${t.type}</div><button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-2 bg-blue-50 border p-1 rounded text-[9px] uppercase"><i class="fas fa-history"></i> Saiba mais</button></td>
                             <td class="text-left"><div class="text-xs font-bold line-clamp-2">${t.desc}</div></td>
+                            <td>${t.req}</td>
                             <td>${t.asg}<br><span class="text-[9px] text-slate-400">${t.gp}</span></td>
                             <td><span style="background:${bC};color:${fC};" class="px-2 py-0.5 rounded text-[9px] font-bold border">${t.st}</span><br><span class="text-[10px] text-slate-500"><i class="far fa-calendar-alt"></i> ${opS}</span></td>
                             <td class="text-right"><div class="font-bold text-sm ${t.cl?'text-[var(--primary-dark)]':'text-orange-500'}">${clS}</div>${age!=='-'?`<div class="text-[10px] text-slate-400 mt-1">${age}d vida</div>`:''}${t.idle!=='-'?`<div class="text-[10px] font-bold mt-1 ${t.idle>3?'text-red-500':'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>`:''}</td>
                         </tr>`;
                     }).join('');
-                    html += `<div class="report-card"><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh("Ticket Original")}${createTh("Descrição Completa","40%","left")}${createTh("Analista / Grupo")}${createTh("Status / Abertura")}${createTh("Datas / Ocioso","auto","right")}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+                    html += `<div class="report-card"><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh("Ticket Original")}${createTh("Descrição Completa","30%","left")}${createTh("Solicitante")}${createTh("Analista / Grupo")}${createTh("Status / Abertura")}${createTh("Datas / Ocioso","auto","right")}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
                 }
                 document.getElementById('tab-search').innerHTML = html;
             }, 300);
         }
 
-        // ==========================================
-        // 7. DASHBOARD CORE & TOOLTIPS
-        // ==========================================
-        const C = { PRI_D: "#001871", SUC: "#00C853", DAN: "#D50000", ORG: "#FF8C00", GRY_D: "#334155" };
-        let searchGlobalInput = document.getElementById("globalSearch");
+        function filterTables() {
+            const term = removeAccents(document.getElementById("globalSearch").value.toUpperCase());
+            document.querySelectorAll('.tab-pane:not(.hidden-st) table tbody').forEach(tbody => {
+                Array.from(tbody.getElementsByTagName("tr")).forEach(r => {
+                    let rT = removeAccents(r.innerText).toUpperCase();
+                    if(!rT.includes("NENHUM") && !rT.includes("TOTAL")) r.style.display = rT.includes(term) ? "" : "none";
+                });
+            });
+        }
 
+        const tooltip = document.getElementById('global-tooltip');
         document.addEventListener('mouseover', e => {
             const row = e.target.closest('.ticket-row');
             if (row) {
                 let st = (row.dataset.st || '').toLowerCase(), bC = '#3b82f6';
                 if(st.includes('resolv')||st.includes('complet')) bC='#10b981'; else if(st.includes('cancel')||st.includes('incomplet')) bC='#ef4444'; else if(st.includes('hold')||st.includes('pend')) bC='#f59e0b';
-                
-                let tt = document.getElementById('global-tooltip');
-                if(!tt) return;
                 
                 document.getElementById('tt-tk').innerText = row.dataset.tk || '-';
                 document.getElementById('tt-st').innerText = row.dataset.st || '-'; document.getElementById('tt-st').style.backgroundColor = bC;
@@ -731,26 +742,17 @@
                 let idleVal = row.dataset.idle, idleEl = document.getElementById('tt-idle');
                 if (idleVal && idleVal !== '-' && idleVal !== 'undefined') { let idNum = parseInt(idleVal); idleEl.innerHTML = `<i class="fas fa-user-clock mr-1"></i> ${idNum}d inativo`; idleEl.style.color = idNum > 3 ? '#ef4444' : '#10b981'; } 
                 else { idleEl.innerText = 'N/A'; idleEl.style.color = '#94a3b8'; }
-
-                tt.style.opacity = 1; tt.style.visibility = 'visible';
+                tooltip.style.opacity = 1; tooltip.style.visibility = 'visible';
             }
         });
-        document.addEventListener('mousemove', e => { let tt = document.getElementById('global-tooltip'); if (tt && tt.style.visibility === 'visible') { let x = e.pageX + 15, y = e.pageY + 15; if (x + tt.offsetWidth > window.innerWidth) x = e.pageX - tt.offsetWidth - 15; if (y + tt.offsetHeight > window.innerHeight) y = window.innerHeight - tt.offsetHeight - 10; tt.style.left = x + 'px'; tt.style.top = y + 'px'; } });
-        document.addEventListener('mouseout', e => { if (e.target.closest('.ticket-row')) { let tt = document.getElementById('global-tooltip'); if(tt) { tt.style.opacity = 0; tt.style.visibility = 'hidden'; } } });
-
-        function filterTables() {
-            const term = removeAccents(searchGlobalInput.value.toUpperCase());
-            document.querySelectorAll('.tab-pane:not(.hidden-st) table tbody').forEach(tbody => {
-                Array.from(tbody.getElementsByTagName("tr")).forEach(r => {
-                    let rT = removeAccents(r.innerText).toUpperCase();
-                    if(!rT.includes("NENHUM") && !rT.includes("TOTAL")) r.style.display = rT.includes(term) ? "" : "none";
-                });
-            });
-        }
+        document.addEventListener('mousemove', e => { if (tooltip.style.visibility === 'visible') { let x = e.pageX + 15, y = e.pageY + 15; if (x + tooltip.offsetWidth > window.innerWidth) x = e.pageX - tooltip.offsetWidth - 15; if (y + tooltip.offsetHeight > window.innerHeight) y = window.innerHeight - tooltip.offsetHeight - 10; tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px'; } });
+        document.addEventListener('mouseout', e => { if (e.target.closest('.ticket-row')) { tooltip.style.opacity = 0; tooltip.style.visibility = 'hidden'; } });
 
         // ==========================================
-        // 8. CÁLCULO GERAL E RENDER DE ABAS
+        // 4. CORE ENGINE (INCs / REQs / PTASK)
         // ==========================================
+        const C = { PRI_D: "#001871", SUC: "#00C853", DAN: "#D50000", ORG: "#FF8C00", GRY_D: "#334155" };
+
         function calculateSection(data, slaDays, type, refDateObj) {
             const refTime = refDateObj.getTime();
             let totalMttr = 0, countRes = 0, inSlaMes = 0, resMes = 0, backlog = 0;
@@ -784,12 +786,13 @@
                 if (!cl) {
                     backlog++;
                     let asg = getCol(r, ['Assigned to', 'Analista']) || 'Não Atribuído';
+                    let req = getCol(r, ['Requester','Caller','Solicitante']) || 'N/A';
                     let idle = getDaysSilent(r, refDateObj, asg, op);
                     if(!analistas[asg]) analistas[asg] = {ab:0, res:0}; analistas[asg].ab++;
                     GlobalOpenTickets.push({ tk: getCol(r, ['Number','Ticket']), asg });
                     bDef.forEach(b => { if(age >= b.min && age <= b.max) agingBuckets[b.l].count++; });
                     
-                    if (age > slaDays) criticals.push({ tk: getCol(r, ['Number', 'Ticket']), req: getCol(r, ['Requester','Caller'])||'N/A', as: asg, gp: getCol(r, ['Assignment group'])||'-', st: st.toUpperCase(), age, prb: getCol(r, ['Problem', 'PRB'])||'N/A', info: (getCol(r, ['Additional comments'])||'Sem notas').replace(/"/g,''), desc: (getCol(r, ['Short description', 'Item'])||'Sem assunto').replace(/"/g,''), opStr: op.toLocaleDateString('pt-BR'), idle });
+                    if (age > slaDays) criticals.push({ tk: getCol(r, ['Number', 'Ticket']), req, as: asg, gp: getCol(r, ['Assignment group'])||'-', st: st.toUpperCase(), age, prb: getCol(r, ['Problem', 'PRB'])||'N/A', info: (getCol(r, ['Additional comments'])||'Sem notas').replace(/"/g,''), desc: (getCol(r, ['Short description', 'Item'])||'Sem assunto').replace(/"/g,''), opStr: op.toLocaleDateString('pt-BR'), idle });
                 }
                 if (isRes && cl && cl.getMonth()===refDateObj.getMonth() && cl.getFullYear()===refDateObj.getFullYear()) {
                     let asg = getCol(r, ['Assigned to']) || 'Não Atribuído'; if(!analistas[asg]) analistas[asg]={ab:0,res:0}; analistas[asg].res++;
@@ -802,8 +805,6 @@
 
             return { mttr: countRes ? (totalMttr/countRes).toFixed(1).replace('.',',') : "0,0", pct: resMes ? Math.round((inSlaMes/resMes)*100) : 0, inSla: inSlaMes, outSla: resMes-inSlaMes, backlog, inSlaTot: inS, outSlaTot: outS, trendM, trendD, topAnalistas: Object.keys(analistas).map(k=>({nome:k, ...analistas[k]})).sort((a,b)=>(b.ab+b.res)-(a.ab+a.res)).slice(0,10), agingBuckets, crits: criticals.sort((a,b)=>b.age-a.age) };
         }
-
-        const C = { PRI_D: "#001871", SUC: "#00C853", DAN: "#D50000", ORG: "#FF8C00", GRY_D: "#334155" };
 
         function generateSectionHTML(id, title, d, typeStr) {
             let lblRes = typeStr === 'INC' ? 'Resolvidos' : 'Encerrados';
@@ -821,16 +822,16 @@
             <div class="report-card border-red-200"><div class="report-card-title text-red-600"><i class="fas fa-exclamation-triangle"></i> CRÍTICOS PENDENTES (${d.crits.length})</div>
             <div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh("Ticket")}${createTh("Assunto/Info","auto","left")}${createTh("Solicitante")}${createTh("Analista")}${createTh("Status")}${createTh("Ocioso/Aging","auto","right")}</tr></thead>
             <tbody>${d.crits.map(t=>`<tr class="ticket-row" data-tk="${t.tk}" data-st="${t.st}" data-idle="${t.idle}">
-                <td class="font-bold text-blue-800">${t.tk}<button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-1 bg-blue-50 hover:bg-blue-100 border p-1 rounded text-[9px]"><i class="fas fa-history"></i> Detalhes</button></td>
+                <td class="font-bold text-blue-800">${t.tk}<button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-1 bg-blue-50 hover:bg-blue-100 border p-1 rounded text-[9px]"><i class="fas fa-history"></i> Saiba mais</button></td>
                 <td class="text-left"><div class="text-xs font-bold line-clamp-1">${t.desc}</div><div class="text-[10px] text-slate-500 mt-1">${t.info}</div></td>
                 <td>${t.req}</td><td>${t.as}<br><span class="text-[9px] text-slate-400">${t.gp}</span></td>
                 <td><span class="bg-slate-100 border px-2 py-0.5 rounded text-[9px]">${t.st}</span><br><span class="text-[9px] text-blue-600 font-bold mt-1 block">PRB: ${t.prb}</span></td>
                 <td class="text-right"><div class="text-red-600 font-black text-sm">${t.age}d totais</div>${t.idle!=='-'?`<div class="text-[10px] font-bold ${t.idle>3?'text-red-500':'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>`:''}</td>
-            </tr>`).join('') || `<tr><td colspan="6" class="p-8 text-center text-slate-400">Nenhum crítico.</td></tr>`}</tbody></table></div></div>`;
+            </tr>`).join('') || `<tr><td colspan="6" class="p-8 text-center text-slate-400">Nenhum crítico no momento.</td></tr>`}</tbody></table></div></div>`;
         }
 
         // ==========================================
-        // 4. TABELA PRB / ERROS CLASSIFICAÇÃO
+        // 5. ERROS CLASSIFICAÇÃO (TABELAS NO MÊS VIGENTE)
         // ==========================================
         function calculateClassifications(allData, refDateObj) {
             let res = { total:0, link:0, noLink:0, days:0, max:0, req:{}, gp:{}, asg:{}, m:{}, tks:[] };
@@ -839,15 +840,21 @@
                 if(st.includes('incomplet') && rea.includes('INCORRECT CLASSIFICATION')) {
                     let op = safeDate(getCol(r, ['Opened','opened_at'])), cl = safeDate(getCol(r, ['Resolved','Closed']));
                     if(!op || op > refDateObj) return;
+
                     let cn = String(getCol(r, ['Close notes','Closing notes'])||''), match = cn.match(/(INC|RITM|REQ|TASK)[\s\-]?(\d{6,8})/i);
                     let tk = getCol(r, ['Number','Ticket']), asg = getCol(r, ['Assigned to'])||'N/A', req = getCol(r, ['Requester','Caller'])||'N/A', gp = getCol(r, ['Assignment group'])||'N/A';
                     let d = cl ? Math.floor((cl-op)/86400000) : Math.floor((refDateObj-op)/86400000); if(d<0) d=0;
                     
                     res.total++; if(match) res.link++; else res.noLink++; res.days+=d; if(d>res.max) res.max=d;
                     let mStr = op.toLocaleDateString('pt-BR',{month:'short',year:'numeric'}).toUpperCase().replace('.','');
-                    res.req[req]=(res.req[req]||0)+1; res.gp[gp]=(res.gp[gp]||0)+1; res.asg[asg]=(res.asg[asg]||0)+1; res.m[mStr]=(res.m[mStr]||0)+1;
+                    res.m[mStr] = (res.m[mStr]||0)+1; 
                     
-                    res.tks.push({tk, req, as:asg, gp, l:match?(match[1].toUpperCase()+match[2]):'⚠️ Erro', rea, st:st.toUpperCase(), d, idle: (!cl||cl>refDateObj)?getDaysSilent(r,refDateObj,asg,op):'-', opS:op.toLocaleDateString('pt-BR'), desc:getCol(r,['Short description'])||'-', info:cn });
+                    // Lógica para Tabelas Analíticas apenas do MÊS VIGENTE
+                    if(op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()) {
+                        res.req[req] = (res.req[req]||0)+1; res.gp[gp] = (res.gp[gp]||0)+1; res.asg[asg] = (res.asg[asg]||0)+1;
+                    }
+                    
+                    res.tks.push({ tk, req, as:asg, gp, l:match?(match[1].toUpperCase()+match[2]):'⚠️ Erro', rea, st:st.toUpperCase(), d, idle: (!cl||cl>refDateObj)?getDaysSilent(r,refDateObj,asg,op):'-', opS:op.toLocaleDateString('pt-BR'), desc:getCol(r,['Short description'])||'-', info:cn });
                 }
             });
             res.avg = res.total ? (res.days/res.total).toFixed(1).replace('.',',') : "0,0";
@@ -855,17 +862,20 @@
         }
 
         function generateClassificationsHTML(d) {
-            const tH = (t, data, l) => `<div class="report-card"><div class="report-card-title">${t}</div><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh(l,"auto","left")}${createTh("Qtd")}</tr></thead><tbody>${Object.entries(data).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td class="text-left font-bold text-slate-700">${k}</td><td>${v}</td></tr>`).join('')}</tbody></table></div></div>`;
+            const tH = (t, data, l, isM=false) => {
+                let tot = Object.values(data).reduce((a,b)=>a+b,0);
+                return `<div class="report-card"><div class="report-card-title">${t}</div><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh(l,"auto","left")}${createTh("Qtd")}${isM?createTh("%"):''}</tr></thead><tbody>${Object.entries(data).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td class="text-left font-bold text-slate-700">${k}</td><td>${v}</td>${isM?`<td>${Math.round((v/tot)*100)}%</td>`:''}</tr>`).join('')}</tbody></table></div></div>`;
+            };
             return `<div class="report-section-title bg-red-600"><i class="fas fa-exchange-alt"></i> ERROS DE CLASSIFICAÇÃO (REQ ⇄ INC)</div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div class="report-card h-[300px]"><canvas id="chart-class-trend"></canvas></div><div class="grid grid-cols-2 gap-4"><div class="report-card text-center border-l-4 border-red-500 justify-center"><div class="text-[10px] font-black text-red-600 mb-2 uppercase">Total Incorretos</div><div class="text-4xl font-black">${d.total}</div></div><div class="report-card text-center border-l-4 border-green-500 justify-center"><div class="text-[10px] font-black text-green-600 mb-2 uppercase">Com Vínculo</div><div class="text-4xl font-black">${d.link}</div></div><div class="report-card text-center border-l-4 border-orange-500 justify-center"><div class="text-[10px] font-black text-orange-500 mb-2 uppercase">Sem Vínculo (Erro)</div><div class="text-4xl font-black">${d.noLink}</div></div><div class="report-card text-center border-l-4 border-blue-500 justify-center"><div class="text-[10px] font-black text-blue-600 mb-2 uppercase">Detecção Média</div><div class="text-4xl font-black">${d.avg}d</div></div></div></div>
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">${tH("Por Solicitante", d.req, "Solicitante")}${tH("Por Grupo", d.gp, "Grupo")}${tH("Por Analista", d.asg, "Analista")}${tH("Por Mês", d.m, "Mês")}</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div class="report-card h-[300px]"><div class="report-card-title">Tendência Mensal (Histórica)</div><canvas id="chart-class-trend"></canvas></div><div class="grid grid-cols-2 gap-4"><div class="report-card text-center border-l-4 border-red-500 justify-center"><div class="text-[10px] font-black text-red-600 mb-2 uppercase">Total Incorretos</div><div class="text-4xl font-black">${d.total}</div></div><div class="report-card text-center border-l-4 border-green-500 justify-center"><div class="text-[10px] font-black text-green-600 mb-2 uppercase">Com Vínculo</div><div class="text-4xl font-black">${d.link}</div></div><div class="report-card text-center border-l-4 border-orange-500 justify-center"><div class="text-[10px] font-black text-orange-500 mb-2 uppercase">Sem Vínculo (Erro)</div><div class="text-4xl font-black">${d.noLink}</div></div><div class="report-card text-center border-l-4 border-blue-500 justify-center"><div class="text-[10px] font-black text-blue-600 mb-2 uppercase">Detecção Média</div><div class="text-4xl font-black">${d.avg}d</div></div></div></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">${tH("Por Solicitante (Mês Vigente)", d.req, "Solicitante")}${tH("Por Grupo (Mês Vigente)", d.gp, "Grupo")}${tH("Por Analista (Mês Vigente)", d.asg, "Analista")}${tH("Consolidado por Mês", d.m, "Mês", true)}</div>
             <div class="report-card"><div class="report-card-title"><i class="fas fa-list"></i> LISTA DETALHADA</div><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh("Ticket Original")}${createTh("Ticket Vinculado")}${createTh("Descrição / Close Notes","auto","left")}${createTh("Solicitante")}${createTh("Analista/Grupo")}${createTh("Reason / Status")}${createTh("Ocioso/Dias","auto","right")}</tr></thead><tbody>
-            ${d.tks.map(t=>`<tr class="ticket-row" data-tk="${t.tk}" data-st="${t.st}" data-idle="${t.idle}"><td class="font-bold text-[var(--primary-dark)]">${t.tk}<button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-1 bg-blue-50 hover:bg-blue-100 border p-1 rounded text-[9px] uppercase"><i class="fas fa-history"></i> Saiba mais</button></td><td class="font-bold ${t.l.includes('⚠️')?'text-red-500':'text-green-500'}">${t.l}</td><td class="text-left"><div class="text-xs font-bold line-clamp-1">${t.desc}</div><div class="text-[10px] text-slate-500 mt-1">Notas: ${t.info}</div></td><td>${t.req}</td><td>${t.as}<br><span class="text-[9px] text-slate-400">${t.gp}</span></td><td><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[9px] font-bold block mb-1">${t.rea}</span><span class="bg-slate-100 border px-2 py-0.5 rounded text-[9px] block">${t.st}</span></td><td class="text-right"><div class="text-red-600 font-black text-sm">${t.d}d totais</div>${t.idle!=='-'?`<div class="text-[10px] font-bold ${t.idle>3?'text-red-500':'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>`:''}</td></tr>`).join('')}
+            ${d.tks.map(t=>`<tr class="ticket-row" data-tk="${t.tk}" data-st="${t.st}" data-idle="${t.idle}"><td class="font-bold text-[var(--primary-dark)]">${t.tk}<button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-1 bg-blue-50 hover:bg-blue-100 border p-1 rounded text-[9px] uppercase"><i class="fas fa-history"></i> Saiba mais</button></td><td class="font-bold ${t.l.includes('⚠️')?'text-red-500':'text-green-500'}">${t.l}</td><td class="text-left"><div class="text-xs font-bold line-clamp-1">${t.desc}</div><div class="text-[10px] text-slate-500 mt-1">Notas: ${t.info}</div></td><td>${t.req}</td><td>${t.as}<br><span class="text-[9px] text-slate-400">${t.gp}</span></td><td><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[9px] font-bold block mb-1">${t.rea}</span><span class="bg-slate-100 border px-2 py-0.5 rounded text-[9px] block">${t.st}</span></td><td class="text-right"><div class="text-red-600 font-black text-sm">${t.d}d totais</div>${t.idle!=='-'?`<div class="text-[10px] font-bold ${t.idle>3?'text-red-500':'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>`:''}</td></tr>`).join('') || `<tr><td colspan="7" class="text-center p-8">Nenhum registro.</td></tr>`}
             </tbody></table></div></div>`;
         }
 
         // ==========================================
-        // 5. CHART.JS & UI RENDER
+        // 6. CHART.JS E ORQUESTRAÇÃO
         // ==========================================
         function drawChartsAll(id, d, lblRes) {
             const common = (cId, data, isLine) => {
@@ -889,19 +899,18 @@
             window.chartInstances.push(new Chart(document.getElementById(`c-p-${id}`), { type: 'doughnut', data: { labels: ['No Prazo', 'Estourado'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN] }] }, options: { cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right' }, plugins: { datalabels: { color: '#fff', font: {weight:'bold', size:14}, formatter: (v, ctx) => v>0 ? Math.round((v/ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0))*100)+'%' : "" } } } }));
         }
 
-        // ==========================================
-        // 6. ORQUESTRADOR PRINCIPAL
-        // ==========================================
+        function drawConsolidadoCharts(i, r, u) {
+            let cTrendD = {}; let dKeys = new Set([...Object.keys(i.trendD), ...Object.keys(r.trendD), ...Object.keys(u.trendD)]);
+            dKeys.forEach(k => { cTrendD[k] = { a: (i.trendD[k]?.a||0)+(r.trendD[k]?.a||0)+(u.trendD[k]?.a||0), r: (i.trendD[k]?.r||0)+(r.trendD[k]?.r||0)+(u.trendD[k]?.r||0), c: (i.trendD[k]?.c||0)+(r.trendD[k]?.c||0)+(u.trendD[k]?.c||0), b: (i.trendD[k]?.b||0)+(r.trendD[k]?.b||0)+(u.trendD[k]?.b||0) }; });
+            let lD = Object.keys(cTrendD).sort();
+            window.chartInstances.push(new Chart(document.getElementById('c-d-cons'), { type: 'bar', data: { labels: lD.map(k=>k.split('-').reverse().join('/')), datasets: [{ type: 'line', label: 'Backlog Global', data: lD.map(k=>cTrendD[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', formatter: v=>v>0?v:"" } }, { type: 'bar', label: 'Abertos', data: lD.map(k=>cTrendD[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', formatter: v=>v>0?v:"" } }, { type: 'bar', label: 'Encerrados/Resolvidos', data: lD.map(k=>cTrendD[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', formatter: v=>v>0?v:"" } }] }, options: { maintainAspectRatio: false, scales: { xAxes: [{ stacked: true }], yAxes: [{ id: 'y1', stacked: true, ticks: { beginAtZero: true } }] } } }));
+        }
+
         function processDashboard() {
             if (!RawData.incs.length && !RawData.reqs.length) return alert("Por favor, importe os arquivos na aba lateral.");
 
-            let now = new Date();
-            document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extração: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
-
-            document.getElementById('init-alert').classList.add('hidden-st');
-            document.getElementById('loader').classList.remove('hidden-st');
-            document.getElementById('report-content').classList.add('hidden-st');
-            document.getElementById('tabs-container').classList.remove('hidden-st');
+            let now = new Date(); document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extração: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
+            document.getElementById('init-alert').classList.add('hidden-st'); document.getElementById('loader').classList.remove('hidden-st'); document.getElementById('report-content').classList.add('hidden-st'); document.getElementById('tabs-container').classList.remove('hidden-st');
             if (window.innerWidth < 1024) toggleSidebar();
             if (window.chartInstances) { window.chartInstances.forEach(c => c.destroy()); window.chartInstances = []; }
             GlobalOpenTickets = []; activeTableFilters = {};
@@ -909,6 +918,7 @@
             setTimeout(() => {
                 const slaI = parseInt(document.getElementById('sla-incs').value) || 7, slaR = parseInt(document.getElementById('sla-reqs').value) || 10, slaP = parseInt(document.getElementById('sla-ptask').value) || 10;
                 const refDate = new Date(document.getElementById('ref-date').value + 'T12:00:00');
+                ['tab-inc', 'tab-req', 'tab-uam', 'tab-cons', 'tab-prb', 'tab-class', 'tab-search'].forEach(id => { let el = document.getElementById(id); if(el) el.innerHTML = ""; });
 
                 let dI = null, dRS = null, dRU = null;
                 if (RawData.incs.length) { dI = calculateSection(RawData.incs, slaI, "INC", refDate); document.getElementById('tab-inc').innerHTML = generateSectionHTML('inc', "SESSÃO INCs", dI, "INC"); }
@@ -920,25 +930,33 @@
                 }
 
                 if(dI && dRS && dRU) {
-                    let cTrendD = {}; let dKeys = new Set([...Object.keys(dI.trendD), ...Object.keys(dRS.trendD), ...Object.keys(dRU.trendD)]);
-                    dKeys.forEach(k => { cTrendD[k] = { a: (dI.trendD[k]?.a||0)+(dRS.trendD[k]?.a||0)+(dRU.trendD[k]?.a||0), r: (dI.trendD[k]?.r||0)+(dRS.trendD[k]?.r||0)+(dRU.trendD[k]?.r||0), c: (dI.trendD[k]?.c||0)+(dRS.trendD[k]?.c||0)+(dRU.trendD[k]?.c||0), b: (dI.trendD[k]?.b||0)+(dRS.trendD[k]?.b||0)+(dRU.trendD[k]?.b||0) }; });
                     document.getElementById('tab-cons').innerHTML = `<div class="report-section-title bg-[var(--primary-dark)]">Visão Consolidada Organizacional</div><div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"><div class="report-card text-center border-l-4 border-blue-800"><div class="report-card-title">Backlog INCs</div><div class="text-5xl font-black">${dI.backlog}</div></div><div class="report-card text-center border-l-4 border-blue-600"><div class="report-card-title">Backlog REQs</div><div class="text-5xl font-black">${dRS.backlog}</div></div><div class="report-card text-center border-l-4 border-blue-400"><div class="report-card-title">Backlog UAMs</div><div class="text-5xl font-black">${dRU.backlog}</div></div></div><div class="report-card h-[400px]"><div class="report-card-title">Acompanhamento Global Diário</div><canvas id="c-d-cons"></canvas></div>`;
-                    requestAnimationFrame(() => {
-                        let lD = Object.keys(cTrendD).sort();
-                        window.chartInstances.push(new Chart(document.getElementById('c-d-cons'), { type: 'bar', data: { labels: lD.map(k=>k.split('-').reverse().join('/')), datasets: [{ type: 'line', label: 'Backlog Global', data: lD.map(k=>cTrendD[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', formatter: v=>v>0?v:"" } }, { type: 'bar', label: 'Abertos', data: lD.map(k=>cTrendD[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', formatter: v=>v>0?v:"" } }, { type: 'bar', label: 'Encerrados/Resolvidos', data: lD.map(k=>cTrendD[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', formatter: v=>v>0?v:"" } }] }, options: { maintainAspectRatio: false, scales: { xAxes: [{ stacked: true }], yAxes: [{ id: 'y1', stacked: true, ticks: { beginAtZero: true } }] } } }));
-                    });
                 }
 
-                if(RawData.rca.length || RawData.ptask.length) document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaP, refDate);
-                else document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-400 font-bold">Nenhum dado PRB.</h3></div>`;
+                if(RawData.rca.length || RawData.ptask.length) {
+                    let rcaHtml = "", ptaskHtml = "";
+                    RawData.rca.forEach(r => {
+                        let op = safeDate(getCol(r, ['Opened','opened_at'])); if(!op || op>refDate) return; let cl = safeDate(getCol(r, ['Resolved','Closed']));
+                        let st = String(getCol(r, ['State','Status','RCA Status'])||'').toLowerCase(); if(cl && cl<=refDate && (st.includes('clos')||st.includes('resolv')||st.includes('cancel'))) return;
+                        let tk = getCol(r, ['Problem','Problema'])||'-', asg = getCol(r, ['Assigned to'])||'-';
+                        rcaHtml += `<tr class="ticket-row" data-tk="${tk}" data-st="${st.toUpperCase()}" data-idle="${(!cl||cl>refDate)?getDaysSilent(r,refDate,asg,op):'-'}"><td class="font-bold text-[var(--primary-dark)]">${tk}<button onclick="openTicketDetails('${tk}')" class="block w-full mt-1 bg-blue-50 border p-1 rounded text-[9px] uppercase"><i class="fas fa-history"></i> Saiba mais</button></td><td class="text-left"><div class="text-xs font-bold line-clamp-1">${String(getCol(r,['Short description'])||'-').replace(/"/g,'&quot;')}</div></td><td>${asg}</td><td><span class="bg-slate-100 border px-2 py-0.5 rounded text-[9px]">${st.toUpperCase()}</span></td></tr>`;
+                    });
+                    RawData.ptask.forEach(r => {
+                        let op = safeDate(getCol(r, ['Opened','opened_at'])); if(!op || op>refDate) return; let cl = safeDate(getCol(r, ['Resolved','Closed']));
+                        let st = String(getCol(r, ['State','Status'])||'').toLowerCase(); if(cl && cl<=refDate && (st.includes('clos')||st.includes('resolv')||st.includes('cancel'))) return;
+                        let tk = getCol(r, ['Number','Task'])||'-', asg = getCol(r, ['Assigned to'])||'-', age = Math.floor(((cl?cl:refDate)-op)/86400000); if(age<0) age=0; let idle = (!cl||cl>refDate)?getDaysSilent(r,refDate,asg,op):'-';
+                        ptaskHtml += `<tr class="ticket-row" data-tk="${tk}" data-st="${st.toUpperCase()}" data-idle="${idle}"><td class="font-bold text-slate-700">${getCol(r, ['Problem','Problema'])||'-'}</td><td class="font-bold text-[var(--primary-dark)]">${tk}<button onclick="openTicketDetails('${tk}')" class="block w-full mt-1 bg-blue-50 border p-1 rounded text-[9px] uppercase"><i class="fas fa-history"></i> Saiba mais</button></td><td>${asg}</td><td>${getCol(r,['Assignment group'])||'-'}</td><td class="text-right"><div class="font-bold text-sm ${age>slaP?'text-red-600':'text-green-600'}">${age}d totais</div>${idle!=='-'?`<div class="text-[10px] font-bold mt-1 ${idle>3?'text-red-500':'text-green-500'}"><i class="fas fa-user-clock"></i> ${idle}d ocioso</div>`:''}</td></tr>`;
+                    });
+                    document.getElementById('tab-prb').innerHTML = `<div class="report-section-title bg-[var(--primary-dark)]"><i class="fas fa-bullseye"></i> PRB / TASKs (Abertas)</div><div class="report-card"><div class="report-card-title">1. CAUSAS RAIZ (RCA)</div><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh("Problem")}${createTh("Descrição da Causa Raiz","auto","left")}${createTh("Analista")}${createTh("Status")}</tr></thead><tbody>${rcaHtml||`<tr><td colspan="4" class="text-center p-6">Nenhuma RCA aberta.</td></tr>`}</tbody></table></div></div><div class="report-card"><div class="report-card-title">2. PROBLEM TASKS (PTASK)</div><div class="st-dataframe-container"><table class="st-table"><thead><tr>${createTh("Problem (Pai)")}${createTh("PTASK")}${createTh("Analista")}${createTh("Grupo")}${createTh("Aging/Ocioso","auto","right")}</tr></thead><tbody>${ptaskHtml||`<tr><td colspan="5" class="text-center p-6">Nenhuma PTASK aberta.</td></tr>`}</tbody></table></div></div>`;
+                }
 
                 let allC = [...RawData.incs, ...RawData.reqs];
                 if(allC.length > 0) {
-                    let dC = calculateClassifications(allC, refDate);
-                    document.getElementById('tab-class').innerHTML = generateClassificationsHTML(dC);
+                    let dClass = calculateClassifications(allC, refDate);
+                    document.getElementById('tab-class').innerHTML = generateClassificationsHTML(dClass);
                     requestAnimationFrame(() => {
                         let cnv = document.getElementById('chart-class-trend');
-                        if(cnv) window.chartInstances.push(new Chart(cnv, { type: 'line', data: { labels: Object.keys(dC.m).sort(), datasets: [{ label: 'Qtd de Erros', data: Object.keys(dC.m).sort().map(k=>dC.m[k]), borderColor: C.DAN, fill: false, borderWidth: 3, datalabels: { align: 'top', font: {weight:'bold'}, formatter: v=>v>0?v:"" } }] }, options: { maintainAspectRatio: false, legend: {display:false}, scales: { yAxes: [{ ticks: {beginAtZero:true} }] } } }));
+                        if(cnv) window.chartInstances.push(new Chart(cnv, { type: 'line', data: { labels: Object.keys(dClass.m).sort(), datasets: [{ label: 'Erros de Classificação', data: Object.keys(dClass.m).sort().map(k=>dClass.m[k]), borderColor: C.DAN, fill: false, borderWidth: 3, datalabels: { align: 'top', font: {weight:'bold'}, formatter: v=>v>0?v:"" } }] }, options: { maintainAspectRatio: false, legend: {display:false}, scales: { yAxes: [{ ticks: {beginAtZero:true} }] } } }));
                     });
                 }
 
@@ -948,6 +966,7 @@
                     if(dI) drawChartsAll('inc', dI, 'Resolvidos');
                     if(dRS) drawChartsAll('req', dRS, 'Encerrados');
                     if(dRU) drawChartsAll('uam', dRU, 'Encerrados');
+                    if(dI && dRS && dRU) drawConsolidadoCharts(dI, dRS, dRU);
                     populateTodoAnalystDropdown(); renderTodos();
                     if(document.getElementById("globalSearch").value.trim() !== "") performGlobalSearch();
                 });
