@@ -812,7 +812,7 @@
                 let op = row.dataset.op || '-';
                 let age = row.dataset.age || '0';
                 let idleVal = row.dataset.idle;
-                let slaPct = row.dataset.pct || null; // Vem da tab abertos
+                let slaPct = row.dataset.pct || null; 
 
                 let bC = '#3b82f6';
                 if(st.includes('resolv')||st.includes('complet')) bC='#10b981'; 
@@ -838,7 +838,6 @@
                     idleEl.innerText = 'N/A'; idleEl.style.color = '#94a3b8'; 
                 }
 
-                // Barra de SLA no Tooltip (se for tab open)
                 let bar = document.getElementById('tt-sla-bar');
                 if(slaPct) {
                     let p = parseInt(slaPct);
@@ -1061,9 +1060,6 @@
             document.getElementById('modal-state').className = `text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded mt-1 inline-block shadow-sm ${bC}`;
             document.getElementById('modal-state').innerText = st;
 
-            // ===================================
-            // ATUALIZAÇÃO DO MODAL (V6.8 - SLA, AGING E OCIOSIDADE)
-            // ===================================
             let refDate = new Date(document.getElementById('ref-date').value + 'T12:00:00');
             let age = Math.floor(((clD ? clD : refDate) - opD) / 86400000);
             if (age < 0) age = 0;
@@ -1082,7 +1078,6 @@
                 idleEl.style.color = '#94a3b8';
             }
 
-            // SLA Calculation for Modal
             let slaConfig = tType === 'INC' ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
             let pctSla = Math.round((age / slaConfig) * 100);
             let slaBar = document.getElementById('modal-sla-bar');
@@ -1091,8 +1086,6 @@
             slaBar.style.backgroundColor = slaColor;
             slaBar.innerText = pctSla + '%';
 
-
-            // Motor robusto de extração de Thread
             let regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(([^)]+)\)/gm;
             let rawC = ""; 
             let cols = new Set();
@@ -1380,7 +1373,7 @@
         }
 
         // ==========================================
-        // 4. MOTOR CORE DE DADOS (PYTHON REPLICA)
+        // 4. MOTOR CORE DE DADOS 
         // ==========================================
         const C = { 
             PRI_D: "#001871", PRI: "#1E3A8A", ACC_D: "#0F172A", 
@@ -1388,8 +1381,6 @@
             GRY_D: "#334155", GRY_L: "#F8FAFC" 
         };
 
-        // ... (Keep existing calculateSection and calculateClassifications exactly as they were, no logic changes needed)
-        // Redefined for completeness.
         function calculateSection(data, slaDays, type, refDateObj) {
             const refDate = new Date(refDateObj);
             refDate.setHours(23, 59, 59, 999);
@@ -1571,16 +1562,8 @@
                     }
 
                     res.tks.push({
-                        tk: tk,
-                        req: reqName,
-                        as: asg,
-                        gp: gpName,
-                        l: linkedTicket || '⚠️ Erro / Não Vinculado',
-                        rea: reason,
-                        st: stOrig.toUpperCase(),
-                        d: days,
-                        idle: idle,
-                        opS: op.toLocaleDateString('pt-BR'),
+                        tk: tk, req: reqName, as: asg, gp: gpName, l: linkedTicket || '⚠️ Erro / Não Vinculado',
+                        rea: reason, st: stOrig.toUpperCase(), d: days, idle: idle, opS: op.toLocaleDateString('pt-BR'),
                         desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição']) || '-').replace(/"/g, '&quot;'),
                         info: closeNotes.replace(/"/g, '&quot;') || 'Nenhuma nota de fechamento registrada.'
                     });
@@ -1593,8 +1576,12 @@
         }
 
         // ==========================================
-        // FEATURE V6.8: TICKETS ABERTOS GERAIS
+        // 5. HTML GENERATORS
         // ==========================================
+        function buildRowAttrs(t) { 
+            return `class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req || ''}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.age !== undefined ? t.age : t.d}" data-op="${t.opStr || t.opS}" data-info="${t.info}" data-idle="${t.idle !== undefined ? t.idle : '-'}"`; 
+        }
+
         function generateOpenTicketsHTML(incs, reqs, uams, slaI, slaR, refDateObj) {
             let openTks = [];
             
@@ -1621,7 +1608,7 @@
                 let stSla = age > slaConfig ? "Estourado" : "No Prazo";
 
                 openTks.push({
-                    tk, type, desc, req, asg, gp, st: st.toUpperCase(), 
+                    tk, type, desc, req, as: asg, gp, st: st.toUpperCase(), 
                     opStr: op.toLocaleDateString('pt-BR'), 
                     age, pctSla, stSla, slaConfig, idle
                 });
@@ -1652,14 +1639,14 @@
                     let pctColor = t.pctSla > 100 ? '#ef4444' : (t.pctSla > 75 ? '#f59e0b' : '#10b981');
                     let stColor = t.pctSla > 100 ? 'text-red-600' : 'text-emerald-600';
                     return `
-                    <tr class="ticket-row hover:bg-slate-50 transition" style="border-bottom: 1px solid #f1f5f9;" data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req}" data-as="${t.asg}" data-gp="${t.gp}" data-st="${t.st}" data-op="${t.opStr}" data-age="${t.age}" data-pct="${t.pctSla}" data-idle="${t.idle}">
+                    <tr class="ticket-row hover:bg-slate-50 transition" style="border-bottom: 1px solid #f1f5f9;" data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-op="${t.opStr}" data-age="${t.age}" data-pct="${t.pctSla}" data-idle="${t.idle}">
                         <td data-label="Número" class="font-bold text-[var(--primary-dark)] text-center py-3">
                             ${t.tk}
                             <div class="text-[9px] bg-slate-200 px-1 rounded inline-block text-slate-500 ml-1">${t.type}</div>
                             <button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-2 bg-blue-50 border border-blue-200/50 p-1.5 rounded text-[9px] uppercase hover:bg-blue-100 transition shadow-sm"><i class="fas fa-history"></i> Saiba mais</button>
                         </td>
                         <td data-label="Requester" class="text-center">${t.req}</td>
-                        <td data-label="Analista" class="text-center font-medium">${t.asg}</td>
+                        <td data-label="Analista" class="text-center font-medium">${t.as}</td>
                         <td data-label="Grupo" class="text-center"><span class="text-[11px] bg-slate-100 px-2 py-1 rounded border border-slate-200 block max-w-[150px] mx-auto truncate" title="${t.gp}">${t.gp}</span></td>
                         <td data-label="State" class="text-center"><span class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-[9px] uppercase font-bold block mx-auto w-max">${t.st}</span></td>
                         <td data-label="Abertura" class="text-center"><i class="far fa-calendar-alt text-slate-400 mr-1"></i>${t.opStr}</td>
@@ -1703,6 +1690,536 @@
             });
 
             return html;
+        }
+
+        function buildThroughputTable(d, lblRes) {
+            let rows = "", tA = 0, tR = 0, tC = 0, tS = 0, lastB = 0;
+            let keys = Object.keys(d.trendM).sort();
+
+            keys.forEach((k) => {
+                let m = d.trendM[k];
+                let mesStr = new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
+                let saldo = m.a - (m.r + m.c);
+                let pctStr = m.r > 0 ? Math.round((m.inSla / m.r) * 100) : 0;
+                let bgPct = pctStr >= 98 ? C.SUC : C.DAN;
+                let colorS = saldo > 0 ? C.PRI_D : (saldo < 0 ? C.PRI : C.GRY_D);
+
+                tA += m.a; tR += m.r; tC += m.c; tS += saldo; lastB = m.b;
+
+                rows += `<tr>
+                    <td data-label="Mês" style="text-align:center; font-weight:600;">${mesStr}</td>
+                    <td data-label="Abertos">${m.a}</td>
+                    <td data-label="${lblRes}">${m.r}</td>
+                    <td data-label="Cancelados">${m.c}</td>
+                    <td data-label="Saldo" style="color:${colorS}; font-weight:bold;">${saldo > 0 ? '+' + saldo : saldo}</td>
+                    <td data-label="Backlog" style="font-weight:bold;">${m.b}</td>
+                    <td data-label="% no Prazo" style="background-color:${bgPct}; color:#fff; font-weight:bold;">${pctStr}%</td>
+                </tr>`;
+            });
+
+            return `<div class="st-dataframe-container"><table class="st-table">
+                <thead><tr>
+                    ${createTh("Mês")}
+                    ${createTh("Abertos")}
+                    ${createTh(lblRes)}
+                    ${createTh("Cancelados")}
+                    ${createTh("Saldo")}
+                    ${createTh("Backlog")}
+                    ${createTh("% no Prazo")}
+                </tr></thead>
+                <tbody>${rows || `<tr><td colspan="7" style="text-align:center;">Sem histórico.</td></tr>`}</tbody>
+                <tfoot><tr>
+                    <th data-label="TOTAIS:" style="text-align:right;">TOTAIS:</th>
+                    <th data-label="Abertos">${tA}</th>
+                    <th data-label="${lblRes}">${tR}</th>
+                    <th data-label="Cancelados">${tC}</th>
+                    <th data-label="Saldo" style="color:${tS > 0 ? C.PRI_D : C.PRI}; font-weight:bold;">${tS > 0 ? '+' + tS : tS}</th>
+                    <th data-label="Backlog">${lastB}</th>
+                    <th data-label="% no Prazo">-</th>
+                </tr></tfoot>
+            </table></div>`;
+        }
+
+        function generateSectionHTML(id, title, color, d, typeStr) {
+            let lblRes = typeStr === 'INC' ? 'Resolvidos' : 'Encerrados';
+            let pctColor = d.pct >= 98 ? C.SUC : C.DAN;
+
+            let apendiceRows = d.crits.filter(t => t.info && t.info !== 'Sem info' && t.info !== 'Sem detalhes fornecidos.').map(t => `
+                <details class="saas-accordion">
+                    <summary><span style="color:${C.PRI_D};">${t.tk}</span> <span style="font-weight:400; color:#64748b; font-size:11px;">- ${t.as}</span></summary>
+                    <div class="acc-content">${t.info}</div>
+                </details>`).join('');
+
+            let apendiceHtml = apendiceRows ? `<div style="margin-top:25px;"><div class="report-section-title" style="background-color: ${C.PRI_D}; font-size:13px; padding:10px;"><i class="fas fa-list-alt mr-2"></i> DETALHES DE COMENTÁRIOS DOS SOLICITANTES (APÊNDICE)</div>
+                <div style="display:flex; flex-direction:column;">${apendiceRows}</div></div>` : "";
+
+            let noPrbHtml = typeStr === 'INC' && d.noPrb.length > 0 ? `
+            <div class="report-card" style="margin-top:20px; border-color: ${C.PRI_D};">
+                <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle mr-2"></i> INCIDENTES CRÍTICOS SEM PRB (${d.noPrb.length})</div>
+                <div class="st-dataframe-container"><table class="st-table">
+                <thead><tr>
+                    ${createTh("Ticket", "12%")}
+                    ${createTh("Analista", "18%")}
+                    ${createTh("Último Comentário", "auto", "left")}
+                    ${createTh("Aging / Ocioso", "15%", "right")}
+                </tr></thead>
+                <tbody>${d.noPrb.map(t => `
+                    <tr ${buildRowAttrs(t)}>
+                        <td data-label="Ticket" style="color:${C.PRI_D}; font-weight:bold;">
+                            ${t.tk}
+                            <button onclick="openTicketDetails('${t.tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                        </td>
+                        <td data-label="Analista">${t.as}</td>
+                        <td data-label="Último Comentário" style="text-align:left;">
+                            <div class="text-expandable">${t.info}</div>
+                            ${t.info.length > 80 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
+                        </td>
+                        <td data-label="Aging / Ocioso" style="text-align: right;">
+                            <div style="color:${C.DAN}; font-weight:bold; font-size:13px;">${t.age}d totais</div>
+                            ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                        </td>
+                    </tr>`).join('')}
+                </tbody></table></div>
+            </div>` : "";
+
+            return `
+            <div class="report-section-title" style="background-color: ${color};"><i class="fas fa-chart-line mr-2"></i> ${title}</div>
+            
+            <div class="grid-2">
+                <div class="report-card" style="text-align:center;">
+                    <div class="report-card-title">⏱️ TEMPO MÉDIO DE RESOLUÇÃO (MTTR)</div>
+                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:38px; font-weight:800; color:${C.PRI_D}; line-height:1;">${d.mttr}</div>
+                        <div style="font-size:13px; font-weight:bold; color:${C.GRY_D}; text-transform:uppercase; margin-top:5px;">Dias Corridos</div>
+                    </div>
+                </div>
+                <div class="report-card" style="text-align:center;">
+                    <div class="report-card-title">📊 ${lblRes.toUpperCase()} NO MÊS VIGENTE</div>
+                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:16px; font-weight:bold; color:${C.GRY_D}; margin-bottom:8px; display:flex; justify-content:center; gap:15px;">
+                            <span style="color:${C.SUC}; background:#ecfdf5; padding:4px 12px; border-radius:20px; border:1px solid #a7f3d0;">✅ ${d.inSla} no Prazo</span>
+                            <span style="color:${C.DAN}; background:#fee2e2; padding:4px 12px; border-radius:20px; border:1px solid #fecaca;">❌ ${d.outSla} Fora</span>
+                        </div>
+                        <div style="color:${pctColor}; font-size:22px; font-weight:800;">${d.pct}% Dentro do Prazo</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <div class="report-card-title">1. ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE)</div>
+                <div class="chart-full-width"><canvas id="c-d-${id}"></canvas></div>
+            </div>
+            <div class="report-card">
+                <div class="report-card-title">2. VISÃO MENSAL / ANUAL</div>
+                <div class="chart-full-width"><canvas id="c-m-${id}"></canvas></div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="report-card"><div class="report-card-title">3. TABELA DE THROUGHPUT ACUMULADO</div>${buildThroughputTable(d, lblRes)}</div>
+                <div class="report-card"><div class="report-card-title">4. VOLUME E PRODUTIVIDADE POR ANALISTA</div><div class="chart-wrapper"><canvas id="c-a-${id}"></canvas></div></div>
+            </div>
+
+            <div class="report-section-title" style="background-color: ${color}; text-align:center; font-size:14px; opacity:0.9;">ANÁLISE DE MATURIDADE E SLA</div>
+            
+            <div class="grid-2">
+                <div class="report-card"><div class="report-card-title">5. MATURIDADE (AGING) DOS VIGENTES</div><div class="chart-wrapper" style="height:260px;"><canvas id="c-ag-${id}"></canvas></div></div>
+                <div class="report-card"><div class="report-card-title">6. STATUS DE SLA DOS VIGENTES</div><div class="chart-wrapper" style="height:260px;"><canvas id="c-p-${id}"></canvas></div></div>
+            </div>
+
+            <div class="report-card">
+                <div class="report-card-title text-red-600"><i class="fas fa-exclamation-circle mr-2"></i> CHAMADOS ACIMA DO SLA PENDENTES (TOTAL: ${d.crits.length})</div>
+                <div class="st-dataframe-container">
+                    <table class="st-table">
+                        <thead><tr>
+                            ${createTh("Ticket", "10%")}
+                            ${createTh("Assunto / Info (Expansível)", "auto", "left")}
+                            ${createTh("Solicitante", "15%")}
+                            ${createTh("Analista", "12%")}
+                            ${createTh("Grupo", "12%")}
+                            ${createTh("Status", "10%")}
+                            ${createTh("PRB", "8%")}
+                            ${createTh("Aging / Ocioso", "10%", "right")}
+                        </tr></thead>
+                        <tbody>
+                            ${d.crits.length ? d.crits.map(t => `
+                            <tr ${buildRowAttrs(t)}>
+                                <td data-label="Ticket" style="color:${C.PRI_D}; font-weight:bold;">
+                                    ${t.tk}
+                                    <button onclick="openTicketDetails('${t.tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                                </td>
+                                <td data-label="Assunto / Info (Expansível)" style="text-align:left;">
+                                    <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 1;">${t.desc}</div>
+                                    <div class="text-expandable text-[11px] text-slate-500">${t.info}</div>
+                                    ${t.info.length > 60 || t.desc.length > 50 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
+                                </td>
+                                <td data-label="Solicitante">${t.req}</td>
+                                <td data-label="Analista" class="font-medium">${t.as}</td>
+                                <td data-label="Grupo">${t.gp}</td>
+                                <td data-label="Status"><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:10px; border:1px solid #e2e8f0; color:#475569; display:inline-block;">${t.st}</span></td>
+                                <td data-label="PRB" style="font-weight:${t.prb !== 'N/A' ? 'bold' : 'normal'}; color:${t.prb !== 'N/A' ? C.PRI_D : C.GRY}">${t.prb}</td>
+                                <td data-label="Aging / Ocioso" style="text-align:right;">
+                                    <div style="color:${C.DAN}; font-weight:bold; font-size:13px;">${t.age}d totais</div>
+                                    ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                                </td>
+                            </tr>`).join('') : `<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">Nenhum chamado crítico no momento. Parabéns à equipe! 🎉</td></tr>`}
+                        </tbody>
+                    </table>
+                </div>
+                ${apendiceHtml}
+            </div>
+            ${noPrbHtml}
+            `;
+        }
+
+        function generateClassificationsHTML(d) {
+            const buildAnalyticalTable = (title, dataObj, labelCol, isMonth = false) => {
+                let total = Object.values(dataObj).reduce((a,b) => a+b, 0);
+                let rows = Object.entries(dataObj).sort((a,b) => b[1] - a[1]).map(([key, value]) => `
+                    <tr>
+                        <td class="text-left font-bold text-slate-700">${key}</td>
+                        <td>${value}</td>
+                        ${isMonth ? `<td class="font-bold text-blue-600">${Math.round((value/total)*100)}%</td>` : ''}
+                    </tr>
+                `).join('');
+                
+                return `
+                <div class="report-card">
+                    <div class="report-card-title"><i class="fas fa-filter mr-1"></i> ${title}</div>
+                    <div class="st-dataframe-container">
+                        <table class="st-table">
+                            <thead>
+                                <tr>
+                                    ${createTh(labelCol, "auto", "left")}
+                                    ${createTh("Qtd", "20%")}
+                                    ${isMonth ? createTh("%", "20%") : ''}
+                                </tr>
+                            </thead>
+                            <tbody>${rows || '<tr><td colspan="3" class="text-center">Sem dados.</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>`;
+            };
+
+            if (d.total === 0) {
+                return `<div class="report-card text-center py-10" style="border-left: 4px solid var(--success);"><h3 class="text-emerald-600 font-bold text-lg"><i class="fas fa-check-circle mr-2"></i> Nenhuma classificação incorreta identificada no período.</h3><p class="text-slate-500 mt-2 text-sm">Parabéns à equipe. Nenhum ticket foi fechado como Incompleto por Classificação Incorreta.</p></div>`;
+            }
+
+            let rows = d.tks.map(t => `
+                <tr class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.d}" data-op="${t.opS}" data-info="${t.info}" data-idle="${t.idle}">
+                    <td data-label="Ticket Original" style="color:var(--primary-dark); font-weight:bold;">
+                        ${t.tk}
+                        <button onclick="openTicketDetails('${t.tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                    </td>
+                    <td data-label="Ticket Vinculado" style="font-weight:bold; color:${t.l.includes('⚠️') ? 'var(--danger)' : 'var(--success)'}">${t.l}</td>
+                    <td data-label="Descrição / Close Notes" style="text-align:left;">
+                        <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 1;">${t.desc}</div>
+                        <div class="text-expandable text-[10px] text-slate-500">Close Notes: ${t.info}</div>
+                        ${t.desc.length > 50 || t.info.length > 50 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
+                    </td>
+                    <td data-label="Solicitante">${t.req}</td>
+                    <td data-label="Analista / Grupo">${t.as}<br><span style="font-size:9px; color:#64748b;">${t.gp}</span></td>
+                    <td data-label="Reason / Status">
+                        <span style="background:#fee2e2; color:#b91c1c; padding:2px 6px; border-radius:4px; font-size:9px; font-weight:bold; display:inline-block; margin-bottom:4px;">${t.rea}</span><br>
+                        <span style="font-size:9px; color:#475569; background:#f1f5f9; padding:2px 6px; border-radius:4px; border:1px solid #e2e8f0;">${t.st}</span>
+                    </td>
+                    <td data-label="Dias / Ocioso" style="text-align:right;">
+                        <div style="color:var(--danger); font-weight:bold; font-size:14px;">${t.d}d totais</div>
+                        ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                    </td>
+                </tr>
+            `).join('');
+
+            return `
+            <div class="report-section-title" style="background-color: var(--danger);"><i class="fas fa-exchange-alt mr-2"></i> CLASSIFICAÇÕES INCORRETAS (REQ ⇄ INC)</div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="report-card h-[300px]" style="margin-bottom:0;">
+                    <div class="report-card-title">Tendência Mensal (Histórica)</div>
+                    <canvas id="chart-class-trend"></canvas>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="report-card text-center border-l-4 border-red-500 justify-center" style="margin-bottom:0;">
+                        <div class="text-[10px] font-black text-red-600 mb-2 uppercase">Total Incorretos</div>
+                        <div class="text-4xl font-black">${d.total}</div>
+                    </div>
+                    <div class="report-card text-center border-l-4 border-green-500 justify-center" style="margin-bottom:0;">
+                        <div class="text-[10px] font-black text-green-600 mb-2 uppercase">Com Vínculo</div>
+                        <div class="text-4xl font-black">${d.link}</div>
+                    </div>
+                    <div class="report-card text-center border-l-4 border-orange-500 justify-center" style="margin-bottom:0;">
+                        <div class="text-[10px] font-black text-orange-500 mb-2 uppercase">Sem Vínculo (Erro)</div>
+                        <div class="text-4xl font-black">${d.noLink}</div>
+                    </div>
+                    <div class="report-card text-center border-l-4 border-blue-500 justify-center" style="margin-bottom:0;">
+                        <div class="text-[10px] font-black text-blue-600 mb-2 uppercase">Detecção Média</div>
+                        <div class="text-4xl font-black">${d.avg}d</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+                ${buildAnalyticalTable("Por Solicitante (Mês Vigente)", d.req, "Solicitante")}
+                ${buildAnalyticalTable("Por Grupo (Mês Vigente)", d.gp, "Grupo")}
+                ${buildAnalyticalTable("Por Analista (Mês Vigente)", d.asg, "Analista")}
+                ${buildAnalyticalTable("Consolidado por Mês", d.m, "Mês", true)}
+            </div>
+
+            <div class="report-card">
+                <div class="report-card-title" style="color:var(--primary-dark)"><i class="fas fa-list mr-2"></i> LISTA DETALHADA DE CLASSIFICAÇÕES INCORRETAS</div>
+                <div class="st-dataframe-container">
+                    <table class="st-table">
+                        <thead><tr>
+                            ${createTh("Ticket Original", "12%")}
+                            ${createTh("Ticket Vinculado", "12%")}
+                            ${createTh("Descrição / Close Notes", "25%", "left")}
+                            ${createTh("Solicitante", "15%")}
+                            ${createTh("Analista/Grupo", "15%")}
+                            ${createTh("Reason / Status", "13%")}
+                            ${createTh("Ocioso/Dias", "8%", "right")}
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>
+            `;
+        }
+
+        function generateConsolidadoHTML(i, r, u) {
+            let getTotals = (d, key) => { let s = 0; Object.keys(d.trendM).forEach(k => s += d.trendM[k][key]); return s; };
+            let totIn = getTotals(i, 'a') + getTotals(r, 'a') + getTotals(u, 'a');
+            let totOut = getTotals(i, 'r') + getTotals(i, 'c') + getTotals(r, 'r') + getTotals(r, 'c') + getTotals(u, 'r') + getTotals(u, 'c');
+
+            return `
+            <div class="report-section-title" style="background-color: ${C.PRI_D};"><i class="fas fa-globe mr-2"></i> VISÃO ORGANIZACIONAL CONSOLIDADA (INCs + REQs + UAMs)</div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="report-card text-center border-l-4 border-blue-800" style="margin-bottom:0;">
+                    <div class="report-card-title">Backlog INCs</div>
+                    <div class="text-5xl font-black text-slate-700">${i.backlog}</div>
+                </div>
+                <div class="report-card text-center border-l-4 border-blue-600" style="margin-bottom:0;">
+                    <div class="report-card-title">Backlog REQs</div>
+                    <div class="text-5xl font-black text-slate-700">${r.backlog}</div>
+                </div>
+                <div class="report-card text-center border-l-4 border-blue-400" style="margin-bottom:0;">
+                    <div class="report-card-title">Backlog UAMs</div>
+                    <div class="text-5xl font-black text-slate-700">${u.backlog}</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="report-card" style="text-align:center;">
+                    <div class="report-card-title">TOTAL ENTRADAS (Visão Histórica)</div>
+                    <div style="font-size:54px; font-weight:900; color:${C.PRI_D}; margin:20px 0;">${totIn}</div>
+                    <div class="text-sm text-slate-500 font-bold">Volume total de chamados abertos</div>
+                </div>
+                <div class="report-card" style="text-align:center;">
+                    <div class="report-card-title">TOTAL SAÍDAS (Visão Histórica)</div>
+                    <div style="font-size:54px; font-weight:900; color:${C.SUC}; margin:20px 0;">${totOut}</div>
+                    <div class="text-sm text-slate-500 font-bold">Soma de Resolvidos e Cancelados</div>
+                </div>
+            </div>
+
+            <div class="report-card" style="text-align:center; background: linear-gradient(to right, #f8fafc, #ffffff);">
+                <div class="report-card-title" style="color:${C.PRI_D}">BACKLOG GLOBAL VIGENTE (No momento da Auditoria)</div>
+                <div style="font-size:64px; font-weight:900; color:${C.ORG}; margin:10px 0;">${i.backlog + r.backlog + u.backlog}</div>
+                <div class="text-sm text-slate-500 font-bold uppercase tracking-wider">Tickets aguardando atendimento em todos os fluxos</div>
+            </div>
+
+            <div class="report-card h-[400px]">
+                <div class="report-card-title">1. ACOMPANHAMENTO GLOBAL DIÁRIO (MÊS VIGENTE)</div>
+                <div class="chart-full-width"><canvas id="c-d-cons"></canvas></div>
+            </div>
+            
+            <div class="report-card h-[400px]">
+                <div class="report-card-title">2. VISÃO MENSAL CONSOLIDADA</div>
+                <div class="chart-full-width"><canvas id="c-m-cons"></canvas></div>
+            </div>
+            `;
+        }
+
+        function generatePRBTab(rcaData, ptaskData, slaPTask, refDateObj) {
+            const refDate = new Date(refDateObj); refDate.setHours(23, 59, 59, 999); const refTime = refDate.getTime();
+            let html = `<div class="report-section-title" style="background-color: ${C.PRI_D};"><i class="fas fa-bullseye mr-2"></i> SESSÃO PRB TASKs (TODAS AS ABERTAS NO SISTEMA)</div>`;
+
+            let rcaRows = "";
+            rcaData.forEach(r => {
+                let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                if (!op || op.getTime() > refTime) return;
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                let st = String(getCol(r, ['State', 'Status', 'RCA Status']) || '').toLowerCase();
+                if (clOrig && clOrig.getTime() <= refTime) { if (st.includes('clos') || st.includes('resolv') || st.includes('cancel') || st.includes('fech')) return; }
+
+                let asg = getCol(r, ['Assigned to', 'Analista']) || '-';
+                let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
+
+                let tk = getCol(r, ['Problem', 'Problema']) || '-';
+                let descClean = String(getCol(r, ['Short description', 'Descrição']) || '-').replace(/"/g, '&quot;');
+                let req = getCol(r, ['Requester', 'Caller']) || 'N/A';
+                
+                let dummyT = { tk: tk, desc: descClean, req: req, as: asg, gp: '-', st: getCol(r, ['RCA Status', 'State', 'Status']) || '-', age: Math.floor((refDate - op) / 86400000), idle: idle, opStr: op.toLocaleDateString('pt-BR'), info: 'RCA pendente.' };
+
+                rcaRows += `<tr ${buildRowAttrs(dummyT)}>
+                    <td data-label="Problem" style="color:${C.PRI_D}; font-weight:bold;">
+                        ${tk}
+                        <button onclick="openTicketDetails('${tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                    </td>
+                    <td data-label="Descrição da Causa Raiz" style="text-align:left;">
+                        <div class="text-expandable text-[12px] font-semibold text-slate-700">${descClean}</div>
+                        ${descClean.length > 70 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
+                    </td>
+                    <td data-label="Analista Responsável" class="font-medium">${dummyT.as}</td>
+                    <td data-label="Status RCA"><span class="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-[10px] uppercase">${dummyT.st}</span></td>
+                </tr>`;
+            });
+
+            html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-search mr-2"></i> 1. PROBLEM RCA - CAUSAS RAIZ EM ABERTO</div>
+                <div class="st-dataframe-container"><table class="st-table">
+                <thead><tr>
+                    ${createTh("Problem", "15%")}
+                    ${createTh("Descrição da Causa Raiz", "auto", "left")}
+                    ${createTh("Analista Responsável", "20%")}
+                    ${createTh("Status RCA", "15%")}
+                </tr></thead>
+                <tbody>${rcaRows || `<tr><td colspan="4" class="text-center text-slate-500 py-6">Nenhuma RCA aberta no momento.</td></tr>`}</tbody>
+                </table></div></div>`;
+
+            let ptaskRows = "";
+            ptaskData.forEach(r => {
+                let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                if (!op || op.getTime() > refTime) return;
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                let st = String(getCol(r, ['State', 'Status']) || '').toLowerCase();
+                if (clOrig && clOrig.getTime() <= refTime) { if (st.includes('clos') || st.includes('resolv') || st.includes('cancel') || st.includes('fech')) return; }
+
+                let age = Math.floor((refDate - op) / 86400000);
+                let tk = getCol(r, ['Number', 'Task']) || '-';
+                let desc = getCol(r, ['Problem', 'Problema']) || '-';
+                let req = getCol(r, ['Requester', 'Caller']) || 'N/A';
+
+                let asg = getCol(r, ['Assigned to', 'Analista']) || '-';
+                let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
+
+                let dummyT = { tk: tk, desc: desc, req: req, as: asg, gp: getCol(r, ['Assignment group', 'Grupo']) || '-', st: st.toUpperCase(), age: age, idle: idle, opStr: op.toLocaleDateString('pt-BR'), info: 'Task secundária' };
+
+                ptaskRows += `<tr ${buildRowAttrs(dummyT)}>
+                    <td data-label="Problem (Pai)" class="font-bold text-slate-700">${desc}</td>
+                    <td data-label="PTASK" style="color:${C.PRI_D}; font-weight:bold;">
+                        ${tk}
+                        <button onclick="openTicketDetails('${tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                    </td>
+                    <td data-label="Analista" class="font-medium">${dummyT.as}</td>
+                    <td data-label="Grupo Resolutor">${dummyT.gp}</td>
+                    <td data-label="SLA / Aging / Ocioso" style="text-align:right;">
+                        <div style="color:${age > slaPTask ? C.DAN : C.SUC}; font-weight:bold; font-size:13px;">${age > slaPTask ? `Estourado (${age}d)` : `No Prazo (${age}d)`}</div>
+                        ${dummyT.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${dummyT.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${dummyT.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                    </td>
+                </tr>`;
+            });
+
+            html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-tasks mr-2"></i> 2. TASKS DE PROBLEMA (PTASK) ABERTAS</div>
+                <div class="st-dataframe-container"><table class="st-table">
+                <thead><tr>
+                    ${createTh("Problem (Pai)", "15%")}
+                    ${createTh("PTASK", "15%")}
+                    ${createTh("Analista", "20%")}
+                    ${createTh("Grupo Resolutor", "25%")}
+                    ${createTh("SLA / Ocioso", "15%", "right")}
+                </tr></thead>
+                <tbody>${ptaskRows || `<tr><td colspan="5" class="text-center text-slate-500 py-6">Nenhuma PTASK aberta no momento.</td></tr>`}</tbody>
+                </table></div></div>`;
+            
+            return html;
+        }
+
+        // ==========================================
+        // 7. GRÁFICOS CHART.JS COM FIX Y-AXIS
+        // ==========================================
+        function drawChartsAll(id, d, lblRes) {
+            Chart.defaults.global.defaultFontFamily = "'Inter', 'Calibri', sans-serif";
+            Chart.defaults.global.defaultFontColor = "#475569";
+
+            const drawTrend = (canvas, tData, isD) => {
+                let keys = Object.keys(tData).sort();
+                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
+                let instance = new Chart(document.getElementById(canvas), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'bar', label: lblRes, data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
+                        ]
+                    },
+                    options: { 
+                        maintainAspectRatio: false, 
+                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }, 
+                        scales: { 
+                            xAxes: [{ stacked: true, gridLines: { display: false } }], 
+                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }] 
+                        } 
+                    }
+                });
+                window.chartInstances.push(instance);
+            };
+            drawTrend(`c-d-${id}`, d.trendD, true); drawTrend(`c-m-${id}`, d.trendM, false);
+
+            let instA = new Chart(document.getElementById(`c-a-${id}`), {
+                type: 'horizontalBar',
+                data: { labels: d.topAnalistas.map(a => a.nome), datasets: [{ label: 'Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C.PRI_D }, { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C.SUC }] },
+                options: { maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } }, scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ stacked: true, gridLines: { display: false } }] }, plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } } }
+            });
+            window.chartInstances.push(instA);
+
+            let agKeys = Object.keys(d.agingBuckets);
+            let instAg = new Chart(document.getElementById(`c-ag-${id}`), {
+                type: 'horizontalBar',
+                data: { labels: agKeys, datasets: [{ data: agKeys.map(k => d.agingBuckets[k].count), backgroundColor: agKeys.map(k => d.agingBuckets[k].color), barPercentage: 0.7, categoryPercentage: 0.8 }] },
+                options: { maintainAspectRatio: false, legend: { display: false }, scales: { xAxes: [{ gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ gridLines: { display: false } }] }, plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } } }
+            });
+            window.chartInstances.push(instAg);
+
+            let instP = new Chart(document.getElementById(`c-p-${id}`), {
+                type: 'doughnut',
+                data: { labels: ['SLA Cumprido', 'SLA Estourado'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN], borderWidth: 2, borderColor: '#fff' }] },
+                options: { cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } }, plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (val, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x); return sum && val > 0 ? Math.round((val / sum) * 100) + '%' : ""; } } } }
+            });
+            window.chartInstances.push(instP);
+        }
+
+        function drawConsolidadoCharts(i, r, u) {
+            let cTrendD = {}; let dKeys = new Set([...Object.keys(i.trendD), ...Object.keys(r.trendD), ...Object.keys(u.trendD)]);
+            dKeys.forEach(k => { cTrendD[k] = { a: (i.trendD[k]?.a || 0) + (r.trendD[k]?.a || 0) + (u.trendD[k]?.a || 0), r: (i.trendD[k]?.r || 0) + (r.trendD[k]?.r || 0) + (u.trendD[k]?.r || 0), c: (i.trendD[k]?.c || 0) + (r.trendD[k]?.c || 0) + (u.trendD[k]?.c || 0), b: (i.trendD[k]?.b || 0) + (r.trendD[k]?.b || 0) + (u.trendD[k]?.b || 0) }; });
+
+            let cTrendM = {}; let mKeys = new Set([...Object.keys(i.trendM), ...Object.keys(r.trendM), ...Object.keys(u.trendM)]);
+            mKeys.forEach(k => { cTrendM[k] = { a: (i.trendM[k]?.a || 0) + (r.trendM[k]?.a || 0) + (u.trendM[k]?.a || 0), r: (i.trendM[k]?.r || 0) + (r.trendM[k]?.r || 0) + (u.trendM[k]?.r || 0), c: (i.trendM[k]?.c || 0) + (r.trendM[k]?.c || 0) + (u.trendM[k]?.c || 0), b: (i.trendM[k]?.b || 0) + (r.trendM[k]?.b || 0) + (u.trendM[k]?.b || 0) }; });
+
+            const drawC = (canvas, tData, isD) => {
+                let keys = Object.keys(tData).sort();
+                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
+                let instance = new Chart(document.getElementById(canvas), {
+                    type: 'bar',
+                    data: { labels: labels, datasets: [
+                        { type: 'line', label: 'Backlog Global', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                        { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                        { type: 'bar', label: 'Resolvidos/Encerrados', data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                        { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
+                    ]},
+                    options: { 
+                        maintainAspectRatio: false, 
+                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }, 
+                        scales: { 
+                            xAxes: [{ stacked: true, gridLines: { display: false } }], 
+                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }] 
+                        } 
+                    }
+                });
+                window.chartInstances.push(instance);
+            };
+            drawC('c-d-cons', cTrendD, true); drawC('c-m-cons', cTrendM, false);
         }
 
         // ==========================================
@@ -1755,7 +2272,6 @@
                     if (rU.length) { dRU = calculateSection(rU, slaR, "REQ", dateMachine); document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "SESSÃO UAMs (ACESSOS)", C.PRI_D, dRU, "REQ"); }
                 }
 
-                // GERAÇÃO DA NOVA ABA: TICKETS ABERTOS COMO VISÃO INICIAL
                 document.getElementById('tab-open').innerHTML = generateOpenTicketsHTML(RawData.incs, rS, rU, slaI, slaR, dateMachine);
 
                 if (dI && dRS && dRU) document.getElementById('tab-cons').innerHTML = generateConsolidadoHTML(dI, dRS, dRU);
@@ -1810,7 +2326,6 @@
                     populateTodoAnalystDropdown();
                     renderTodos();
                     
-                    // Força a exibição da aba Abertos no final do processamento
                     switchTab('tab-open', document.querySelector('.tab-btn[onclick*="tab-open"]'));
 
                     if (document.getElementById("globalSearch").value.trim() !== "") {
