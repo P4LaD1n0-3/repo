@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELITE MASTER V6.5 - Sistema Analítico ITSM</title>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.7.0"></script>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Calibri:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-dark: #001871;
+            --primary: #1E3A8A;
+            --primary-light: #E3F2FD;
+            --accent-dark: #0F172A;
+            --accent: #2563EB;
+            --success: #00C853;
+            --danger: #D50000;
+            --orange: #FF8C00;
+            --gray-dark: #334155;
+            --gray: #94A3B8;
+            --gray-light: #F8FAFC;
+            --info: #0284C7;
+            --background: #F1F5F9;
+            --sidebar-width: 320px;
+        }
+
+        body {
+            font-family: 'Calibri', Arial, sans-serif;
+            background-color: var(--background);
+            color: #333;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        * { box-sizing: border-box; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid var(--background); }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+        .sidebar {
+            width: var(--sidebar-width); background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 500; height: 100vh; flex-shrink: 0; box-shadow: 4px 0 15px rgba(0, 0, 0, 0.03);
+        }
+
+        .sidebar-header { padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; background: #fff; }
+        .sidebar-content { padding: 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
+
+        @media (min-width: 1024px) { .sidebar.collapsed { margin-left: calc(var(--sidebar-width) * -1); } }
+
+        @media (max-width: 1023px) {
+            .sidebar { position: fixed; left: calc(var(--sidebar-width) * -1); }
+            .sidebar.open { left: 0; }
+            .overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 400; backdrop-filter: blur(4px); opacity: 0; transition: 0.3s; }
+            .overlay.open { display: block; opacity: 1; }
+        }
+
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; width: 100%; background: var(--background); min-width: 0; }
+
+        .top-header {
+            background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); height: 70px; border-bottom: 1px solid #e2e8f0;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+            position: sticky; top: 0; z-index: 200; min-width: 0;
+        }
+
+        .btn-toggle {
+            background: #fff; border: 1px solid #cbd5e1; color: var(--primary-dark); width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; transition: 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .search-wrapper { position: relative; width: 100%; max-width: 400px; display: none; }
+        .search-wrapper.visible { display: block; }
+        .search-input { width: 100%; padding: 10px 16px 10px 42px; border-radius: 99px; border: 1px solid #cbd5e1; font-size: 13px; outline: none; background: #f8fafc; transition: 0.3s; }
+        .search-input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
+
+        .tabs-sticky { background-color: #fff; border-bottom: 2px solid #e2e8f0; padding: 0 2rem; position: sticky; top: 0; z-index: 150; width: 100%; }
+        .tabs-nav { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; }
+        .tab-btn { padding: 12px 20px; background: transparent; border: none; border-bottom: 3px solid transparent; color: #64748b; font-weight: 700; font-size: 13px; text-transform: uppercase; cursor: pointer; transition: 0.3s; border-radius: 6px 6px 0 0; }
+        .tab-btn.active { color: var(--primary-dark); border-bottom-color: var(--primary-dark); background: #eff6ff; }
+
+        .content-area { padding: 2rem; overflow-y: auto; overflow-x: hidden; flex: 1; scroll-behavior: smooth; min-width: 0; }
+        .content-container { max-width: 1600px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; padding-bottom: 50px;}
+
+        .report-section-title { font-size: 18px; font-weight: 800; color: #FFFFFF; padding: 15px; border-radius: 8px; text-transform: uppercase; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); display: flex; align-items: center; gap: 10px;}
+        .report-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); display: flex; flex-direction: column; height: 100%; transition: 0.3s; min-width: 0; margin-bottom: 25px; }
+
+        .st-dataframe-container { overflow-x: auto; max-height: 500px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
+        .st-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 11px; font-family: 'Inter', sans-serif; }
+        .st-table th { background-color: var(--primary-dark); color: #fff; padding: 10px 8px; text-align: center; position: sticky; top: 0; z-index: 10; font-weight: 700; text-transform: uppercase; cursor: pointer; user-select: none; border-right: 1px solid rgba(255,255,255,0.1); }
+        .st-table th:hover { background-color: var(--primary); }
+        .st-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center; vertical-align: middle; }
+        .st-table tbody tr:nth-child(even) { background-color: var(--gray-light); }
+
+        /* TODO STRIKE-THROUGH STYLE */
+        .history-text.striked { text-decoration: line-through; opacity: 0.5; color: var(--gray); }
+        .history-entry { cursor: pointer; padding: 5px; border-radius: 4px; transition: 0.2s; }
+        .history-entry:hover { background: rgba(0,0,0,0.03); }
+
+        .todo-item { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02); }
+        .todo-badge { background: #eff6ff; color: var(--primary-dark); border: 1px solid #bfdbfe; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
+
+        /* CUSTOM MODAL ALERT */
+        #custom-confirm-modal { z-index: 10000; }
+        .modal-btn { padding: 8px 20px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .modal-btn-confirm { background: var(--danger); color: white; }
+        .modal-btn-cancel { background: var(--gray-light); color: var(--gray-dark); border: 1px solid #cbd5e1; }
+
+        /* CHART OVERRIDES */
+        .chart-wrapper, .chart-full-width { height: 350px; position: relative; }
+
+        .hidden-st { display: none !important; }
+    </style>
+</head>
+
+<body>
+
+    <div id="mobile-overlay" class="overlay" onclick="toggleSidebar()"></div>
+
+    <div id="custom-confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade">
+            <div class="text-center mb-6">
+                <div id="confirm-icon" class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 id="confirm-title" class="text-lg font-black text-slate-800 mb-2">Confirmar Ação?</h3>
+                <p id="confirm-msg" class="text-sm text-slate-500">Esta ação não poderá ser desfeita.</p>
+            </div>
+            <div class="flex gap-3">
+                <button id="btn-modal-cancel" class="modal-btn modal-btn-cancel flex-1">Cancelar</button>
+                <button id="btn-modal-confirm" class="modal-btn modal-btn-confirm flex-1">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="global-tooltip">
+        <div class="tt-header">
+            <div class="tt-title" id="tt-tk">INC0000000</div>
+            <div class="tt-badge" id="tt-st">STATUS</div>
+        </div>
+        <div class="tt-body">
+            <div id="tt-desc" style="margin-bottom: 10px; font-size: 13px; color: #fff;">...</div>
+        </div>
+        <div class="tt-meta">
+            <div><span>Atribuído a:</span><strong id="tt-as">...</strong></div>
+            <div><span>Abertura:</span><strong id="tt-op">...</strong></div>
+            <div style="grid-column: span 2; margin-top: 4px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                <span style="font-size: 10px; text-transform: uppercase; color:#cbd5e1;">Ociosidade (Sem ação do analista)</span>
+                <strong id="tt-idle" style="display: block; font-size: 14px; margin-top: 2px;">...</strong>
+            </div>
+        </div>
+    </div>
+
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-[#001871] text-white flex items-center justify-center font-bold text-lg shadow-md"><i class="fas fa-chart-pie"></i></div>
+                <h2 class="text-lg font-bold text-[#001871]" style="margin:0;">Elite Master</h2>
+            </div>
+            <button class="btn-toggle lg:hidden" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="sidebar-content">
+            <div class="time-machine">
+                <label class="text-[10px] font-bold mb-2 block text-white/70 uppercase">Data de Referência</label>
+                <input type="date" id="ref-date" class="form-input text-slate-800" onchange="processDashboard()">
+                <div class="text-[10px] text-white/60 mt-2">Audite o backlog retroativamente.</div>
+            </div>
+
+            <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                <label class="form-label">Fontes de Dados</label>
+                <div id="dropzone" class="dropzone-discreet border-2 border-dashed p-6 text-center cursor-pointer hover:bg-blue-50 transition" onclick="document.getElementById('file-upload').click()">
+                    <i class="fas fa-cloud-upload-alt text-2xl text-blue-500 mb-2"></i>
+                    <div class="text-xs font-bold text-slate-600">Arraste as planilhas</div>
+                </div>
+                <input type="file" id="file-upload" multiple accept=".xlsx, .xls" class="hidden-st" onchange="handleFiles(event.target.files)">
+                <div id="file-status" class="mt-2 text-[10px]"></div>
+                <button id="btn-clear-files" class="btn-clear mt-2 hidden-st" onclick="clearFiles()">Limpar Arquivos</button>
+            </div>
+
+            <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                <label class="form-label mb-3">SLA Alvo (Dias)</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><span class="text-[9px] font-bold text-slate-400">INC</span><input type="number" id="sla-incs" value="7" class="form-input"></div>
+                    <div><span class="text-[9px] font-bold text-slate-400">REQ</span><input type="number" id="sla-reqs" value="10" class="form-input"></div>
+                </div>
+            </div>
+
+            <button class="btn-process mt-auto" onclick="processDashboard()"><i class="fas fa-bolt mr-2"></i> Gerar Relatório</button>
+        </div>
+    </aside>
+
+    <main class="main-wrapper">
+        <header class="top-header">
+            <div class="flex items-center gap-4">
+                <button class="btn-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <h1 class="hidden sm:block text-lg font-black text-[var(--primary-dark)] uppercase">Painel ITSM V6.5</h1>
+            </div>
+            <div class="search-wrapper visible">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="globalSearch" class="search-input" placeholder="Pesquisa Global em toda a base..." onkeyup="performGlobalSearch(event)">
+            </div>
+        </header>
+
+        <div class="tabs-sticky hidden-st" id="tabs-container">
+            <div class="tabs-nav">
+                <button class="tab-btn active" onclick="switchTab('tab-inc', this)">INCs</button>
+                <button class="tab-btn" onclick="switchTab('tab-req', this)">REQs</button>
+                <button class="tab-btn" onclick="switchTab('tab-uam', this)">UAMs</button>
+                <button class="tab-btn" onclick="switchTab('tab-cons', this)">Consolidado</button>
+                <button class="tab-btn" onclick="switchTab('tab-prb', this)">PRB / PTASK</button>
+                <button class="tab-btn" onclick="switchTab('tab-class', this)">Erros Classificação</button>
+                <button class="tab-btn" onclick="switchTab('tab-todo', this)" style="margin-left: auto; color: var(--primary-dark); font-weight: 900;">TODOs</button>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div class="content-container">
+                <div id="init-alert" class="bg-blue-50 p-10 rounded-xl border border-blue-100 text-center">
+                    <i class="fas fa-file-import text-5xl text-blue-300 mb-4"></i>
+                    <h2 class="text-xl font-black text-blue-900">Aguardando Importação de Dados</h2>
+                    <p class="text-blue-700">Importe os arquivos .xlsx do ServiceNow na barra lateral.</p>
+                </div>
+
+                <div id="loader" class="hidden-st text-center p-20">
+                    <i class="fas fa-circle-notch fa-spin text-5xl text-blue-600"></i>
+                    <p class="mt-4 font-bold text-slate-600">Processando Cruzamentos e Threads...</p>
+                </div>
+
+                <div id="report-content" class="hidden-st">
+                    <div id="tab-inc" class="tab-pane"></div>
+                    <div id="tab-req" class="tab-pane hidden-st"></div>
+                    <div id="tab-uam" class="tab-pane hidden-st"></div>
+                    <div id="tab-cons" class="tab-pane hidden-st"></div>
+                    <div id="tab-prb" class="tab-pane hidden-st"></div>
+                    <div id="tab-class" class="tab-pane hidden-st"></div>
+                    <div id="tab-search" class="tab-pane hidden-st"></div>
+                    
+                    <div id="tab-todo" class="tab-pane hidden-st">
+                        <div class="report-section-title bg-slate-800"><i class="fas fa-tasks mr-2"></i> Gerenciador de Tarefas Global</div>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-1">
+                                <div class="report-card">
+                                    <div class="report-card-title">Criar Nova Tarefa</div>
+                                    <div class="flex flex-col gap-3">
+                                        <select id="todo-analyst" class="form-input"></select>
+                                        <textarea id="todo-desc" class="form-input" rows="3" placeholder="Descrição da tarefa..."></textarea>
+                                        <button class="btn-process" onclick="addTodo()">Adicionar</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="lg:col-span-2">
+                                <div class="report-card">
+                                    <div class="report-card-title">Tarefas Ativas (<span id="todo-count">0</span>)</div>
+                                    <div id="todo-list" class="max-height-[600px] overflow-y-auto"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="ticket-modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] hidden-st flex items-center justify-center p-4">
+            <div id="ticket-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col transform scale-95 transition-all">
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50 rounded-t-xl">
+                    <div class="flex items-center gap-3">
+                        <h3 id="modal-tk" class="text-xl font-black text-slate-800">...</h3>
+                        <span id="modal-state" class="text-[10px] uppercase font-bold text-white px-2 py-1 rounded">...</span>
+                    </div>
+                    <button onclick="closeTicketDetails()" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-2xl"></i></button>
+                </div>
+                <div class="flex-1 overflow-hidden flex flex-col lg:flex-row">
+                    <div class="w-full lg:w-1/3 border-r overflow-y-auto p-6 bg-slate-50">
+                        <div class="mb-6">
+                            <h4 class="text-xs font-black text-slate-400 uppercase mb-4">Informações</h4>
+                            <div class="space-y-3">
+                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Solicitante</label><div id="modal-req" class="text-sm font-bold text-slate-700">...</div></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Analista</label><div id="modal-asg" class="text-sm font-bold text-blue-700">...</div></div>
+                                <div><label class="text-[10px] uppercase font-bold text-slate-400">Grupo</label><div id="modal-gp" class="text-sm font-bold">...</div></div>
+                                <div class="grid grid-cols-2 gap-2 border-t pt-3">
+                                    <div><label class="text-[10px] uppercase font-bold text-slate-400">Abertura</label><div id="modal-op" class="text-xs">...</div></div>
+                                    <div><label class="text-[10px] uppercase font-bold text-slate-400">Fechamento</label><div id="modal-cl" class="text-xs">...</div></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-t pt-6">
+                            <h4 class="text-xs font-black text-blue-600 uppercase mb-4"><i class="fas fa-edit mr-1"></i> Ações / TODOs do Ticket</h4>
+                            <div id="modal-todo-container" class="space-y-3">
+                                </div>
+                            <div class="mt-4 p-3 bg-blue-100/50 rounded-lg border border-blue-200">
+                                <label class="text-[10px] font-bold text-blue-800 uppercase">Nova Ação para este Ticket</label>
+                                <textarea id="modal-new-todo" class="w-full mt-2 p-2 text-xs rounded border border-blue-200" rows="2" placeholder="Digite uma atualização..."></textarea>
+                                <button onclick="addTodoFromModal()" class="w-full mt-2 bg-blue-600 text-white text-[10px] font-bold py-2 rounded uppercase hover:bg-blue-700">Salvar Ação</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-6 bg-white">
+                        <h4 id="modal-title" class="text-lg font-black text-slate-800 mb-2">...</h4>
+                        <p id="modal-desc" class="text-sm text-slate-500 mb-8 pb-4 border-b italic">...</p>
+                        <div id="modal-timeline"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ==========================================
+        // 1. CORE E DATA
+        // ==========================================
+        const RawData = { incs: [], reqs: [], rca: [], ptask: [] };
+        let todoList = JSON.parse(localStorage.getItem('eliteMasterTodosV65')) || [];
+        let GlobalOpenTickets = [];
+
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                const name = file.name.toLowerCase();
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                    const cleanJson = json.map(r => {
+                        let obj = {};
+                        Object.keys(r).forEach(k => obj[k.trim()] = r[k]);
+                        return obj;
+                    });
+                    if (name.includes('inc')) RawData.incs = cleanJson;
+                    else if (name.includes('sc_task') || name.includes('req')) RawData.reqs = cleanJson;
+                    else if (name.includes('rca')) RawData.rca = cleanJson;
+                    else if (name.includes('ptask')) RawData.ptask = cleanJson;
+                    document.getElementById('file-status').innerHTML += `<div class="text-green-600 font-bold">✓ ${file.name}</div>`;
+                    document.getElementById('btn-clear-files').classList.remove('hidden-st');
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function clearFiles() {
+            location.reload();
+        }
+
+        const getCol = (row, keys) => { for (let k of keys) if (row[k] !== undefined && row[k] !== "") return row[k]; return null; };
+        const safeDate = v => {
+            if (!v) return null;
+            let d = new Date(v);
+            return isNaN(d.getTime()) ? null : d;
+        };
+
+        // ==========================================
+        // 2. MOTOR DE ESTAGNAÇÃO (PYTHON PORT)
+        // ==========================================
+        function getDaysSilent(r, refDate, assignedTo, opDate) {
+            if (!assignedTo || assignedTo.includes('Não Atribuído') || assignedTo === 'N/A') return '-';
+            let maxDate = opDate ? new Date(opDate) : new Date(0);
+            let regex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(/g;
+            ['Work notes', 'Additional comments'].forEach(col => {
+                let txt = r[col];
+                if (txt && typeof txt === 'string') {
+                    let m;
+                    while ((m = regex.exec(txt)) !== null) {
+                        if (m[2].trim() === assignedTo) {
+                            let d = new Date(m[1].replace(/-/g, '/'));
+                            if (d > maxDate && d <= refDate) maxDate = d;
+                        }
+                    }
+                }
+            });
+            if (maxDate.getTime() === 0) return '-';
+            let diff = Math.floor((refDate - maxDate) / 86400000);
+            return diff < 0 ? 0 : diff;
+        }
+
+        // ==========================================
+        // 3. TODO SYSTEM (REGRAS DE RISCO E MODAL)
+        // ==========================================
+        function showConfirm(title, msg, onConfirm) {
+            const modal = document.getElementById('custom-confirm-modal');
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-msg').innerText = msg;
+            modal.classList.remove('hidden-st');
+            
+            const confirmBtn = document.getElementById('btn-modal-confirm');
+            const cancelBtn = document.getElementById('btn-modal-cancel');
+            
+            const cleanup = () => {
+                modal.classList.add('hidden-st');
+                confirmBtn.removeEventListener('click', handleConfirm);
+                cancelBtn.removeEventListener('click', cleanup);
+            };
+
+            const handleConfirm = () => {
+                onConfirm();
+                cleanup();
+            };
+
+            confirmBtn.addEventListener('click', handleConfirm);
+            cancelBtn.addEventListener('click', cleanup);
+        }
+
+        function saveTodos() {
+            localStorage.setItem('eliteMasterTodosV65', JSON.stringify(todoList));
+            renderTodos();
+        }
+
+        function addTodo() {
+            const analyst = document.getElementById('todo-analyst').value;
+            const desc = document.getElementById('todo-desc').value;
+            if (!analyst || !desc.trim()) return alert("Selecione um analista e preencha a descrição.");
+            
+            todoList.push({
+                id: Date.now().toString(),
+                analyst,
+                ticket: null,
+                date: new Date().toLocaleDateString('pt-BR'),
+                history: [{ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false }]
+            });
+            document.getElementById('todo-desc').value = '';
+            saveTodos();
+        }
+
+        function toggleStrike(todoId, index) {
+            let todo = todoList.find(t => t.id === todoId);
+            if (todo) {
+                todo.history[index].striked = !todo.history[index].striked;
+                saveTodos();
+                // Se estiver no modal, atualiza a view do modal também
+                let modalTk = document.getElementById('modal-tk').innerText.split(' ')[0];
+                if (todo.ticket === modalTk) renderModalTodos(modalTk);
+            }
+        }
+
+        function deleteTodo(id) {
+            showConfirm("Apagar Tarefa?", "O histórico desta tarefa será removido permanentemente.", () => {
+                todoList = todoList.filter(t => t.id !== id);
+                saveTodos();
+            });
+        }
+
+        function completeTodo(id) {
+            showConfirm("Concluir Tarefa?", "A tarefa será marcada como concluída e arquivada.", () => {
+                todoList = todoList.filter(t => t.id !== id);
+                saveTodos();
+            });
+        }
+
+        function renderTodos() {
+            const container = document.getElementById('todo-list');
+            if (!container) return;
+            document.getElementById('todo-count').innerText = todoList.length;
+            if (todoList.length === 0) {
+                container.innerHTML = '<div class="text-center py-10 text-slate-300 font-bold">Nenhuma tarefa pendente.</div>';
+                return;
+            }
+            container.innerHTML = todoList.map(t => `
+                <div class="todo-item border-l-4 border-blue-600">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="font-black text-[var(--primary-dark)] text-sm"><i class="fas fa-user mr-1 text-slate-400"></i> ${t.analyst} ${t.ticket ? `<span class="todo-badge ml-2">${t.ticket}</span>` : ''}</div>
+                        <div class="flex gap-2">
+                            <button onclick="completeTodo('${t.id}')" class="text-emerald-500"><i class="fas fa-check-circle"></i></button>
+                            <button onclick="deleteTodo('${t.id}')" class="text-red-400"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="space-y-2 mt-3">
+                        ${t.history.map((h, idx) => `
+                            <div class="history-entry" onclick="toggleStrike('${t.id}', ${idx})">
+                                <div class="text-[9px] font-bold text-slate-400">${h.date}</div>
+                                <div class="history-text text-xs text-slate-600 ${h.striked ? 'striked' : ''}">${h.text}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ==========================================
+        // 4. CROSSOVER: TICKET MODAL + TODO
+        // ==========================================
+        let currentModalTk = null;
+
+        function openTicketDetails(tkNumber) {
+            currentModalTk = tkNumber;
+            let ticketData = null;
+            let type = '';
+            [RawData.incs, RawData.reqs, RawData.ptask].forEach((src, idx) => {
+                let found = src.find(r => getCol(r, ['Number','number','Ticket','Problem','Task']) === tkNumber);
+                if (found) { ticketData = found; type = idx === 0 ? 'INC' : idx === 1 ? 'REQ' : 'TASK'; }
+            });
+
+            if (!ticketData) return;
+
+            document.getElementById('modal-tk').innerText = tkNumber;
+            document.getElementById('modal-title').innerText = getCol(ticketData, ['Short description','Descrição Curta','Descrição']) || 'Sem assunto';
+            document.getElementById('modal-desc').innerText = getCol(ticketData, ['Description','Descrição Completa']) || 'Sem descrição detalhada.';
+            document.getElementById('modal-state').innerText = getCol(ticketData, ['State','Status']) || 'N/A';
+            document.getElementById('modal-req').innerText = getCol(ticketData, ['Requester','Caller','Solicitante']) || 'N/A';
+            document.getElementById('modal-asg').innerText = getCol(ticketData, ['Assigned to','Analista']) || 'Não Atribuído';
+            document.getElementById('modal-gp').innerText = getCol(ticketData, ['Assignment group','Grupo']) || 'N/A';
+            document.getElementById('modal-op').innerText = safeDate(getCol(ticketData, ['Opened','opened_at']))?.toLocaleString('pt-BR') || '-';
+            document.getElementById('modal-cl').innerText = safeDate(getCol(ticketData, ['Resolved','Closed']))?.toLocaleString('pt-BR') || 'Aberto';
+
+            // TIMELINE NOTES
+            let regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(([^)]+)\)/gm;
+            let rawCombined = (ticketData['Work notes'] || '') + "\n" + (ticketData['Additional comments'] || '');
+            let matches = [...rawCombined.matchAll(regex)];
+            let entries = matches.map((m, i) => {
+                let text = rawCombined.substring(m.index + m[0].length, (i + 1 < matches.length) ? matches[i+1].index : rawCombined.length).trim();
+                return { date: m[1], author: m[2].trim(), type: m[3].trim(), text };
+            }).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            document.getElementById('modal-timeline').innerHTML = entries.map(e => `
+                <div class="mb-4 pl-4 border-l-2 ${e.type.includes('Work') ? 'border-orange-400 bg-orange-50/20' : 'border-blue-400 bg-blue-50/20'} p-3 rounded">
+                    <div class="flex justify-between text-[10px] font-bold mb-1">
+                        <span class="text-slate-800">${e.author}</span>
+                        <span class="text-slate-400">${e.date}</span>
+                    </div>
+                    <div class="text-[9px] uppercase font-black mb-1 opacity-60">${e.type}</div>
+                    <div class="text-xs text-slate-600 whitespace-pre-wrap">${e.text}</div>
+                </div>
+            `).join('') || '<div class="text-slate-400 text-xs italic">Sem notas registradas.</div>';
+
+            renderModalTodos(tkNumber);
+
+            document.getElementById('ticket-modal-backdrop').classList.remove('hidden-st');
+            setTimeout(() => document.getElementById('ticket-modal-content').classList.remove('scale-95'), 10);
+        }
+
+        function renderModalTodos(tkNumber) {
+            const container = document.getElementById('modal-todo-container');
+            let tkTodos = todoList.filter(t => t.ticket === tkNumber);
+            if (tkTodos.length === 0) {
+                container.innerHTML = '<div class="text-[10px] text-slate-400 italic">Nenhuma ação de TODO vinculada a este ticket.</div>';
+                return;
+            }
+            container.innerHTML = tkTodos.map(t => `
+                <div class="bg-white border p-2 rounded shadow-sm">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] font-bold text-blue-600">${t.analyst}</span>
+                        <button onclick="completeTodo('${t.id}')" class="text-emerald-500 text-[10px]"><i class="fas fa-check"></i></button>
+                    </div>
+                    ${t.history.map((h, idx) => `
+                        <div class="text-[10px] ${h.striked ? 'striked opacity-40' : ''} cursor-pointer hover:bg-slate-50" onclick="toggleStrike('${t.id}', ${idx})">
+                            • ${h.text}
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        function addTodoFromModal() {
+            const text = document.getElementById('modal-new-todo').value;
+            if (!text.trim()) return;
+            const tk = document.getElementById('modal-tk').innerText;
+            const analyst = document.getElementById('modal-asg').innerText;
+            
+            // Procura se já existe um TODO para este ticket
+            let existing = todoList.find(t => t.ticket === tk);
+            if (existing) {
+                existing.history.push({ text: text, date: new Date().toLocaleString('pt-BR'), striked: false });
+            } else {
+                todoList.push({
+                    id: Date.now().toString(),
+                    analyst: analyst,
+                    ticket: tk,
+                    date: new Date().toLocaleDateString('pt-BR'),
+                    history: [{ text: text, date: new Date().toLocaleString('pt-BR'), striked: false }]
+                });
+            }
+            document.getElementById('modal-new-todo').value = '';
+            saveTodos();
+            renderModalTodos(tk);
+        }
+
+        function closeTicketDetails() {
+            document.getElementById('ticket-modal-content').classList.add('scale-95');
+            setTimeout(() => document.getElementById('ticket-modal-backdrop').classList.add('hidden-st'), 200);
+        }
+
+        // ==========================================
+        // 5. ORDENAÇÃO DE TABELAS (HEADER VISÍVEL)
+        // ==========================================
+        function sortTable(th) {
+            const table = th.closest('table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            if (rows.length < 2) return;
+
+            const colIdx = Array.from(th.parentNode.children).indexOf(th);
+            const isAsc = th.dataset.dir !== 'asc';
+            th.dataset.dir = isAsc ? 'asc' : 'desc';
+
+            rows.sort((a, b) => {
+                let vA = a.children[colIdx].innerText.trim();
+                let vB = b.children[colIdx].innerText.trim();
+                
+                // Date Parser
+                let dateA = vA.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                let dateB = vB.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                if (dateA && dateB) {
+                    return (new Date(dateA[3], dateA[2]-1, dateA[1]) - new Date(dateB[3], dateB[2]-1, dateB[1])) * (isAsc ? 1 : -1);
+                }
+
+                // Number Parser
+                let numA = parseFloat(vA.replace(/[^\d.-]/g, ''));
+                let numB = parseFloat(vB.replace(/[^\d.-]/g, ''));
+                if (!isNaN(numA) && !isNaN(numB)) return (numA - numB) * (isAsc ? 1 : -1);
+
+                return vA.localeCompare(vB, undefined, {numeric: true}) * (isAsc ? 1 : -1);
+            });
+            rows.forEach(r => tbody.appendChild(r));
+            
+            // Icons Update
+            th.parentNode.querySelectorAll('i').forEach(i => i.className = "fas fa-sort ml-1 opacity-30");
+            th.querySelector('i').className = isAsc ? "fas fa-sort-up ml-1" : "fas fa-sort-down ml-1";
+        }
+
+        // ==========================================
+        // 6. MOTOR DE PESQUISA GLOBAL
+        // ==========================================
+        function performGlobalSearch(e) {
+            const inputVal = document.getElementById("globalSearch").value.trim();
+            if (inputVal.length === 0) {
+                document.getElementById('tab-search').classList.add('hidden-st');
+                let activeBtn = document.querySelector('.tab-btn.active');
+                if (activeBtn) activeBtn.click();
+                return;
+            }
+
+            document.querySelectorAll('.tab-pane').forEach(c => c.classList.add('hidden-st'));
+            document.getElementById('tab-search').classList.remove('hidden-st');
+
+            const term = removeAccents(inputVal.toUpperCase());
+            const refDate = new Date(document.getElementById('ref-date').value + 'T12:00:00');
+            let results = [];
+
+            [RawData.incs, RawData.reqs, RawData.rca, RawData.ptask].forEach(src => {
+                src.forEach(r => {
+                    if (removeAccents(Object.values(r).join(" ")).toUpperCase().includes(term)) {
+                        let tk = getCol(r, ['Number','Ticket','Problem','Task']);
+                        let asg = getCol(r, ['Assigned to','Analista']);
+                        results.push({
+                            tk,
+                            desc: getCol(r, ['Short description','Descrição Curta','Descrição']) || '-',
+                            req: getCol(r, ['Requester','Caller','Solicitante']) || 'N/A',
+                            asg,
+                            gp: getCol(r, ['Assignment group','Grupo']) || '-',
+                            st: String(getCol(r, ['State','Status']) || '').toUpperCase(),
+                            op: safeDate(getCol(r, ['Opened','opened_at'])),
+                            cl: safeDate(getCol(r, ['Resolved','Closed'])),
+                            idle: getDaysSilent(r, refDate, asg, safeDate(getCol(r, ['Opened','opened_at'])))
+                        });
+                    }
+                });
+            });
+
+            let html = `<div class="report-section-title bg-slate-700">Resultados da Busca Global: "${inputVal}" (${results.length})</div>
+                <div class="report-card"><div class="st-dataframe-container"><table class="st-table">
+                <thead><tr>
+                    <th onclick="sortTable(this)">Ticket <i class="fas fa-sort ml-1"></i></th>
+                    <th onclick="sortTable(this)">Solicitante <i class="fas fa-sort ml-1"></i></th>
+                    <th onclick="sortTable(this)">Analista <i class="fas fa-sort ml-1"></i></th>
+                    <th onclick="sortTable(this)">Status <i class="fas fa-sort ml-1"></i></th>
+                    <th onclick="sortTable(this)">Aging / Ocioso <i class="fas fa-sort ml-1"></i></th>
+                </tr></thead>
+                <tbody>${results.map(t => `
+                    <tr class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-as="${t.asg}" data-st="${t.st}" data-idle="${t.idle}">
+                        <td class="font-bold">${t.tk}<br><button onclick="openTicketDetails('${t.tk}')" class="text-[9px] text-blue-600 underline">Saiba mais</button></td>
+                        <td>${t.req}</td>
+                        <td>${t.asg}<br><span class="text-[9px] text-slate-400">${t.gp}</span></td>
+                        <td>${t.st}</td>
+                        <td class="text-right font-bold">${t.cl ? 'Fechado' : t.idle+'d ocioso'}</td>
+                    </tr>`).join('')}
+                </tbody></table></div></div>`;
+            document.getElementById('tab-search').innerHTML = html;
+        }
+
+        // ==========================================
+        // 7. DASHBOARD LOGIC (INC/REQ/UAM/CONS/CLASS)
+        // ==========================================
+        function calculateClassifications(allData, refDate) {
+            let stats = { total: 0, withLink: 0, withoutLink: 0, byReq: {}, byGroup: {}, byAnalyst: {}, byMonth: {} };
+            
+            allData.forEach(r => {
+                let st = String(getCol(r, ['State', 'Status']) || '').toLowerCase();
+                let reason = String(getCol(r, ['Reason', 'reason', 'REASON', 'Motivo']) || '').toUpperCase();
+
+                if (st.includes('incomplet') && reason.includes('INCORRECT CLASSIFICATION')) {
+                    let op = safeDate(getCol(r, ['Opened','opened_at']));
+                    if (!op || op > refDate) return;
+
+                    stats.total++;
+                    let closeNotes = String(getCol(r, ['Close notes', 'Close Notes', 'close_notes', 'Closing notes']) || '');
+                    let linked = closeNotes.match(/(INC|RITM|REQ|TASK)[\s\-]?(\d{6,8})/i);
+                    if (linked) stats.withLink++; else stats.withoutLink++;
+
+                    let req = getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A';
+                    let gp = getCol(r, ['Assignment group', 'Grupo']) || 'N/A';
+                    let as = getCol(r, ['Assigned to', 'Analista']) || 'N/A';
+                    let month = op.toLocaleDateString('pt-BR', {month: 'short', year: 'numeric'}).toUpperCase();
+
+                    stats.byReq[req] = (stats.byReq[req] || 0) + 1;
+                    stats.byGroup[gp] = (stats.byGroup[gp] || 0) + 1;
+                    stats.byAnalyst[as] = (stats.byAnalyst[as] || 0) + 1;
+                    stats.byMonth[month] = (stats.byMonth[month] || 0) + 1;
+                }
+            });
+            return stats;
+        }
+
+        function generateClassificationsHTML(d) {
+            const tableHelper = (title, data, label) => `
+                <div class="report-card">
+                    <div class="report-card-title">${title}</div>
+                    <div class="st-dataframe-container"><table class="st-table">
+                        <thead><tr><th onclick="sortTable(this)">${label} <i class="fas fa-sort ml-1"></i></th><th onclick="sortTable(this)">Qtd <i class="fas fa-sort ml-1"></i></th></tr></thead>
+                        <tbody>${Object.entries(data).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</tbody>
+                    </table></div>
+                </div>`;
+
+            return `
+            <div class="report-section-title bg-red-600"><i class="fas fa-exclamation-circle mr-2"></i> Erros de Classificação (Vigentes e Históricos)</div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="report-card h-[400px]"><canvas id="chart-class-trend"></canvas></div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="report-card text-center"><div class="report-card-title">Total Incorretos</div><div class="text-4xl font-black text-red-600">${d.total}</div></div>
+                    <div class="report-card text-center"><div class="report-card-title">Sem Vínculo</div><div class="text-4xl font-black text-orange-500">${d.withoutLink}</div></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                ${tableHelper("Por Solicitante", d.byReq, "Solicitante")}
+                ${tableHelper("Por Grupo", d.byGroup, "Grupo")}
+                ${tableHelper("Por Analista", d.byAnalyst, "Analista")}
+                ${tableHelper("Por Período", d.byMonth, "Mês")}
+            </div>`;
+        }
+
+        function processDashboard() {
+            if (!RawData.incs.length && !RawData.reqs.length) return;
+
+            document.getElementById('init-alert').classList.add('hidden-st');
+            document.getElementById('loader').classList.remove('hidden-st');
+            document.getElementById('report-content').classList.add('hidden-st');
+            document.getElementById('tabs-container').classList.remove('hidden-st');
+
+            setTimeout(() => {
+                const slaI = parseInt(document.getElementById('sla-incs').value);
+                const slaR = parseInt(document.getElementById('sla-reqs').value);
+                const refDate = new Date(document.getElementById('ref-date').value + 'T12:00:00');
+
+                // Analisar Dados
+                let dI = calculateSection(RawData.incs, slaI, "INC", refDate);
+                const isUam = r => String(getCol(r, ['Assignment group','Grupo']) || '').toLowerCase().includes('access');
+                let rS = RawData.reqs.filter(r => !isUam(r));
+                let rU = RawData.reqs.filter(r => isUam(r));
+                let dR = calculateSection(rS, slaR, "REQ", refDate);
+                let dU = calculateSection(rU, slaR, "REQ", refDate);
+
+                // Popular Abas
+                document.getElementById('tab-inc').innerHTML = generateSectionHTML('inc', "INCIDENTES", C.PRI_D, dI, "INC");
+                document.getElementById('tab-req').innerHTML = generateSectionHTML('req', "REQs GERAIS", C.PRI_D, dR, "REQ");
+                document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "REQs ACESSOS (UAM)", C.PRI_D, dU, "REQ");
+                
+                // Consolidado com Novos Cards
+                document.getElementById('tab-cons').innerHTML = `
+                    <div class="report-section-title bg-[var(--primary-dark)]">Visão Organizacional Consolidada</div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="report-card text-center border-l-4 border-blue-800"><div class="report-card-title">Backlog INCs</div><div class="text-4xl font-black">${dI.backlog}</div></div>
+                        <div class="report-card text-center border-l-4 border-blue-600"><div class="report-card-title">Backlog REQs</div><div class="text-4xl font-black">${dR.backlog}</div></div>
+                        <div class="report-card text-center border-l-4 border-blue-400"><div class="report-card-title">Backlog UAMs</div><div class="text-4xl font-black">${dU.backlog}</div></div>
+                    </div>
+                    <div class="report-card h-[400px] mb-6"><canvas id="c-d-cons"></canvas></div>
+                `;
+
+                // Erros
+                let dClass = calculateClassifications([...RawData.incs, ...RawData.reqs], refDate);
+                document.getElementById('tab-class').innerHTML = generateClassificationsHTML(dClass);
+
+                // Finalizar
+                document.getElementById('loader').classList.add('hidden-st');
+                document.getElementById('report-content').classList.remove('hidden-st');
+
+                // Render Charts
+                drawChartsAll('inc', dI, 'Resolvidos');
+                drawChartsAll('req', dR, 'Encerrados');
+                drawChartsAll('uam', dU, 'Encerrados');
+                drawConsolidadoCharts(dI, dR, dU);
+                
+                // Chart Tendência Erros
+                new Chart(document.getElementById('chart-class-trend'), {
+                    type: 'line',
+                    data: {
+                        labels: Object.keys(dClass.byMonth),
+                        datasets: [{ label: 'Qtd Erros', data: Object.values(dClass.byMonth), borderColor: C.DAN, fill: false, datalabels: { formatter: v => v > 0 ? v : "" } }]
+                    },
+                    options: { maintainAspectRatio: false }
+                });
+
+                populateTodoAnalystDropdown();
+                renderTodos();
+            }, 600);
+        }
+
+        function drawChartsAll(id, d, lblRes) {
+            const common = (canvas, data, isLine = false) => {
+                new Chart(document.getElementById(canvas), {
+                    type: isLine ? 'line' : 'bar',
+                    data: {
+                        labels: Object.keys(data).map(k => k.split('-').reverse().join('/')),
+                        datasets: [
+                            { type: 'line', label: 'Backlog', data: Object.values(data).map(v => v.b), borderColor: C.ORG, fill: false, yAxisID: 'y1', datalabels: { formatter: v => v > 0 ? v : "" } },
+                            { label: 'Abertos', data: Object.values(data).map(v => v.a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { formatter: v => v > 0 ? v : "" } },
+                            { label: lblRes, data: Object.values(data).map(v => v.r), backgroundColor: C.SUC, yAxisID: 'y1', datalabels: { formatter: v => v > 0 ? v : "" } }
+                        ]
+                    },
+                    options: { maintainAspectRatio: false, scales: { yAxes: [{ id: 'y1', ticks: { beginAtZero: true } }] } }
+                });
+            };
+            common(`c-d-${id}`, d.trendD);
+            common(`c-m-${id}`, d.trendM);
+        }
+
+        function drawConsolidadoCharts(i, r, u) {
+            // Reutiliza lógica simplificada para fins de demonstração completa
+            const ctx = document.getElementById('c-d-cons');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(i.trendD).map(k => k.split('-').reverse().join('/')),
+                    datasets: [{ label: 'Volume Total', data: Object.keys(i.trendD).map(k => (i.trendD[k].a || 0) + (r.trendD[k].a || 0) + (u.trendD[k].a || 0)), backgroundColor: C.PRI_D, datalabels: { formatter: v => v > 0 ? v : "" } }]
+                },
+                options: { maintainAspectRatio: false }
+            });
+        }
+
+        function populateTodoAnalystDropdown() {
+            const select = document.getElementById('todo-analyst');
+            let set = new Set();
+            [RawData.incs, RawData.reqs].forEach(s => s.forEach(r => { let a = getCol(r, ['Assigned to','Analista']); if(a) set.add(a); }));
+            select.innerHTML = '<option value="">Selecione um Analista...</option>' + Array.from(set).sort().map(a => `<option value="${a}">${a}</option>`).join('');
+        }
+
+        window.onload = () => { renderTodos(); };
+    </script>
+</body>
+</html>
