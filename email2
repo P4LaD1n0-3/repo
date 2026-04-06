@@ -1,21 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELITE MASTER V6.8 - Sistema Analítico ITSM</title>
-
+    <title>ELITE MASTER V6.9 - Sistema Analítico ITSM</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.7.0"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Calibri:wght@400;700&display=swap" rel="stylesheet">
-
     <style>
         /* =========================================================
            PALETA DE CORES MASTER
@@ -36,7 +31,6 @@
             --background: #F1F5F9;
             --sidebar-width: 320px;
         }
-
         body {
             font-family: 'Inter', 'Calibri', Arial, sans-serif;
             background-color: var(--background);
@@ -46,15 +40,14 @@
             height: 100vh;
             overflow: hidden;
         }
-
         * { box-sizing: border-box; }
-
+        
         /* Scrollbars Premium */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid var(--background); }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
+        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
@@ -77,7 +70,6 @@
         }
         .sidebar-header { padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; background: #fff; }
         .sidebar-content { padding: 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1.5rem; }
-
         @media (min-width: 1024px) { .sidebar.collapsed { margin-left: calc(var(--sidebar-width) * -1); } }
         @media (max-width: 1023px) {
             .sidebar { position: fixed; left: calc(var(--sidebar-width) * -1); }
@@ -85,7 +77,6 @@
             .overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 400; backdrop-filter: blur(4px); opacity: 0; transition: 0.3s; }
             .overlay.open { display: block; opacity: 1; }
         }
-
         .main-wrapper { flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; width: 100%; background: var(--background); min-width: 0; }
         
         .top-header {
@@ -93,14 +84,13 @@
             height: 70px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;
             padding: 0 2rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02); position: sticky; top: 0; z-index: 200; min-width: 0;
         }
-
         .btn-toggle {
             background: #fff; border: 1px solid #cbd5e1; color: var(--primary-dark);
             width: 40px; height: 40px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;
             font-size: 1.1rem; transition: 0.2s; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
         .btn-toggle:hover { background: var(--gray-light); border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
-
+        
         .search-wrapper { position: relative; width: 100%; max-width: 400px; display: none; }
         .search-wrapper.visible { display: block; }
         .search-input {
@@ -117,33 +107,35 @@
         .tab-btn { padding: 12px 20px; background: transparent; border: none; border-bottom: 3px solid transparent; color: #64748b; font-weight: 700; font-size: 13px; text-transform: uppercase; cursor: pointer; transition: 0.3s; letter-spacing: 0.5px; border-radius: 6px 6px 0 0; }
         .tab-btn:hover { color: var(--primary-dark); background: #f8fafc; }
         .tab-btn.active { color: var(--primary-dark); border-bottom-color: var(--primary-dark); background: #eff6ff; }
-
+        
         .content-area { padding: 2rem; overflow-y: auto; overflow-x: hidden; flex: 1; scroll-behavior: smooth; min-width: 0; }
         .content-container { max-width: 1600px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; padding-bottom: 50px; }
-
+        
         .dropzone-discreet { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; transition: 0.3s; background: #f8fafc; }
         .dropzone-discreet:hover { border-color: var(--primary); background: #eff6ff; transform: translateY(-2px); }
         .file-badge { display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 6px 10px; border-radius: 6px; background: #ecfdf5; color: #166534; border: 1px solid #bbf7d0; font-weight: 600; margin-bottom: 6px; }
         
         .btn-clear { background: transparent; border: none; color: var(--danger); font-size: 12px; cursor: pointer; transition: 0.2s; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 4px 8px; border-radius: 4px; width: 100%; border: 1px solid var(--danger); margin-top: 10px; }
         .btn-clear:hover { background: #fee2e2; }
-
+        
         .form-label { display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
         .form-input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 13px; font-family: 'Inter'; outline: none; transition: 0.2s; background: #fff; }
         .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1); }
-
         .btn-process { background: var(--primary-dark); color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: 0.3s; width: 100%; box-shadow: 0 4px 6px rgba(0, 24, 113, 0.2); letter-spacing: 1px; font-size: 13px; }
         .btn-process:hover { background: #001255; transform: translateY(-2px); box-shadow: 0 10px 15px rgba(0, 24, 113, 0.3); }
 
         /* =========================================================
            CLONES DA INTERFACE PYTHON (CARDS E GRIDS)
            ========================================================= */
-        .report-section-title { font-size: 16px; font-weight: 800; color: #FFFFFF; padding: 12px 15px; border-radius: 8px; text-transform: uppercase; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px; }
+        .report-section-title { font-size: 15px; font-weight: 800; color: #FFFFFF; padding: 12px 15px; border-radius: 8px; text-transform: uppercase; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px; }
         .report-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px 20px; background-color: #ffffff; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); display: flex; flex-direction: column; height: 100%; transition: 0.3s; min-width: 0; margin-bottom: 25px; }
-        .report-card-title { color: #475569; font-size: 12px; font-weight: 800; text-transform: uppercase; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; margin-bottom: 15px; letter-spacing: 0.5px; cursor: pointer; }
-        .report-card-title:hover { color: var(--primary); }
+        .report-card-title { color: #475569; font-size: 12px; font-weight: 800; text-transform: uppercase; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; margin-bottom: 15px; letter-spacing: 0.5px; }
         .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr)); gap: 25px; margin-bottom: 25px; min-width: 0; }
-        .chart-wrapper, .chart-full-width { position: relative; width: 100%; height: 320px; min-width: 0; cursor: pointer; }
+        .chart-wrapper, .chart-full-width { position: relative; width: 100%; height: 320px; min-width: 0; }
+        
+        /* Utilidade para cards clicáveis no drill-down */
+        .clickable-card { cursor: pointer; transition: all 0.2s ease; }
+        .clickable-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); border-color: var(--primary); }
 
         /* =========================================================
            TABELAS DENSAS E HARMONIZADAS
@@ -164,7 +156,7 @@
         .filter-items label { display: flex; align-items: flex-start; gap: 8px; padding: 4px; cursor: pointer; border-radius: 4px; }
         .filter-items label:hover { background: #f1f5f9; }
         .filter-items input[type="checkbox"] { accent-color: var(--primary-dark); margin-top: 2px; }
-
+        
         .text-expandable { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; color: #475569; line-height: 1.4; transition: all 0.3s; text-align: left; }
         .text-expandable.expanded { -webkit-line-clamp: unset; display: block; }
         .btn-expand { background: transparent; border: none; color: var(--accent); font-size: 10px; font-weight: 800; cursor: pointer; margin-top: 4px; padding: 0; display: inline-flex; align-items: center; gap: 4px; text-transform: uppercase; }
@@ -181,18 +173,18 @@
         #global-tooltip {
             position: fixed; top: 0; left: 0; opacity: 0; visibility: hidden; z-index: 9999; pointer-events: none;
             background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px; padding: 18px; width: max-content; max-width: 380px; color: #f8fafc;
+            border-radius: 12px; padding: 14px; width: max-content; max-width: 340px; color: #f8fafc;
             font-family: 'Inter', sans-serif; box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.4), 0 15px 15px -5px rgba(0, 0, 0, 0.2);
             transition: opacity 0.2s ease, visibility 0.2s ease;
         }
-        #global-tooltip .tt-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.2); padding-bottom: 10px; margin-bottom: 12px; }
-        #global-tooltip .tt-title { font-weight: 900; font-size: 18px; color: #38bdf8; letter-spacing: 0.5px; }
-        #global-tooltip .tt-badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; background: rgba(255, 255, 255, 0.15); color: #fff; }
-        #global-tooltip .tt-body { font-size: 13px; line-height: 1.5; color: #e2e8f0; white-space: normal; word-wrap: break-word; margin-bottom: 12px; }
-        #global-tooltip .tt-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 11px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; }
-        #global-tooltip .tt-meta div { display: flex; flex-direction: column; gap: 3px; }
-        #global-tooltip .tt-meta span { color: #94a3b8; font-size: 9px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
-        #global-tooltip .tt-meta strong { color: #f8fafc; font-size: 12px; }
+        #global-tooltip .tt-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255, 255, 255, 0.2); padding-bottom: 8px; margin-bottom: 10px; }
+        #global-tooltip .tt-title { font-weight: 900; font-size: 14px; color: #38bdf8; letter-spacing: 0.5px; }
+        #global-tooltip .tt-badge { padding: 3px 8px; border-radius: 4px; font-size: 8px; font-weight: 800; text-transform: uppercase; background: rgba(255, 255, 255, 0.15); color: #fff; }
+        #global-tooltip .tt-body { font-size: 11px; line-height: 1.4; color: #e2e8f0; white-space: normal; word-wrap: break-word; margin-bottom: 10px; }
+        #global-tooltip .tt-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+        #global-tooltip .tt-meta div { display: flex; flex-direction: column; gap: 2px; }
+        #global-tooltip .tt-meta span { color: #94a3b8; font-size: 8px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px; }
+        #global-tooltip .tt-meta strong { color: #f8fafc; font-size: 11px; }
 
         /* =========================================================
            SISTEMA TODO E MODAIS
@@ -207,13 +199,11 @@
         .history-entry:hover { border-color: #cbd5e1; }
         .history-text { font-size: 12px; color: var(--gray-dark); word-wrap: break-word; white-space: pre-wrap; margin-top: 4px; }
         .history-text.striked { text-decoration: line-through; opacity: 0.4; color: var(--gray); }
-
         .todo-update-wrapper { display: flex; gap: 8px; margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 12px; }
         
         .modal-btn { padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; outline: none; }
         .modal-btn-confirm { background: var(--danger); color: white; border: 1px solid var(--danger); }
         .modal-btn-cancel { background: #fff; color: #475569; border: 1px solid #cbd5e1; }
-
         .hidden-st { display: none !important; }
 
         /* =========================================================
@@ -228,7 +218,11 @@
             .report-card { padding: 15px; margin-bottom: 15px; }
             .report-card-title { font-size: 11px !important; text-align: center; }
             .top-header h1 { font-size: 16px !important; }
-
+            
+            div[style*="font-size:38px"] { font-size: 32px !important; }
+            div[style*="font-size:48px"] { font-size: 38px !important; }
+            div[style*="font-size:42px"] { font-size: 32px !important; }
+            
             .st-dataframe-container { overflow-x: hidden !important; border: none; box-shadow: none; background: transparent; max-height: none; }
             .st-table { min-width: 0; width: 100%; display: block; }
             .st-table thead { display: flex; padding: 10px; background: #f8fafc; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; border-bottom: 2px solid var(--primary-dark); margin-bottom: 15px; border-radius: 8px; }
@@ -258,11 +252,8 @@
         }
     </style>
 </head>
-
 <body>
-
     <div id="mobile-overlay" class="overlay" onclick="toggleSidebar()"></div>
-
     <div id="custom-confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st" style="z-index: 10000;">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade">
             <div class="text-center mb-6">
@@ -283,25 +274,25 @@
             <div class="tt-badge" id="tt-st">STATUS</div>
         </div>
         <div class="tt-body">
-            <div style="color: #94a3b8; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; font-weight: bold;"><i class="fas fa-align-left mr-1"></i> Assunto Registrado</div>
-            <div id="tt-desc" style="margin-bottom: 15px; font-size: 13px; color: #fff;">...</div>
-            <div style="color: #94a3b8; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; font-weight: bold;"><i class="fas fa-user-circle mr-1"></i> Solicitante</div>
-            <div id="tt-req" style="margin-bottom: 10px; font-size: 13px; color: #fff; font-weight:bold;">...</div>
+            <div style="color: #94a3b8; font-size: 9px; text-transform: uppercase; margin-bottom: 2px; font-weight: bold;"><i class="fas fa-align-left mr-1"></i> Assunto Registrado</div>
+            <div id="tt-desc" style="margin-bottom: 10px; font-size: 11px; color: #fff;">...</div>
+            <div style="color: #94a3b8; font-size: 9px; text-transform: uppercase; margin-bottom: 2px; font-weight: bold;"><i class="fas fa-user-circle mr-1"></i> Solicitante</div>
+            <div id="tt-req" style="margin-bottom: 8px; font-size: 11px; color: #fff; font-weight:bold;">...</div>
         </div>
         <div class="tt-meta">
             <div><span>Atribuído a:</span><strong id="tt-as">...</strong></div>
             <div><span>Grupo Resolutor:</span><strong id="tt-gp">...</strong></div>
             <div><span>Data Abertura:</span><strong id="tt-op">...</strong></div>
             <div><span>Aging Atual:</span><strong id="tt-age" style="color: #f87171;">...</strong></div>
-            <div style="grid-column: span 2; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 8px;">
+            <div style="grid-column: span 2; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 6px;">
                 <span>SLA % Consumido</span>
-                <div class="w-full bg-slate-700 rounded-full h-3 mt-1 relative overflow-hidden">
-                    <div id="tt-sla-bar" class="h-3 flex items-center justify-center text-[8px] text-white font-bold" style="width: 0%; background-color: #10b981;">0%</div>
+                <div class="w-full bg-slate-700 rounded-full h-2.5 mt-1 relative overflow-hidden">
+                    <div id="tt-sla-bar" class="h-2.5 flex items-center justify-center text-[7px] text-white font-bold" style="width: 0%; background-color: #10b981;">0%</div>
                 </div>
             </div>
-            <div style="grid-column: span 2; margin-top: 4px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.2);">
+            <div style="grid-column: span 2; margin-top: 2px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.2);">
                 <span>Ociosidade (Sem ação)</span>
-                <strong id="tt-idle" style="display: block; font-size: 14px; margin-top: 2px;">...</strong>
+                <strong id="tt-idle" style="display: block; font-size: 11px; margin-top: 1px;">...</strong>
             </div>
         </div>
     </div>
@@ -314,14 +305,12 @@
             </div>
             <button class="btn-toggle lg:hidden" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
         </div>
-
         <div class="sidebar-content">
             <div class="time-machine">
                 <label style="font-size: 12px; font-weight: bold; margin-bottom: 8px; display: block; color:#e2e8f0; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-history mr-1"></i> Data de Referência</label>
                 <input type="date" id="ref-date" class="form-input text-slate-800" title="Recalcula todo o painel como se hoje fosse este dia.">
                 <div style="font-size: 10px; color: #bae6fd; margin-top: 8px; line-height: 1.4;">Selecione um dia do passado para auditar o backlog retroativamente.</div>
             </div>
-
             <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <label class="form-label" style="margin:0;">Fontes de Dados</label>
@@ -335,7 +324,6 @@
                 <input type="file" id="file-upload" multiple accept=".xlsx, .xls" class="hidden-st" onchange="handleFiles(event.target.files)">
                 <div id="file-status" class="mt-3 text-[10px] space-y-1"></div>
             </div>
-
             <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
                 <label class="form-label"><i class="fas fa-database text-blue-600 mr-1"></i> Backup Memória (JSON)</label>
                 <div class="text-[9px] text-slate-500 mb-3 leading-tight">Exporte seus TODOs para não perdê-los se limpar o cache.</div>
@@ -345,7 +333,6 @@
                     <input type="file" id="import-json" accept=".json" class="hidden-st" onchange="importBackupJSON(event)">
                 </div>
             </div>
-
             <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
                 <label class="form-label mb-3">Configuração de SLA (Dias)</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -354,7 +341,6 @@
                     <div style="grid-column: span 2;"><span style="font-size:11px; font-weight:600; color:#64748b;">PTASK (Problem Tasks)</span><input type="number" id="sla-ptask" value="10" class="form-input mt-1"></div>
                 </div>
             </div>
-
             <div style="margin-top: auto;">
                 <button class="btn-process" onclick="processDashboard()"><i class="fas fa-bolt mr-2"></i> Gerar Relatório</button>
             </div>
@@ -391,14 +377,12 @@
                 <button class="tab-btn" onclick="switchTab('tab-cons', this)"><i class="fas fa-globe mr-1"></i> Consolidado</button>
                 <button class="tab-btn" onclick="switchTab('tab-prb', this)"><i class="fas fa-bullseye mr-1"></i> PRB / PTASK</button>
                 <button class="tab-btn" onclick="switchTab('tab-class', this)"><i class="fas fa-exchange-alt mr-1"></i> Erros Classificação</button>
-                <button class="tab-btn" onclick="switchTab('tab-search', this)" style="display:none;"><i class="fas fa-search mr-1"></i> Filtro Ativo</button>
                 <button class="tab-btn" onclick="switchTab('tab-todo', this)" style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i class="fas fa-tasks mr-1"></i> TODOs</button>
             </div>
         </div>
 
         <div class="content-area" id="capture-area">
             <div class="content-container">
-
                 <div id="init-alert" style="background-color: var(--primary-light); color: var(--primary-dark); padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 15px;">
                     <i class="fas fa-file-import text-3xl text-blue-600"></i>
                     <div>
@@ -410,7 +394,7 @@
                 <div id="loader" class="hidden-st" style="text-align: center; padding: 80px 20px; color: var(--primary-dark);">
                     <i class="fas fa-circle-notch fa-spin" style="font-size: 48px; margin-bottom: 20px; color: var(--accent);"></i>
                     <div style="font-size: 18px; font-weight: 800;">Processando Métricas Históricas...</div>
-                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Cruzando dados e mapeando arrays de Drill-Down...</div>
+                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Cruzando dados e renderizando visualizações via Chart.js</div>
                 </div>
 
                 <div id="report-content" class="hidden-st">
@@ -422,10 +406,9 @@
                     <div id="tab-prb" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-class" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-search" class="animate-fade hidden-st tab-pane"></div>
-
+                    
                     <div id="tab-todo" class="animate-fade hidden-st tab-pane">
                         <div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-clipboard-check mr-2"></i> Gerenciador de Tarefas e Histórico</div>
-
                         <div class="grid-2" style="grid-template-columns: 1fr 2fr;">
                             <div class="report-card">
                                 <div class="report-card-title"><i class="fas fa-plus"></i> Nova Tarefa Inicial</div>
@@ -450,7 +433,6 @@
                                     <button class="btn-process" style="background: var(--primary-dark);" onclick="addTodo()">Criar Tarefa</button>
                                 </div>
                             </div>
-
                             <div class="report-card">
                                 <div class="report-card-title"><i class="fas fa-list"></i> Suas Tarefas Ativas (<span id="todo-count">0</span>)</div>
                                 <div id="todo-list" style="overflow-y:auto; max-height:500px; padding-right:10px;"></div>
@@ -480,11 +462,11 @@
                         <div class="mb-4 grid grid-cols-2 gap-3">
                             <div class="bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
                                 <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Aging Total</div>
-                                <div id="modal-age" class="text-xl font-black text-slate-700">...</div>
+                                <div id="modal-age" class="text-lg font-black text-slate-700">...</div>
                             </div>
                             <div class="bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
                                 <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Ociosidade</div>
-                                <div id="modal-idle" class="text-xl font-black text-slate-700">...</div>
+                                <div id="modal-idle" class="text-lg font-black text-slate-700">...</div>
                             </div>
                             <div class="col-span-2 bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
                                 <div class="text-[10px] font-bold text-slate-400 uppercase mb-2">Progresso do SLA</div>
@@ -527,20 +509,41 @@
                 </div>
             </div>
         </div>
-    </main>
 
-    <script>
+        <div id="drilldown-modal-backdrop" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[10000] hidden-st flex items-center justify-center p-4 transition-opacity opacity-0">
+            <div id="drilldown-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col transform transition-all scale-95 overflow-hidden">
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-[var(--primary-dark)] text-white flex items-center justify-center font-bold text-xl shadow-sm"><i class="fas fa-table"></i></div>
+                        <div>
+                            <h3 id="drilldown-title" class="text-lg font-black text-[var(--primary-dark)] m-0 leading-tight tracking-tight">Detalhes</h3>
+                            <span id="drilldown-subtitle" class="text-[10px] uppercase font-bold text-slate-500 mt-1 inline-block">0 registros</span>
+                        </div>
+                    </div>
+                    <button onclick="closeDrilldown()" class="text-slate-400 hover:text-red-500 text-3xl outline-none transition-colors"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 bg-white" id="drilldown-table-container">
+                    </div>
+            </div>
+        </div>
+        </main>
+
+<script>
         // ==========================================
         // 0. DATA & FILES & UTILS
         // ==========================================
         const RawData = { incs: [], reqs: [], rca: [], ptask: [] };
-        let todoList = JSON.parse(localStorage.getItem('eliteMasterTodosV68')) || [];
+        let todoList = JSON.parse(localStorage.getItem('eliteMasterTodosV69')) || [];
         let GlobalOpenTickets = [];
         let activeTableFilters = {};
-        window.chartInstances = window.chartInstances || []; 
+        
+        // NOVO: Armazém global para o Drill-down
+        window.DrilldownVault = {
+            inc: {}, req: {}, uam: {}, cons: {}, class: {}
+        };
 
         document.getElementById('ref-date').valueAsDate = new Date();
-
+        
         function handleFiles(files) {
             Array.from(files).forEach(file => {
                 const name = file.name.toLowerCase();
@@ -551,11 +554,11 @@
                     const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
                     
                     const cleanJson = json.map(r => { 
-                        let o = {}; 
-                        Object.keys(r).forEach(k => o[k.replace(/\ufffd/g, "").replace(/\s+/g, " ").trim()] = r[k]); 
-                        return o; 
-                    });
-
+                         let o = {}; 
+                         Object.keys(r).forEach(k => o[k.replace(/\ufffd/g, "").replace(/\s+/g, " ").trim()] = r[k]); 
+                         return o; 
+                     });
+                     
                     if (name.includes('inc')) RawData.incs = cleanJson;
                     else if (name.includes('sc_task') || name.includes('req')) RawData.reqs = cleanJson;
                     else if (name.includes('rca')) RawData.rca = cleanJson;
@@ -567,17 +570,16 @@
                 reader.readAsArrayBuffer(file);
             });
         }
-
         function clearFiles() { location.reload(); }
-
+        
         const getCol = (row, keys) => { 
-            for (let k of keys) if (row[k] !== undefined && row[k] !== "") return row[k]; 
-            return null; 
-        };
-
+             for (let k of keys) if (row[k] !== undefined && row[k] !== "") return row[k]; 
+             return null; 
+         };
+         
         const safeDate = v => { 
-            if (!v) return null; 
-            if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+             if (!v) return null; 
+             if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
             if (typeof v === 'number') return new Date(Math.round((v - 25569) * 86400 * 1000));
             if (typeof v === 'string') {
                 let p = v.trim().split(/[\/\s:]/);
@@ -585,179 +587,65 @@
                 let nD = new Date(v); if (!isNaN(nD.getTime())) return nD;
             }
             return null; 
-        };
-
+         };
+         
         function removeAccents(str) { return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); setTimeout(() => window.dispatchEvent(new Event('resize')), 350); }
         
         function toggleText(btn) { 
-            const t = btn.previousElementSibling; 
-            if (t.classList.contains('expanded')) { 
-                t.classList.remove('expanded'); btn.innerHTML = 'Expandir'; 
-            } else { 
-                t.classList.add('expanded'); btn.innerHTML = 'Recolher'; 
-            } 
-        }
-
+             const t = btn.previousElementSibling; 
+             if (t.classList.contains('expanded')) { 
+                 t.classList.remove('expanded'); btn.innerHTML = 'Expandir'; 
+             } else { 
+                 t.classList.add('expanded'); btn.innerHTML = 'Recolher'; 
+             } 
+         }
+         
         function takeScreenshot() {
             const btn = document.querySelector('.fa-camera').parentElement;
-            const originalHTML = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
-            
-            const target = document.getElementById('capture-area');
-            const origOverflow = target.style.overflow;
-            const origHeight = target.style.height;
-
-            target.style.overflow = 'visible';
-            target.style.height = 'auto';
-
-            html2canvas(target, {
-                scale: 1.5,
-                useCORS: true,
-                scrollY: 0,
-                windowHeight: target.scrollHeight
-            }).then(canvas => {
+            html2canvas(document.getElementById('capture-area'), { scrollY: -window.scrollY, scale: 2 }).then(canvas => {
                 const link = document.createElement('a'); 
                 link.download = `Painel_ITSM_EliteMaster_${new Date().toISOString().slice(0,10)}.png`;
-                link.href = canvas.toDataURL('image/png', 0.95); 
+                link.href = canvas.toDataURL('image/png'); 
                 link.click(); 
+                btn.innerHTML = '<i class="fas fa-camera text-sm"></i>';
             }).catch(err => {
-                alert("Erro ao tirar print da tela. Consulte o console.");
-                console.error(err);
-            }).finally(() => {
-                target.style.overflow = origOverflow;
-                target.style.height = origHeight;
-                btn.innerHTML = originalHTML;
+                alert("Erro ao tirar print da tela.");
+                btn.innerHTML = '<i class="fas fa-camera text-sm"></i>';
             });
         }
-
+        
         function exportBackupJSON() {
             const link = document.createElement('a');
             link.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(JSON.stringify(todoList));
             link.download = `EliteMaster_Backup_Tarefas_${new Date().toISOString().slice(0,10)}.json`; 
             link.click();
         }
-
         function importBackupJSON(e) {
             const file = e.target.files[0]; 
             if(!file) return;
             const reader = new FileReader();
             reader.onload = ev => { 
-                try { 
-                    const imp = JSON.parse(ev.target.result); 
-                    if(Array.isArray(imp)) { 
-                        todoList = imp; 
-                        saveTodos(); 
-                        alert("Backup de tarefas importado com sucesso!"); 
-                        renderTodos();
+                 try { 
+                     const imp = JSON.parse(ev.target.result); 
+                     if(Array.isArray(imp)) { 
+                         todoList = imp; 
+                         saveTodos(); 
+                         alert("Backup de tarefas importado com sucesso!"); 
+                         renderTodos();
                     } 
-                } catch(err) { 
-                    alert("Erro ao ler o arquivo JSON."); 
-                } 
-            };
+                 } catch(err) { 
+                     alert("Erro ao ler o arquivo JSON."); 
+                 } 
+             };
             reader.readAsText(file);
             e.target.value = '';
         }
-
-        // ==========================================
-        // DRILL-DOWN ENGINE 
-        // ==========================================
-        function executeChartDrillDown(title, ticketArray) {
-            if(!ticketArray || ticketArray.length === 0) return;
-
-            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-pane').forEach(c => { c.classList.add('hidden-st'); c.classList.remove('animate-fade'); });
-            
-            const searchTabBtn = document.querySelector('.tab-btn[onclick*="tab-search"]');
-            searchTabBtn.style.display = 'block';
-            searchTabBtn.classList.add('active');
-            
-            const searchTab = document.getElementById('tab-search');
-            searchTab.classList.remove('hidden-st');
-            searchTab.classList.add('animate-fade');
-
-            document.getElementById("globalSearch").value = `[Drill-Down: ${title}]`;
-
-            let results = [];
-            const refDateObj = new Date(document.getElementById('ref-date').value + 'T12:00:00');
-
-            [{n:'INC', d:RawData.incs}, {n:'REQ', d:RawData.reqs}, {n:'RCA', d:RawData.rca}, {n:'PTASK', d:RawData.ptask}].forEach(src => {
-                src.d.forEach(r => {
-                    let tkNumber = getCol(r, ['Number','Ticket','Problem','Task','RITM']);
-                    if (tkNumber && ticketArray.includes(tkNumber)) {
-                        let asg = getCol(r, ['Assigned to', 'Analista']) || 'Não Atribuído';
-                        let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                        let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
-                        
-                        results.push({ 
-                            type: src.n, 
-                            tk: tkNumber, 
-                            desc: String(getCol(r,['Short description','Descrição Curta','Descrição','Item']) || '-').replace(/"/g,'&quot;'), 
-                            req: getCol(r, ['Requester','Caller','Solicitante']) || 'N/A', 
-                            asg: asg, 
-                            gp: getCol(r, ['Assignment group', 'Grupo']) || '-', 
-                            st: String(getCol(r,['State','Status', 'RCA Status']) || '').toUpperCase(), 
-                            op: op, 
-                            cl: cl, 
-                            idle: (!cl || cl > refDateObj) ? getDaysSilent(r, refDateObj, asg, op) : '-' 
-                        });
-                    }
-                });
-            });
-
-            results.sort((a, b) => { 
-                if(!a.op) return 1; if(!b.op) return -1; return b.op - a.op; 
-            });
-
-            let html = `<div class="report-section-title" style="background-color: var(--primary);"><i class="fas fa-search-plus mr-2"></i> EXTRAÇÃO DRILL-DOWN: "${title}" (${results.length} encontrados)</div>`;
-            
-            let rows = results.map(t => {
-                let opS = t.op ? t.op.toLocaleDateString('pt-BR') : '-';
-                let clS = t.cl ? t.cl.toLocaleDateString('pt-BR') : 'Aberto';
-                let age = (t.op && t.cl) ? Math.floor((t.cl - t.op) / 86400000) : (t.op ? Math.floor((refDateObj - t.op) / 86400000) : '-'); 
-                if(age < 0) age = 0;
-                
-                let stL = t.st.toLowerCase(), bC = '#f1f5f9', fC = '#475569';
-                if(stL.includes('resolv') || stL.includes('complet')){ bC='#ecfdf5'; fC='#10b981'; } 
-                else if(stL.includes('cancel') || stL.includes('incomplet')){ bC='#fee2e2'; fC='#ef4444'; } 
-                else if(stL.includes('pend') || stL.includes('hold')){ bC='#fef3c7'; fC='#f59e0b'; }
-                
-                return `<tr class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req}" data-as="${t.asg}" data-gp="${t.gp}" data-st="${t.st}" data-age="${age}" data-op="${opS}" data-idle="${t.idle}">
-                    <td data-label="Ticket Original" class="font-bold text-[var(--primary-dark)]">
-                        ${t.tk}
-                        <div class="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded inline-block ml-1 text-slate-500">${t.type}</div>
-                        <button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-2 bg-blue-50 hover:bg-blue-100 border border-blue-200/50 p-1.5 rounded text-[9px] uppercase shadow-sm transition"><i class="fas fa-history"></i> Saiba mais</button>
-                    </td>
-                    <td data-label="Descrição Completa" class="text-left"><div class="text-xs font-semibold line-clamp-2 text-slate-800">${t.desc}</div></td>
-                    <td data-label="Solicitante">${t.req}</td>
-                    <td data-label="Analista / Grupo">${t.asg}<br><span class="text-[9px] text-slate-400 block mt-1">${t.gp}</span></td>
-                    <td data-label="Status / Abertura"><span style="background:${bC};color:${fC}; border: 1px solid ${fC}40;" class="px-2 py-0.5 rounded text-[9px] font-bold block mb-1 mx-auto w-max">${t.st}</span><span class="text-[10px] text-slate-500"><i class="far fa-calendar-alt"></i> ${opS}</span></td>
-                    <td data-label="Fechamento / Aging" class="text-right">
-                        <div class="font-bold text-sm ${t.cl?'text-[var(--primary-dark)]':'text-orange-500'}">${clS}</div>
-                        ${age !== '-' ? `<div class="text-[10px] text-slate-400 mt-1">${age}d totais</div>` : ''}
-                        ${t.idle !== '-' ? `<div class="text-[10px] font-bold mt-1 ${t.idle > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : ''}
-                    </td>
-                </tr>`;
-            }).join('');
-            
-            html += `<div class="report-card">
-                <div class="st-dataframe-container">
-                    <table class="st-table">
-                        <thead><tr>
-                            ${createTh("Ticket Original", "15%")}
-                            ${createTh("Descrição Completa", "35%", "left")}
-                            ${createTh("Solicitante", "15%")}
-                            ${createTh("Analista / Grupo", "15%")}
-                            ${createTh("Status / Abertura", "10%")}
-                            ${createTh("Datas / Ocioso", "10%", "right")}
-                        </tr></thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
-            </div>`;
-            
-            document.getElementById('tab-search').innerHTML = html;
-        }
+        
+        window.toggleAllAccordions = function() {
+            document.querySelectorAll('#tab-open details.saas-accordion').forEach(d => d.removeAttribute('open'));
+        };
 
         // ==========================================
         // 1. TABS E ORDENAÇÃO/FILTROS DE TABELAS
@@ -769,8 +657,7 @@
             el.classList.add('active');
             
             const searchInput = document.getElementById("globalSearch"); 
-            if(searchInput && searchInput.value.trim() !== "" && !searchInput.value.includes("[Drill-Down")) searchInput.value = "";
-            if(tabId !== 'tab-search') document.querySelector('.tab-btn[onclick*="tab-search"]').style.display = 'none';
+            if(searchInput && searchInput.value.trim() !== "") searchInput.value = "";
             
             const targetTab = document.getElementById(tabId); 
             targetTab.classList.remove('hidden-st'); 
@@ -780,7 +667,7 @@
             
             filterTables();
         }
-
+        
         function sortTable(th) {
             const table = th.closest('table');
             const tbody = table.querySelector('tbody'); 
@@ -792,7 +679,7 @@
             const colIdx = Array.from(th.parentNode.children).indexOf(th);
             const isAsc = th.dataset.dir !== 'asc'; 
             th.dataset.dir = isAsc ? 'asc' : 'desc';
-
+            
             rows.sort((a, b) => {
                 let vA = a.children[colIdx].innerText.trim(); 
                 let vB = b.children[colIdx].innerText.trim();
@@ -816,7 +703,7 @@
             let sortIcon = th.querySelector('i:not(.fa-filter)');
             if(sortIcon) sortIcon.className = isAsc ? "fas fa-sort-up ml-1 text-white text-[10px]" : "fas fa-sort-down ml-1 text-white text-[10px]";
         }
-
+        
         function openFilter(e, iconEl) {
             e.stopPropagation();
             const th = iconEl.closest('th'); 
@@ -830,12 +717,12 @@
             
             let uniqueVals = new Set();
             Array.from(tbody.querySelectorAll('tr')).forEach(tr => { 
-                if(tr.children.length > 1) {
+                 if(tr.children.length > 1) {
                     uniqueVals.add(tr.children[colIdx].innerText.trim().replace(/\n/g, ' ')); 
-                }
+                 }
             });
             let valsArr = Array.from(uniqueVals).sort();
-
+            
             let drop = document.createElement('div'); 
             drop.className = 'custom-filter-dropdown fixed bg-white shadow-2xl border border-slate-200 rounded p-3 z-[10500] flex flex-col gap-1 w-64 animate-fade';
             
@@ -846,12 +733,12 @@
             
             drop.style.top = dTop + 'px'; 
             drop.style.left = dLeft + 'px';
-
+            
             let selectAll = document.createElement('label'); 
             selectAll.className = 'font-bold cursor-pointer hover:bg-slate-100 p-1 flex items-center gap-2 border-b border-slate-200 pb-2 mb-2 text-xs text-slate-800';
             selectAll.innerHTML = `<input type="checkbox" class="filter-all w-4 h-4" checked> (Selecionar Tudo)`; 
             drop.appendChild(selectAll);
-
+            
             let itemsDiv = document.createElement('div'); 
             itemsDiv.className = 'max-h-48 overflow-y-auto flex flex-col gap-1 pr-1';
             
@@ -863,14 +750,14 @@
                 itemsDiv.appendChild(lbl);
             });
             drop.appendChild(itemsDiv);
-
+            
             let btn = document.createElement('button'); 
             btn.className = 'mt-3 bg-blue-600 text-white p-2 rounded font-bold uppercase text-xs hover:bg-blue-700 shadow-sm transition'; 
             btn.innerText = 'Aplicar Filtro'; 
             drop.appendChild(btn);
             
             document.body.appendChild(drop);
-
+            
             selectAll.querySelector('input').onchange = ev => drop.querySelectorAll('input[type="checkbox"]:not(.filter-all)').forEach(cb => cb.checked = ev.target.checked);
             
             btn.onclick = () => {
@@ -883,27 +770,27 @@
                     if(tr.children.length === 1) return;
                     let show = true;
                     for(let c in activeTableFilters[table.id]) { 
-                        if(!activeTableFilters[table.id][c].includes(tr.children[c].innerText.trim().replace(/\n/g, ' '))) { 
-                            show = false; break; 
-                        } 
-                    }
+                         if(!activeTableFilters[table.id][c].includes(tr.children[c].innerText.trim().replace(/\n/g, ' '))) { 
+                             show = false; break; 
+                         } 
+                     }
                     tr.style.display = show ? '' : 'none';
                 });
                 
                 iconEl.style.color = checked.length < valsArr.length ? '#f59e0b' : ''; 
                 drop.remove();
             };
-
+            
             setTimeout(() => { 
-                const closeFn = evClick => { 
-                    if(!drop.contains(evClick.target) && evClick.target !== iconEl) { 
-                        drop.remove(); document.removeEventListener('click', closeFn); 
-                    }
+                 const closeFn = evClick => { 
+                     if(!drop.contains(evClick.target) && evClick.target !== iconEl) { 
+                         drop.remove(); document.removeEventListener('click', closeFn); 
+                     }
                 }; 
-                document.addEventListener('click', closeFn); 
-            }, 100);
+                 document.addEventListener('click', closeFn); 
+             }, 100);
         }
-
+        
         function createTh(label, width="auto", align="center") {
             return `<th style="width:${width}; text-align:${align};" onclick="sortTable(this)">
                         <div class="flex justify-between items-center w-full">
@@ -920,7 +807,6 @@
         // HOVER TOOLTIP SYSTEM
         // ==========================================
         const tooltip = document.getElementById('global-tooltip');
-
         document.addEventListener('mouseover', e => {
             const row = e.target.closest('.ticket-row');
             if (row) {
@@ -934,7 +820,7 @@
                 let age = row.dataset.age || '0';
                 let idleVal = row.dataset.idle;
                 let slaPct = row.dataset.pct || null; 
-
+                
                 let bC = '#3b82f6';
                 if(st.includes('resolv')||st.includes('complet')) bC='#10b981'; 
                 else if(st.includes('cancel')||st.includes('incomplet')) bC='#ef4444'; 
@@ -952,13 +838,13 @@
                 
                 let idleEl = document.getElementById('tt-idle');
                 if (idleVal && idleVal !== '-' && idleVal !== 'undefined') { 
-                    let idNum = parseInt(idleVal); 
-                    idleEl.innerHTML = `<i class="fas fa-user-clock mr-1"></i> ${idNum} dias`; 
-                    idleEl.style.color = idNum > 3 ? '#fca5a5' : '#6ee7b7'; 
-                } else { 
-                    idleEl.innerText = 'N/A'; idleEl.style.color = '#94a3b8'; 
-                }
-
+                     let idNum = parseInt(idleVal); 
+                     idleEl.innerHTML = `<i class="fas fa-user-clock mr-1"></i> ${idNum} dias`; 
+                     idleEl.style.color = idNum > 3 ? '#fca5a5' : '#6ee7b7'; 
+                 } else { 
+                     idleEl.innerText = 'N/A'; idleEl.style.color = '#94a3b8'; 
+                 }
+                 
                 let bar = document.getElementById('tt-sla-bar');
                 if(slaPct) {
                     let p = parseInt(slaPct);
@@ -970,25 +856,22 @@
                 } else {
                     bar.parentElement.parentElement.style.display = 'none';
                 }
-
                 tooltip.style.opacity = 1; tooltip.style.visibility = 'visible';
             }
         });
-
         document.addEventListener('mousemove', e => { 
-            if (tooltip.style.visibility === 'visible') { 
-                let x = e.pageX + 15, y = e.pageY + 15; 
-                if (x + tooltip.offsetWidth > window.innerWidth) x = e.pageX - tooltip.offsetWidth - 15; 
-                if (y + tooltip.offsetHeight > window.innerHeight) y = window.innerHeight - tooltip.offsetHeight - 10; 
-                tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px'; 
-            } 
-        });
-
+             if (tooltip.style.visibility === 'visible') { 
+                 let x = e.pageX + 15, y = e.pageY + 15; 
+                 if (x + tooltip.offsetWidth > window.innerWidth) x = e.pageX - tooltip.offsetWidth - 15; 
+                 if (y + tooltip.offsetHeight > window.innerHeight) y = window.innerHeight - tooltip.offsetHeight - 10; 
+                 tooltip.style.left = x + 'px'; tooltip.style.top = y + 'px'; 
+             } 
+         });
         document.addEventListener('mouseout', e => { 
-            if (e.target.closest('.ticket-row')) { 
-                tooltip.style.opacity = 0; tooltip.style.visibility = 'hidden'; 
-            } 
-        });
+             if (e.target.closest('.ticket-row')) { 
+                 tooltip.style.opacity = 0; tooltip.style.visibility = 'hidden'; 
+             } 
+         });
 
         // ==========================================
         // 2. TODO SYSTEM & CROSSOVER MODAL 
@@ -1003,37 +886,34 @@
             const cancelBtn = document.getElementById('btn-modal-cancel');
             
             const cleanup = () => { 
-                modal.classList.add('hidden-st'); 
-                confirmBtn.removeEventListener('click', handleConfirm); 
-                cancelBtn.removeEventListener('click', cleanup); 
-            };
-            
+                 modal.classList.add('hidden-st'); 
+                 confirmBtn.removeEventListener('click', handleConfirm); 
+                 cancelBtn.removeEventListener('click', cleanup); 
+             };
             const handleConfirm = () => { onConfirm(); cleanup(); };
             
             confirmBtn.addEventListener('click', handleConfirm); 
             cancelBtn.addEventListener('click', cleanup);
         }
-
+        
         function saveTodos() { 
-            localStorage.setItem('eliteMasterTodosV68', JSON.stringify(todoList)); 
-            renderTodos(); 
-        }
-
+             localStorage.setItem('eliteMasterTodosV69', JSON.stringify(todoList)); 
+             renderTodos(); 
+         }
+         
         function updateTicketsDropdown() {
             const analyst = document.getElementById('todo-analyst').value;
             const selectTk = document.getElementById('todo-tickets');
             selectTk.innerHTML = '<option value="" disabled>Selecione um ou mais chamados...</option>';
-
             if (!analyst) {
                 selectTk.innerHTML = '<option value="" disabled>Selecione um analista primeiro...</option>';
                 return;
             }
-
             let tkSet = new Set();
             GlobalOpenTickets.forEach(t => { if (t.asg === analyst) tkSet.add(t.tk); });
             tkSet.forEach(tk => { selectTk.innerHTML += `<option value="${tk}">${tk}</option>`; });
         }
-
+        
         function addTodo() {
             const analyst = document.getElementById('todo-analyst').value;
             const selectTk = document.getElementById('todo-tickets');
@@ -1047,23 +927,23 @@
             selectedTks.forEach(tk => {
                 let existing = tk ? todoList.find(t => t.ticket === tk && t.analyst === analyst) : null;
                 if (existing) { 
-                    existing.history.push({ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false }); 
-                } else { 
-                    todoList.push({ 
-                        id: Date.now().toString() + Math.random().toString(36).substr(2,9), 
-                        analyst: analyst, 
-                        ticket: tk, 
-                        date: new Date().toLocaleDateString('pt-BR'), 
-                        history: [{ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false }] 
-                    }); 
-                }
+                     existing.history.push({ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false }); 
+                 } else { 
+                     todoList.push({ 
+                         id: Date.now().toString() + Math.random().toString(36).substr(2,9), 
+                         analyst: analyst, 
+                         ticket: tk, 
+                         date: new Date().toLocaleDateString('pt-BR'), 
+                         history: [{ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false }] 
+                     }); 
+                 }
             });
             
             saveTodos(); 
             document.getElementById('todo-desc').value = ''; 
             selectTk.selectedIndex = -1;
         }
-
+        
         function toggleStrike(todoId, index) {
             let todo = todoList.find(t => t.id === todoId);
             if (todo && todo.history[index]) {
@@ -1072,23 +952,23 @@
                 if (currentModalTk && todo.ticket === currentModalTk) renderModalTodos(currentModalTk);
             }
         }
-
-        function deleteTodo(id) { 
-            showConfirm("Apagar Tarefa?", "O histórico será removido permanentemente.", () => { 
-                todoList = todoList.filter(t => t.id !== id); 
-                saveTodos(); 
-                if(currentModalTk) renderModalTodos(currentModalTk); 
-            }); 
-        }
-
-        function completeTodo(id) { 
-            showConfirm("Concluir Tarefa?", "A tarefa será marcada como concluída e sairá do painel.", () => { 
-                todoList = todoList.filter(t => t.id !== id); 
-                saveTodos(); 
-                if(currentModalTk) renderModalTodos(currentModalTk); 
-            }); 
-        }
         
+        function deleteTodo(id) { 
+             showConfirm("Apagar Tarefa?", "O histórico será removido permanentemente.", () => { 
+                 todoList = todoList.filter(t => t.id !== id); 
+                 saveTodos(); 
+                 if(currentModalTk) renderModalTodos(currentModalTk); 
+             }); 
+         }
+         
+        function completeTodo(id) { 
+             showConfirm("Concluir Tarefa?", "A tarefa será marcada como concluída e sairá do painel.", () => { 
+                 todoList = todoList.filter(t => t.id !== id); 
+                 saveTodos(); 
+                 if(currentModalTk) renderModalTodos(currentModalTk); 
+             }); 
+         }
+         
         function addTodoUpdate(id) {
             const input = document.getElementById(`update-input-${id}`); 
             const text = input.value.trim(); 
@@ -1096,12 +976,12 @@
             
             const todo = todoList.find(t => t.id === id);
             if (todo) { 
-                todo.history.push({ date: new Date().toLocaleString('pt-BR'), text: text, striked: false }); 
-                saveTodos(); 
-                input.value = ''; 
-            }
+                 todo.history.push({ date: new Date().toLocaleString('pt-BR'), text: text, striked: false }); 
+                 saveTodos(); 
+                 input.value = ''; 
+             }
         }
-
+        
         function renderTodos() {
             const container = document.getElementById('todo-list'); 
             const countEl = document.getElementById('todo-count');
@@ -1109,10 +989,10 @@
             
             countEl.innerText = todoList.length;
             if (todoList.length === 0) { 
-                container.innerHTML = `<div class="text-center py-10 text-slate-300 font-bold"><i class="fas fa-check-circle text-4xl mb-3 block"></i>Nenhuma tarefa pendente no momento. Parabéns.</div>`; 
-                return; 
-            }
-            
+                 container.innerHTML = `<div class="text-center py-10 text-slate-300 font-bold"><i class="fas fa-check-circle text-4xl mb-3 block"></i>Nenhuma tarefa pendente no momento. Parabéns.</div>`; 
+                 return; 
+             }
+             
             let sortedTodos = [...todoList].sort((a, b) => b.id.localeCompare(a.id));
             container.innerHTML = sortedTodos.map(t => `
                 <div class="todo-item border-l-4 border-[var(--primary)]">
@@ -1141,24 +1021,22 @@
         }
 
         let currentModalTk = null;
-
         function openTicketDetails(tkNumber) {
             currentModalTk = tkNumber; 
             let ticketData = null; 
             let tType = '';
             
             [RawData.incs, RawData.reqs, RawData.rca, RawData.ptask].forEach((src, i) => { 
-                let f = src.find(r => getCol(r, ['Number','number','Ticket','Problem','Task']) === tkNumber); 
-                if(f) { 
-                    ticketData = f; 
-                    tType = i===0?'INC':i===1?'REQ':i===2?'RCA':'PTASK'; 
-                } 
-            });
-            
+                 let f = src.find(r => getCol(r, ['RITM', 'Request Item', 'Request item', 'Item de solicitação', 'Number', 'number', 'Ticket', 'Problem', 'Task']) === tkNumber); 
+                 if(f) { 
+                     ticketData = f; 
+                     tType = i===0?'INC':i===1?'REQ':i===2?'RCA':'PTASK'; 
+                 } 
+             });
+             
             if (!ticketData) return alert("Detalhes do ticket não encontrados na base importada.");
-
             document.getElementById('modal-tk').innerText = tkNumber;
-            document.getElementById('modal-title').innerText = getCol(ticketData, ['Short description','Descrição Curta','Descrição']) || 'Sem assunto definido.';
+            document.getElementById('modal-title').innerText = getCol(ticketData, ['Short description','Descrição Curta','Descrição', 'Item']) || 'Sem assunto definido.';
             document.getElementById('modal-desc').innerText = getCol(ticketData, ['Description','Descrição Completa']) || 'Sem descrição detalhada fornecida na abertura.';
             
             let req = getCol(ticketData, ['Requester','Caller','Solicitante']) || 'N/A';
@@ -1167,12 +1045,12 @@
             document.getElementById('modal-asg').innerText = asg;
             document.getElementById('modal-gp').innerText = getCol(ticketData, ['Assignment group','Grupo']) || 'N/A';
             
-            let opD = safeDate(getCol(ticketData, ['Opened','opened_at']));
-            let clD = safeDate(getCol(ticketData, ['Resolved','Closed', 'Resolved at']));
+            let opD = safeDate(getCol(ticketData, ['Opened','opened_at', 'Data Abertura', 'Created']));
+            let clD = safeDate(getCol(ticketData, ['Resolved','Closed', 'Resolved at', 'Data Fechamento']));
             document.getElementById('modal-op').innerText = opD ? opD.toLocaleString('pt-BR') : '-';
             document.getElementById('modal-cl').innerText = clD ? clD.toLocaleString('pt-BR') : 'Aberto';
-
-            let st = String(getCol(ticketData, ['State','Status','RCA Status']) || '');
+            
+            let st = String(getCol(ticketData, ['State','Status','RCA Status', 'Estado']) || '');
             let stL = st.toLowerCase(), bC = 'bg-blue-500';
             if(stL.includes('resolv') || stL.includes('complet')) bC = 'bg-emerald-500'; 
             else if(stL.includes('cancel') || stL.includes('incomplet')) bC = 'bg-red-500'; 
@@ -1180,13 +1058,12 @@
             
             document.getElementById('modal-state').className = `text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded mt-1 inline-block shadow-sm ${bC}`;
             document.getElementById('modal-state').innerText = st;
-
+            
             let refDate = new Date(document.getElementById('ref-date').value + 'T12:00:00');
             let age = Math.floor(((clD ? clD : refDate) - opD) / 86400000);
             if (age < 0) age = 0;
             
             let idle = (!clD || clD > refDate) ? getDaysSilent(ticketData, refDate, asg, opD) : '-';
-
             document.getElementById('modal-age').innerText = age + ' dias';
             document.getElementById('modal-age').style.color = age > 10 ? '#ef4444' : '#334155';
             
@@ -1198,7 +1075,7 @@
                 idleEl.innerText = 'N/A';
                 idleEl.style.color = '#94a3b8';
             }
-
+            
             let slaConfig = tType === 'INC' ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
             let pctSla = Math.round((age / slaConfig) * 100);
             let slaBar = document.getElementById('modal-sla-bar');
@@ -1206,38 +1083,38 @@
             slaBar.style.width = Math.min(pctSla, 100) + '%';
             slaBar.style.backgroundColor = slaColor;
             slaBar.innerText = pctSla + '%';
-
+            
             let regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(([^)]+)\)/gm;
             let rawC = ""; 
             let cols = new Set();
             
             ['Work notes', 'Work Notes', 'Work notes list', 'Work notes list(s)', 'Additional comments', 'Close notes', 'Closing notes'].forEach(c => { 
-                if (ticketData[c] && !cols.has(c)) { 
-                    rawC += ticketData[c] + "\n\n"; 
-                    cols.add(c); 
-                } 
-            });
-            
+                 if (ticketData[c] && !cols.has(c)) { 
+                     rawC += ticketData[c] + "\n\n"; 
+                     cols.add(c); 
+                 } 
+             });
+             
             let entries = [];
             if(rawC.trim() !== "") {
                 let m = [...rawC.matchAll(regex)];
                 if(m.length > 0) {
                     for(let i=0; i<m.length; i++) { 
-                        let nxtIdx = (i+1 < m.length) ? m[i+1].index : rawC.length;
+                         let nxtIdx = (i+1 < m.length) ? m[i+1].index : rawC.length;
                         entries.push({ 
-                            date: new Date(m[i][1].replace(/-/g,'/')), 
-                            dS: m[i][1], 
-                            a: m[i][2].trim(), 
-                            t: m[i][3].trim(), 
-                            txt: rawC.substring(m[i].index + m[i][0].length, nxtIdx).trim() 
-                        }); 
-                    }
+                             date: new Date(m[i][1].replace(/-/g,'/')), 
+                             dS: m[i][1], 
+                             a: m[i][2].trim(), 
+                             t: m[i][3].trim(), 
+                             txt: rawC.substring(m[i].index + m[i][0].length, nxtIdx).trim() 
+                         }); 
+                     }
                 } else { 
-                    entries.push({ date: new Date(0), dS: '-', a: 'Sistema', t: 'Notas Brutas (Log)', txt: rawC.trim() }); 
-                }
+                     entries.push({ date: new Date(0), dS: '-', a: 'Sistema', t: 'Notas Brutas (Log)', txt: rawC.trim() }); 
+                 }
             }
             entries.sort((a,b) => b.date - a.date);
-
+            
             document.getElementById('modal-timeline').innerHTML = entries.length ? entries.map(e => {
                 let isW = e.t.toLowerCase().includes('work note') || e.t.toLowerCase().includes('nota de trabalho'); 
                 let cL = isW ? 'border-orange-400 bg-orange-50/30' : 'border-blue-400 bg-blue-50/30';
@@ -1251,32 +1128,32 @@
                             <div class="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">${e.txt}</div>
                         </div>`;
             }).join('') : '<div class="text-center py-10 bg-slate-50 border border-dashed rounded-lg text-slate-400 text-sm font-bold"><i class="fas fa-comment-slash text-3xl mb-3 block opacity-30"></i>Nenhum registro de interação técnica encontrado.</div>';
-
+            
             renderModalTodos(tkNumber); 
             
             document.getElementById('ticket-modal-backdrop').classList.remove('hidden-st');
             setTimeout(() => { 
-                document.getElementById('ticket-modal-backdrop').classList.remove('opacity-0'); 
-                document.getElementById('ticket-modal-content').classList.remove('scale-95'); 
-            }, 10);
+                 document.getElementById('ticket-modal-backdrop').classList.remove('opacity-0'); 
+                 document.getElementById('ticket-modal-content').classList.remove('scale-95'); 
+             }, 10);
         }
-
+        
         function closeTicketDetails() {
             currentModalTk = null;
             document.getElementById('ticket-modal-backdrop').classList.add('opacity-0'); 
             document.getElementById('ticket-modal-content').classList.add('scale-95');
             setTimeout(() => document.getElementById('ticket-modal-backdrop').classList.add('hidden-st'), 300);
         }
-
+        
         function renderModalTodos(tkNumber) {
             const container = document.getElementById('modal-todo-container');
             let tkTodos = todoList.filter(t => t.ticket === tkNumber);
             
             if (tkTodos.length === 0) { 
-                container.innerHTML = '<div class="text-[10px] text-slate-400 italic bg-white p-4 text-center rounded border border-dashed">Nenhuma ação vinculada a este ticket.</div>'; 
-                return; 
-            }
-            
+                 container.innerHTML = '<div class="text-[10px] text-slate-400 italic bg-white p-4 text-center rounded border border-dashed">Nenhuma ação vinculada a este ticket.</div>'; 
+                 return; 
+             }
+             
             container.innerHTML = tkTodos.map(t => `
                 <div class="bg-white border border-blue-200 p-3 rounded shadow-sm mb-2">
                     <div class="flex justify-between items-center mb-2 border-b border-slate-100 pb-1">
@@ -1297,7 +1174,7 @@
                 </div>
             `).join('');
         }
-
+        
         function addTodoFromModal() {
             const txt = document.getElementById('modal-new-todo').value; 
             if(!txt.trim()) return;
@@ -1309,30 +1186,30 @@
             if (ext) {
                 ext.history.push({ text: txt, date: new Date().toLocaleString('pt-BR'), striked: false });
             } else { 
-                todoList.push({ 
-                    id: Date.now().toString() + Math.random().toString(36).substr(2,5), 
-                    analyst: asg, 
-                    ticket: tk, 
-                    date: new Date().toLocaleDateString('pt-BR'), 
-                    history: [{ text: txt, date: new Date().toLocaleString('pt-BR'), striked: false }] 
-                }); 
-            }
-            
+                 todoList.push({ 
+                     id: Date.now().toString() + Math.random().toString(36).substr(2,5), 
+                     analyst: asg, 
+                     ticket: tk, 
+                     date: new Date().toLocaleDateString('pt-BR'), 
+                     history: [{ text: txt, date: new Date().toLocaleString('pt-BR'), striked: false }] 
+                 }); 
+             }
+             
             document.getElementById('modal-new-todo').value = ''; 
             saveTodos(); 
             renderModalTodos(tk);
         }
-
+        
         function populateTodoAnalystDropdown() {
             const select = document.getElementById('todo-analyst'); 
             if (!select) return;
             
             let set = new Set();
             [RawData.incs, RawData.reqs].forEach(s => s.forEach(r => { 
-                let a = getCol(r, ['Assigned to','Analista']); 
-                if(a && a !== '-' && a !== 'N/A' && !a.includes('Não Atribuído')) set.add(a); 
-            }));
-            
+                 let a = getCol(r, ['Assigned to','Analista']); 
+                 if(a && a !== '-' && a !== 'N/A' && !a.includes('Não Atribuído')) set.add(a); 
+             }));
+             
             select.innerHTML = '<option value="">Selecione um analista...</option>' + Array.from(set).sort().map(a => `<option value="${a}">${a}</option>`).join('');
             document.getElementById('todo-tickets').innerHTML = '<option value="" disabled>Selecione um analista primeiro...</option>';
         }
@@ -1346,7 +1223,7 @@
             let maxDate = opDateObj ? new Date(opDateObj) : new Date(0);
             let regex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(/g;
             let found = false;
-
+            
             ['Work notes', 'Work Notes', 'Work notes list', 'Work notes list(s)', 'Additional comments'].forEach(col => {
                 if (r[col] && typeof r[col] === 'string') {
                     let m; 
@@ -1376,23 +1253,19 @@
                 const term = removeAccents(inputVal.toUpperCase());
                 
                 if (term.length === 0) { 
-                    let act = document.querySelector('.tab-btn.active'); 
-                    if(act) act.click(); 
-                    else switchTab('tab-open', document.querySelector('.tab-btn')); 
-                    return; 
-                }
-
+                     let act = document.querySelector('.tab-btn.active'); 
+                     if(act) act.click(); 
+                     else switchTab('tab-open', document.querySelector('.tab-btn')); 
+                     return; 
+                 }
+                 
                 document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active')); 
                 document.querySelectorAll('.tab-pane').forEach(c => { c.classList.add('hidden-st'); c.classList.remove('animate-fade'); });
                 
-                const searchTabBtn = document.querySelector('.tab-btn[onclick*="tab-search"]');
-                searchTabBtn.style.display = 'block';
-                searchTabBtn.classList.add('active');
-
                 const searchTab = document.getElementById('tab-search'); 
                 searchTab.classList.remove('hidden-st'); 
                 searchTab.classList.add('animate-fade');
-
+                
                 let results = []; 
                 const refDateObj = new Date(document.getElementById('ref-date').value + 'T12:00:00');
                 
@@ -1404,28 +1277,30 @@
                             let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                             let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
                             
+                            let tk = src.n === 'REQ' || src.n === 'UAM' ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number','Ticket','Problem','Task']) || '-');
+                            
                             results.push({ 
-                                type: src.n, 
-                                tk: getCol(r, ['Number','Ticket','Problem','Task','RITM']) || '-', 
-                                desc: String(getCol(r,['Short description','Descrição Curta','Descrição','Item']) || '-').replace(/"/g,'&quot;'), 
-                                req: getCol(r, ['Requester','Caller','Solicitante']) || 'N/A', 
-                                asg: asg, 
-                                gp: getCol(r, ['Assignment group', 'Grupo']) || '-', 
-                                st: String(getCol(r,['State','Status', 'RCA Status']) || '').toUpperCase(), 
-                                op: op, 
-                                cl: cl, 
-                                idle: (!cl || cl > refDateObj) ? getDaysSilent(r, refDateObj, asg, op) : '-' 
-                            });
+                                 type: src.n, 
+                                 tk: tk, 
+                                 desc: String(getCol(r,['Short description','Descrição Curta','Descrição','Item']) || '-').replace(/"/g,'&quot;'), 
+                                 req: getCol(r, ['Requester','Caller','Solicitante']) || 'N/A', 
+                                 asg: asg, 
+                                 gp: getCol(r, ['Assignment group', 'Grupo']) || '-', 
+                                 st: String(getCol(r,['State','Status', 'RCA Status']) || '').toUpperCase(), 
+                                 op: op, 
+                                 cl: cl, 
+                                 idle: (!cl || cl > refDateObj) ? getDaysSilent(r, refDateObj, asg, op) : '-' 
+                             });
                         }
                     });
                 });
                 
                 results.sort((a, b) => { 
-                    if(!a.op) return 1; 
-                    if(!b.op) return -1; 
-                    return b.op - a.op; 
-                });
-
+                     if(!a.op) return 1; 
+                     if(!b.op) return -1; 
+                     return b.op - a.op; 
+                 });
+                 
                 let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-search mr-2"></i> RESULTADOS DA PESQUISA GLOBAL: "${inputVal}" (${results.length} encontrados)</div>`;
                 
                 if(results.length === 0) {
@@ -1497,278 +1372,362 @@
             });
         }
 
-        function filterOpenTickets(term) {
-            let filterTerm = removeAccents(term.toUpperCase());
-            document.querySelectorAll('#tab-open details.saas-accordion').forEach(details => {
-                let hasVisibleRow = false;
-                details.querySelectorAll('tbody tr').forEach(tr => {
-                    let rT = removeAccents(tr.innerText).toUpperCase();
-                    if (rT.includes(filterTerm)) {
-                        tr.style.display = '';
-                        hasVisibleRow = true;
-                    } else {
-                        tr.style.display = 'none';
-                    }
-                });
-                details.style.display = hasVisibleRow ? 'block' : 'none';
-            });
-        }
-
         // ==========================================
-        // 4. MOTOR CORE DE DADOS (COM DRILL-DOWN MAPPING)
+        // 4. MOTOR CORE DE DADOS (AGORA COM ARRAYS PARA DRILL-DOWN)
         // ==========================================
         const C = { 
-            PRI_D: "#001871", PRI: "#1E3A8A", ACC_D: "#0F172A", 
-            SUC: "#00C853", DAN: "#D50000", ORG: "#FF8C00", 
-            GRY_D: "#334155", GRY_L: "#F8FAFC" 
+             PRI_D: "#001871", PRI: "#1E3A8A", ACC_D: "#0F172A", 
+             SUC: "#00C853", DAN: "#D50000", ORG: "#FF8C00", 
+             GRY_D: "#334155", GRY_L: "#F8FAFC", INFO: "#0284C7"
         };
+        
+        // NOVO: Função para padronizar extração de Ticket Object
+        function buildTicketObject(r, refDateObj, asg, opOrig, clOrig, stOrig, st, age, typeStr) {
+            let tk = (typeStr === 'REQ' || typeStr === 'UAM') ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'number', 'Ticket', 'Problem', 'Task']) || '-');
+            return {
+                tk: tk,
+                desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Item', 'Problem', 'Problema']) || '-').replace(/"/g, '&quot;'),
+                req: getCol(r, ['Requester','Caller','Solicitante']) || 'N/A',
+                as: asg,
+                gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
+                st: (clOrig ? stOrig : st).toUpperCase(),
+                age: age,
+                opStr: opOrig ? opOrig.toLocaleDateString('pt-BR') : '-',
+                idle: (!clOrig || clOrig > refDateObj) ? getDaysSilent(r, refDateObj, asg, opOrig) : '-',
+                info: String(getCol(r, ['Additional comments', 'Comentários Adicionais', 'Close notes', 'Descrição']) || '').replace(/"/g, '&quot;')
+            };
+        }
 
         function calculateSection(data, slaDays, type, refDateObj) {
             const refDate = new Date(refDateObj);
             refDate.setHours(23, 59, 59, 999);
             const refTime = refDate.getTime();
-
             let totalMttr = 0, countRes = 0, inSlaMes = 0, resMes = 0, backlog = 0;
             let trendD = {}, trendM = {}, analistas = {}, criticals = [], noPrb = [];
             let agingBuckets = {};
-            let tks_inSla = [], tks_outSla = []; 
+            
+            // NOVO: Arrays para Drilldown Global
+            let allBacklogTks = [];
+            let allResolvedTks = [];
+            let allCanceledTks = [];
 
             const isReq = type === "REQ";
             const bucketsDef = isReq
                 ? [{ l: "1-3 dias", min: 0, max: 3 }, { l: "3-5 dias", min: 4, max: 5 }, { l: "5-7 dias", min: 6, max: 7 }, { l: "7-10 dias", min: 8, max: 10 }, { l: "10 dias +", min: 11, max: 19 }, { l: "20 dias +", min: 20, max: 29 }, { l: "30 dias +", min: 30, max: 9999 }]
                 : [{ l: "1-3 dias", min: 0, max: 3 }, { l: "4-7 dias", min: 4, max: 7 }, { l: "7+ dias", min: 8, max: 9999 }];
-            
+                
             bucketsDef.forEach(b => agingBuckets[b.l] = { count: 0, color: b.min > slaDays ? '#D50000' : '#1E3A8A', tks: [] });
-
+            
             let rDay = refDate.getDate(); let rMonth = refDate.getMonth(); let rYear = refDate.getFullYear();
             for (let i = 1; i <= rDay; i++) {
                 let sD = `${rYear}-${String(rMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                trendD[sD] = { a: 0, r: 0, c: 0, b: 0, tks_a: [], tks_r: [], tks_c: [], tks_b: [] };
+                trendD[sD] = { a: 0, r: 0, c: 0, b: 0, tks_a: [], tks_r: [], tks_c: [] };
             }
-
+            
             data.forEach(r => {
                 let opOrig = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!opOrig || opOrig.getTime() > refTime) return;
-
-                let tkNumber = getCol(r, ['Number', 'Ticket', 'RITM']) || '-';
-
                 let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
                 let stOrig = String(getCol(r, ['State', 'Status', 'Estado']) || '').toLowerCase();
-
                 let cl = clOrig; let st = stOrig;
+                
                 if (clOrig && clOrig.getTime() > refTime) { cl = null; st = 'Open (Retroativo)'; }
-
+                
                 let isRes = cl ? (isReq ? stOrig.includes('complet') : (stOrig.includes('resolv') || stOrig.includes('clos') && !stOrig.includes('cancel'))) : false;
                 let isCanc = cl ? (isReq ? stOrig.includes('incomplet') : stOrig.includes('cancel')) : false;
-
                 let age = cl ? Math.floor((cl - opOrig) / 86400000) : Math.floor((refDate - opOrig) / 86400000);
                 if (age < 0) age = 0;
-
+                
                 let oY = opOrig.getFullYear(); let oM = String(opOrig.getMonth() + 1).padStart(2, '0');
                 let mKey = `${oY}-${oM}`;
-                if (!trendM[mKey]) trendM[mKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [], tks_b: [] };
+                if (!trendM[mKey]) trendM[mKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
                 trendM[mKey].a++;
-                trendM[mKey].tks_a.push(tkNumber);
-
+                
+                let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
+                let tObj = buildTicketObject(r, refDate, asg, opOrig, clOrig, stOrig, st, age, type);
+                
+                trendM[mKey].tks_a.push(tObj);
+                
                 let oD = String(opOrig.getDate()).padStart(2, '0');
                 let dKey = `${oY}-${oM}-${oD}`;
                 if (opOrig.getMonth() === refDate.getMonth() && opOrig.getFullYear() === refDate.getFullYear()) {
-                    if (trendD[dKey]) {
-                        trendD[dKey].a++;
-                        trendD[dKey].tks_a.push(tkNumber);
-                    }
+                    if (trendD[dKey]) { trendD[dKey].a++; trendD[dKey].tks_a.push(tObj); }
                 }
-
+                
                 if (isRes && cl) {
                     let cY = cl.getFullYear(); let cM = String(cl.getMonth() + 1).padStart(2, '0'); let cD = String(cl.getDate()).padStart(2, '0');
                     let mcKey = `${cY}-${cM}`;
-                    if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [], tks_b: [] };
+                    if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
                     trendM[mcKey].r++;
-                    trendM[mcKey].tks_r.push(tkNumber);
+                    trendM[mcKey].tks_r.push(tObj);
                     if (age <= slaDays) trendM[mcKey].inSla++;
-
+                    
                     let dcKey = `${cY}-${cM}-${cD}`;
                     if (cl.getMonth() === refDate.getMonth() && cl.getFullYear() === refDate.getFullYear()) {
+                        allResolvedTks.push(tObj);
                         if (trendD[dcKey]) {
-                            trendD[dcKey].r++; 
-                            trendD[dcKey].tks_r.push(tkNumber);
-                            resMes++; 
-                            if (age <= slaDays) inSlaMes++;
+                            trendD[dcKey].r++; trendD[dcKey].tks_r.push(tObj); resMes++; if (age <= slaDays) inSlaMes++;
                         }
                     }
                     totalMttr += age; countRes++;
                 } else if (isCanc && cl) {
                     let cY = cl.getFullYear(); let cM = String(cl.getMonth() + 1).padStart(2, '0'); let cD = String(cl.getDate()).padStart(2, '0');
                     let mcKey = `${cY}-${cM}`;
-                    if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [], tks_b: [] };
+                    if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
                     trendM[mcKey].c++;
-                    trendM[mcKey].tks_c.push(tkNumber);
-
+                    trendM[mcKey].tks_c.push(tObj);
+                    
                     let dcKey = `${cY}-${cM}-${cD}`;
                     if (cl.getMonth() === refDate.getMonth() && cl.getFullYear() === refDate.getFullYear()) {
-                        if (trendD[dcKey]) {
-                            trendD[dcKey].c++;
-                            trendD[dcKey].tks_c.push(tkNumber);
-                        }
+                        allCanceledTks.push(tObj);
+                        if (trendD[dcKey]) { trendD[dcKey].c++; trendD[dcKey].tks_c.push(tObj); }
                     }
                 }
-
+                
                 if (!cl) {
                     backlog++;
-                    let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
+                    allBacklogTks.push(tObj);
+                    
                     let req = getCol(r, ['Requester','Caller','Solicitante']) || 'N/A';
+                    let tk = isReq ? (getCol(r, ['RITM', 'Request Item', 'Request item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'number', 'Ticket']) || '-');
                     let idle = getDaysSilent(r, refDate, asg, opOrig);
-
+                    
                     if (!analistas[asg]) analistas[asg] = { ab: 0, res: 0, tks_ab: [], tks_res: [] };
                     analistas[asg].ab++;
-                    analistas[asg].tks_ab.push(tkNumber);
-
-                    GlobalOpenTickets.push({ tk: tkNumber, asg: asg });
-
-                    bucketsDef.forEach(b => { 
-                        if (age >= b.min && age <= b.max) { 
-                            agingBuckets[b.l].count++; 
-                            agingBuckets[b.l].tks.push(tkNumber); 
-                        } 
-                    });
-
-                    if(age > slaDays) tks_outSla.push(tkNumber); else tks_inSla.push(tkNumber);
-
+                    analistas[asg].tks_ab.push(tObj);
+                    
+                    GlobalOpenTickets.push({ tk: tk, asg: asg });
+                    bucketsDef.forEach(b => { if (age >= b.min && age <= b.max) { agingBuckets[b.l].count++; agingBuckets[b.l].tks.push(tObj); } });
+                    
                     let prb = getCol(r, ['Problem', 'PRB', 'Problema']);
                     let hasPrb = prb && prb.trim() !== "" && prb.trim() !== "N/A";
-
                     if (age > slaDays) {
-                        let infoRaw = getCol(r, ['Additional comments', 'Comentários Adicionais']) || 'Sem detalhes fornecidos.';
-                        let infoClean = String(infoRaw).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                        let descClean = String(getCol(r, ['Short description', 'Descrição Curta', 'Item']) || 'Sem assunto').replace(/"/g, '&quot;');
-
-                        criticals.push({
-                            tk: tkNumber, desc: descClean, req: req, as: asg, gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
-                            st: (clOrig ? stOrig : st).toUpperCase(), age: age, prb: hasPrb ? prb : 'N/A', info: infoClean,
-                            opStr: opOrig.toLocaleDateString('pt-BR'), idle: idle
-                        });
-
-                        if (!isReq && !hasPrb) noPrb.push({ tk: tkNumber, as: asg, info: infoClean, desc: descClean, gp: getCol(r, ['Assignment group', 'Grupo']) || '-', st: (clOrig ? stOrig : st).toUpperCase(), age: age, opStr: opOrig.toLocaleDateString('pt-BR'), idle: idle });
+                        criticals.push(tObj);
+                        if (!isReq && !hasPrb) noPrb.push(tObj);
                     }
                 }
-
+                
                 if (isRes && cl && cl.getMonth() === refDate.getMonth() && cl.getFullYear() === refDate.getFullYear()) {
-                    let asg = getCol(r, ['Assigned to', 'Analista']) || 'Não Atribuído';
                     if (!analistas[asg]) analistas[asg] = { ab: 0, res: 0, tks_ab: [], tks_res: [] };
                     analistas[asg].res++;
-                    analistas[asg].tks_res.push(tkNumber);
+                    analistas[asg].tks_res.push(tObj);
                 }
             });
-
+            
             let topAnalistas = Object.keys(analistas).map(k => ({ 
                 nome: k, ab: analistas[k].ab, res: analistas[k].res, tot: analistas[k].ab + analistas[k].res,
                 tks_ab: analistas[k].tks_ab, tks_res: analistas[k].tks_res
             })).sort((a, b) => b.tot - a.tot).slice(0, 10);
-
+            
             const calcBacklog = (trendObj) => {
                 let keys = Object.keys(trendObj).sort(); let b = 0;
-                let accTks = [];
-                keys.forEach(k => { 
-                    accTks = accTks.concat(trendObj[k].tks_a); 
-                    accTks = accTks.filter(t => !trendObj[k].tks_r.includes(t) && !trendObj[k].tks_c.includes(t));
-                    
-                    let s = trendObj[k].a - (trendObj[k].r + trendObj[k].c); 
-                    b += s; 
-                    trendObj[k].b = b; 
-                    trendObj[k].tks_b = [...accTks]; 
-                });
+                keys.forEach(k => { let s = trendObj[k].a - (trendObj[k].r + trendObj[k].c); b += s; trendObj[k].b = b; });
             };
             calcBacklog(trendM);
-
+            
             let dKeys = Object.keys(trendD).sort(); let db = backlog;
-            for (let i = dKeys.length - 1; i >= 0; i--) { 
-                let k = dKeys[i]; 
-                trendD[k].b = db; 
-                db -= (trendD[k].a - (trendD[k].r + trendD[k].c)); 
-            }
-
+            for (let i = dKeys.length - 1; i >= 0; i--) { let k = dKeys[i]; trendD[k].b = db; db -= (trendD[k].a - (trendD[k].r + trendD[k].c)); }
+            
             let inSlaTot = 0, outSlaTot = 0;
-            bucketsDef.forEach(b => { if (b.min > slaDays) outSlaTot += agingBuckets[b.l].count; else inSlaTot += agingBuckets[b.l].count; });
-
+            let tksInSlaTot = [], tksOutSlaTot = [];
+            bucketsDef.forEach(b => { 
+                if (b.min > slaDays) { outSlaTot += agingBuckets[b.l].count; tksOutSlaTot = tksOutSlaTot.concat(agingBuckets[b.l].tks); } 
+                else { inSlaTot += agingBuckets[b.l].count; tksInSlaTot = tksInSlaTot.concat(agingBuckets[b.l].tks); } 
+            });
+            
             return {
                 mttr: countRes ? (totalMttr / countRes).toFixed(1).replace('.', ',') : "0,0",
                 pct: resMes ? Math.round((inSlaMes / resMes) * 100) : 0,
                 inSla: inSlaMes, outSla: resMes - inSlaMes, backlog,
-                inSlaTot, outSlaTot, trendM, trendD, topAnalistas, agingBuckets,
+                inSlaTot, outSlaTot, tksInSlaTot, tksOutSlaTot, 
+                trendM, trendD, topAnalistas, agingBuckets,
                 crits: criticals.sort((a, b) => b.age - a.age), noPrb: noPrb,
-                tks_inSla, tks_outSla 
+                allBacklogTks, allResolvedTks, allCanceledTks
             };
+        }
+
+        function calculateClassifications(allData, refDateObj) {
+            let res = { total: 0, link: 0, noLink: 0, days: 0, max: 0, req: {}, gp: {}, asg: {}, m: {}, tks: [] };
+            
+            allData.forEach(r => {
+                let stOrig = String(getCol(r, ['State', 'Status', 'Estado']) || '').toLowerCase();
+                let reason = String(getCol(r, ['Reason', 'reason', 'REASON', 'Motivo']) || '').toUpperCase();
+                
+                if (stOrig.includes('incomplet') && reason.includes('INCORRECT CLASSIFICATION')) {
+                    let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                    let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                    if (!op) return;
+                    if (op.getTime() > refDateObj.getTime()) return;
+                    
+                    let closeNotes = String(getCol(r, ['Close notes', 'Close Notes', 'close_notes', 'Closing notes']) || '');
+                    let linkedMatch = closeNotes.match(/(INC|RITM|REQ|TASK)[\s\-]?(\d{6,8})/i);
+                    let linkedTicket = linkedMatch ? (linkedMatch[1].toUpperCase() + linkedMatch[2]) : null;
+                    
+                    let days = cl ? Math.floor((cl - op) / 86400000) : Math.floor((refDateObj - op) / 86400000);
+                    if (days < 0) days = 0;
+                    
+                    let tk = getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'number', 'Ticket']) || '-';
+                    let asg = getCol(r, ['Assigned to', 'Analista']) || 'N/A';
+                    let reqName = getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A';
+                    let gpName = getCol(r, ['Assignment group', 'Grupo']) || 'N/A';
+                    
+                    let idle = (!cl || cl.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
+                    
+                    res.total++; 
+                    if (linkedTicket) res.link++; else res.noLink++; 
+                    res.days += days; 
+                    if (days > res.max) res.max = days;
+                    
+                    let mStr = op.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
+                    if(!res.m[mStr]) res.m[mStr] = { count: 0, tks: [] };
+                    res.m[mStr].count++;
+                    
+                    if (op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()) {
+                        if(!res.req[reqName]) res.req[reqName] = { count: 0, tks: [] }; res.req[reqName].count++;
+                        if(!res.gp[gpName]) res.gp[gpName] = { count: 0, tks: [] }; res.gp[gpName].count++;
+                        if(!res.asg[asg]) res.asg[asg] = { count: 0, tks: [] }; res.asg[asg].count++;
+                    }
+                    
+                    let tObj = {
+                        tk: tk, req: reqName, as: asg, gp: gpName, l: linkedTicket || '⚠️ Erro / Não Vinculado',
+                        rea: reason, st: stOrig.toUpperCase(), d: days, age: days, idle: idle, opStr: op.toLocaleDateString('pt-BR'), opS: op.toLocaleDateString('pt-BR'),
+                        desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição']) || '-').replace(/"/g, '&quot;'),
+                        info: closeNotes.replace(/"/g, '&quot;') || 'Nenhuma nota de fechamento registrada.'
+                    };
+                    res.tks.push(tObj);
+                    
+                    if(op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()){
+                        res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks.push(tObj);
+                    }
+                    res.m[mStr].tks.push(tObj);
+                }
+            });
+            res.avg = res.total ? (res.days / res.total).toFixed(1).replace('.', ',') : "0,0";
+            res.tks.sort((a, b) => b.d - a.d);
+            return res;
+        }
+
+        // ==========================================
+        // SISTEMA DE DRILLDOWN MODAL
+        // ==========================================
+        function openDrilldown(title, ticketArrayStrKey, vaultCat) {
+            let tks = window.DrilldownVault[vaultCat][ticketArrayStrKey] || [];
+            if(!tks || tks.length === 0) return;
+            
+            document.getElementById('drilldown-title').innerText = title;
+            document.getElementById('drilldown-subtitle').innerText = `${tks.length} registros encontrados`;
+            
+            let rows = tks.map(t => {
+                let stColor = '#475569', stBg = '#f1f5f9';
+                let st = (t.st || '').toLowerCase();
+                if(st.includes('resolv') || st.includes('complet')){ stColor = '#10b981'; stBg = '#ecfdf5'; }
+                else if(st.includes('cancel') || st.includes('incomplet')){ stColor = '#ef4444'; stBg = '#fee2e2'; }
+                
+                return `
+                <tr ${buildRowAttrs(t)}>
+                    <td data-label="Ticket" class="font-bold text-[var(--primary-dark)] text-center">
+                        ${t.tk}
+                        <button onclick="closeDrilldown(); setTimeout(()=>openTicketDetails('${t.tk}'), 400)" class="mt-1 w-full text-center bg-blue-50 border border-blue-200/50 hover:bg-blue-100 rounded py-1 text-[9px] uppercase font-bold transition shadow-sm"><i class="fas fa-search mr-1"></i> Detalhes</button>
+                    </td>
+                    <td data-label="Descrição" class="text-left">
+                        <div class="text-xs font-semibold text-slate-800 line-clamp-2">${t.desc}</div>
+                        ${t.info && t.info !== '-' && t.info !== 'Sem detalhes fornecidos.' ? `<div class="text-[10px] text-slate-500 mt-1 italic line-clamp-1">${t.info}</div>` : ''}
+                    </td>
+                    <td data-label="Solicitante" class="text-center">${t.req}</td>
+                    <td data-label="Analista / Grupo" class="text-center">${t.as}<br><span class="text-[9px] text-slate-400">${t.gp}</span></td>
+                    <td data-label="Status" class="text-center"><span style="background:${stBg}; color:${stColor}; border:1px solid ${stColor}40;" class="px-2 py-0.5 rounded text-[9px] font-bold inline-block">${t.st}</span></td>
+                    <td data-label="Aging / Ocioso" class="text-right">
+                        <div class="font-bold text-sm ${t.age > 10 ? 'text-red-500' : 'text-slate-700'}">${t.age}d totais</div>
+                        ${t.idle !== '-' ? `<div class="text-[10px] font-bold mt-1 ${t.idle > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div class="text-[10px] text-slate-400 mt-1"><i class="fas fa-user-clock"></i> N/A</div>`}
+                    </td>
+                </tr>`;
+            }).join('');
+            
+            document.getElementById('drilldown-table-container').innerHTML = `
+                <div class="st-dataframe-container border-0 max-h-[70vh]">
+                    <table class="st-table">
+                        <thead><tr>
+                            ${createTh("Ticket", "12%")}
+                            ${createTh("Descrição", "auto", "left")}
+                            ${createTh("Solicitante", "15%")}
+                            ${createTh("Analista / Grupo", "15%")}
+                            ${createTh("Status", "12%")}
+                            ${createTh("Métricas", "10%", "right")}
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('drilldown-modal-backdrop').classList.remove('hidden-st');
+            setTimeout(() => { 
+                 document.getElementById('drilldown-modal-backdrop').classList.remove('opacity-0'); 
+                 document.getElementById('drilldown-modal-content').classList.remove('scale-95'); 
+             }, 10);
+        }
+        
+        function closeDrilldown() {
+            document.getElementById('drilldown-modal-backdrop').classList.add('opacity-0'); 
+            document.getElementById('drilldown-modal-content').classList.add('scale-95');
+            setTimeout(() => document.getElementById('drilldown-modal-backdrop').classList.add('hidden-st'), 300);
         }
 
         // ==========================================
         // 5. HTML GENERATORS
         // ==========================================
         function buildRowAttrs(t) { 
-            return `class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req || ''}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.age !== undefined ? t.age : t.d}" data-op="${t.opStr || t.opS}" data-info="${t.info}" data-idle="${t.idle !== undefined ? t.idle : '-'}"`; 
-        }
+             return `class="ticket-row" data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req || ''}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.age !== undefined ? t.age : t.d}" data-op="${t.opStr || t.opS}" data-info="${t.info}" data-idle="${t.idle !== undefined ? t.idle : '-'}" data-pct="${t.pctSla !== undefined ? t.pctSla : ''}"`; 
+         }
 
         function generateOpenTicketsHTML(incs, reqs, uams, slaI, slaR, refDateObj) {
             let openTks = [];
-            
             function processRow(r, type, slaConfig) {
                 let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!op || op.getTime() > refDateObj.getTime()) return;
-
                 let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
                 if (cl && cl.getTime() <= refDateObj.getTime()) return; 
-
                 let age = Math.floor((refDateObj - op) / 86400000);
                 if (age < 0) age = 0;
-
-                let tk = getCol(r, ['Number', 'Ticket', 'RITM']) || '-';
+                let tk = (type === 'REQ' || type === 'UAM') ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket']) || '-');
                 let desc = String(getCol(r, ['Short description', 'Descrição Curta', 'Item']) || 'Sem assunto').replace(/"/g, '&quot;');
                 let req = getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A';
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
                 let gp = getCol(r, ['Assignment group', 'Grupo']) || 'Sem Grupo';
                 let st = getCol(r, ['State', 'Status', 'Estado']) || 'Open';
-                
                 let idle = getDaysSilent(r, refDateObj, asg, op);
-
                 let pctSla = Math.round((age / slaConfig) * 100);
                 let stSla = age > slaConfig ? "Estourado" : "No Prazo";
-
-                openTks.push({
-                    tk, type, desc, req, as: asg, gp, st: st.toUpperCase(), 
-                    opStr: op.toLocaleDateString('pt-BR'), 
-                    age, pctSla, stSla, slaConfig, idle
-                });
+                openTks.push({ tk, type, desc, req, as: asg, gp, st: st.toUpperCase(), opStr: op.toLocaleDateString('pt-BR'), age, pctSla, stSla, slaConfig, idle });
             }
-
             incs.forEach(r => processRow(r, 'INC', slaI));
             reqs.forEach(r => processRow(r, 'REQ', slaR));
             uams.forEach(r => processRow(r, 'UAM', slaR));
-
+            
             let groups = {};
             openTks.forEach(t => {
                 if(!groups[t.gp]) groups[t.gp] = [];
                 groups[t.gp].push(t);
             });
-
-            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-folder-open mr-2"></i> VISÃO DE TICKETS ABERTOS POR GRUPO RESOLUTOR</div>
-                        <div class="mb-4 flex gap-2">
-                            <input type="text" id="openTicketsFilter" placeholder="Filtrar nesta visão de tickets abertos (Grupos)..." class="form-input flex-1" style="border: 2px solid var(--primary-dark); box-shadow: 0 4px 6px rgba(0, 24, 113, 0.1);" onkeyup="filterOpenTickets(this.value)">
-                            <button onclick="document.querySelectorAll('#tab-open details.saas-accordion').forEach(d => d.removeAttribute('open'))" class="bg-slate-200 text-slate-700 px-4 py-2 rounded font-bold hover:bg-slate-300 transition shadow-sm text-xs uppercase whitespace-nowrap"><i class="fas fa-compress-alt mr-1"></i> Recolher Tudo</button>
-                        </div>`;
-
-            let sortedGroups = Object.keys(groups).sort();
             
+            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-folder-open mr-2"></i> VISÃO DE TICKETS ABERTOS POR GRUPO RESOLUTOR</div>`;
+            let sortedGroups = Object.keys(groups).sort();
             if(sortedGroups.length === 0) {
                 html += `<div class="report-card text-center py-10 text-slate-400 font-bold"><i class="fas fa-check-circle text-5xl mb-4 block text-emerald-400"></i>Nenhum ticket aberto encontrado na base para a data de referência selecionada. Parabéns!</div>`;
                 return html;
             }
-
+            html += `
+            <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+                <div class="text-xs font-bold text-slate-700"><i class="fas fa-layer-group mr-2 text-blue-600"></i> Agrupamento de Tickets Abertos</div>
+                <button onclick="toggleAllAccordions()" class="bg-[var(--primary-dark)] text-white px-3 py-1.5 rounded text-[10px] font-bold uppercase shadow-sm hover:bg-blue-900 transition"><i class="fas fa-compress-alt mr-1"></i> Recolher Todos</button>
+            </div>`;
+            
             sortedGroups.forEach(gp => {
                 let tks = groups[gp].sort((a, b) => b.pctSla - a.pctSla); 
                 let rows = tks.map(t => {
                     let pctColor = t.pctSla > 100 ? '#ef4444' : (t.pctSla > 75 ? '#f59e0b' : '#10b981');
                     let stColor = t.pctSla > 100 ? 'text-red-600' : 'text-emerald-600';
                     return `
-                    <tr class="ticket-row hover:bg-slate-50 transition" style="border-bottom: 1px solid #f1f5f9;" data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-op="${t.opStr}" data-age="${t.age}" data-pct="${t.pctSla}" data-idle="${t.idle}">
+                    <tr ${buildRowAttrs(t)} class="ticket-row hover:bg-slate-50 transition" style="border-bottom: 1px solid #f1f5f9;">
                         <td data-label="Número" class="font-bold text-[var(--primary-dark)] text-center py-3">
                             ${t.tk}
                             <div class="text-[9px] bg-slate-200 px-1 rounded inline-block text-slate-500 ml-1">${t.type}</div>
@@ -1779,7 +1738,7 @@
                         <td data-label="Grupo" class="text-center"><span class="text-[11px] bg-slate-100 px-2 py-1 rounded border border-slate-200 block max-w-[150px] mx-auto truncate" title="${t.gp}">${t.gp}</span></td>
                         <td data-label="State" class="text-center"><span class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-[9px] uppercase font-bold block mx-auto w-max">${t.st}</span></td>
                         <td data-label="Abertura" class="text-center"><i class="far fa-calendar-alt text-slate-400 mr-1"></i>${t.opStr}</td>
-                        <td data-label="Aging (dias)" class="text-center font-bold text-lg ${t.age > t.slaConfig ? 'text-red-600' : 'text-slate-700'}">${t.age}</td>
+                        <td data-label="Aging (dias)" class="text-center font-bold text-base ${t.age > t.slaConfig ? 'text-red-600' : 'text-slate-700'}">${t.age}</td>
                         <td data-label="% SLA" class="text-center w-32">
                             <div class="w-full bg-slate-200 rounded-full h-4 relative overflow-hidden shadow-inner mx-auto min-w-[80px]">
                                 <div class="h-full flex items-center justify-center text-[9px] text-white font-bold transition-all" style="width: ${Math.min(t.pctSla, 100)}%; background-color: ${pctColor};">${t.pctSla}%</div>
@@ -1788,7 +1747,6 @@
                         <td data-label="Status SLA" class="text-center font-black ${stColor} uppercase text-[10px]">${t.stSla}</td>
                     </tr>`;
                 }).join('');
-
                 html += `
                 <details class="saas-accordion mb-4" open>
                     <summary class="bg-slate-50 border-b border-slate-200 text-slate-800 font-bold text-sm p-4 hover:bg-blue-50 transition">
@@ -1817,14 +1775,12 @@
                     </div>
                 </details>`;
             });
-
             return html;
         }
 
         function buildThroughputTable(d, lblRes) {
             let rows = "", tA = 0, tR = 0, tC = 0, tS = 0, lastB = 0;
             let keys = Object.keys(d.trendM).sort();
-
             keys.forEach((k) => {
                 let m = d.trendM[k];
                 let mesStr = new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
@@ -1832,9 +1788,7 @@
                 let pctStr = m.r > 0 ? Math.round((m.inSla / m.r) * 100) : 0;
                 let bgPct = pctStr >= 98 ? C.SUC : C.DAN;
                 let colorS = saldo > 0 ? C.PRI_D : (saldo < 0 ? C.PRI : C.GRY_D);
-
                 tA += m.a; tR += m.r; tC += m.c; tS += saldo; lastB = m.b;
-
                 rows += `<tr>
                     <td data-label="Mês" style="text-align:center; font-weight:600;">${mesStr}</td>
                     <td data-label="Abertos">${m.a}</td>
@@ -1845,52 +1799,43 @@
                     <td data-label="% no Prazo" style="background-color:${bgPct}; color:#fff; font-weight:bold;">${pctStr}%</td>
                 </tr>`;
             });
-
             return `<div class="st-dataframe-container"><table class="st-table">
                 <thead><tr>
-                    ${createTh("Mês")}
-                    ${createTh("Abertos")}
-                    ${createTh(lblRes)}
-                    ${createTh("Cancelados")}
-                    ${createTh("Saldo")}
-                    ${createTh("Backlog")}
-                    ${createTh("% no Prazo")}
+                    ${createTh("Mês")} ${createTh("Abertos")} ${createTh(lblRes)} ${createTh("Cancelados")} ${createTh("Saldo")} ${createTh("Backlog")} ${createTh("% no Prazo")}
                 </tr></thead>
                 <tbody>${rows || `<tr><td colspan="7" style="text-align:center;">Sem histórico.</td></tr>`}</tbody>
                 <tfoot><tr>
                     <th data-label="TOTAIS:" style="text-align:right;">TOTAIS:</th>
-                    <th data-label="Abertos">${tA}</th>
-                    <th data-label="${lblRes}">${tR}</th>
-                    <th data-label="Cancelados">${tC}</th>
+                    <th data-label="Abertos">${tA}</th> <th data-label="${lblRes}">${tR}</th> <th data-label="Cancelados">${tC}</th>
                     <th data-label="Saldo" style="color:${tS > 0 ? C.PRI_D : C.PRI}; font-weight:bold;">${tS > 0 ? '+' + tS : tS}</th>
-                    <th data-label="Backlog">${lastB}</th>
-                    <th data-label="% no Prazo">-</th>
+                    <th data-label="Backlog">${lastB}</th> <th data-label="% no Prazo">-</th>
                 </tr></tfoot>
             </table></div>`;
         }
 
         function generateSectionHTML(id, title, color, d, typeStr) {
+            let cat = id;
+            window.DrilldownVault[cat]['all_backlog'] = d.allBacklogTks;
+            window.DrilldownVault[cat]['all_res_month'] = d.allResolvedTks;
+            window.DrilldownVault[cat]['all_canc_month'] = d.allCanceledTks;
+            
             let lblRes = typeStr === 'INC' ? 'Resolvidos' : 'Encerrados';
             let pctColor = d.pct >= 98 ? C.SUC : C.DAN;
-
+            
             let apendiceRows = d.crits.filter(t => t.info && t.info !== 'Sem info' && t.info !== 'Sem detalhes fornecidos.').map(t => `
                 <details class="saas-accordion">
                     <summary><span style="color:${C.PRI_D};">${t.tk}</span> <span style="font-weight:400; color:#64748b; font-size:11px;">- ${t.as}</span></summary>
                     <div class="acc-content">${t.info}</div>
                 </details>`).join('');
-
             let apendiceHtml = apendiceRows ? `<div style="margin-top:25px;"><div class="report-section-title" style="background-color: ${C.PRI_D}; font-size:13px; padding:10px;"><i class="fas fa-list-alt mr-2"></i> DETALHES DE COMENTÁRIOS DOS SOLICITANTES (APÊNDICE)</div>
                 <div style="display:flex; flex-direction:column;">${apendiceRows}</div></div>` : "";
-
+                
             let noPrbHtml = typeStr === 'INC' && d.noPrb.length > 0 ? `
             <div class="report-card" style="margin-top:20px; border-color: ${C.PRI_D};">
                 <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle mr-2"></i> INCIDENTES CRÍTICOS SEM PRB (${d.noPrb.length})</div>
                 <div class="st-dataframe-container"><table class="st-table">
                 <thead><tr>
-                    ${createTh("Ticket", "12%")}
-                    ${createTh("Analista", "18%")}
-                    ${createTh("Último Comentário", "auto", "left")}
-                    ${createTh("Aging / Ocioso", "15%", "right")}
+                    ${createTh("Ticket", "12%")} ${createTh("Analista", "18%")} ${createTh("Último Comentário", "auto", "left")} ${createTh("Aging / Ocioso", "15%", "right")}
                 </tr></thead>
                 <tbody>${d.noPrb.map(t => `
                     <tr ${buildRowAttrs(t)}>
@@ -1910,64 +1855,73 @@
                     </tr>`).join('')}
                 </tbody></table></div>
             </div>` : "";
-
+            
             return `
             <div class="report-section-title" style="background-color: ${color};"><i class="fas fa-chart-line mr-2"></i> ${title}</div>
             
             <div class="grid-2">
-                <div class="report-card" style="text-align:center;">
-                    <div class="report-card-title">⏱️ TEMPO MÉDIO DE RESOLUÇÃO (MTTR)</div>
+                <div class="report-card clickable-card" style="text-align:center;" onclick="openDrilldown('Backlog Vigente (${typeStr})', 'all_backlog', '${cat}')" title="Clique para ver o backlog">
+                    <div class="report-card-title"><i class="fas fa-layer-group"></i> VOLUME EM BACKLOG</div>
                     <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-                        <div style="font-size:38px; font-weight:800; color:${C.PRI_D}; line-height:1;">${d.mttr}</div>
-                        <div style="font-size:13px; font-weight:bold; color:${C.GRY_D}; text-transform:uppercase; margin-top:5px;">Dias Corridos</div>
+                        <div style="font-size:32px; font-weight:800; color:${C.PRI_D}; line-height:1;">${d.backlog}</div>
+                        <div style="font-size:13px; font-weight:bold; color:${C.GRY_D}; text-transform:uppercase; margin-top:5px;">Tickets Pendentes</div>
                     </div>
                 </div>
-                <div class="report-card" style="text-align:center;">
+                <div class="report-card clickable-card" style="text-align:center;" onclick="openDrilldown('${lblRes} no Mês (${typeStr})', 'all_res_month', '${cat}')" title="Clique para ver os resolvidos no mês">
                     <div class="report-card-title">📊 ${lblRes.toUpperCase()} NO MÊS VIGENTE</div>
                     <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-                        <div style="font-size:16px; font-weight:bold; color:${C.GRY_D}; margin-bottom:8px; display:flex; justify-content:center; gap:15px;">
+                        <div style="font-size:14px; font-weight:bold; color:${C.GRY_D}; margin-bottom:8px; display:flex; justify-content:center; gap:15px;">
                             <span style="color:${C.SUC}; background:#ecfdf5; padding:4px 12px; border-radius:20px; border:1px solid #a7f3d0;">✅ ${d.inSla} no Prazo</span>
                             <span style="color:${C.DAN}; background:#fee2e2; padding:4px 12px; border-radius:20px; border:1px solid #fecaca;">❌ ${d.outSla} Fora</span>
                         </div>
-                        <div style="color:${pctColor}; font-size:22px; font-weight:800;">${d.pct}% Dentro do Prazo</div>
+                        <div style="color:${pctColor}; font-size:20px; font-weight:800;">${d.pct}% Dentro do Prazo</div>
                     </div>
                 </div>
             </div>
-
+            
             <div class="report-card">
-                <div class="report-card-title">1. ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE) <span class="text-[9px] lowercase text-blue-500 float-right font-normal mt-1"><i class="fas fa-mouse-pointer"></i> clique para explorar</span></div>
+                <div class="report-card-title">1. ACOMPANHAMENTO DIÁRIO (MÊS VIGENTE)</div>
                 <div class="chart-full-width"><canvas id="c-d-${id}"></canvas></div>
+                <div class="text-[9px] text-slate-400 mt-2 text-center w-full"><i class="fas fa-info-circle"></i> Clique em uma barra para ver os tickets correspondentes.</div>
             </div>
             <div class="report-card">
-                <div class="report-card-title">2. VISÃO MENSAL / ANUAL <span class="text-[9px] lowercase text-blue-500 float-right font-normal mt-1"><i class="fas fa-mouse-pointer"></i> clique para explorar</span></div>
+                <div class="report-card-title">2. VISÃO MENSAL / ANUAL</div>
                 <div class="chart-full-width"><canvas id="c-m-${id}"></canvas></div>
+                <div class="text-[9px] text-slate-400 mt-2 text-center w-full"><i class="fas fa-info-circle"></i> Clique em uma barra para ver os tickets correspondentes.</div>
             </div>
             
             <div class="grid-2">
                 <div class="report-card"><div class="report-card-title">3. TABELA DE THROUGHPUT ACUMULADO</div>${buildThroughputTable(d, lblRes)}</div>
-                <div class="report-card"><div class="report-card-title">4. VOLUME E PRODUTIVIDADE POR ANALISTA <span class="text-[9px] lowercase text-blue-500 float-right font-normal mt-1"><i class="fas fa-mouse-pointer"></i> clique para explorar</span></div><div class="chart-wrapper"><canvas id="c-a-${id}"></canvas></div></div>
+                <div class="report-card">
+                    <div class="report-card-title">4. VOLUME E PRODUTIVIDADE POR ANALISTA</div>
+                    <div class="chart-wrapper"><canvas id="c-a-${id}"></canvas></div>
+                    <div class="text-[9px] text-slate-400 mt-2 text-center w-full"><i class="fas fa-info-circle"></i> Clique em uma barra para detalhar as métricas do analista.</div>
+                </div>
             </div>
-
+            
             <div class="report-section-title" style="background-color: ${color}; text-align:center; font-size:14px; opacity:0.9;">ANÁLISE DE MATURIDADE E SLA</div>
             
             <div class="grid-2">
-                <div class="report-card"><div class="report-card-title">5. MATURIDADE (AGING) DOS VIGENTES <span class="text-[9px] lowercase text-blue-500 float-right font-normal mt-1"><i class="fas fa-mouse-pointer"></i> clique para explorar</span></div><div class="chart-wrapper" style="height:260px;"><canvas id="c-ag-${id}"></canvas></div></div>
-                <div class="report-card"><div class="report-card-title">6. STATUS DE SLA DOS VIGENTES <span class="text-[9px] lowercase text-blue-500 float-right font-normal mt-1"><i class="fas fa-mouse-pointer"></i> clique para explorar</span></div><div class="chart-wrapper" style="height:260px;"><canvas id="c-p-${id}"></canvas></div></div>
+                <div class="report-card">
+                    <div class="report-card-title">5. MATURIDADE (AGING) DOS VIGENTES</div>
+                    <div class="chart-wrapper" style="height:260px;"><canvas id="c-ag-${id}"></canvas></div>
+                    <div class="text-[9px] text-slate-400 mt-2 text-center w-full"><i class="fas fa-info-circle"></i> Clique em uma barra para ver os tickets no range de dias.</div>
+                </div>
+                <div class="report-card">
+                    <div class="report-card-title">6. STATUS DE SLA DOS VIGENTES</div>
+                    <div class="chart-wrapper" style="height:260px;"><canvas id="c-p-${id}"></canvas></div>
+                    <div class="text-[9px] text-slate-400 mt-2 text-center w-full"><i class="fas fa-info-circle"></i> Clique na fatia do gráfico para ver os estourados/no prazo.</div>
+                </div>
             </div>
-
+            
             <div class="report-card">
                 <div class="report-card-title text-red-600"><i class="fas fa-exclamation-circle mr-2"></i> CHAMADOS ACIMA DO SLA PENDENTES (TOTAL: ${d.crits.length})</div>
                 <div class="st-dataframe-container">
                     <table class="st-table">
                         <thead><tr>
-                            ${createTh("Ticket", "10%")}
-                            ${createTh("Assunto / Info (Expansível)", "auto", "left")}
-                            ${createTh("Solicitante", "15%")}
-                            ${createTh("Analista", "12%")}
-                            ${createTh("Grupo", "12%")}
-                            ${createTh("Status", "10%")}
-                            ${createTh("PRB", "8%")}
-                            ${createTh("Aging / Ocioso", "10%", "right")}
+                            ${createTh("Ticket", "10%")} ${createTh("Assunto / Info (Expansível)", "auto", "left")} ${createTh("Solicitante", "15%")}
+                            ${createTh("Analista", "12%")} ${createTh("Grupo", "12%")} ${createTh("Status", "10%")}
+                            ${createTh("PRB", "8%")} ${createTh("Aging / Ocioso", "10%", "right")}
                         </tr></thead>
                         <tbody>
                             ${d.crits.length ? d.crits.map(t => `
@@ -1981,9 +1935,7 @@
                                     <div class="text-expandable text-[11px] text-slate-500">${t.info}</div>
                                     ${t.info.length > 60 || t.desc.length > 50 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
                                 </td>
-                                <td data-label="Solicitante">${t.req}</td>
-                                <td data-label="Analista" class="font-medium">${t.as}</td>
-                                <td data-label="Grupo">${t.gp}</td>
+                                <td data-label="Solicitante">${t.req}</td> <td data-label="Analista" class="font-medium">${t.as}</td> <td data-label="Grupo">${t.gp}</td>
                                 <td data-label="Status"><span style="background:#f1f5f9; padding:4px 8px; border-radius:4px; font-size:10px; border:1px solid #e2e8f0; color:#475569; display:inline-block;">${t.st}</span></td>
                                 <td data-label="PRB" style="font-weight:${t.prb !== 'N/A' ? 'bold' : 'normal'}; color:${t.prb !== 'N/A' ? C.PRI_D : C.GRY}">${t.prb}</td>
                                 <td data-label="Aging / Ocioso" style="text-align:right;">
@@ -2000,217 +1952,396 @@
             `;
         }
 
-        // ==========================================
-        // ABA ERROS DE CLASSIFICAÇÃO E CONSOLIDADOS
-        // ==========================================
-        function generateClassErrorsHTML(refDateObj) {
-            let errTable = [];
-            const isIncReversed = r => { let t = String(getCol(r,['Short description','Descrição'])||'').toLowerCase(); return t.includes('acesso')||t.includes('request')||t.includes('solicitacao')||t.includes('req'); };
-            const isReqReversed = r => { let t = String(getCol(r,['Short description','Descrição'])||'').toLowerCase(); return t.includes('erro')||t.includes('falha')||t.includes('incidente')||t.includes('fora do ar')||t.includes('indisponib'); };
+        function generateClassificationsHTML(d) {
+            window.DrilldownVault['class']['all_tks'] = d.tks;
+            window.DrilldownVault['class']['linked_tks'] = d.tks.filter(t => !t.l.includes('⚠️'));
+            window.DrilldownVault['class']['nolink_tks'] = d.tks.filter(t => t.l.includes('⚠️'));
             
-            [RawData.incs, RawData.reqs].forEach((src, idx) => {
-                src.forEach(r => {
-                    let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                    let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
-                    if (!op || op.getTime() > refDateObj.getTime()) return;
-                    if (cl && cl.getTime() <= refDateObj.getTime()) return; // Só abertos
+            const buildAnalyticalTable = (title, dataObj, labelCol, isMonth = false) => {
+                let total = Object.values(dataObj).reduce((a,b) => a+b.count, 0);
+                
+                let rows = Object.entries(dataObj).sort((a,b) => b[1].count - a[1].count).map(([key, value], idx) => {
+                    let dKey = `cat_${labelCol}_${idx}`;
+                    window.DrilldownVault['class'][dKey] = value.tks;
+                    return `
+                    <tr class="hover:bg-slate-50 cursor-pointer transition" onclick="openDrilldown('${key}', '${dKey}', 'class')">
+                        <td class="text-left font-bold text-blue-800">${key} <i class="fas fa-external-link-alt text-[9px] text-slate-300 ml-1"></i></td>
+                        <td class="font-bold">${value.count}</td>
+                        ${isMonth ? `<td class="font-bold text-blue-600">${Math.round((value.count/total)*100)}%</td>` : ''}
+                    </tr>
+                `}).join('');
+                
+                return `
+                <div class="report-card">
+                    <div class="report-card-title"><i class="fas fa-filter mr-1"></i> ${title}</div>
+                    <div class="st-dataframe-container border-0 max-h-[250px]">
+                        <table class="st-table">
+                            <thead>
+                                <tr>
+                                    ${createTh(labelCol, "auto", "left")} ${createTh("Qtd", "20%")} ${isMonth ? createTh("%", "20%") : ''}
+                                </tr>
+                            </thead>
+                            <tbody>${rows || '<tr><td colspan="3" class="text-center">Sem dados.</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                    <div class="text-[9px] text-slate-400 mt-2 text-center"><i class="fas fa-mouse-pointer"></i> Clique nas linhas para detalhar os tickets.</div>
+                </div>`;
+            };
 
-                    let isError = idx === 0 ? isIncReversed(r) : isReqReversed(r);
-                    if(isError) {
-                        errTable.push({
-                            tk: getCol(r, ['Number', 'Ticket', 'RITM']),
-                            tipo: idx === 0 ? 'INC com cara de REQ' : 'REQ com cara de INC',
-                            desc: getCol(r, ['Short description', 'Descrição']) || '-',
-                            asg: getCol(r, ['Assigned to', 'Analista']) || 'Não Atribuído',
-                            gp: getCol(r, ['Assignment group', 'Grupo']) || '-'
-                        });
-                    }
-                });
-            });
+            if (d.total === 0) {
+                return `<div class="report-card text-center py-10" style="border-left: 4px solid var(--success);"><h3 class="text-emerald-600 font-bold text-lg"><i class="fas fa-check-circle mr-2"></i> Nenhuma classificação incorreta identificada no período.</h3><p class="text-slate-500 mt-2 text-sm">Parabéns à equipe. Nenhum ticket foi fechado como Incompleto por Classificação Incorreta.</p></div>`;
+            }
+
+            let rows = d.tks.map(t => `
+                <tr ${buildRowAttrs(t)}>
+                    <td data-label="Ticket Original" style="color:var(--primary-dark); font-weight:bold;">
+                        ${t.tk}
+                        <button onclick="openTicketDetails('${t.tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                    </td>
+                    <td data-label="Ticket Vinculado" style="font-weight:bold; color:${t.l.includes('⚠️') ? 'var(--danger)' : 'var(--success)'}">${t.l}</td>
+                    <td data-label="Descrição / Close Notes" style="text-align:left;">
+                        <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 1;">${t.desc}</div>
+                        <div class="text-expandable text-[10px] text-slate-500">Close Notes: ${t.info}</div>
+                        ${t.desc.length > 50 || t.info.length > 50 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
+                    </td>
+                    <td data-label="Solicitante">${t.req}</td>
+                    <td data-label="Analista / Grupo">${t.as}<br><span style="font-size:9px; color:#64748b;">${t.gp}</span></td>
+                    <td data-label="Reason / Status">
+                        <span style="background:#fee2e2; color:#b91c1c; padding:2px 6px; border-radius:4px; font-size:9px; font-weight:bold; display:inline-block; margin-bottom:4px;">${t.rea}</span><br>
+                        <span style="font-size:9px; color:#475569; background:#f1f5f9; padding:2px 6px; border-radius:4px; border:1px solid #e2e8f0;">${t.st}</span>
+                    </td>
+                    <td data-label="Dias / Ocioso" style="text-align:right;">
+                        <div style="color:var(--danger); font-weight:bold; font-size:14px;">${t.d}d totais</div>
+                        ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                    </td>
+                </tr>
+            `).join('');
 
             return `
-            <div class="report-section-title" style="background-color: var(--danger);"><i class="fas fa-exchange-alt mr-2"></i> ERROS DE CLASSIFICAÇÃO (SUSPEITAS)</div>
+            <div class="report-section-title" style="background-color: var(--danger);"><i class="fas fa-exchange-alt mr-2"></i> CLASSIFICAÇÕES INCORRETAS (REQ ⇄ INC)</div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="report-card h-[300px]" style="margin-bottom:0;">
+                    <div class="report-card-title">Tendência Mensal (Histórica)</div>
+                    <canvas id="chart-class-trend"></canvas>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="report-card text-center border-l-4 border-red-500 justify-center clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Total Incorretos', 'all_tks', 'class')">
+                        <div class="text-[10px] font-black text-red-600 mb-2 uppercase">Total Incorretos</div>
+                        <div class="text-4xl font-black">${d.total}</div>
+                    </div>
+                    <div class="report-card text-center border-l-4 border-green-500 justify-center clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Com Vínculo', 'linked_tks', 'class')">
+                        <div class="text-[10px] font-black text-green-600 mb-2 uppercase">Com Vínculo</div>
+                        <div class="text-4xl font-black">${d.link}</div>
+                    </div>
+                    <div class="report-card text-center border-l-4 border-orange-500 justify-center clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Sem Vínculo (Erros de Link)', 'nolink_tks', 'class')">
+                        <div class="text-[10px] font-black text-orange-500 mb-2 uppercase">Sem Vínculo (Erro)</div>
+                        <div class="text-4xl font-black">${d.noLink}</div>
+                    </div>
+                    <div class="report-card text-center border-l-4 border-blue-500 justify-center" style="margin-bottom:0;">
+                        <div class="text-[10px] font-black text-blue-600 mb-2 uppercase">Detecção Média</div>
+                        <div class="text-4xl font-black">${d.avg}d</div>
+                    </div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+                ${buildAnalyticalTable("Por Solicitante (Mês Vigente)", d.req, "Solicitante")}
+                ${buildAnalyticalTable("Por Grupo (Mês Vigente)", d.gp, "Grupo")}
+                ${buildAnalyticalTable("Por Analista (Mês Vigente)", d.asg, "Analista")}
+                ${buildAnalyticalTable("Consolidado por Mês", d.m, "Mês", true)}
+            </div>
+            
             <div class="report-card">
-                <div class="report-card-title">POSSÍVEIS TICKETS CLASSIFICADOS ERRADO (${errTable.length})</div>
+                <div class="report-card-title" style="color:var(--primary-dark)"><i class="fas fa-list mr-2"></i> LISTA DETALHADA DE CLASSIFICAÇÕES INCORRETAS</div>
                 <div class="st-dataframe-container">
                     <table class="st-table">
-                        <thead><tr>${createTh("Ticket")} ${createTh("Suspeita")} ${createTh("Descrição / Assunto", "40%", "left")} ${createTh("Analista")} ${createTh("Grupo")}</tr></thead>
-                        <tbody>
-                            ${errTable.length ? errTable.map(t => `<tr class="ticket-row" data-tk="${t.tk}">
-                                <td style="font-weight:bold; color:var(--primary-dark);">${t.tk}<button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-2 bg-blue-50 border border-blue-200/50 p-1 rounded text-[9px] uppercase shadow-sm">Saiba Mais</button></td>
-                                <td style="color:var(--danger); font-weight:bold; font-size:11px;">${t.tipo}</td>
-                                <td style="text-align:left;">${t.desc}</td>
-                                <td>${t.asg}</td>
-                                <td>${t.gp}</td>
-                            </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;">Nenhum erro de classificação detectado.</td></tr>`}
-                        </tbody>
+                        <thead><tr>
+                            ${createTh("Ticket Original", "12%")} ${createTh("Ticket Vinculado", "12%")} ${createTh("Descrição / Close Notes", "25%", "left")}
+                            ${createTh("Solicitante", "15%")} ${createTh("Analista/Grupo", "15%")} ${createTh("Reason / Status", "13%")} ${createTh("Ocioso/Dias", "8%", "right")}
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
                     </table>
                 </div>
             </div>`;
         }
 
-        function mergeDataForConsolidado(dI, dRS, dRU) {
-            if(!dI && !dRS && !dRU) return null;
-            let m = {
-                mttr: 0, pct: 0, inSla: 0, outSla: 0, backlog: 0, inSlaTot: 0, outSlaTot: 0,
-                trendM: {}, trendD: {}, topAnalistas: [], agingBuckets: {}, crits: [], noPrb: [],
-                tks_inSla: [], tks_outSla: []
-            };
-            let countRes = 0, totMttrRaw = 0, inSlaMes = 0, resMes = 0;
+        function generateConsolidadoHTML(i, r, u) {
+            let getTotals = (d, key) => { let s = 0; Object.keys(d.trendM).forEach(k => s += d.trendM[k][key]); return s; };
+            let totIn = getTotals(i, 'a') + getTotals(r, 'a') + getTotals(u, 'a');
+            let totOut = getTotals(i, 'r') + getTotals(i, 'c') + getTotals(r, 'r') + getTotals(r, 'c') + getTotals(u, 'r') + getTotals(u, 'c');
             
-            [dI, dRS, dRU].forEach(d => {
-                if(!d) return;
-                m.inSla += d.inSla; m.outSla += d.outSla; m.backlog += d.backlog;
-                m.inSlaTot += d.inSlaTot; m.outSlaTot += d.outSlaTot;
-                m.crits = m.crits.concat(d.crits);
-                m.tks_inSla = m.tks_inSla.concat(d.tks_inSla);
-                m.tks_outSla = m.tks_outSla.concat(d.tks_outSla);
+            window.DrilldownVault['cons']['inc_b'] = i.allBacklogTks;
+            window.DrilldownVault['cons']['req_b'] = r.allBacklogTks;
+            window.DrilldownVault['cons']['uam_b'] = u.allBacklogTks;
+            window.DrilldownVault['cons']['all_b'] = [...i.allBacklogTks, ...r.allBacklogTks, ...u.allBacklogTks];
+            
+            return `
+            <div class="report-section-title" style="background-color: ${C.PRI_D};"><i class="fas fa-globe mr-2"></i> VISÃO ORGANIZACIONAL CONSOLIDADA (INCs + REQs + UAMs)</div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="report-card text-center border-l-4 border-blue-800 clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Backlog de INCs', 'inc_b', 'cons')">
+                    <div class="report-card-title">Backlog INCs</div>
+                    <div class="text-4xl font-black text-slate-700">${i.backlog}</div>
+                </div>
+                <div class="report-card text-center border-l-4 border-blue-600 clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Backlog de REQs', 'req_b', 'cons')">
+                    <div class="report-card-title">Backlog REQs</div>
+                    <div class="text-4xl font-black text-slate-700">${r.backlog}</div>
+                </div>
+                <div class="report-card text-center border-l-4 border-blue-400 clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Backlog de UAMs', 'uam_b', 'cons')">
+                    <div class="report-card-title">Backlog UAMs</div>
+                    <div class="text-4xl font-black text-slate-700">${u.backlog}</div>
+                </div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="report-card" style="text-align:center;">
+                    <div class="report-card-title">TOTAL ENTRADAS (Visão Histórica)</div>
+                    <div style="font-size:42px; font-weight:900; color:${C.PRI_D}; margin:15px 0;">${totIn}</div>
+                    <div class="text-sm text-slate-500 font-bold">Volume total de chamados abertos</div>
+                </div>
+                <div class="report-card" style="text-align:center;">
+                    <div class="report-card-title">TOTAL SAÍDAS (Visão Histórica)</div>
+                    <div style="font-size:42px; font-weight:900; color:${C.SUC}; margin:15px 0;">${totOut}</div>
+                    <div class="text-sm text-slate-500 font-bold">Soma de Resolvidos e Cancelados</div>
+                </div>
+            </div>
+            
+            <div class="report-card clickable-card" style="text-align:center; background: linear-gradient(to right, #f8fafc, #ffffff);" onclick="openDrilldown('Backlog Global Vigente', 'all_b', 'cons')">
+                <div class="report-card-title" style="color:${C.PRI_D}">BACKLOG GLOBAL VIGENTE (No momento da Auditoria)</div>
+                <div style="font-size:48px; font-weight:900; color:${C.INFO}; margin:10px 0;">${i.backlog + r.backlog + u.backlog}</div>
+                <div class="text-sm text-slate-500 font-bold uppercase tracking-wider">Tickets aguardando atendimento em todos os fluxos</div>
+            </div>
+            
+            <div class="report-card h-[400px]">
+                <div class="report-card-title">1. ACOMPANHAMENTO GLOBAL DIÁRIO (MÊS VIGENTE)</div>
+                <div class="chart-full-width"><canvas id="c-d-cons"></canvas></div>
+            </div>
+            
+            <div class="report-card h-[400px]">
+                <div class="report-card-title">2. VISÃO MENSAL CONSOLIDADA</div>
+                <div class="chart-full-width"><canvas id="c-m-cons"></canvas></div>
+            </div>
+            `;
+        }
+
+        function generatePRBTab(rcaData, ptaskData, slaPTask, refDateObj) {
+            const refDate = new Date(refDateObj); refDate.setHours(23, 59, 59, 999); const refTime = refDate.getTime();
+            let html = `<div class="report-section-title" style="background-color: ${C.PRI_D};"><i class="fas fa-bullseye mr-2"></i> SESSÃO PRB TASKs (TODAS AS ABERTAS NO SISTEMA)</div>`;
+            
+            let rcaRows = "";
+            let ptaskRows = "";
+            let allPrbs = [];
+            let allPtasks = [];
+
+            rcaData.forEach(r => {
+                let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                if (!op || op.getTime() > refTime) return;
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                let st = String(getCol(r, ['State', 'Status', 'RCA Status']) || '').toLowerCase();
+                if (clOrig && clOrig.getTime() <= refTime) { if (st.includes('clos') || st.includes('resolv') || st.includes('cancel') || st.includes('fech')) return; }
+                let asg = getCol(r, ['Assigned to', 'Analista']) || '-';
+                let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
+                let tk = getCol(r, ['Problem', 'Problema']) || '-';
+                let descClean = String(getCol(r, ['Short description', 'Descrição']) || '-').replace(/"/g, '&quot;');
+                let req = getCol(r, ['Requester', 'Caller']) || 'N/A';
                 
-                // Recalcular médios baseados nos somatórios
-                resMes += (d.inSla + d.outSla);
-                inSlaMes += d.inSla;
-                totMttrRaw += (parseFloat(d.mttr.replace(',','.')) * (d.inSla + d.outSla));
-                countRes += (d.inSla + d.outSla);
-
-                // Merge trends
-                const mergeTrend = (src, dest) => {
-                    Object.keys(src).forEach(k => {
-                        if(!dest[k]) dest[k] = { a: 0, r: 0, c: 0, b: 0, tks_a: [], tks_r: [], tks_c: [], tks_b: [], inSla: 0 };
-                        dest[k].a += src[k].a; dest[k].r += src[k].r; dest[k].c += src[k].c; dest[k].b += src[k].b;
-                        if(src[k].inSla) dest[k].inSla += src[k].inSla;
-                        dest[k].tks_a = dest[k].tks_a.concat(src[k].tks_a);
-                        dest[k].tks_r = dest[k].tks_r.concat(src[k].tks_r);
-                        dest[k].tks_c = dest[k].tks_c.concat(src[k].tks_c);
-                        dest[k].tks_b = dest[k].tks_b.concat(src[k].tks_b);
-                    });
-                };
-                mergeTrend(d.trendM, m.trendM);
-                mergeTrend(d.trendD, m.trendD);
-
-                // Merge Aging Buckets
-                Object.keys(d.agingBuckets).forEach(k => {
-                    if(!m.agingBuckets[k]) m.agingBuckets[k] = { count: 0, color: d.agingBuckets[k].color, tks: [] };
-                    m.agingBuckets[k].count += d.agingBuckets[k].count;
-                    m.agingBuckets[k].tks = m.agingBuckets[k].tks.concat(d.agingBuckets[k].tks);
-                });
-
-                // Top Analistas (Merge e sort posterior)
-                d.topAnalistas.forEach(a => {
-                    let ext = m.topAnalistas.find(x => x.nome === a.nome);
-                    if(ext) {
-                        ext.ab += a.ab; ext.res += a.res; ext.tot += a.tot;
-                        ext.tks_ab = ext.tks_ab.concat(a.tks_ab); ext.tks_res = ext.tks_res.concat(a.tks_res);
-                    } else {
-                        m.topAnalistas.push(JSON.parse(JSON.stringify(a)));
-                    }
-                });
+                let dummyT = { tk: tk, desc: descClean, req: req, as: asg, gp: '-', st: getCol(r, ['RCA Status', 'State', 'Status']) || '-', age: Math.floor((refDate - op) / 86400000), idle: idle, opStr: op.toLocaleDateString('pt-BR'), info: 'RCA pendente.' };
+                allPrbs.push(dummyT);
+                
+                rcaRows += `<tr ${buildRowAttrs(dummyT)}>
+                    <td data-label="Problem" style="color:${C.PRI_D}; font-weight:bold;">
+                        ${tk}
+                        <button onclick="openTicketDetails('${tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                    </td>
+                    <td data-label="Descrição da Causa Raiz" style="text-align:left;">
+                        <div class="text-expandable text-[12px] font-semibold text-slate-700">${descClean}</div>
+                        ${descClean.length > 70 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
+                    </td>
+                    <td data-label="Analista Responsável" class="font-medium">${dummyT.as}</td>
+                    <td data-label="Status RCA"><span class="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-[10px] uppercase">${dummyT.st}</span></td>
+                </tr>`;
             });
 
-            m.mttr = countRes ? (totMttrRaw / countRes).toFixed(1).replace('.', ',') : "0,0";
-            m.pct = resMes ? Math.round((inSlaMes / resMes) * 100) : 0;
-            m.topAnalistas = m.topAnalistas.sort((a,b) => b.tot - a.tot).slice(0, 10);
-            return m;
+            ptaskData.forEach(r => {
+                let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                if (!op || op.getTime() > refTime) return;
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                let st = String(getCol(r, ['State', 'Status']) || '').toLowerCase();
+                if (clOrig && clOrig.getTime() <= refTime) { if (st.includes('clos') || st.includes('resolv') || st.includes('cancel') || st.includes('fech')) return; }
+                let age = Math.floor((refDate - op) / 86400000);
+                let tk = getCol(r, ['Number', 'Task']) || '-';
+                let desc = getCol(r, ['Problem', 'Problema']) || '-';
+                let req = getCol(r, ['Requester', 'Caller']) || 'N/A';
+                let asg = getCol(r, ['Assigned to', 'Analista']) || '-';
+                let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
+                
+                let dummyT = { tk: tk, desc: desc, req: req, as: asg, gp: getCol(r, ['Assignment group', 'Grupo']) || '-', st: st.toUpperCase(), age: age, idle: idle, opStr: op.toLocaleDateString('pt-BR'), info: 'Task secundária' };
+                allPtasks.push(dummyT);
+                
+                ptaskRows += `<tr ${buildRowAttrs(dummyT)}>
+                    <td data-label="Problem (Pai)" class="font-bold text-slate-700">${desc}</td>
+                    <td data-label="PTASK" style="color:${C.PRI_D}; font-weight:bold;">
+                        ${tk}
+                        <button onclick="openTicketDetails('${tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                    </td>
+                    <td data-label="Analista" class="font-medium">${dummyT.as}</td>
+                    <td data-label="Grupo Resolutor">${dummyT.gp}</td>
+                    <td data-label="SLA / Aging / Ocioso" style="text-align:right;">
+                        <div style="color:${age > slaPTask ? C.DAN : C.SUC}; font-weight:bold; font-size:13px;">${age > slaPTask ? `Estourado (${age}d)` : `No Prazo (${age}d)`}</div>
+                        ${dummyT.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${dummyT.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${dummyT.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                    </td>
+                </tr>`;
+            });
+            
+            // Cards interativos para PRB
+            window.DrilldownVault['class']['all_prbs'] = allPrbs;
+            window.DrilldownVault['class']['all_ptasks'] = allPtasks;
+
+            html += `
+            <div class="grid grid-cols-2 gap-6 mb-6">
+                <div class="report-card text-center border-l-4 border-orange-600 clickable-card" style="margin-bottom:0;" onclick="openDrilldown('RCAs Abertas (Problems)', 'all_prbs', 'class')">
+                    <div class="text-[12px] font-black text-orange-600 mb-2 uppercase">Problemas / RCAs Abertas</div>
+                    <div class="text-4xl font-black text-slate-700">${allPrbs.length}</div>
+                </div>
+                <div class="report-card text-center border-l-4 border-indigo-600 clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Problem Tasks (PTASKs) Abertas', 'all_ptasks', 'class')">
+                    <div class="text-[12px] font-black text-indigo-600 mb-2 uppercase">PTASKs Abertas</div>
+                    <div class="text-4xl font-black text-slate-700">${allPtasks.length}</div>
+                </div>
+            </div>
+            `;
+
+            html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-search mr-2"></i> 1. PROBLEM RCA - CAUSAS RAIZ EM ABERTO</div>
+                <div class="st-dataframe-container"><table class="st-table">
+                <thead><tr>
+                    ${createTh("Problem", "15%")} ${createTh("Descrição da Causa Raiz", "auto", "left")} ${createTh("Analista Responsável", "20%")} ${createTh("Status RCA", "15%")}
+                </tr></thead>
+                <tbody>${rcaRows || `<tr><td colspan="4" class="text-center text-slate-500 py-6">Nenhuma RCA aberta no momento.</td></tr>`}</tbody>
+                </table></div></div>`;
+            
+            html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-tasks mr-2"></i> 2. TASKS DE PROBLEMA (PTASK) ABERTAS</div>
+                <div class="st-dataframe-container"><table class="st-table">
+                <thead><tr>
+                    ${createTh("Problem (Pai)", "15%")} ${createTh("PTASK", "15%")} ${createTh("Analista", "20%")} ${createTh("Grupo Resolutor", "25%")} ${createTh("SLA / Ocioso", "15%", "right")}
+                </tr></thead>
+                <tbody>${ptaskRows || `<tr><td colspan="5" class="text-center text-slate-500 py-6">Nenhuma PTASK aberta no momento.</td></tr>`}</tbody>
+                </table></div></div>`;
+                
+            return html;
         }
 
         // ==========================================
-        // 7. GRÁFICOS CHART.JS E ORQUESTRADOR
+        // 7. GRÁFICOS CHART.JS COM FIX Y-AXIS & ONCLICK (DRILLDOWN)
         // ==========================================
         function drawChartsAll(id, d, lblRes) {
             Chart.defaults.global.defaultFontFamily = "'Inter', 'Calibri', sans-serif";
             Chart.defaults.global.defaultFontColor = "#475569";
-
+            
             const drawTrend = (canvas, tData, isD) => {
                 let keys = Object.keys(tData).sort();
                 let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
+                
                 let instance = new Chart(document.getElementById(canvas), {
                     type: 'bar',
                     data: {
                         labels: labels,
                         datasets: [
-                            { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.ORG, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.INFO, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
                             { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
                             { type: 'bar', label: lblRes, data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
                             { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
                         ]
                     },
                     options: { 
-                        maintainAspectRatio: false, 
-                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }, 
-                        scales: { 
-                            xAxes: [{ stacked: true, gridLines: { display: false } }], 
-                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }] 
-                        },
-                        // DRILL-DOWN UNIVERSAL
-                        onClick: function(evt, elements) {
-                            if(elements.length > 0) {
-                                let idx = elements[0]._index;
-                                let dsIdx = elements[0]._datasetIndex;
-                                let dsLabel = this.data.datasets[dsIdx].label;
-                                let dateKey = keys[idx];
-                                
-                                let targetTks = [];
-                                if(dsLabel === 'Abertos') targetTks = tData[dateKey].tks_a;
-                                else if(dsLabel === lblRes) targetTks = tData[dateKey].tks_r;
-                                else if(dsLabel === 'Cancelados') targetTks = tData[dateKey].tks_c;
-                                else if(dsLabel === 'Backlog Acumulado') targetTks = tData[dateKey].tks_b;
-
-                                executeChartDrillDown(`${labels[idx]} - ${dsLabel}`, targetTks);
-                            }
-                        }
-                    }
+                         maintainAspectRatio: false, 
+                         legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }, 
+                         scales: { 
+                             xAxes: [{ stacked: true, gridLines: { display: false } }], 
+                             yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }] 
+                         },
+                         onClick: function(evt, activeElements) {
+                             if(activeElements.length > 0) {
+                                 let idx = activeElements[0]._index;
+                                 let datasetIdx = activeElements[0]._datasetIndex;
+                                 let dKey = keys[idx];
+                                 let lblDate = labels[idx];
+                                 
+                                 let tksToDisplay = [];
+                                 let dTitle = "";
+                                 
+                                 if(datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Abertos em ${lblDate}`; }
+                                 else if(datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Resolvidos em ${lblDate}`; }
+                                 else if(datasetIdx === 3) { tksToDisplay = tData[dKey].tks_c; dTitle = `Cancelados em ${lblDate}`; }
+                                 else return; 
+                                 
+                                 window.DrilldownVault[id]['temp'] = tksToDisplay;
+                                 openDrilldown(dTitle, 'temp', id);
+                             }
+                         }
+                     }
                 });
                 window.chartInstances.push(instance);
             };
-            drawTrend(`c-d-${id}`, d.trendD, true); drawTrend(`c-m-${id}`, d.trendM, false);
-
+            drawTrend(`c-d-${id}`, d.trendD, true); 
+            drawTrend(`c-m-${id}`, d.trendM, false);
+            
             let instA = new Chart(document.getElementById(`c-a-${id}`), {
                 type: 'horizontalBar',
-                data: { 
-                    labels: d.topAnalistas.map(a => a.nome), 
-                    datasets: [
-                        { label: 'Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C.PRI_D }, 
-                        { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C.SUC }
-                    ] 
-                },
+                data: { labels: d.topAnalistas.map(a => a.nome), datasets: [{ label: 'Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C.PRI_D }, { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C.SUC }] },
                 options: { 
-                    maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } }, scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ stacked: true, gridLines: { display: false } }] }, plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                    onClick: function(evt, elements) {
-                        if(elements.length > 0) {
-                            let idx = elements[0]._index;
-                            let dsIdx = elements[0]._datasetIndex;
-                            let dsLabel = this.data.datasets[dsIdx].label;
-                            let targetTks = dsLabel === 'Abertos' ? d.topAnalistas[idx].tks_ab : d.topAnalistas[idx].tks_res;
-                            executeChartDrillDown(`Analista: ${d.topAnalistas[idx].nome} (${dsLabel})`, targetTks);
+                    maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } }, 
+                    scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ stacked: true, gridLines: { display: false } }] }, 
+                    plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                    onClick: function(evt, activeElements) {
+                        if(activeElements.length > 0) {
+                            let idx = activeElements[0]._index;
+                            let datasetIdx = activeElements[0]._datasetIndex;
+                            let analystName = d.topAnalistas[idx].nome;
+                            
+                            let tks = datasetIdx === 0 ? d.topAnalistas[idx].tks_ab : d.topAnalistas[idx].tks_res;
+                            let dTitle = datasetIdx === 0 ? `Tickets em Backlog de ${analystName}` : `Tickets Resolvidos por ${analystName}`;
+                            
+                            window.DrilldownVault[id]['temp'] = tks;
+                            openDrilldown(dTitle, 'temp', id);
                         }
                     }
                 }
             });
             window.chartInstances.push(instA);
-
+            
             let agKeys = Object.keys(d.agingBuckets);
             let instAg = new Chart(document.getElementById(`c-ag-${id}`), {
                 type: 'horizontalBar',
                 data: { labels: agKeys, datasets: [{ data: agKeys.map(k => d.agingBuckets[k].count), backgroundColor: agKeys.map(k => d.agingBuckets[k].color), barPercentage: 0.7, categoryPercentage: 0.8 }] },
-                options: { maintainAspectRatio: false, legend: { display: false }, scales: { xAxes: [{ gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ gridLines: { display: false } }] }, plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } },
-                    onClick: function(evt, elements) {
-                        if(elements.length > 0) {
-                            let idx = elements[0]._index;
-                            executeChartDrillDown(`Aging: ${agKeys[idx]}`, d.agingBuckets[agKeys[idx]].tks);
+                options: { 
+                    maintainAspectRatio: false, legend: { display: false }, 
+                    scales: { xAxes: [{ gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ gridLines: { display: false } }] }, 
+                    plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } },
+                    onClick: function(evt, activeElements) {
+                        if(activeElements.length > 0) {
+                            let idx = activeElements[0]._index;
+                            let bName = agKeys[idx];
+                            window.DrilldownVault[id]['temp'] = d.agingBuckets[bName].tks;
+                            openDrilldown(`Tickets no Range: ${bName}`, 'temp', id);
                         }
                     }
                 }
             });
             window.chartInstances.push(instAg);
-
+            
             let instP = new Chart(document.getElementById(`c-p-${id}`), {
                 type: 'doughnut',
-                data: { labels: ['SLA Cumprido', 'SLA Estourado'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN], borderWidth: 2, borderColor: '#fff' }] },
-                options: { cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } }, plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (val, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x); return sum && val > 0 ? Math.round((val / sum) * 100) + '%' : ""; } } },
-                    onClick: function(evt, elements) {
-                        if(elements.length > 0) {
-                            let idx = elements[0]._index;
-                            let targetTks = idx === 0 ? d.tks_inSla : d.tks_outSla;
-                            executeChartDrillDown(this.data.labels[idx], targetTks);
+                data: { labels: ['SLA Cumprido (No Prazo)', 'SLA Estourado (Fora)'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN], borderWidth: 2, borderColor: '#fff' }] },
+                options: { 
+                    cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } }, 
+                    plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (val, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x); return sum && val > 0 ? Math.round((val / sum) * 100) + '%' : ""; } } },
+                    onClick: function(evt, activeElements) {
+                        if(activeElements.length > 0) {
+                            let idx = activeElements[0]._index;
+                            let tks = idx === 0 ? d.tksInSlaTot : d.tksOutSlaTot;
+                            let dTitle = idx === 0 ? `Tickets No Prazo SLA` : `Tickets Com SLA Estourado`;
+                            window.DrilldownVault[id]['temp'] = tks;
+                            openDrilldown(dTitle, 'temp', id);
                         }
                     }
                 }
@@ -2218,87 +2349,205 @@
             window.chartInstances.push(instP);
         }
 
-        function processDashboard() {
-            if (!RawData.incs.length && !RawData.reqs.length && !RawData.rca.length && !RawData.ptask.length) return alert("Erro: Carregue as planilhas do ServiceNow na aba lateral primeiro.");
+        function drawConsolidadoCharts(i, r, u) {
+            let cTrendD = {}; let dKeys = new Set([...Object.keys(i.trendD), ...Object.keys(r.trendD), ...Object.keys(u.trendD)]);
+            dKeys.forEach(k => { 
+                cTrendD[k] = { 
+                    a: (i.trendD[k]?.a || 0) + (r.trendD[k]?.a || 0) + (u.trendD[k]?.a || 0), 
+                    r: (i.trendD[k]?.r || 0) + (r.trendD[k]?.r || 0) + (u.trendD[k]?.r || 0), 
+                    c: (i.trendD[k]?.c || 0) + (r.trendD[k]?.c || 0) + (u.trendD[k]?.c || 0), 
+                    b: (i.trendD[k]?.b || 0) + (r.trendD[k]?.b || 0) + (u.trendD[k]?.b || 0),
+                    tks_a: [...(i.trendD[k]?.tks_a||[]), ...(r.trendD[k]?.tks_a||[]), ...(u.trendD[k]?.tks_a||[])],
+                    tks_r: [...(i.trendD[k]?.tks_r||[]), ...(r.trendD[k]?.tks_r||[]), ...(u.trendD[k]?.tks_r||[])],
+                    tks_c: [...(i.trendD[k]?.tks_c||[]), ...(r.trendD[k]?.tks_c||[]), ...(u.trendD[k]?.tks_c||[])]
+                }; 
+            });
+            
+            let cTrendM = {}; let mKeys = new Set([...Object.keys(i.trendM), ...Object.keys(r.trendM), ...Object.keys(u.trendM)]);
+            mKeys.forEach(k => { 
+                cTrendM[k] = { 
+                    a: (i.trendM[k]?.a || 0) + (r.trendM[k]?.a || 0) + (u.trendM[k]?.a || 0), 
+                    r: (i.trendM[k]?.r || 0) + (r.trendM[k]?.r || 0) + (u.trendM[k]?.r || 0), 
+                    c: (i.trendM[k]?.c || 0) + (r.trendM[k]?.c || 0) + (u.trendM[k]?.c || 0), 
+                    b: (i.trendM[k]?.b || 0) + (r.trendM[k]?.b || 0) + (u.trendM[k]?.b || 0),
+                    tks_a: [...(i.trendM[k]?.tks_a||[]), ...(r.trendM[k]?.tks_a||[]), ...(u.trendM[k]?.tks_a||[])],
+                    tks_r: [...(i.trendM[k]?.tks_r||[]), ...(r.trendM[k]?.tks_r||[]), ...(u.trendM[k]?.tks_r||[])],
+                    tks_c: [...(i.trendM[k]?.tks_c||[]), ...(r.trendM[k]?.tks_c||[]), ...(u.trendM[k]?.tks_c||[])]
+                }; 
+            });
+            
+            const drawC = (canvas, tData, isD) => {
+                let keys = Object.keys(tData).sort();
+                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
+                
+                let instance = new Chart(document.getElementById(canvas), {
+                    type: 'bar',
+                    data: { labels: labels, datasets: [
+                        { type: 'line', label: 'Backlog Global', data: keys.map(k => tData[k].b), borderColor: C.INFO, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                        { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                        { type: 'bar', label: 'Resolvidos/Encerrados', data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                        { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
+                    ]},
+                    options: { 
+                         maintainAspectRatio: false, 
+                         legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }, 
+                         scales: { 
+                             xAxes: [{ stacked: true, gridLines: { display: false } }], 
+                             yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }] 
+                         },
+                         onClick: function(evt, activeElements) {
+                             if(activeElements.length > 0) {
+                                 let idx = activeElements[0]._index;
+                                 let datasetIdx = activeElements[0]._datasetIndex;
+                                 let dKey = keys[idx];
+                                 let lblDate = labels[idx];
+                                 
+                                 let tksToDisplay = [];
+                                 let dTitle = "";
+                                 
+                                 if(datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Globais Abertos em ${lblDate}`; }
+                                 else if(datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Globais Resolvidos em ${lblDate}`; }
+                                 else if(datasetIdx === 3) { tksToDisplay = tData[dKey].tks_c; dTitle = `Globais Cancelados em ${lblDate}`; }
+                                 else return; 
+                                 
+                                 window.DrilldownVault['cons']['temp'] = tksToDisplay;
+                                 openDrilldown(dTitle, 'temp', 'cons');
+                             }
+                         }
+                     }
+                });
+                window.chartInstances.push(instance);
+            };
+            drawC('c-d-cons', cTrendD, true); drawC('c-m-cons', cTrendM, false);
+        }
 
+        // ==========================================
+        // 8. ORQUESTRADOR PRINCIPAL
+        // ==========================================
+        function processDashboard() {
+            if (!RawData.incs.length && !RawData.reqs.length) return alert("Erro: Carregue as planilhas do ServiceNow na aba lateral primeiro.");
+            
             let now = new Date(); 
             document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extração: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
-
             document.getElementById('init-alert').classList.add('hidden-st');
             document.getElementById('loader').classList.remove('hidden-st');
             document.getElementById('report-content').classList.add('hidden-st');
             document.getElementById('tabs-container').classList.remove('hidden-st');
-
             if (window.innerWidth < 1024) toggleSidebar();
-
+            
             if (window.chartInstances) { window.chartInstances.forEach(c => c.destroy()); window.chartInstances = []; }
             GlobalOpenTickets = [];
             activeTableFilters = {}; 
-
+            
             setTimeout(() => {
                 const slaI = parseInt(document.getElementById('sla-incs').value) || 7;
                 const slaR = parseInt(document.getElementById('sla-reqs').value) || 10;
                 const slaP = parseInt(document.getElementById('sla-ptask').value) || 10;
-
                 const refDateInput = document.getElementById('ref-date').value;
                 const dateMachine = refDateInput ? new Date(refDateInput + 'T12:00:00') : new Date();
-
+                
                 ['tab-inc', 'tab-req', 'tab-uam', 'tab-cons', 'tab-prb', 'tab-class', 'tab-search', 'tab-open'].forEach(id => {
                     let el = document.getElementById(id);
                     if (el) el.innerHTML = "";
                 });
                 
-                let dI = null, dRS = null, dRU = null, dPRB = null;
-
+                let dI = null, dRS = null, dRU = null;
                 if (RawData.incs.length) {
                     dI = calculateSection(RawData.incs, slaI, "INC", dateMachine);
                     document.getElementById('tab-inc').innerHTML = generateSectionHTML('inc', "SESSÃO INCs (INCIDENTES GERAIS)", C.PRI_D, dI, "INC");
                 }
-
+                
                 let rS = [], rU = [];
                 if (RawData.reqs.length) {
                     const isUam = r => String(r['Assignment group'] || r['Grupo'] || '').toLowerCase().includes('access');
                     rS = RawData.reqs.filter(r => !isUam(r)); 
                     rU = RawData.reqs.filter(r => isUam(r));
-
+                    
                     if (rS.length) { dRS = calculateSection(rS, slaR, "REQ", dateMachine); document.getElementById('tab-req').innerHTML = generateSectionHTML('req', "SESSÃO REQs (SUPORTE GERAL)", C.PRI_D, dRS, "REQ"); }
                     if (rU.length) { dRU = calculateSection(rU, slaR, "REQ", dateMachine); document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "SESSÃO UAMs (ACESSOS)", C.PRI_D, dRU, "REQ"); }
                 }
-
-                // Aba Consolidado
-                let dCons = mergeDataForConsolidado(dI, dRS, dRU);
-                if(dCons) document.getElementById('tab-cons').innerHTML = generateSectionHTML('cons', "VISÃO CONSOLIDADA (INCs + REQs + UAMs)", C.ACC_D, dCons, "CONS");
-
-                // Aba PRB / PTASK
-                let prbData = [...RawData.rca, ...RawData.ptask];
-                if (prbData.length) {
-                    dPRB = calculateSection(prbData, slaP, "PTASK", dateMachine);
-                    document.getElementById('tab-prb').innerHTML = generateSectionHTML('prb', "SESSÃO PROBLEMAS E TASKS (PRB / PTASK)", C.ORG, dPRB, "PTASK");
-                } else {
-                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-500 font-bold"><i class="fas fa-exclamation-circle text-3xl block mb-2"></i>Nenhuma planilha de RCA ou PTASK carregada.</h3></div>`;
-                }
-
-                // Aba Erros de Classificação
-                document.getElementById('tab-class').innerHTML = generateClassErrorsHTML(dateMachine);
-
+                
                 document.getElementById('tab-open').innerHTML = generateOpenTicketsHTML(RawData.incs, rS, rU, slaI, slaR, dateMachine);
-
+                
+                if (dI && dRS && dRU) document.getElementById('tab-cons').innerHTML = generateConsolidadoHTML(dI, dRS, dRU);
+                
+                if (RawData.rca.length || RawData.ptask.length) {
+                    document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaP, dateMachine);
+                } else {
+                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK importado.</h3></div>`;
+                }
+                
+                let allCombinedData = [...RawData.incs, ...RawData.reqs];
+                if (allCombinedData.length > 0) {
+                    let dClass = calculateClassifications(allCombinedData, dateMachine);
+                    document.getElementById('tab-class').innerHTML = generateClassificationsHTML(dClass);
+                    
+                    requestAnimationFrame(() => {
+                        let cnv = document.getElementById('chart-class-trend');
+                        if (cnv) {
+                            let keysM = Object.keys(dClass.m).sort();
+                            window.chartInstances.push(new Chart(cnv, {
+                                 type: 'line',
+                                 data: {
+                                     labels: keysM,
+                                     datasets: [{
+                                         label: 'Erros de Classificação',
+                                         data: keysM.map(k => dClass.m[k].count),
+                                         borderColor: C.DAN,
+                                         fill: false,
+                                         borderWidth: 3,
+                                         datalabels: { align: 'top', font: {weight:'bold'}, formatter: v => v > 0 ? v : "" }
+                                     }]
+                                 },
+                                 options: {
+                                     maintainAspectRatio: false,
+                                     legend: {display:false},
+                                     scales: { yAxes: [{ ticks: {beginAtZero:true} }] },
+                                     onClick: function(evt, activeElements) {
+                                         if(activeElements.length > 0) {
+                                             let idx = activeElements[0]._index;
+                                             let mKey = keysM[idx];
+                                             window.DrilldownVault['class']['temp'] = dClass.m[mKey].tks;
+                                             openDrilldown(`Erros em ${mKey}`, 'temp', 'class');
+                                         }
+                                     }
+                                 }
+                             }));
+                        }
+                    });
+                }
+                
                 document.getElementById('loader').classList.add('hidden-st');
                 document.getElementById('report-content').classList.remove('hidden-st');
                 document.getElementById('search-container').classList.add('visible');
-
+                
+                // SOLUÇÃO PARA O CHART.JS EM ABAS OCULTAS
+                let tabs = document.querySelectorAll('.tab-pane');
+                tabs.forEach(c => {
+                    c.style.display = 'block';
+                    c.style.visibility = 'hidden';
+                    c.style.position = 'absolute';
+                    c.classList.remove('hidden-st');
+                });
+                
                 requestAnimationFrame(() => {
                     if (dI) drawChartsAll('inc', dI, 'Resolvidos');
                     if (dRS) drawChartsAll('req', dRS, 'Encerrados');
                     if (dRU) drawChartsAll('uam', dRU, 'Encerrados');
-                    if (dCons) drawChartsAll('cons', dCons, 'Resolvidos Totais');
-                    if (dPRB) drawChartsAll('prb', dPRB, 'Encerrados');
-
+                    if (dI && dRS && dRU) drawConsolidadoCharts(dI, dRS, dRU);
+                    
+                    // Restaura visibilidade normal das abas
+                    tabs.forEach(c => {
+                        c.style.display = '';
+                        c.style.visibility = '';
+                        c.style.position = '';
+                        c.classList.add('hidden-st');
+                    });
+                    
                     populateTodoAnalystDropdown();
                     renderTodos();
                     
                     switchTab('tab-open', document.querySelector('.tab-btn[onclick*="tab-open"]'));
-
                     if (document.getElementById("globalSearch").value.trim() !== "") {
                         performGlobalSearch();
                     } else {
