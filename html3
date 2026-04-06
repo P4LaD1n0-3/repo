@@ -575,8 +575,16 @@
         }
         function clearFiles() { location.reload(); }
         
+        // CORREÇÃO MÁXIMA PARA COLUNAS: getCol ignorando maiúsculas/minúsculas
         const getCol = (row, keys) => { 
-             for (let k of keys) if (row[k] !== undefined && row[k] !== "") return row[k]; 
+             const rowKeys = Object.keys(row);
+             for (let k of keys) {
+                 let kLow = String(k).toLowerCase();
+                 let match = rowKeys.find(rk => String(rk).toLowerCase() === kLow);
+                 if (match && row[match] !== undefined && row[match] !== "") {
+                     return row[match];
+                 }
+             }
              return null; 
          };
          
@@ -1022,17 +1030,26 @@
                 </div>`
             ).join('');
         }
-let currentModalTk = null;
+
+// --- FIM DA PARTE 1 (Corte feito exatamente aqui para início da Parte 2) ---
+
+        let currentModalTk = null;
         function openTicketDetails(tkNumber) {
             currentModalTk = tkNumber; 
             let ticketData = null; 
             let tType = '';
             
-            // CORREÇÃO: Busca robusta convertendo para String e removendo espaços p/ evitar falha de tipagem do Excel
+            // CORREÇÃO DEFINITIVA MÁXIMA: Busca iterando por TODAS as células da linha (imune a nomes de colunas ou case sensitivity do Excel)
+            let cleanTk = String(tkNumber).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '').toUpperCase();
+            
             [RawData.incs, RawData.reqs, RawData.rca, RawData.ptask].forEach((src, i) => { 
+                 if (ticketData) return;
                  let f = src.find(r => {
-                     let val = getCol(r, ['RITM', 'Request Item', 'Request item', 'Item de solicitação', 'Number', 'number', 'Ticket', 'Problem', 'Task']);
-                     return val != null && String(val).trim() === String(tkNumber).trim();
+                     return Object.values(r).some(val => {
+                         if (val == null) return false;
+                         let cleanVal = String(val).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '').toUpperCase();
+                         return cleanVal === cleanTk;
+                     });
                  }); 
                  if(f) { 
                      ticketData = f; 
@@ -1040,7 +1057,10 @@ let currentModalTk = null;
                  } 
              });
              
-            if (!ticketData) return alert("Detalhes do ticket não encontrados na base importada.");
+            if (!ticketData) {
+                return alert("Detalhes do ticket não encontrados na base importada. \nTicket: " + tkNumber);
+            }
+            
             document.getElementById('modal-tk').innerText = tkNumber;
             document.getElementById('modal-title').innerText = getCol(ticketData, ['Short description','Descrição Curta','Descrição', 'Item']) || 'Sem assunto definido.';
             document.getElementById('modal-desc').innerText = getCol(ticketData, ['Description','Descrição Completa']) || 'Sem descrição detalhada fornecida na abertura.';
@@ -2232,6 +2252,7 @@ let currentModalTk = null;
                 </tr>`;
             });
             
+            // Cards interativos para PRB
             window.DrilldownVault['class']['all_prbs'] = allPrbs;
             window.DrilldownVault['class']['all_ptasks'] = allPtasks;
 
