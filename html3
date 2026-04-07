@@ -1182,11 +1182,11 @@
                 <div class="mb-5 space-y-3">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-700 mb-1">Destinatário (Para) *</label>
-                        <input type="email" id="email-to" class="form-input w-full text-xs" placeholder="ex: coord@empresa.com">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-700 mb-1">Cópia (CC)</label>
-                        <input type="email" id="email-cc" class="form-input w-full text-xs" placeholder="ex: gestao@empresa.com (Opcional)">
+                        <input type="email" id="email-to" class="form-input w-full text-xs" placeholder="ex: coord@empresa.com" onchange="saveConfigs()">
+                        <div class="mt-3">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase">Em Cópia (CC):</label>
+                            <input type="email" id="email-cc" class="form-input w-full text-xs mt-1" placeholder="ex: suporte@empresa.com" onchange="saveConfigs()">
+                        </div>
                     </div>
                 </div>
 
@@ -1377,10 +1377,10 @@
                         <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
                                 <label class="form-label mb-3">Configuração de SLA (Dias)</label>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">INC / Geral</span><input type="number" id="sla-incs" value="7" class="form-input mt-1"></div>
-                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">REQ / UAM</span><input type="number" id="sla-reqs" value="10" class="form-input mt-1"></div>
-                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">PTASK</span><input type="number" id="sla-ptask" value="10" class="form-input mt-1"></div>
-                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">RCA</span><input type="number" id="sla-rca" value="10" class="form-input mt-1"></div>
+                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">INC / Geral</span><input type="number" id="sla-incs" value="7" class="form-input mt-1" onchange="saveConfigs()"></div>
+                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">REQ / UAM</span><input type="number" id="sla-reqs" value="10" class="form-input mt-1" onchange="saveConfigs()"></div>
+                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">PTASK</span><input type="number" id="sla-ptask" value="10" class="form-input mt-1" onchange="saveConfigs()"></div>
+                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">RCA</span><input type="number" id="sla-rca" value="10" class="form-input mt-1" onchange="saveConfigs()"></div>
                                     </div>
                             </div>
                         <div style="margin-top: auto;">
@@ -1712,6 +1712,8 @@
         // 0. DATA & FILES & UTILS
         // ==========================================
         const RawData = { incs: [], reqs: [], rca: [], ptask: [] };
+        window.openTodoAnalysts = new Set();
+        window.openModalTodoAnalysts = new Set();
         
         // ==========================================
         // AUTO-SYNC (CLOUD FOLDER) LOGIC
@@ -1729,6 +1731,34 @@
         function openConfigModal() { document.getElementById('config-modal').classList.remove('hidden-st'); }
         function closeConfigModal() { document.getElementById('config-modal').classList.add('hidden-st'); }
         function dismissUpdateModal() { document.getElementById('update-alert-modal').classList.add('translate-x-[120%]'); }
+
+        // --- PERSISTÊNCIA (localStorage) ---
+        function saveConfigs() {
+            const config = {
+                slaIncs: document.getElementById('sla-incs').value,
+                slaReqs: document.getElementById('sla-reqs').value,
+                slaPtask: document.getElementById('sla-ptask').value,
+                slaRca: document.getElementById('sla-rca').value,
+                emailTo: document.getElementById('email-to').value,
+                emailCc: document.getElementById('email-cc').value
+            };
+            localStorage.setItem('eliteMasterConfigV1', JSON.stringify(config));
+            console.log("[CONFIG] Configurações salvas no localStorage.");
+        }
+
+        function loadConfigs() {
+            const saved = localStorage.getItem('eliteMasterConfigV1');
+            if (saved) {
+                const config = JSON.parse(saved);
+                if (config.slaIncs) document.getElementById('sla-incs').value = config.slaIncs;
+                if (config.slaReqs) document.getElementById('sla-reqs').value = config.slaReqs;
+                if (config.slaPtask) document.getElementById('sla-ptask').value = config.slaPtask;
+                if (config.slaRca) document.getElementById('sla-rca').value = config.slaRca;
+                if (config.emailTo) document.getElementById('email-to').value = config.emailTo;
+                if (config.emailCc) document.getElementById('email-cc').value = config.emailCc;
+                console.log("[CONFIG] Configurações recuperadas.");
+            }
+        }
         
         function showAlertModal(title, message) {
             document.getElementById('alert-modal-title').innerText = title;
@@ -1739,20 +1769,55 @@
             document.getElementById('alert-modal').classList.add('hidden-st');
         }
 
+        // --- PERSISTÊNCIA (IndexedDB para o DirectoryHandle) ---
+        // Browser security: Handles cannot be saved in localStorage.
+        const dbName = "EliteMasterDB";
+        const storeName = "ConfigStore";
+
+        async function getDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, 1);
+                request.onupgradeneeded = () => request.result.createObjectStore(storeName);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveHandle(handle) {
+            const db = await getDB();
+            const tx = db.transaction(storeName, "readwrite");
+            tx.objectStore(storeName).put(handle, "dirHandle");
+            return tx.complete;
+        }
+
+        async function loadHandle() {
+            const db = await getDB();
+            const tx = db.transaction(storeName, "readonly");
+            return new Promise((resolve) => {
+                const req = tx.objectStore(storeName).get("dirHandle");
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => resolve(null);
+            });
+        }
+
         async function bindCloudFolder() {
             try {
                 const handle = await window.showDirectoryPicker({ mode: 'read' });
                 window.syncContext.dirHandle = handle;
-                window.syncContext.cacheStamps = {}; // Reset cache ao vincular nova pasta
+                window.syncContext.cacheStamps = {}; 
+                
+                // Salva no IndexedDB
+                await saveHandle(handle);
+
                 document.getElementById('sync-status-indicator').className = 'w-3 h-3 rounded-full bg-emerald-500 shadow shadow-emerald-200';
                 document.getElementById('sync-status-text').innerText = 'Pasta vinculada';
                 document.getElementById('sync-folder-path').innerText = handle.name;
                 
-                console.log("[SYNC] Pasta vinculada:", handle.name);
-                showAlertModal("Pasta Vinculada", "A pasta '" + handle.name + "' foi associada com sucesso. Clique no botão de Atualizar (🔄) no topo para carregar os dados.");
+                console.log("[SYNC] Pasta vinculada e salva no DB:", handle.name);
+                showAlertModal("Pasta Vinculada", "A pasta '" + handle.name + "' foi associada e será lembrada. Clique em Atualizar (🔄) no topo.");
                 setTimeout(() => closeConfigModal(), 500);
             } catch(e) {
-                console.warn("Folder picker cancelado ou sem permissões.");
+                console.warn("Folder picker cancelado ou erro:", e);
             }
         }
 
@@ -1779,11 +1844,16 @@
             console.log("[SYNC] Início da sincronização manual...");
             
             try {
-                // Verifica permissão
+                // Recupera permissão (Browser security: exige interação após refresh)
                 const permission = await window.syncContext.dirHandle.queryPermission({ mode: 'read' });
                 if (permission !== 'granted') {
+                    // Se não tiver permissão, o navegador exige uma interação. 
+                    // O clique no botão 'Atualizar' conta como interação.
                     const req = await window.syncContext.dirHandle.requestPermission({ mode: 'read' });
-                    if (req !== 'granted') throw new Error("Permissão negada");
+                    if (req !== 'granted') {
+                         showAlertModal("Permissão Necessária", "O navegador bloqueou o acesso à pasta. Por favor, clique novamente em Atualizar e autorize o acesso.");
+                         throw new Error("Permissão negada");
+                    }
                 }
 
                 // Lê TODOS os arquivos xlsx da pasta
@@ -2007,9 +2077,16 @@
         }
 
         function exportBackupJSON() {
+            const config = JSON.parse(localStorage.getItem('eliteMasterConfigV1')) || {};
+            const backupData = {
+                todos: todoList,
+                config: config,
+                exportDate: new Date().toISOString()
+            };
             const link = document.createElement('a');
-            link.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(todoList));
-            link.download = `EliteMaster_Backup_Tarefas_${new Date().toISOString().slice(0, 10)}.json`;
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            link.href = URL.createObjectURL(blob);
+            link.download = `EliteMaster_Backup_Completo_${new Date().toISOString().slice(0, 10)}.json`;
             link.click();
         }
         function importBackupJSON(e) {
@@ -2019,10 +2096,20 @@
             reader.onload = ev => {
                 try {
                     const imp = JSON.parse(ev.target.result);
-                    if (Array.isArray(imp)) {
-                        todoList = imp;
+                    // Suporta formato antigo (apenas array) e novo (objeto com metadata)
+                    const newTodos = Array.isArray(imp) ? imp : (imp.todos || []);
+                    const newConfig = (!Array.isArray(imp) && imp.config) ? imp.config : null;
+
+                    if (Array.isArray(newTodos)) {
+                        todoList = newTodos;
                         saveTodos();
-                        alert("Backup de tarefas importado com sucesso!");
+                        
+                        if (newConfig) {
+                            localStorage.setItem('eliteMasterConfigV1', JSON.stringify(newConfig));
+                            loadConfigs();
+                        }
+                        
+                        alert("Backup importado com sucesso! Dados e configurações restaurados.");
                         renderTodos();
                     }
                 } catch (err) {
@@ -2587,6 +2674,7 @@
                 </div>`;
             }).join('');
         }
+
 
         let currentModalTk = null;
         function openTicketDetails(tkNumber) {
@@ -4304,6 +4392,33 @@
                 });
             }, 600);
         }
+
+        // --- INICIALIZAÇÃO GERAL (Persistência) ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("[INIT] Inicializando Painel com Persistência...");
+            
+            // 1. Carrega Configurações (SLA, Email) do localStorage
+            loadConfigs();
+
+            // 2. Tenta recuperar Pasta Vinculada do IndexedDB
+            try {
+                const storedHandle = await loadHandle();
+                if (storedHandle) {
+                    window.syncContext.dirHandle = storedHandle;
+                    document.getElementById('sync-status-indicator').className = 'w-3 h-3 rounded-full bg-amber-500 shadow shadow-amber-200';
+                    document.getElementById('sync-status-text').innerText = 'Pasta Lembrada (Aguardando Permissão)';
+                    document.getElementById('sync-folder-path').innerText = storedHandle.name;
+                    console.log("[INIT] Pasta recuperada do DB:", storedHandle.name);
+                }
+            } catch(e) {
+                console.error("[INIT] Erro ao carregar pasta do DB:", e);
+            }
+
+            // 3. Renderiza TODOs se houver (já carregados no escopo global)
+            if (todoList.length > 0) {
+                renderTodos();
+            }
+        });
     </script>
 </body>
 
