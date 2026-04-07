@@ -1189,8 +1189,68 @@
                         <input type="email" id="email-cc" class="form-input w-full text-xs" placeholder="ex: gestao@empresa.com (Opcional)">
                     </div>
                 </div>
+
+                <div id="email-logger-box" style="display:none;" class="mb-4 bg-slate-900 rounded p-2 border border-slate-700 shadow-inner">
+                    <div class="text-[9px] text-slate-400 font-bold uppercase mb-1 flex items-center justify-between">
+                        <span><i class="fas fa-terminal"></i> Console de Execução</span>
+                        <div class="flex gap-1"><div class="w-2 h-2 rounded-full bg-red-500"></div><div class="w-2 h-2 rounded-full bg-yellow-500"></div><div class="w-2 h-2 rounded-full bg-green-500"></div></div>
+                    </div>
+                    <div id="email-logger-content" class="text-[9px] font-mono text-slate-300 h-24 overflow-y-auto stylized-scrollbar pe-1">
+                        <!-- logs injetados via JS -->
+                    </div>
+                </div>
+
                 <div class="flex gap-3 mt-5">
                     <button onclick="sendEmailTodo()" class="modal-btn flex-1 bg-[var(--primary-dark)] text-white font-bold rounded shadow-sm hover:bg-blue-900 py-3"><i class="fas fa-envelope mr-1"></i> Preparar E-mail</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW CONFIG MODAL -->
+        <div id="config-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st" style="z-index: 10000;">
+            <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade relative">
+                <button onclick="closeConfigModal()" class="absolute top-3 right-4 text-slate-400 hover:text-red-500 transition text-lg"><i class="fas fa-times"></i></button>
+                
+                <div class="mb-4 text-center">
+                    <div class="w-16 h-16 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h3 class="text-lg font-black text-slate-800 mb-1">Configurações de Dados</h3>
+                    <p class="text-[11px] text-slate-500">Associe uma pasta em nuvem (ou local) para monitorar atualizações das planilhas automaticamente.</p>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded p-3 mb-5">
+                    <div class="text-[10px] font-bold text-slate-600 mb-2 uppercase">Status da Conexão</div>
+                    <div class="flex items-center gap-2 mb-2">
+                        <div id="sync-status-indicator" class="w-3 h-3 rounded-full bg-red-500 shadow shadow-red-200"></div>
+                        <span id="sync-status-text" class="text-xs font-semibold text-slate-700">Não Conectado</span>
+                    </div>
+                    <p id="sync-folder-path" class="text-[10px] text-slate-500 break-all italic">Nenhuma pasta vinculada nesta sessão.</p>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <button onclick="bindCloudFolder()" class="modal-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm py-2 text-xs flex justify-center items-center">
+                        <i class="fas fa-folder-open mr-2"></i> Vincular Pasta Local/Nuvem
+                    </button>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-slate-100 text-center">
+                    <p class="text-[9px] text-slate-400">Por segurança do navegador, a permissão na pasta é resetada ao fechar a janela completamente.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW UPDATE ALERT MODAL -->
+        <div id="update-alert-modal" class="fixed top-4 right-4 bg-white rounded-lg shadow-2xl max-w-sm w-full p-4 border-l-4 border-emerald-500 transform transition-transform translate-x-[120%] hidden-st" style="z-index: 10005;">
+            <div class="flex items-start gap-3">
+                <div class="text-emerald-500 text-2xl mt-1"><i class="fas fa-cloud-download-alt"></i></div>
+                <div class="flex-1">
+                    <h4 class="text-sm font-black text-slate-800">Novos Dados Encontrados</h4>
+                    <p class="text-[10px] text-slate-500 mb-3 mt-1 leading-tight">Foram detectadas modificações na sua pasta de relatórios vinculada. Deseja aplicar os dados mais recentes no dashboard?</p>
+                    <div class="flex gap-2">
+                        <button onclick="dismissUpdateModal()" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold rounded">Ignorar</button>
+                        <button onclick="triggerAutoSync()" class="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold rounded flex-1">Sincronizar Agora</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1340,7 +1400,12 @@
                     class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-blue-100 hover:text-blue-600 transition shadow-sm w-10 h-10 flex items-center justify-center flex-shrink-0"
                     title="Tirar Foto da Tela (Baixar PNG)">
                                         <i class="fas fa-camera text-sm"></i>
-                                    </button>
+                                </button>
+                                <button onclick="openConfigModal()"
+                    class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-emerald-100 hover:text-emerald-700 transition shadow-sm w-10 h-10 flex items-center justify-center flex-shrink-0"
+                    title="Configurações e Sincronização">
+                                        <i class="fas fa-cog text-sm"></i>
+                                </button>
                             </div>
                     </header>
 
@@ -1626,6 +1691,131 @@
         // 0. DATA & FILES & UTILS
         // ==========================================
         const RawData = { incs: [], reqs: [], rca: [], ptask: [] };
+        
+        // ==========================================
+        // AUTO-SYNC (CLOUD FOLDER) LOGIC
+        // ==========================================
+        window.syncContext = { dirHandle: null, interval: null, cacheStamps: {} };
+
+        function openConfigModal() { document.getElementById('config-modal').classList.remove('hidden-st'); }
+        function closeConfigModal() { document.getElementById('config-modal').classList.add('hidden-st'); }
+        function dismissUpdateModal() { document.getElementById('update-alert-modal').classList.add('translate-x-[120%]'); }
+
+        async function bindCloudFolder() {
+            try {
+                const handle = await window.showDirectoryPicker({ mode: 'read' });
+                window.syncContext.dirHandle = handle;
+                document.getElementById('sync-status-indicator').className = 'w-3 h-3 rounded-full bg-emerald-500 shadow shadow-emerald-200';
+                document.getElementById('sync-status-text').innerText = 'Monitorando Nuvem...';
+                document.getElementById('sync-folder-path').innerText = handle.name;
+                
+                // Dispara a leitura primária invisível para ganhar o "baseline/referência" dos arquivos
+                await pollDirectoryForUpdates(true);
+
+                // Configura para ler a pasta a cada 20 segundos
+                if(window.syncContext.interval) clearInterval(window.syncContext.interval);
+                window.syncContext.interval = setInterval(() => pollDirectoryForUpdates(false), 20000);
+                
+                setTimeout(() => closeConfigModal(), 1000);
+            } catch(e) {
+                console.warn("Folder picker cancelado ou sem permissões.");
+            }
+        }
+
+        async function pollDirectoryForUpdates(isBaseline) {
+            if(!window.syncContext.dirHandle) return;
+            let updatedCount = 0;
+            let filesToProcess = [];
+
+            try {
+                for await (const entry of window.syncContext.dirHandle.values()) {
+                    if (entry.kind !== 'file' || !entry.name.endsWith('.xlsx')) continue;
+                    
+                    let name = entry.name.toLowerCase();
+                    if(name.includes('inc') || name.includes('sc_task') || name.includes('req') || name.includes('rca') || name.includes('ptask')) {
+                        const file = await entry.getFile();
+                        if(!window.syncContext.cacheStamps[name] || window.syncContext.cacheStamps[name] < file.lastModified) {
+                            window.syncContext.cacheStamps[name] = file.lastModified;
+                            filesToProcess.push({ file: file, name: name });
+                            updatedCount++;
+                        }
+                    }
+                }
+            } catch(e) {
+                console.error("Falha ao ler pasta (permissão expirada?): ", e);
+            }
+
+            if(isBaseline) {
+                if(filesToProcess.length > 0) await processArrayOfFiles(filesToProcess);
+            } else if(updatedCount > 0) {
+                window.pendingFilesToProcess = filesToProcess;
+                document.getElementById('update-alert-modal').classList.remove('hidden-st');
+                document.getElementById('update-alert-modal').classList.remove('translate-x-[120%]');
+            }
+        }
+
+        async function processArrayOfFiles(fileObjs) {
+            return new Promise((resolve) => {
+                let processed = 0;
+                if(fileObjs.length === 0) return resolve();
+                
+                fileObjs.forEach(obj => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        parseExcelBlob(e.target.result, obj.name, obj.file.name);
+                        processed++;
+                        if(processed === fileObjs.length) resolve();
+                    };
+                    reader.readAsArrayBuffer(obj.file);
+                });
+            });
+        }
+
+        function triggerAutoSync() {
+            dismissUpdateModal();
+            let msg = document.getElementById('extraction-time');
+            msg.className = "text-[10px] font-bold text-white bg-amber-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
+            msg.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Carregando Atualizações...';
+            
+            setTimeout(async () => {
+                if(window.pendingFilesToProcess) {
+                    await processArrayOfFiles(window.pendingFilesToProcess);
+                    window.pendingFilesToProcess = null;
+                }
+                
+                // Executa a macro normal do refresh
+                if(typeof processDashboard === 'function') {
+                    processDashboard();
+                }
+
+                msg.className = "text-[10px] font-bold text-white bg-blue-600 px-2 py-0.5 rounded shadow-sm inline-block mt-1 animate-pulse";
+                msg.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Atualizado via Nuvem';
+            }, 300);
+        }
+
+        function parseExcelBlob(arrayBuffer, nameLower, originalName) {
+            const data = new Uint8Array(arrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+            const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+
+            const cleanJson = json.map(r => {
+                let o = {};
+                Object.keys(r).forEach(k => o[k.replace(/\ufffd/g, "").replace(/\s+/g, " ").trim()] = r[k]);
+                return o;
+            });
+
+            if (nameLower.includes('inc')) RawData.incs = cleanJson;
+            else if (nameLower.includes('sc_task') || nameLower.includes('req')) RawData.reqs = cleanJson;
+            else if (nameLower.includes('rca')) RawData.rca = cleanJson;
+            else if (nameLower.includes('ptask')) RawData.ptask = cleanJson;
+
+            let badgeHtml = `<div class="file-badge"><span class="truncate"><i class="fas fa-file-excel mr-1"></i> ${originalName}</span><i class="fas fa-check"></i></div>`;
+            if(!document.getElementById('file-status').innerHTML.includes(originalName)) {
+                document.getElementById('file-status').innerHTML += badgeHtml;
+                document.getElementById('btn-clear-files').classList.remove('hidden-st');
+            }
+        }
+
         let todoList = JSON.parse(localStorage.getItem('eliteMasterTodosV69')) || [];
         let GlobalOpenTickets = [];
         let activeTableFilters = {};
@@ -1643,23 +1833,7 @@
                 const name = file.name.toLowerCase();
                 const reader = new FileReader();
                 reader.onload = e => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
-
-                    const cleanJson = json.map(r => {
-                        let o = {};
-                        Object.keys(r).forEach(k => o[k.replace(/\ufffd/g, "").replace(/\s+/g, " ").trim()] = r[k]);
-                        return o;
-                    });
-
-                    if (name.includes('inc')) RawData.incs = cleanJson;
-                    else if (name.includes('sc_task') || name.includes('req')) RawData.reqs = cleanJson;
-                    else if (name.includes('rca')) RawData.rca = cleanJson;
-                    else if (name.includes('ptask')) RawData.ptask = cleanJson;
-
-                    document.getElementById('file-status').innerHTML += `<div class="file-badge"><span class="truncate"><i class="fas fa-file-excel mr-1"></i> ${file.name}</span><i class="fas fa-check"></i></div>`;
-                    document.getElementById('btn-clear-files').classList.remove('hidden-st');
+                    parseExcelBlob(e.target.result, name, file.name);
                 };
                 reader.readAsArrayBuffer(file);
             });
@@ -2139,6 +2313,8 @@
         }
 
         function closeEmailModal() {
+            document.getElementById('email-logger-box').style.display = 'none';
+            document.getElementById('email-logger-content').innerHTML = '';
             document.getElementById('email-todo-modal').classList.add('hidden-st');
         }
 
@@ -2148,39 +2324,75 @@
             
             if(!to) return alert("Por favor, preencha o Destinatário válido para prosseguir.");
 
-            let body = "REPORTE DIÁRIO DE TRABALHO E PLANEJAMENTO\r\n";
-            body += "Gerado em: " + new Date().toLocaleString('pt-BR') + "\r\n";
-            body += "========================================================\r\n\r\n";
+            let logBox = document.getElementById('email-logger-box');
+            let logContent = document.getElementById('email-logger-content');
+            logBox.style.display = 'block';
+            logContent.innerHTML = '';
 
-            let groups = {};
-            todoList.forEach(t => {
-                if(!groups[t.analyst]) groups[t.analyst] = [];
-                groups[t.analyst].push(t);
-            });
+            const addLog = (msg, isError = false) => {
+                let d = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+                let colorClass = isError ? "text-red-500 font-bold" : "text-green-400";
+                logContent.innerHTML += `<div class="mb-1 ${colorClass}">[${d}] ${msg}</div>`;
+                logContent.scrollTop = logContent.scrollHeight;
+            };
 
-            for(let a in groups) {
-                body += `👤 ANALISTA: ${a}\r\n--------------------------------------------------------\r\n`;
-                let tks = groups[a].sort((o1, o2) => o2.id.localeCompare(o1.id));
-                tks.forEach(t => {
-                    let tName = t.ticket && t.ticket !== 'undefined' ? t.ticket : "Ação/Planejamento Geral";
-                    body += `>> [ ${tName} ] - Referência: ${t.date}\r\n`;
-                    t.history.forEach(h => {
-                         let check = h.striked ? "[X]" : "[ ]";
-                         body += `    ${check} ${h.date}: ${h.text}\r\n`;
+            addLog("Iniciando varredura das tarefas (TODO)...");
+
+            setTimeout(() => {
+                try {
+                    let body = "REPORTE DIÁRIO DE TRABALHO E PLANEJAMENTO\r\n";
+                    body += "Gerado em: " + new Date().toLocaleString('pt-BR') + "\r\n";
+                    body += "========================================================\r\n\r\n";
+
+                    let groups = {};
+                    let count = 0;
+                    todoList.forEach(t => {
+                        if(!groups[t.analyst]) groups[t.analyst] = [];
+                        groups[t.analyst].push(t);
+                        count++;
                     });
-                    body += "\r\n";
-                });
-            }
 
-            body += "========================================================\r\n";
-            body += "E-mail gerado automaticamente via Dashboard IT Metrics.\r\n";
+                    addLog(`Encontrados ${count} tickets rastreados.`);
+                    addLog("Compilando payload e formatando texto...");
 
-            let subject = "Extração diária - Planejamento/Ações - " + new Date().toLocaleDateString('pt-BR');
-            let mailtoLink = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            if(cc) mailtoLink += `&cc=${encodeURIComponent(cc)}`;
-            
-            window.location.href = mailtoLink;
-            closeEmailModal();
+                    for(let a in groups) {
+                        body += `👤 ANALISTA: ${a}\r\n--------------------------------------------------------\r\n`;
+                        let tks = groups[a].sort((o1, o2) => o2.id.localeCompare(o1.id));
+                        tks.forEach(t => {
+                            let tName = t.ticket && t.ticket !== 'undefined' ? t.ticket : "Ação/Planejamento Geral";
+                            body += `>> [ ${tName} ] - Referência: ${t.date}\r\n`;
+                            t.history.forEach(h => {
+                                 let check = h.striked ? "[X]" : "[ ]";
+                                 body += `    ${check} ${h.date}: ${h.text}\r\n`;
+                            });
+                            body += "\r\n";
+                        });
+                    }
+
+                    body += "========================================================\r\n";
+                    body += "E-mail gerado automaticamente via Dashboard IT Metrics.\r\n";
+
+                    addLog("Construindo interface local (URI mailto)...");
+
+                    let subject = "Extração diária - Planejamento/Ações - " + new Date().toLocaleDateString('pt-BR');
+                    let mailtoLink = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                    if(cc) mailtoLink += `&cc=${encodeURIComponent(cc)}`;
+                    
+                    addLog("Enviando comando para o Sistema Operacional...");
+                    addLog("Atenção: O Outlook será aberto na sua máquina.");
+                    
+                    setTimeout(() => {
+                        window.location.href = mailtoLink;
+                        
+                        setTimeout(() => {
+                            addLog("Comando executado! Verifique a janela do seu E-mail.");
+                        }, 800);
+                    }, 500);
+
+                } catch(err) {
+                    addLog(`FALHA CRÍTICA: ${err.message}`, true);
+                }
+            }, 600);
         }
 
         function renderTodos() {
@@ -2598,10 +2810,12 @@
                                 <div class="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded inline-block text-slate-500">${t.type}</div>
                                 <button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-2 bg-blue-50 hover:bg-blue-100 border border-blue-200/50 p-1.5 rounded text-[9px] uppercase shadow-sm transition"><i class="fas fa-history"></i> Saiba mais</button>
                             </td>
-                            <td data-label="Descrição Completa" class="text-left">
-                                <div class="text-xs font-semibold line-clamp-2 text-slate-800 mb-1">${t.desc}</div>
-                                ${(t.longDesc && t.longDesc !== '-') ? `<div class="text-[10px] text-slate-500 line-clamp-1 italic">${t.longDesc}</div>` : ''}
-                                ${(t.info || t.reason) ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 truncate max-w-full">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
+                            <td data-label="Descrição Completa" class="text-left w-[350px] max-w-[350px]">
+                                <div class="w-full h-auto max-h-[80px] overflow-y-auto overflow-x-hidden stylized-scrollbar border border-slate-100 bg-slate-50 p-1.5 rounded">
+                                    <div class="text-xs font-semibold text-slate-800 break-words mb-1">${t.desc}</div>
+                                    ${(t.longDesc && t.longDesc !== '-') ? `<div class="text-[10px] text-slate-500 italic break-words">${t.longDesc}</div>` : ''}
+                                    ${(t.info || t.reason) ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 break-words whitespace-normal">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
+                                </div>
                             </td>
                             <td data-label="Solicitante" class="text-center">${t.req}</td>
                             <td data-label="Analista / Grupo" class="text-center">${t.asg}<br><span class="text-[9px] text-slate-400 block mt-1">${t.gp}</span></td>
@@ -2932,10 +3146,12 @@
                         ${t.tk}
                         <button onclick="openTicketDetails('${t.tk}')" class="mt-1 w-full text-center bg-blue-50 border border-blue-200/50 hover:bg-blue-100 rounded py-1 text-[9px] uppercase font-bold transition shadow-sm"><i class="fas fa-search mr-1"></i> Detalhes</button>
                     </td>
-                    <td data-label="Assunto / Info (Expansível)" class="text-left">
-                        <div class="text-xs font-semibold text-slate-800 line-clamp-2">${t.desc}</div>
-                        ${(t.longDesc && t.longDesc !== '-') ? `<div class="text-[10px] text-slate-500 line-clamp-1 italic">${t.longDesc}</div>` : ''}
-                        ${t.info || t.reason ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 truncate max-w-full">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
+                    <td data-label="Assunto / Info (Expansível)" class="text-left w-[350px] max-w-[350px]">
+                        <div class="w-full h-auto max-h-[80px] overflow-y-auto overflow-x-hidden stylized-scrollbar border border-slate-100 bg-slate-50 p-1.5 rounded">
+                            <div class="text-xs font-semibold text-slate-800 break-words mb-1">${t.desc}</div>
+                            ${(t.longDesc && t.longDesc !== '-') ? `<div class="text-[10px] text-slate-500 italic break-words">${t.longDesc}</div>` : ''}
+                            ${t.info || t.reason ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 break-words whitespace-normal">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
+                        </div>
                     </td>
                     <td data-label="Solicitante" class="text-center">${t.req}</td>
                     <td data-label="Analista" class="text-center font-medium">${t.as}</td>
