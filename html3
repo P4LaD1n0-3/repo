@@ -218,7 +218,7 @@
         .hidden-st { display: none !important; }
 
         /* =========================================================
-           RESPONSIVIDADE MOBILE / TABLET OTIMIZADA
+           RESPONSIVIDADE MOBILE / TABLET OTIMIZADA E EXTREMA
            ========================================================= */
         @media (max-width: 1024px) {
             body { font-size: 14px; }
@@ -234,32 +234,44 @@
             div[style*="font-size:48px"] { font-size: 38px !important; }
             div[style*="font-size:42px"] { font-size: 32px !important; }
             
-            .st-dataframe-container { overflow-x: hidden !important; border: none; box-shadow: none; background: transparent; max-height: none; }
+            /* Remove a quebra das tabelas e transforma em cards amigáveis */
+            .st-dataframe-container { overflow-x: hidden !important; border: none; box-shadow: none; background: transparent; max-height: none !important; overflow-y: visible !important; }
             .st-table { min-width: 0; width: 100%; display: block; }
-            .st-table thead { display: flex; padding: 10px; background: #f8fafc; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; border-bottom: 2px solid var(--primary-dark); margin-bottom: 15px; border-radius: 8px; }
-            .st-table thead tr { display: flex; gap: 5px; width: max-content; }
-            .st-table th { position: static; flex: 0 0 auto; font-size: 10px; padding: 8px 12px !important; border-radius: 4px; border: 1px solid var(--primary-dark); background: var(--primary-dark); color: white; cursor: pointer; }
+            .st-table thead { display: none !important; } /* Oculta headers economizando muito espaço */
             .st-table tbody { display: block; width: 100%; }
             .st-table tbody tr { display: flex; flex-direction: column; margin-bottom: 15px; background: #fff !important; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
             .st-table td { display: flex; justify-content: space-between; text-align: right !important; padding: 12px 15px !important; border-bottom: 1px solid #f1f5f9; font-size: 12px; align-items: center; width: 100%; box-sizing: border-box; gap: 10px; }
             .st-table td::before { content: attr(data-label); font-weight: 800; color: #475569; font-size: 11px; text-transform: uppercase; text-align: left; flex-shrink: 0; max-width: 45%; }
             .st-table td:last-child { border-bottom: none; }
             
+            /* Colunas que precisam de flex column para leitura longa */
             .st-table td[data-label="Assunto / Info (Expansível)"], .st-table td[data-label="Descrição Completa"], .st-table td[data-label="Descrição da Causa Raiz"], .st-table td[data-label="Descrição / Close Notes"], .st-table td[data-label="% SLA"] { flex-direction: column; align-items: flex-start; text-align: left !important; background: #f8fafc; }
             .st-table td[data-label="Assunto / Info (Expansível)"]::before, .st-table td[data-label="Descrição Completa"]::before, .st-table td[data-label="Descrição da Causa Raiz"]::before, .st-table td[data-label="Descrição / Close Notes"]::before, .st-table td[data-label="% SLA"]::before { margin-bottom: 8px; width: 100%; max-width: 100%; }
             .st-table tfoot { display: none; }
             
+            /* Tabs roláveis horizontalmente sem quebrar linha */
             .tabs-sticky { padding: 0 1rem; }
-            .tab-btn { flex: 1 1 calc(50% - 8px); text-align: center; font-size: 11px; padding: 10px 5px; }
+            .tabs-nav { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+            .tab-btn { flex-shrink: 0; text-align: center; font-size: 11px; padding: 10px 12px; }
+            
             .todo-update-wrapper { flex-direction: column; }
             .todo-update-wrapper .btn-process { width: 100% !important; margin-top: 8px; }
             #global-tooltip { max-width: 90vw; }
-            .chart-wrapper, .chart-full-width { height: 300px; }
+            .chart-wrapper, .chart-full-width { height: 280px !important; }
             .grid-2 { gap: 15px; margin-bottom: 15px; }
             
             details.saas-accordion summary { flex-direction: column; align-items: flex-start; gap: 10px; }
             details.saas-accordion summary .w-full { flex-direction: column; gap: 10px; }
             details.saas-accordion summary .w-full span:last-child { align-self: flex-start; margin-top: 5px; }
+        }
+        
+        @media (max-width: 768px) {
+            .content-area { padding: 0.5rem; }
+            .grid-2 { grid-template-columns: 1fr !important; }
+            .report-card { padding: 10px; }
+            .chart-wrapper, .chart-full-width { height: 240px !important; }
+            div[style*="font-size:32px"] { font-size: 24px !important; }
+            div[style*="font-size:48px"], div[style*="font-size:42px"] { font-size: 28px !important; }
         }
     </style>
 </head>
@@ -297,8 +309,9 @@
             <div><span>Aging Atual:</span><strong id="tt-age" style="color: #f87171;">...</strong></div>
             <div id="tt-sla-container" style="grid-column: span 2; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 6px;">
                 <span>SLA % Consumido</span>
-                <div class="w-full bg-slate-700 rounded-full h-2.5 mt-1 relative overflow-hidden border border-slate-600">
-                    <div id="tt-sla-bar" class="h-2.5 flex items-center justify-center text-[7px] text-white font-bold transition-all" style="width: 0%; background-color: #10b981;">0%</div>
+                <div class="w-full bg-slate-700 rounded-full h-3 mt-1 relative overflow-hidden border border-slate-600">
+                    <div id="tt-sla-bar" class="h-full absolute left-0 top-0 bottom-0 transition-all" style="width: 0%; background-color: #10b981 !important;"></div>
+                    <div id="tt-sla-text" class="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold z-10" style="text-shadow: 0 0 2px rgba(0,0,0,0.8);">0%</div>
                 </div>
             </div>
             <div style="grid-column: span 2; margin-top: 2px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.2);">
@@ -481,8 +494,9 @@
                             </div>
                             <div class="col-span-2 bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
                                 <div class="text-[10px] font-bold text-slate-400 uppercase mb-2">Progresso do SLA</div>
-                                <div class="w-full bg-slate-100 rounded-full h-3 relative overflow-hidden">
-                                    <div id="modal-sla-bar" class="h-full flex items-center justify-center text-[8px] text-white font-bold transition-all" style="width: 0%; background-color: #10b981;">0%</div>
+                                <div class="w-full bg-slate-100 rounded-full h-3 relative overflow-hidden border border-slate-300/50">
+                                    <div id="modal-sla-bar" class="h-full absolute left-0 top-0 bottom-0 transition-all" style="width: 0%; background-color: #10b981 !important;"></div>
+                                    <div id="modal-sla-text" class="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold z-10" style="text-shadow: 0 0 2px rgba(0,0,0,0.8);">0%</div>
                                 </div>
                             </div>
                         </div>
@@ -871,13 +885,19 @@
                  }
                  
                 let bar = document.getElementById('tt-sla-bar');
+                let barText = document.getElementById('tt-sla-text');
                 let barContainer = document.getElementById('tt-sla-container');
+                
                 if(slaPct && slaPct !== 'undefined' && slaPct !== '') {
                     let p = parseInt(slaPct);
+                    let safeP = isNaN(p) ? 0 : Math.min(p, 100);
                     let color = p > 100 ? '#ef4444' : (p > 75 ? '#f59e0b' : '#10b981');
-                    bar.style.width = Math.min(p, 100) + '%';
-                    bar.style.backgroundColor = color;
-                    bar.innerText = p + '%';
+                    if (isNaN(p)) color = '#94a3b8';
+                    
+                    bar.style.width = safeP + '%';
+                    bar.style.setProperty('background-color', color, 'important');
+                    barText.innerText = isNaN(p) ? '0%' : p + '%';
+                    barText.style.color = p > 55 ? '#ffffff' : '#1e293b';
                     barContainer.style.display = 'block';
                 } else {
                     barContainer.style.display = 'none';
@@ -1076,7 +1096,7 @@
             
             document.getElementById('modal-tk').innerText = tkNumber;
             document.getElementById('modal-title').innerText = getCol(ticketData, ['Short description','Descrição Curta','Descrição', 'Item']) || 'Sem assunto definido.';
-            document.getElementById('modal-desc').innerText = getCol(ticketData, ['Description','Descrição Completa']) || 'Sem descrição detalhada fornecida na abertura.';
+            document.getElementById('modal-desc').innerText = getCol(ticketData, ['Description','Descrição Completa', 'description', 'additional details']) || 'Sem descrição detalhada fornecida na abertura.';
             
             let req = getCol(ticketData, ['Requester','Caller','Solicitante']) || 'N/A';
             let asg = getCol(ticketData, ['Assigned to','Analista']) || 'Não Atribuído';
@@ -1437,7 +1457,7 @@
                             ? String(holdReason).replace(/"/g, '&quot;') 
                             : defaultInfo;
             
-            let longDesc = String(getCol(r, ['Description', 'Descrição Completa', 'Descrição']) || '').replace(/"/g, '&quot;');
+            let longDesc = String(getCol(r, ['Description', 'description', 'Descrição Completa', 'Descrição', 'Additional details', 'additional_details']) || '').replace(/"/g, '&quot;');
             
             let pctSla = slaDays ? Math.round((age / slaDays) * 100) : '';
 
@@ -1740,7 +1760,7 @@
                 if (age < 0) age = 0;
                 let tk = (type === 'REQ' || type === 'UAM') ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket']) || '-');
                 let desc = String(getCol(r, ['Short description', 'Descrição Curta', 'Item']) || 'Sem assunto').replace(/"/g, '&quot;');
-                let longDesc = String(getCol(r, ['Description', 'Descrição Completa', 'Descrição']) || '').replace(/"/g, '&quot;');
+                let longDesc = String(getCol(r, ['Description', 'description', 'Descrição Completa', 'Descrição', 'Additional details', 'additional_details']) || '').replace(/"/g, '&quot;');
                 let req = getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A';
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
                 let gp = getCol(r, ['Assignment group', 'Grupo']) || 'Sem Grupo';
@@ -1810,8 +1830,8 @@
                         <td data-label="Aging (dias)" class="text-center font-bold text-base ${t.age > t.slaConfig ? 'text-red-600' : 'text-slate-700'}">${t.age}</td>
                         <td data-label="% SLA" class="text-center" style="width: 120px;">
                             <div class="w-full bg-slate-200 rounded-full h-4 relative shadow-inner mx-auto min-w-[80px] overflow-hidden border border-slate-300/50">
-                                <div class="h-full transition-all" style="width: ${safePct}%; background-color: ${pctColor};"></div>
-                                <div class="absolute inset-0 flex items-center justify-center text-[9px] font-bold" style="color: ${t.pctSla > 55 ? '#ffffff' : '#1e293b'}; text-shadow: ${t.pctSla > 55 ? '0 0 2px rgba(0,0,0,0.5)' : 'none'};">${pctText}</div>
+                                <div class="h-full absolute left-0 top-0 bottom-0 transition-all" style="width: ${safePct}%; background-color: ${pctColor} !important;"></div>
+                                <div class="absolute inset-0 flex items-center justify-center text-[9px] font-bold z-10" style="color: ${t.pctSla > 55 ? '#ffffff' : '#1e293b'}; text-shadow: ${t.pctSla > 55 ? '0 0 2px rgba(0,0,0,0.8)' : 'none'};">${pctText}</div>
                             </div>
                         </td>
                         <td data-label="Status SLA" class="text-center font-black ${stColor} uppercase text-[10px]">${t.stSla}</td>
@@ -1917,11 +1937,11 @@
             let lblRes = typeStr === 'INC' ? 'Resolvidos' : 'Encerrados';
             let pctColor = d.pct >= 98 ? C.SUC : C.DAN;
             
-            let apendiceRows = d.crits.filter(t => (t.info && t.info !== 'Sem info' && t.info !== 'Sem detalhes fornecidos.') || (t.longDesc && t.longDesc !== '-')).map(t => `
+            let apendiceRows = d.crits.filter(t => (t.info && t.info !== 'Sem info' && t.info !== 'Sem detalhes fornecidos.' && t.info !== '') || (t.longDesc && t.longDesc !== '-' && t.longDesc !== '')).map(t => `
                 <details class="saas-accordion">
                     <summary><span style="color:${C.PRI_D}; font-weight:800;">${t.tk}</span> <span style="font-weight:600; color:#64748b; font-size:11px;">- ${t.as}</span></summary>
                     <div class="acc-content">
-                        ${(t.longDesc && t.longDesc !== '-') ? `<div style="margin-bottom: 12px;"><strong style="color:var(--primary-dark);"><i class="fas fa-align-left mr-1"></i> Descrição Completa:</strong><br><span style="color:#475569; display:block; margin-top:4px;">${t.longDesc}</span></div>` : ''}
+                        ${(t.longDesc && t.longDesc !== '-' && t.longDesc !== '') ? `<div style="margin-bottom: 12px;"><strong style="color:var(--primary-dark);"><i class="fas fa-align-left mr-1"></i> Descrição Completa (Additional Details):</strong><br><span style="color:#475569; display:block; margin-top:4px;">${t.longDesc}</span></div>` : ''}
                         <div><strong style="color:var(--primary-dark);"><i class="fas fa-pause-circle mr-1"></i> Motivo da Espera / Último Comentário:</strong><br><span style="color:#475569; display:block; margin-top:4px;">${t.info || 'N/A'}</span></div>
                     </div>
                 </details>`).join('');
