@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
        
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ELITE MASTER V6.9 - Sistema Analítico ITSM</title>
+        <title>Dashboard - Sistema Analítico ITSM</title>
        
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
        
@@ -1319,11 +1319,12 @@
         <aside id="sidebar" class="sidebar">
                 <div class="sidebar-header">
                         <div class="flex items-center gap-3">
-                                <div
-                    class="w-8 h-8 rounded-lg bg-[#001871] text-white flex items-center justify-center font-bold text-lg shadow-md">
-                    <i class="fas fa-chart-pie"></i></div>
-                                <h2 class="text-lg font-bold text-[#001871]" style="margin:0; letter-spacing: -0.5px;">
-                    Elite Master</h2>
+                                <div class="w-8 h-8 rounded-lg bg-[#001871] text-white flex items-center justify-center font-bold text-lg shadow-md cursor-pointer" onclick="location.reload()">
+                                    <i class="fas fa-chart-pie"></i>
+                                </div>
+                                <h2 class="text-lg font-bold text-[#001871] cursor-pointer hover:underline" style="margin:0; letter-spacing: -0.5px;" onclick="location.reload()">
+                                    Dashboard
+                                </h2>
                             </div>
                         <button class="btn-toggle lg:hidden" onclick="toggleSidebar()"><i
                     class="fas fa-times"></i></button>
@@ -1346,13 +1347,11 @@
                         onclick="clearFiles()"><i class="fas fa-trash-alt"></i> Limpar</button>
                                     </div>
                                 <div id="dropzone"
-                    class="dropzone-discreet border-2 border-dashed p-4 text-center cursor-pointer hover:bg-blue-50 transition"
+                    class="dropzone-discreet border-2 border-dashed p-2 text-center cursor-pointer hover:bg-blue-50 transition"
                     onclick="document.getElementById('file-upload').click()">
-                                        <i class="fas fa-cloud-upload-alt text-3xl text-blue-500 mb-2"></i>
-                                        <div style="font-size: 13px; font-weight: bold; color: #334155;">Arraste suas
-                        planilhas</div>
-                                        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">incident,
-                        sc_task, rca, ptask</div>
+                                        <i class="fas fa-cloud-upload-alt text-xl text-blue-500 mb-1"></i>
+                                        <div style="font-size: 11px; font-weight: bold; color: #334155;">Arraste suas planilhas</div>
+                                        <div style="font-size: 9px; color: #94a3b8; margin-top: 2px;">incident, sc_task, rca, ptask</div>
                                     </div>
                                 <input type="file" id="file-upload" multiple accept=".xlsx, .xls" class="hidden-st"
                     onchange="handleFiles(event.target.files)">
@@ -1436,7 +1435,7 @@
                     style="color: var(--primary-dark); font-weight: 900;"><i class="fas fa-folder-open mr-1"></i>
                     Tickets Abertos</button>
                                 <button class="tab-btn" onclick="switchTab('tab-inc', this)"><i
-                        class="fas fa-fire-extinguisher mr-1"></i> INCs</button>
+                        class="fas fa-bolt mr-1"></i> INCs</button>
                                 <button class="tab-btn" onclick="switchTab('tab-req', this)"><i
                         class="fas fa-tools mr-1"></i> REQs</button>
                                 <button class="tab-btn" onclick="switchTab('tab-uam', this)"><i
@@ -2533,7 +2532,7 @@
             document.getElementById('email-todo-modal').classList.add('hidden-st');
         }
 
-        function sendEmailTodo() {
+        async function sendEmailTodo() {
             let to = document.getElementById('email-to').value.trim();
             let cc = document.getElementById('email-cc').value.trim();
             
@@ -2551,64 +2550,138 @@
                 logContent.scrollTop = logContent.scrollHeight;
             };
 
+            // 1. Iniciando varredura das tarefas
             addLog("Iniciando varredura das tarefas (TODO)...");
+            await new Promise(r => setTimeout(r, 800));
 
-            setTimeout(() => {
-                try {
-                    let body = "REPORTE DIÁRIO DE TRABALHO E PLANEJAMENTO\r\n";
-                    body += "Gerado em: " + new Date().toLocaleString('pt-BR') + "\r\n";
-                    body += "========================================================\r\n\r\n";
+            let groups = {};
+            let count = 0;
+            todoList.forEach(t => {
+                if(!groups[t.analyst]) groups[t.analyst] = [];
+                groups[t.analyst].push(t);
+                count++;
+            });
 
-                    let groups = {};
-                    let count = 0;
-                    todoList.forEach(t => {
-                        if(!groups[t.analyst]) groups[t.analyst] = [];
-                        groups[t.analyst].push(t);
-                        count++;
+            if (count === 0) {
+                addLog("⚠️ Erro: Nenhuma tarefa ativa encontrada para exportação.", true);
+                return;
+            }
+
+            addLog(`Encontrados ${count} tickets rastreados.`);
+            addLog("Compilando payload e formatando texto...");
+            await new Promise(r => setTimeout(r, 600));
+
+            // 2. Construindo Corpo HTML (Outlook Friendly)
+            let htmlBody = `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; max-width: 700px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: #ffffff; padding: 24px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">DAILY REPORT / PLANEJAMENTO</h1>
+                    <p style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.9;">Auditado em ${new Date().toLocaleString('pt-BR')}</p>
+                </div>
+                <div style="padding: 32px; background-color: #ffffff;">
+            `;
+
+            for(let a in groups) {
+                htmlBody += `
+                <div style="margin-bottom: 32px;">
+                    <h2 style="font-size: 16px; font-weight: 700; color: #1e3a8a; border-left: 4px solid #1e3a8a; padding-left: 12px; margin-bottom: 16px;">👤 ANALISTA: ${a}</h2>
+                    <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; border: 1px solid #f1f5f9; border-radius: 8px; overflow: hidden;">
+                `;
+
+                let tks = groups[a].sort((o1, o2) => o2.id.localeCompare(o1.id));
+                tks.forEach(t => {
+                    let tName = t.ticket && t.ticket !== 'undefined' ? t.ticket : "Atividades Gerais / Planejamento";
+                    htmlBody += `
+                    <tr style="background-color: #f8fafc;">
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-weight: 700; color: #1e293b;">📌 ${tName}</td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #64748b; font-size: 11px;">Data: ${t.date}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="padding: 12px 16px; border-bottom: 2px solid #f8fafc;">
+                            <ul style="margin: 0; padding-left: 0; list-style-type: none;">
+                    `;
+
+                    t.history.forEach(h => {
+                        let checkIcon = h.striked ? "✅" : "⬜";
+                        let textStyle = h.striked ? "text-decoration: line-through; color: #94a3b8;" : "color: #334155;";
+                        htmlBody += `<li style="margin-bottom: 8px; ${textStyle}">
+                            <span style="font-size: 14px; margin-right: 8px;">${checkIcon}</span>
+                            <span><small style="color: #64748b; font-weight:600;">[${h.date}]</small> ${h.text}</span>
+                        </li>`;
                     });
 
-                    addLog(`Encontrados ${count} tickets rastreados.`);
-                    addLog("Compilando payload e formatando texto...");
 
-                    for(let a in groups) {
-                        body += `👤 ANALISTA: ${a}\r\n--------------------------------------------------------\r\n`;
-                        let tks = groups[a].sort((o1, o2) => o2.id.localeCompare(o1.id));
-                        tks.forEach(t => {
-                            let tName = t.ticket && t.ticket !== 'undefined' ? t.ticket : "Ação/Planejamento Geral";
-                            body += `>> [ ${tName} ] - Referência: ${t.date}\r\n`;
-                            t.history.forEach(h => {
-                                 let check = h.striked ? "[X]" : "[ ]";
-                                 body += `    ${check} ${h.date}: ${h.text}\r\n`;
-                            });
-                            body += "\r\n";
-                        });
-                    }
+                    htmlBody += `
+                            </ul>
+                        </td>
+                    </tr>
+                    `;
+                });
 
-                    body += "========================================================\r\n";
-                    body += "E-mail gerado automaticamente via Dashboard IT Metrics.\r\n";
+                htmlBody += `</table></div>`;
+            }
 
+            htmlBody += `
+                </div>
+                <div style="background-color: #f8fafc; padding: 16px; text-align: center; color: #94a3b8; font-size: 11px; border-top: 1px solid #f1f5f9;">
+                    Este reporte foi geratedo automaticamente pelo <strong>IT Metrics Dashboard</strong>.<br>
+                    Favor não responder diretamente a este e-mail automático.
+                </div>
+            </div>`;
+
+            // 3. Comunicação com Bridge / Outlook
+            addLog("Conectando ao Bridge local (localhost:5000)...");
+            
+            try {
+                const statusRes = await fetch('http://localhost:5000/status', { method: 'GET' }).catch(() => null);
+                
+                if (!statusRes || !statusRes.ok) {
+                    addLog("⚠️ Bridge Offline detectado.");
                     addLog("Construindo interface local (URI mailto)...");
-
-                    let subject = "Extração diária - Planejamento/Ações - " + new Date().toLocaleDateString('pt-BR');
-                    let mailtoLink = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    if(cc) mailtoLink += `&cc=${encodeURIComponent(cc)}`;
                     
-                    addLog("Enviando comando para o Sistema Operacional...");
-                    addLog("Atenção: O Outlook será aberto na sua máquina.");
+                    // Fallback to mailto (Plain Text)
+                    let plainBody = "DAILY REPORT - PLANEJAMENTO\n\nVerifique o dashboard para detalhes das tarefas.\nLink: " + window.location.href;
+                    let subject = "Extração diária - Planejamento - " + new Date().toLocaleDateString('pt-BR');
+                    let mailtoLink = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainBody)}`;
+                    if(cc) mailtoLink += `&cc=${encodeURIComponent(cc)}`;
                     
                     setTimeout(() => {
                         window.location.href = mailtoLink;
-                        
-                        setTimeout(() => {
-                            addLog("Comando executado! Verifique a janela do seu E-mail.");
-                        }, 800);
+                        addLog("Comando executado via URI do Sistema!");
+                        addLog("Atenção: A fidelidade HTML é reduzida via mailto.");
                     }, 500);
-
-                } catch(err) {
-                    addLog(`FALHA CRÍTICA: ${err.message}`, true);
+                    return;
                 }
-            }, 600);
+
+                addLog("Conexão estabelecida! Enviando payload...");
+                addLog("Enviando comando para o Sistema Operacional...");
+                addLog("Atenção: O Outlook será aberto na sua máquina.");
+
+                const sendRes = await fetch('http://localhost:5000/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: to,
+                        cc: cc,
+                        subject: "Extrção diária - " + new Date().toLocaleDateString('pt-BR'),
+                        body: htmlBody
+                    })
+                });
+
+                const result = await sendRes.json();
+                if (result.success) {
+                    addLog("✅ Comando executado!");
+                    addLog("Verifique a janela do seu E-mail.");
+                    saveConfigs(); // Salva e-mails no localStorage
+                } else {
+                    addLog(`❌ Falha no envio: ${result.message}`, true);
+                }
+
+            } catch (err) {
+                addLog(`❌ Erro inesperado: ${err.message}`, true);
+            }
         }
+
 
         function renderTodos() {
             const container = document.getElementById('todo-list');
