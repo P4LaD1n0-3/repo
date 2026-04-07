@@ -1205,6 +1205,24 @@
                 </div>
             </div>
         </div>
+        
+        <!-- GENERIC ALERT MODAL -->
+        <div id="alert-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st" style="z-index: 10010;">
+            <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade relative border-t-4 border-amber-500">
+                <div class="mb-4 text-center">
+                    <div class="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl border border-amber-100">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h3 id="alert-modal-title" class="text-lg font-black text-slate-800 mb-1">Atenção</h3>
+                    <p id="alert-modal-message" class="text-xs text-slate-500 leading-relaxed">Mensagem de alerta aqui.</p>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <button onclick="closeAlertModal()" class="modal-btn bg-slate-800 hover:bg-slate-900 text-white font-bold shadow-sm py-2 text-xs flex justify-center items-center">
+                        Entendi
+                    </button>
+                </div>
+            </div>
+        </div>
 
         <!-- NEW CONFIG MODAL -->
         <div id="config-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st" style="z-index: 10000;">
@@ -1400,6 +1418,12 @@
                     class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-blue-100 hover:text-blue-600 transition shadow-sm w-10 h-10 flex items-center justify-center flex-shrink-0"
                     title="Tirar Foto da Tela (Baixar PNG)">
                                         <i class="fas fa-camera text-sm"></i>
+                                </button>
+                                <button onclick="manualSyncCheck()"
+                    class="bg-blue-600 text-white border border-blue-700 p-2 rounded-full hover:bg-blue-700 transition shadow-md w-10 h-10 flex items-center justify-center flex-shrink-0"
+                    id="btn-manual-sync"
+                    title="Sincronizar com a Nuvem agora">
+                                        <i class="fas fa-sync text-sm" id="icon-sync"></i>
                                 </button>
                                 <button onclick="openConfigModal()"
                     class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-emerald-100 hover:text-emerald-700 transition shadow-sm w-10 h-10 flex items-center justify-center flex-shrink-0"
@@ -1700,6 +1724,15 @@
         function openConfigModal() { document.getElementById('config-modal').classList.remove('hidden-st'); }
         function closeConfigModal() { document.getElementById('config-modal').classList.add('hidden-st'); }
         function dismissUpdateModal() { document.getElementById('update-alert-modal').classList.add('translate-x-[120%]'); }
+        
+        function showAlertModal(title, message) {
+            document.getElementById('alert-modal-title').innerText = title;
+            document.getElementById('alert-modal-message').innerText = message;
+            document.getElementById('alert-modal').classList.remove('hidden-st');
+        }
+        function closeAlertModal() {
+            document.getElementById('alert-modal').classList.add('hidden-st');
+        }
 
         async function bindCloudFolder() {
             try {
@@ -1712,17 +1745,38 @@
                 // Dispara a leitura primária invisível para ganhar o "baseline/referência" dos arquivos
                 await pollDirectoryForUpdates(true);
 
-                // Configura para ler a pasta a cada 20 segundos
-                if(window.syncContext.interval) clearInterval(window.syncContext.interval);
-                window.syncContext.interval = setInterval(() => pollDirectoryForUpdates(false), 20000);
-                
                 setTimeout(() => closeConfigModal(), 1000);
             } catch(e) {
                 console.warn("Folder picker cancelado ou sem permissões.");
             }
         }
 
-        async function pollDirectoryForUpdates(isBaseline) {
+        async function manualSyncCheck() {
+            if (!window.syncContext.dirHandle) {
+                showAlertModal("Pasta não Vinculada", "Para sincronizar, você precisa primeiro associar uma pasta do seu computador ou nuvem (onde os arquivos .xlsx estão salvos).");
+                setTimeout(() => openConfigModal(), 500);
+                return;
+            }
+
+            const btn = document.getElementById('btn-manual-sync');
+            const icon = document.getElementById('icon-sync');
+            
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            icon.classList.add('fa-spin');
+            
+            try {
+                await pollDirectoryForUpdates(false, true);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setTimeout(() => {
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    icon.classList.remove('fa-spin');
+                }, 1000);
+            }
+        }
+
+        async function pollDirectoryForUpdates(isBaseline, isManual = false) {
             if(!window.syncContext.dirHandle) return;
             let updatedCount = 0;
             let filesToProcess = [];
@@ -1749,8 +1803,25 @@
                 if(filesToProcess.length > 0) await processArrayOfFiles(filesToProcess);
             } else if(updatedCount > 0) {
                 window.pendingFilesToProcess = filesToProcess;
-                document.getElementById('update-alert-modal').classList.remove('hidden-st');
-                document.getElementById('update-alert-modal').classList.remove('translate-x-[120%]');
+                if (isManual) {
+                    triggerAutoSync();
+                } else {
+                    document.getElementById('update-alert-modal').classList.remove('hidden-st');
+                    document.getElementById('update-alert-modal').classList.remove('translate-x-[120%]');
+                }
+            } else if (isManual) {
+                // Feedback quando nada mudou
+                let msg = document.getElementById('extraction-time');
+                const oldContent = msg.innerHTML;
+                const oldClass = msg.className;
+                
+                msg.className = "text-[10px] font-bold text-white bg-slate-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
+                msg.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Tudo atualizado na pasta';
+                
+                setTimeout(() => {
+                    msg.className = oldClass;
+                    msg.innerHTML = oldContent;
+                }, 3000);
             }
         }
 
@@ -1919,7 +1990,20 @@
         }
 
         window.toggleAllAccordions = function () {
-            document.querySelectorAll('#tab-open details.saas-accordion').forEach(d => d.removeAttribute('open'));
+            let details = document.querySelectorAll('#tab-open details.saas-accordion');
+            let isOpen = Array.from(details).some(d => d.hasAttribute('open'));
+
+            if(isOpen) {
+                // Ao menos um está aberto -> fechar todos
+                details.forEach(d => d.removeAttribute('open'));
+                let btn = document.getElementById('btn-toggle-accordions');
+                if(btn) btn.innerHTML = '<i class="fas fa-expand-alt"></i> Expandir Todos';
+            } else {
+                // Todos fechados -> expandir todos
+                details.forEach(d => d.setAttribute('open', ''));
+                let btn = document.getElementById('btn-toggle-accordions');
+                if(btn) btn.innerHTML = '<i class="fas fa-compress-alt"></i> Recolher Todos';
+            }
         };
 
         // ==========================================
@@ -3234,7 +3318,9 @@
             uams.forEach(r => processRow(r, 'UAM', slaR));
 
             let groups = {};
+            let countTags = { INC: 0, REQ: 0, UAM: 0 };
             openTks.forEach(t => {
+                countTags[t.type] = (countTags[t.type] || 0) + 1;
                 if (!groups[t.gp]) groups[t.gp] = [];
                 groups[t.gp].push(t);
             });
@@ -3252,9 +3338,16 @@
                     <i class="fas fa-search text-slate-400 text-sm"></i>
                     <input type="text" placeholder="Filtrar tickets abertos (assunto, analista, número)..." class="w-full bg-transparent outline-none text-sm font-inter text-slate-700" onkeyup="filterOpenTickets(this.value)">
                 </div>
+
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                    ${countTags.INC > 0 ? `<div class="bg-blue-100/50 border border-blue-200 text-blue-800 font-bold px-2.5 py-1 rounded-md text-[11px] shadow-sm flex items-center justify-center min-w-[60px]">${countTags.INC} <span class="ml-1 text-[9px] text-blue-600/80">INC</span></div>` : ''}
+                    ${countTags.REQ > 0 ? `<div class="bg-purple-100/50 border border-purple-200 text-purple-800 font-bold px-2.5 py-1 rounded-md text-[11px] shadow-sm flex items-center justify-center min-w-[60px]">${countTags.REQ} <span class="ml-1 text-[9px] text-purple-600/80">REQ</span></div>` : ''}
+                    ${countTags.UAM > 0 ? `<div class="bg-amber-100/50 border border-amber-200 text-amber-800 font-bold px-2.5 py-1 rounded-md text-[11px] shadow-sm flex items-center justify-center min-w-[60px]">${countTags.UAM} <span class="ml-1 text-[9px] text-amber-600/80">UAM</span></div>` : ''}
+                </div>
+
                 <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
                     <div class="text-xs font-bold text-slate-700 hidden sm:block"><i class="fas fa-layer-group mr-1 text-blue-600"></i> Grupos</div>
-                    <button onclick="toggleAllAccordions()" class="bg-[var(--primary-dark)] text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow hover:bg-blue-900 transition flex items-center gap-1.5"><i class="fas fa-compress-alt"></i> Recolher Todos</button>
+                    <button id="btn-toggle-accordions" onclick="toggleAllAccordions()" class="bg-[var(--primary-dark)] text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase shadow hover:bg-blue-900 transition flex items-center justify-center gap-1.5 w-[140px]"><i class="fas fa-compress-alt"></i> Recolher Todos</button>
                 </div>
             </div>`;
 
