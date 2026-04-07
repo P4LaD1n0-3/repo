@@ -1376,14 +1376,11 @@
                             </div>
                         <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
                                 <label class="form-label mb-3">Configuração de SLA (Dias)</label>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                                        <div><span style="font-size:11px; font-weight:600; color:#64748b;">INC /
-                            Geral</span><input type="number" id="sla-incs" value="7" class="form-input mt-1"></div>
-                                        <div><span style="font-size:11px; font-weight:600; color:#64748b;">REQ /
-                            UAM</span><input type="number" id="sla-reqs" value="10" class="form-input mt-1"></div>
-                                        <div style="grid-column: span 2;"><span
-                            style="font-size:11px; font-weight:600; color:#64748b;">PTASK (Problem Tasks)</span><input
-                            type="number" id="sla-ptask" value="10" class="form-input mt-1"></div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">INC / Geral</span><input type="number" id="sla-incs" value="7" class="form-input mt-1"></div>
+                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">REQ / UAM</span><input type="number" id="sla-reqs" value="10" class="form-input mt-1"></div>
+                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">PTASK</span><input type="number" id="sla-ptask" value="10" class="form-input mt-1"></div>
+                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">RCA</span><input type="number" id="sla-rca" value="10" class="form-input mt-1"></div>
                                     </div>
                             </div>
                         <div style="margin-top: auto;">
@@ -1719,7 +1716,15 @@
         // ==========================================
         // AUTO-SYNC (CLOUD FOLDER) LOGIC
         // ==========================================
-        window.syncContext = { dirHandle: null, interval: null, cacheStamps: {} };
+        // Segurança: Limpa qualquer intervalo residual de carregamentos anteriores
+        if(window.syncContext && window.syncContext.interval) clearInterval(window.syncContext.interval);
+        
+        window.syncContext = { 
+            dirHandle: null, 
+            interval: null, 
+            cacheStamps: {},
+            isSyncing: false 
+        };
 
         function openConfigModal() { document.getElementById('config-modal').classList.remove('hidden-st'); }
         function closeConfigModal() { document.getElementById('config-modal').classList.add('hidden-st'); }
@@ -1752,6 +1757,8 @@
         }
 
         async function manualSyncCheck() {
+            if (window.syncContext.isSyncing) return;
+            
             if (!window.syncContext.dirHandle) {
                 showAlertModal("Pasta não Vinculada", "Para sincronizar, você precisa primeiro associar uma pasta do seu computador ou nuvem (onde os arquivos .xlsx estão salvos).");
                 setTimeout(() => openConfigModal(), 500);
@@ -1761,17 +1768,30 @@
             const btn = document.getElementById('btn-manual-sync');
             const icon = document.getElementById('icon-sync');
             
+            window.syncContext.isSyncing = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             icon.classList.add('fa-spin');
             
+            console.log("[SYNC] Início da sincronização manual...");
+            
             try {
+                // Verifica se temos permissão persistente (necessário em alguns navegadores após ocioso)
+                const permission = await window.syncContext.dirHandle.queryPermission({ mode: 'read' });
+                if (permission !== 'granted') {
+                    const req = await window.syncContext.dirHandle.requestPermission({ mode: 'read' });
+                    if (req !== 'granted') throw new Error("Permissão negada");
+                }
+
                 await pollDirectoryForUpdates(false, true);
             } catch (e) {
-                console.error(e);
+                console.warn("[SYNC] Falha na sincronização ou permissão negada:", e);
+                showAlertModal("Erro de Acesso", "Não conseguimos acessar os arquivos. Clique na engrenagem e selecione a pasta novamente para reativar o acesso.");
             } finally {
                 setTimeout(() => {
+                    window.syncContext.isSyncing = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     icon.classList.remove('fa-spin');
+                    console.log("[SYNC] Sincronização finalizada.");
                 }, 1000);
             }
         }
@@ -1875,10 +1895,14 @@
                 return o;
             });
 
-            if (nameLower.includes('inc')) RawData.incs = cleanJson;
-            else if (nameLower.includes('sc_task') || nameLower.includes('req')) RawData.reqs = cleanJson;
-            else if (nameLower.includes('rca')) RawData.rca = cleanJson;
-            else if (nameLower.includes('ptask')) RawData.ptask = cleanJson;
+            if (nameLower.includes('inc') && cleanJson.length > 0) RawData.incs = cleanJson;
+            else if ((nameLower.includes('sc_task') || nameLower.includes('req')) && cleanJson.length > 0) RawData.reqs = cleanJson;
+            else if (nameLower.includes('rca') && cleanJson.length > 0) RawData.rca = cleanJson;
+            else if (nameLower.includes('ptask') && cleanJson.length > 0) RawData.ptask = cleanJson;
+            else {
+                console.warn(`[DATA] Arquivo '${originalName}' ignorado ou sem dados válidos. Mantendo dados existentes.`);
+                return; 
+            }
 
             let badgeHtml = `<div class="file-badge"><span class="truncate"><i class="fas fa-file-excel mr-1"></i> ${originalName}</span><i class="fas fa-check"></i></div>`;
             if(!document.getElementById('file-status').innerHTML.includes(originalName)) {
@@ -1950,7 +1974,15 @@
         function takeScreenshot() {
             const btn = document.querySelector('.fa-camera').parentElement;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
-            html2canvas(document.getElementById('capture-area'), { scrollY: -window.scrollY, scale: 2 }).then(canvas => {
+            
+            // Otimizado: Redução de scale de 2.0 para 1.2 para ser instantâneo e redução de latência
+            html2canvas(document.getElementById('capture-area'), { 
+                scale: 1.2, 
+                logging: false, 
+                useCORS: true,
+                imageTimeout: 0,
+                backgroundColor: "#f8fafc" 
+            }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `Painel_ITSM_EliteMaster_${new Date().toISOString().slice(0, 10)}.png`;
                 link.href = canvas.toDataURL('image/png');
@@ -3791,7 +3823,7 @@
             `;
         }
 
-        function generatePRBTab(rcaData, ptaskData, slaPTask, refDateObj) {
+        function generatePRBTab(rcaData, ptaskData, slaRCA, slaPTask, refDateObj) {
             const refDate = new Date(refDateObj); refDate.setHours(23, 59, 59, 999); const refTime = refDate.getTime();
             let html = `<div class="report-section-title" style="background-color: ${C.PRI_D};"><i class="fas fa-bullseye mr-2"></i> SESSÃO PRB TASKs (TODAS AS ABERTAS NO SISTEMA)</div>`;
 
@@ -3808,11 +3840,12 @@
                 if (clOrig && clOrig.getTime() <= refTime) { if (st.includes('clos') || st.includes('resolv') || st.includes('cancel') || st.includes('fech')) return; }
                 let asg = getCol(r, ['Assigned to', 'Analista']) || '-';
                 let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
+                let age = Math.floor((refDate - op) / 86400000);
                 let tk = getCol(r, ['Problem', 'Problema']) || '-';
                 let descClean = String(getCol(r, ['Short description', 'Descrição']) || '-').replace(/"/g, '&quot;');
                 let req = getCol(r, ['Requester', 'Caller']) || 'N/A';
 
-                let dummyT = { tk: tk, desc: descClean, req: req, as: asg, gp: '-', st: getCol(r, ['RCA Status', 'State', 'Status']) || '-', age: Math.floor((refDate - op) / 86400000), idle: idle, opStr: op.toLocaleDateString('pt-BR'), info: 'RCA pendente.' };
+                const dummyT = { tk: tk, desc: descClean, req: req, as: asg, gp: '-', st: getCol(r, ['RCA Status', 'State', 'Status']) || '-', age: age, idle: idle, opStr: op.toLocaleDateString('pt-BR'), info: 'RCA pendente.' };
                 allPrbs.push(dummyT);
 
                 rcaRows += `<tr class="ticket-row" ${buildDataAttrs(dummyT)}>
@@ -3825,6 +3858,10 @@
                         ${descClean.length > 70 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
                     </td>
                     <td data-label="Analista Responsável" class="font-medium">${dummyT.as}</td>
+                    <td data-label="SLA / Aging" style="text-align:right;">
+                        <div style="color:${age > slaRCA ? C.DAN : C.SUC}; font-weight:bold; font-size:13px;">${age > slaRCA ? `Estourado (${age}d)` : `No Prazo (${age}d)`}</div>
+                        ${dummyT.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${dummyT.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${dummyT.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                    </td>
                     <td data-label="Status RCA" data-filter="${dummyT.st}"><span class="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-[10px] uppercase">${dummyT.st}</span></td>
                 </tr>`;
             });
@@ -3879,9 +3916,9 @@
             html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-search mr-2"></i> 1. PROBLEM RCA - CAUSAS RAIZ EM ABERTO</div>
                 <div class="st-dataframe-container"><table class="st-table">
                 <thead><tr>
-                    ${createTh("Problem", "15%")} ${createTh("Descrição da Causa Raiz", "auto", "left")} ${createTh("Analista Responsável", "20%")} ${createTh("Status RCA", "15%")}
+                    ${createTh("Problem", "15%")} ${createTh("Descrição da Causa Raiz", "auto", "left")} ${createTh("Analista Responsável", "15%")} ${createTh("SLA / Aging", "15%", "right")} ${createTh("Status RCA", "15%")}
                 </tr></thead>
-                <tbody>${rcaRows || `<tr><td colspan="4" class="text-center text-slate-500 py-6">Nenhuma RCA aberta no momento.</td></tr>`}</tbody>
+                <tbody>${rcaRows || `<tr><td colspan="5" class="text-center text-slate-500 py-6">Nenhuma RCA aberta no momento.</td></tr>`}</tbody>
                 </table></div></div>`;
 
             html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-tasks mr-2"></i> 2. TASKS DE PROBLEMA (PTASK) ABERTAS</div>
@@ -4114,6 +4151,7 @@
                 const slaI = parseInt(document.getElementById('sla-incs').value) || 7;
                 const slaR = parseInt(document.getElementById('sla-reqs').value) || 10;
                 const slaP = parseInt(document.getElementById('sla-ptask').value) || 10;
+                const slaRCA = parseInt(document.getElementById('sla-rca').value) || 10;
                 const refDateInput = document.getElementById('ref-date').value;
                 const dateMachine = refDateInput ? new Date(refDateInput + 'T12:00:00') : new Date();
 
@@ -4143,7 +4181,7 @@
                 if (dI && dRS && dRU) document.getElementById('tab-cons').innerHTML = generateConsolidadoHTML(dI, dRS, dRU);
 
                 if (RawData.rca.length || RawData.ptask.length) {
-                    document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaP, dateMachine);
+                    document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaRCA, slaP, dateMachine);
                 } else {
                     document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK importado.</h3></div>`;
                 }
