@@ -1743,14 +1743,14 @@
             try {
                 const handle = await window.showDirectoryPicker({ mode: 'read' });
                 window.syncContext.dirHandle = handle;
+                window.syncContext.cacheStamps = {}; // Reset cache ao vincular nova pasta
                 document.getElementById('sync-status-indicator').className = 'w-3 h-3 rounded-full bg-emerald-500 shadow shadow-emerald-200';
-                document.getElementById('sync-status-text').innerText = 'Monitorando Nuvem...';
+                document.getElementById('sync-status-text').innerText = 'Pasta vinculada';
                 document.getElementById('sync-folder-path').innerText = handle.name;
                 
-                // Dispara a leitura primária invisível para ganhar o "baseline/referência" dos arquivos
-                await pollDirectoryForUpdates(true);
-
-                setTimeout(() => closeConfigModal(), 1000);
+                console.log("[SYNC] Pasta vinculada:", handle.name);
+                showAlertModal("Pasta Vinculada", "A pasta '" + handle.name + "' foi associada com sucesso. Clique no botão de Atualizar (🔄) no topo para carregar os dados.");
+                setTimeout(() => closeConfigModal(), 500);
             } catch(e) {
                 console.warn("Folder picker cancelado ou sem permissões.");
             }
@@ -1772,76 +1772,88 @@
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             icon.classList.add('fa-spin');
             
+            const msg = document.getElementById('extraction-time');
+            msg.className = "text-[10px] font-bold text-white bg-amber-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
+            msg.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Lendo arquivos da pasta...';
+            
             console.log("[SYNC] Início da sincronização manual...");
             
             try {
-                // Verifica se temos permissão persistente (necessário em alguns navegadores após ocioso)
+                // Verifica permissão
                 const permission = await window.syncContext.dirHandle.queryPermission({ mode: 'read' });
                 if (permission !== 'granted') {
                     const req = await window.syncContext.dirHandle.requestPermission({ mode: 'read' });
                     if (req !== 'granted') throw new Error("Permissão negada");
                 }
 
-                await pollDirectoryForUpdates(false, true);
+                // Lê TODOS os arquivos xlsx da pasta
+                let filesToProcess = [];
+                let totalFound = 0;
+                
+                for await (const entry of window.syncContext.dirHandle.values()) {
+                    if (entry.kind !== 'file' || !entry.name.endsWith('.xlsx')) continue;
+                    
+                    let nameLower = entry.name.toLowerCase();
+                    if(nameLower.includes('inc') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('ptask')) {
+                        const file = await entry.getFile();
+                        totalFound++;
+                        
+                        // Verifica se o arquivo é mais recente que o último processado
+                        const cachedStamp = window.syncContext.cacheStamps[nameLower];
+                        if (!cachedStamp || file.lastModified > cachedStamp) {
+                            console.log(`[SYNC] Arquivo atualizado encontrado: ${entry.name} (modified: ${new Date(file.lastModified).toLocaleString('pt-BR')})`);
+                            filesToProcess.push({ file: file, name: nameLower, originalName: entry.name });
+                            window.syncContext.cacheStamps[nameLower] = file.lastModified;
+                        } else {
+                            console.log(`[SYNC] Arquivo sem alteração: ${entry.name}`);
+                        }
+                    }
+                }
+                
+                if (totalFound === 0) {
+                    showAlertModal("Nenhum Arquivo", "Não encontramos arquivos .xlsx válidos (INC, REQ, RCA, PTASK) na pasta vinculada.");
+                    msg.className = "text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
+                    msg.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Nenhum arquivo encontrado';
+                    return;
+                }
+                
+                if (filesToProcess.length > 0) {
+                    msg.innerHTML = `<i class="fas fa-cog fa-spin mr-1"></i> Processando ${filesToProcess.length} arquivo(s)...`;
+                    
+                    // Processa todos os arquivos atualizados
+                    await processArrayOfFiles(filesToProcess);
+                    
+                    // Gera o relatório automaticamente
+                    if (typeof processDashboard === 'function') {
+                        processDashboard();
+                    }
+                    
+                    const now = new Date();
+                    msg.className = "text-[10px] font-bold text-white bg-blue-600 px-2 py-0.5 rounded shadow-sm inline-block mt-1 animate-pulse";
+                    msg.innerHTML = `<i class="fas fa-check-circle mr-1"></i> Atualizado: ${now.toLocaleTimeString('pt-BR')} (${filesToProcess.length} arquivo(s))`;
+                    console.log(`[SYNC] Concluído: ${filesToProcess.length} arquivo(s) processado(s).`);
+                } else {
+                    msg.className = "text-[10px] font-bold text-white bg-slate-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
+                    msg.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Tudo atualizado — nenhuma novidade';
+                    console.log("[SYNC] Nenhum arquivo mais recente encontrado.");
+                    setTimeout(() => {
+                        msg.className = "text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
+                        msg.innerHTML = '<i class="fas fa-clock mr-1"></i> Dados em dia';
+                    }, 3000);
+                }
+                
             } catch (e) {
                 console.warn("[SYNC] Falha na sincronização ou permissão negada:", e);
                 showAlertModal("Erro de Acesso", "Não conseguimos acessar os arquivos. Clique na engrenagem e selecione a pasta novamente para reativar o acesso.");
+                msg.className = "text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
+                msg.innerHTML = '<i class="fas fa-times-circle mr-1"></i> Erro ao sincronizar';
             } finally {
                 setTimeout(() => {
                     window.syncContext.isSyncing = false;
                     btn.classList.remove('opacity-50', 'cursor-not-allowed');
                     icon.classList.remove('fa-spin');
-                    console.log("[SYNC] Sincronização finalizada.");
+                    console.log("[SYNC] Lock liberado.");
                 }, 1000);
-            }
-        }
-
-        async function pollDirectoryForUpdates(isBaseline, isManual = false) {
-            if(!window.syncContext.dirHandle) return;
-            let updatedCount = 0;
-            let filesToProcess = [];
-
-            try {
-                for await (const entry of window.syncContext.dirHandle.values()) {
-                    if (entry.kind !== 'file' || !entry.name.endsWith('.xlsx')) continue;
-                    
-                    let name = entry.name.toLowerCase();
-                    if(name.includes('inc') || name.includes('sc_task') || name.includes('req') || name.includes('rca') || name.includes('ptask')) {
-                        const file = await entry.getFile();
-                        if(!window.syncContext.cacheStamps[name] || window.syncContext.cacheStamps[name] < file.lastModified) {
-                            window.syncContext.cacheStamps[name] = file.lastModified;
-                            filesToProcess.push({ file: file, name: name });
-                            updatedCount++;
-                        }
-                    }
-                }
-            } catch(e) {
-                console.error("Falha ao ler pasta (permissão expirada?): ", e);
-            }
-
-            if(isBaseline) {
-                if(filesToProcess.length > 0) await processArrayOfFiles(filesToProcess);
-            } else if(updatedCount > 0) {
-                window.pendingFilesToProcess = filesToProcess;
-                if (isManual) {
-                    triggerAutoSync();
-                } else {
-                    document.getElementById('update-alert-modal').classList.remove('hidden-st');
-                    document.getElementById('update-alert-modal').classList.remove('translate-x-[120%]');
-                }
-            } else if (isManual) {
-                // Feedback quando nada mudou
-                let msg = document.getElementById('extraction-time');
-                const oldContent = msg.innerHTML;
-                const oldClass = msg.className;
-                
-                msg.className = "text-[10px] font-bold text-white bg-slate-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
-                msg.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Tudo atualizado na pasta';
-                
-                setTimeout(() => {
-                    msg.className = oldClass;
-                    msg.innerHTML = oldContent;
-                }, 3000);
             }
         }
 
@@ -1853,7 +1865,7 @@
                 fileObjs.forEach(obj => {
                     const reader = new FileReader();
                     reader.onload = e => {
-                        parseExcelBlob(e.target.result, obj.name, obj.file.name);
+                        parseExcelBlob(e.target.result, obj.name, obj.originalName || obj.file.name);
                         processed++;
                         if(processed === fileObjs.length) resolve();
                     };
@@ -3244,11 +3256,22 @@
         function openDrilldown(title, ticketArrayStrKey, vaultCat) {
             let tks = window.DrilldownVault[vaultCat][ticketArrayStrKey] || [];
             if (!tks || tks.length === 0) return;
+            
+            // Search Input inside the modal
+            let searchHtml = `
+            <div class="mb-4 relative group">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs transition-colors group-focus-within:text-blue-500"></i>
+                <input type="text" id="modal-search" placeholder="Filtrar nesta lista..." 
+                    class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700 shadow-sm"
+                    onkeyup="filterModalTable(this.value)">
+            </div>
+            `;
 
             document.getElementById('drilldown-title').innerText = title;
             document.getElementById('drilldown-subtitle').innerText = `${tks.length} registros encontrados`;
             
-            let isInc = (vaultCat === 'incs' || vaultCat === 'rca');
+            // Detecta se estamos olhando para Incidentes (Individual, Consolidado ou Classificações)
+            let isInc = (vaultCat === 'inc' || vaultCat === 'cons' || vaultCat === 'class');
 
             let rows = tks.map(t => {
                 let stColor = '#475569', stBg = '#f1f5f9';
@@ -3257,7 +3280,7 @@
                 else if (st.includes('cancel') || st.includes('incomplet')) { stColor = '#ef4444'; stBg = '#fee2e2'; }
 
                 return `
-                <tr class="ticket-row" ${buildDataAttrs(t)}>
+                <tr class="ticket-row hover:bg-slate-50 transition" style="border-bottom: 1px solid #f1f5f9;" ${buildDataAttrs(t)}>
                     <td data-label="Ticket" class="font-bold text-[var(--primary-dark)] text-center">
                         ${t.tk}
                         <button onclick="openTicketDetails('${t.tk}')" class="mt-1 w-full text-center bg-blue-50 border border-blue-200/50 hover:bg-blue-100 rounded py-1 text-[9px] uppercase font-bold transition shadow-sm"><i class="fas fa-search mr-1"></i> Detalhes</button>
@@ -3271,29 +3294,32 @@
                     </td>
                     <td data-label="Solicitante" class="text-center">${t.req}</td>
                     <td data-label="Analista" class="text-center font-medium">${t.as}</td>
-                    <td data-label="Grupo" class="text-center">${t.gp}</td>
+                    <td data-label="Grupo" class="text-center"><span class="text-[11px] bg-slate-100 px-2 py-1 rounded border border-slate-200 block max-w-[120px] mx-auto truncate" title="${t.gp}">${t.gp}</span></td>
                     <td data-label="Status" data-filter="${t.st}" class="text-center">
                         <span style="background:${stBg}; color:${stColor}; border:1px solid ${stColor}40;" class="px-2 py-0.5 rounded text-[9px] font-bold inline-block">${t.st}</span>
                         ${t.reason ? `<span class="block text-[9px] text-slate-500 mt-1 truncate max-w-[100px] mx-auto" title="${t.reason}">${t.reason}</span>` : ''}
                     </td>
-                    ${isInc ? `<td data-label="PRB" class="text-center ${t.prb !== 'N/A' && t.prb ? 'font-bold text-[var(--primary-dark)]' : 'text-slate-400'}">${t.prb || 'N/A'}</td>` : ''}
+                    <td data-label="Abertura" class="text-center text-slate-500 text-[11px]"><i class="far fa-calendar-alt mr-1"></i>${t.opStr || '-'}</td>
+                    ${isInc ? `<td data-label="PRB" class="text-center" style="font-weight:${(t.prb && t.prb !== 'N/A') ? 'bold' : 'normal'}; color:${(t.prb && t.prb !== 'N/A') ? 'var(--primary-dark)' : '#94a3b8'}">${t.prb || 'N/A'}</td>` : ''}
                     <td data-label="Aging / Ocioso" class="text-right">
-                        <div class="font-bold text-sm ${t.age > 10 ? 'text-red-500' : 'text-slate-700'}">${t.age}d totais</div>
+                        <div class="font-bold text-sm ${t.age > (t.slaConfig || 7) ? 'text-red-500' : 'text-slate-700'}">${t.age}d totais</div>
                         ${t.idle !== '-' ? `<div class="text-[10px] font-bold mt-1 ${t.idle > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div class="text-[10px] text-slate-400 mt-1"><i class="fas fa-user-clock"></i> N/A</div>`}
                     </td>
                 </tr>`;
             }).join('');
 
             document.getElementById('drilldown-table-container').innerHTML = `
-                <div class="st-dataframe-container border-0 max-h-[70vh]">
-                    <table class="st-table">
+                ${searchHtml}
+                <div class="st-dataframe-container border-0 max-h-[60vh] stylized-scrollbar" style="overflow-y: auto;">
+                    <table class="st-table w-full" id="drilldown-main-table">
                         <thead><tr>
                             ${createTh("Ticket", "10%")}
                             ${createTh("Assunto / Info (Expansível)", "auto", "left")}
-                            ${createTh("Solicitante", "15%")}
+                            ${createTh("Solicitante", "12%")}
                             ${createTh("Analista", "12%")}
-                            ${createTh("Grupo", "12%")}
-                            ${createTh("Status", "10%")}
+                            ${createTh("Grupo", "10%")}
+                            ${createTh("Status", "8%")}
+                            ${createTh("Abertura", "8%")}
                             ${isInc ? createTh("PRB", "8%") : ''}
                             ${createTh("Aging / Ocioso", "10%", "right")}
                         </tr></thead>
@@ -3301,6 +3327,9 @@
                     </table>
                 </div>
             `;
+
+            // Reset search input
+            if (document.getElementById('modal-search')) document.getElementById('modal-search').value = "";
 
             document.getElementById('drilldown-modal-backdrop').classList.remove('hidden-st');
             setTimeout(() => {
@@ -3314,6 +3343,15 @@
             document.getElementById('drilldown-modal-content').classList.add('scale-95');
             setTimeout(() => document.getElementById('drilldown-modal-backdrop').classList.add('hidden-st'), 300);
         }
+
+        window.filterModalTable = function(val) {
+            const term = val.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+            const rows = document.querySelectorAll('#drilldown-main-table tbody tr');
+            rows.forEach(tr => {
+                const text = tr.innerText.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+                tr.style.display = text.includes(term) ? '' : 'none';
+            });
+        };
 
         // ==========================================
         // 5. HTML GENERATORS
@@ -3340,10 +3378,13 @@
                 let stLower = st.toLowerCase();
                 let infoFinal = (stLower.includes('hold') || stLower.includes('espera')) && holdReason ? String(holdReason).replace(/"/g, '&quot;') : '';
 
+                let prbRaw = getCol(r, ['Problem', 'PRB', 'Problema', 'problem_id']);
+                let prbVal = (prbRaw && String(prbRaw).trim() !== "" && String(prbRaw).trim() !== "undefined") ? String(prbRaw).trim() : 'N/A';
+
                 let idle = getDaysSilent(r, refDateObj, asg, op);
                 let pctSla = Math.round((age / slaConfig) * 100);
                 let stSla = age > slaConfig ? "Estourado" : "No Prazo";
-                openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: op.toLocaleDateString('pt-BR'), age, pctSla, stSla, slaConfig, idle, info: infoFinal });
+                openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: op.toLocaleDateString('pt-BR'), age, pctSla, stSla, slaConfig, idle, info: infoFinal, prb: prbVal });
             }
             incs.forEach(r => processRow(r, 'INC', slaI));
             reqs.forEach(r => processRow(r, 'REQ', slaR));
