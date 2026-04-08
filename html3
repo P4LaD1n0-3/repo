@@ -11,6 +11,7 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
        
     <script src="https://cdn.tailwindcss.com"></script>
+
        
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
        
@@ -450,7 +451,26 @@
             transition: 0.3s;
             min-width: 0;
             margin-bottom: 25px;
+            position: relative;
         }
+
+        .report-card:hover .btn-snap { display: block; }
+        .btn-snap {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 4px 8px;
+            cursor: pointer;
+            z-index: 10;
+            transition: 0.2s;
+        }
+        .btn-snap:hover { background: #e2e8f0; color: #0f172a; }
+
 
         .report-card-title {
             color: #475569;
@@ -1129,6 +1149,8 @@
                 height: 220px !important;
             }
         }
+        
+
     </style>
 </head>
 
@@ -1347,11 +1369,11 @@
                         onclick="clearFiles()"><i class="fas fa-trash-alt"></i> Limpar</button>
                                     </div>
                                 <div id="dropzone"
-                    class="dropzone-discreet border-2 border-dashed p-2 text-center cursor-pointer hover:bg-blue-50 transition"
+                    class="dropzone-discreet border-2 border-dashed border-slate-300 p-2 text-center cursor-pointer transition rounded-lg"
                     onclick="document.getElementById('file-upload').click()">
                                         <i class="fas fa-cloud-upload-alt text-xl text-blue-500 mb-1"></i>
-                                        <div style="font-size: 11px; font-weight: bold; color: #334155;">Arraste suas planilhas</div>
-                                        <div style="font-size: 9px; color: #94a3b8; margin-top: 2px;">incident, sc_task, rca, ptask</div>
+                                        <div class="text-[11px] font-bold text-slate-700">Arraste suas planilhas</div>
+                                        <div class="text-[9px] text-slate-500 mt-[2px]">incident, sc_task, rca, ptask</div>
                                     </div>
                                 <input type="file" id="file-upload" multiple accept=".xlsx, .xls" class="hidden-st"
                     onchange="handleFiles(event.target.files)">
@@ -1415,6 +1437,7 @@
                     title="Tirar Foto da Tela (Baixar PNG)">
                                         <i class="fas fa-camera text-sm"></i>
                                 </button>
+
                                 <button onclick="manualSyncCheck()"
                     class="bg-blue-600 text-white border border-blue-700 p-2 rounded-full hover:bg-blue-700 transition shadow-md w-10 h-10 flex items-center justify-center flex-shrink-0"
                     id="btn-manual-sync"
@@ -1710,7 +1733,7 @@
         // ==========================================
         // 0. DATA & FILES & UTILS
         // ==========================================
-        const RawData = { incs: [], reqs: [], rca: [], ptask: [] };
+        const RawData = { incs: [], reqs: [], rca: [], ptask: [], prb: [] };
         window.openTodoAnalysts = new Set();
         window.openModalTodoAnalysts = new Set();
         
@@ -1863,7 +1886,7 @@
                     if (entry.kind !== 'file' || !entry.name.endsWith('.xlsx')) continue;
                     
                     let nameLower = entry.name.toLowerCase();
-                    if(nameLower.includes('inc') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('ptask')) {
+                    if(nameLower.includes('inc') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('ptask') || nameLower.includes('prb')) {
                         const file = await entry.getFile();
                         totalFound++;
                         
@@ -1980,6 +2003,7 @@
             else if ((nameLower.includes('sc_task') || nameLower.includes('req')) && cleanJson.length > 0) RawData.reqs = cleanJson;
             else if (nameLower.includes('rca') && cleanJson.length > 0) RawData.rca = cleanJson;
             else if (nameLower.includes('ptask') && cleanJson.length > 0) RawData.ptask = cleanJson;
+            else if (nameLower.includes('prb') && cleanJson.length > 0) RawData.prb = cleanJson;
             else {
                 console.warn(`[DATA] Arquivo '${originalName}' ignorado ou sem dados válidos. Mantendo dados existentes.`);
                 return; 
@@ -2207,11 +2231,25 @@
             let uniqueVals = new Set();
             Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
                 if (tr.children.length > 1) {
-                    let cv = tr.children[colIdx].getAttribute('data-filter') || tr.children[colIdx].innerText;
+                    let cell = tr.children[colIdx];
+                    let cv = cell.getAttribute('data-filter');
+                    if (!cv) {
+                        let textNodes = Array.from(cell.childNodes).filter(n => n.nodeType === 3).map(n => n.textContent.trim()).filter(t => t.length > 0);
+                        cv = textNodes.length > 0 ? textNodes[0] : cell.innerText;
+                    }
                     uniqueVals.add(cv.trim().replace(/\n/g, ' '));
                 }
             });
-            let valsArr = Array.from(uniqueVals).sort();
+            let valsArr = Array.from(uniqueVals).sort((a, b) => {
+                let da = a.match(/^(\d{2})\/(\d{2})\/(\d{4}|\d{2})$/);
+                let db = b.match(/^(\d{2})\/(\d{2})\/(\d{4}|\d{2})$/);
+                if (da && db) {
+                    let ya = da[3].length === 2 ? '20' + da[3] : da[3];
+                    let yb = db[3].length === 2 ? '20' + db[3] : db[3];
+                    return new Date(`${ya}-${da[2]}-${da[1]}`) - new Date(`${yb}-${db[2]}-${db[1]}`);
+                }
+                return a.localeCompare(b);
+            });
 
             let drop = document.createElement('div');
             drop.className = 'custom-filter-dropdown fixed bg-white shadow-2xl border border-slate-200 rounded p-3 z-[10500] flex flex-col gap-1 w-64 animate-fade';
@@ -2260,7 +2298,12 @@
                     if (tr.children.length === 1) return;
                     let show = true;
                     for (let c in activeTableFilters[table.id]) {
-                        let cVal = tr.children[c].getAttribute('data-filter') || tr.children[c].innerText;
+                        let cell = tr.children[c];
+                        let cVal = cell.getAttribute('data-filter');
+                        if (!cVal) {
+                            let textNodes = Array.from(cell.childNodes).filter(n => n.nodeType === 3).map(n => n.textContent.trim()).filter(t => t.length > 0);
+                            cVal = textNodes.length > 0 ? textNodes[0] : cell.innerText;
+                        }
                         if (!activeTableFilters[table.id][c].includes(cVal.trim().replace(/\n/g, ' '))) {
                             show = false; break;
                         }
@@ -3381,9 +3424,10 @@
                     res.days += days;
                     if (days > res.max) res.max = days;
 
-                    let mStr = op.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
-                    if (!res.m[mStr]) res.m[mStr] = { count: 0, tks: [] };
-                    res.m[mStr].count++;
+                    let mStrKey = op.getFullYear() + '-' + String(op.getMonth() + 1).padStart(2, '0');
+                    let mStrLabel = op.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
+                    if (!res.m[mStrKey]) res.m[mStrKey] = { count: 0, tks: [], label: mStrLabel };
+                    res.m[mStrKey].count++;
 
                     if (op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()) {
                         if (!res.req[reqName]) res.req[reqName] = { count: 0, tks: [] }; res.req[reqName].count++;
@@ -3403,7 +3447,7 @@
                     if (op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()) {
                         res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks.push(tObj);
                     }
-                    res.m[mStr].tks.push(tObj);
+                    res.m[mStrKey].tks.push(tObj);
                 }
             });
             res.avg = res.total ? (res.days / res.total).toFixed(1).replace('.', ',') : "0,0";
@@ -3757,7 +3801,7 @@
             return `
             <div class="report-section-title" style="background-color: ${color};"><i class="fas fa-chart-line mr-2"></i> ${title}</div>
             
-            <div class="grid-2">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div class="report-card clickable-card" style="text-align:center;" onclick="openDrilldown('Backlog Vigente (${typeStr})', 'all_backlog', '${cat}')" title="Clique para ver o backlog">
                     <div class="report-card-title"><i class="fas fa-layer-group"></i> VOLUME EM BACKLOG</div>
                     <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
@@ -3773,6 +3817,15 @@
                             <span style="color:${C.DAN}; background:#fee2e2; padding:4px 12px; border-radius:20px; border:1px solid #fecaca;">❌ ${d.outSla} Fora</span>
                         </div>
                         <div style="color:${pctColor}; font-size:20px; font-weight:800;">${d.pct}% Dentro do Prazo</div>
+                    </div>
+                </div>
+                <div class="report-card" style="text-align:center;">
+                    <div class="report-card-title"><i class="fas fa-stopwatch inline-block mb-1"></i> MTTR MENSAL (${typeStr})</div>
+                    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:32px; font-weight:800; color:#0f172a; line-height:1; display:flex; align-items:flex-end; justify-content:center;">
+                            ${d.mttr} <span style="font-size:14px; font-weight:bold; color:#64748b; margin-left:4px; margin-bottom:5px;">Dias</span>
+                        </div>
+                        <div style="font-size:13px; font-weight:bold; color:#64748b; text-transform:uppercase; margin-top:5px;">Tempo Médio de Reparo</div>
                     </div>
                 </div>
             </div>
@@ -3860,12 +3913,20 @@
             const buildAnalyticalTable = (title, dataObj, labelCol, isMonth = false) => {
                 let total = Object.values(dataObj).reduce((a, b) => a + b.count, 0);
 
-                let rows = Object.entries(dataObj).sort((a, b) => b[1].count - a[1].count).map(([key, value], idx) => {
+                let entries = Object.entries(dataObj);
+                if (isMonth) {
+                    entries.sort((a, b) => a[0].localeCompare(b[0]));
+                } else {
+                    entries.sort((a, b) => b[1].count - a[1].count);
+                }
+
+                let rows = entries.map(([key, value], idx) => {
                     let dKey = `cat_${labelCol}_${idx}`;
                     window.DrilldownVault['class'][dKey] = value.tks;
+                    let displayKey = isMonth && value.label ? value.label : key;
                     return `
-                    <tr class="hover:bg-slate-50 cursor-pointer transition" onclick="openDrilldown('${key}', '${dKey}', 'class')">
-                        <td class="text-left font-bold text-blue-800">${key} <i class="fas fa-external-link-alt text-[9px] text-slate-300 ml-1"></i></td>
+                    <tr class="hover:bg-slate-50 cursor-pointer transition" onclick="openDrilldown('${displayKey}', '${dKey}', 'class')">
+                        <td class="text-left font-bold text-blue-800">${displayKey} <i class="fas fa-external-link-alt text-[9px] text-slate-300 ml-1"></i></td>
                         <td class="font-bold">${value.count}</td>
                         ${isMonth ? `<td class="font-bold text-blue-600">${Math.round((value.count / total) * 100)}%</td>` : ''}
                     </tr>
@@ -4023,6 +4084,171 @@
                 <div class="chart-full-width"><canvas id="c-m-cons"></canvas></div>
             </div>
             `;
+        }
+
+        function generatePRBTabImproved(prbData) {
+            let html = `<div class="report-section-title" style="background-color: #E74C3C;"><i class="fas fa-shield-alt mr-2"></i> PRBs ATIVOS — PROBLEMAS AGRUPADOS E RELACIONADOS</div>`;
+
+            if (!prbData || prbData.length === 0) {
+                return html + `<div class="report-card" style="text-align: center; padding: 40px;"><p style="color: #94a3b8; font-size: 14px;">Nenhum PRB ativo no momento.</p></div>`;
+            }
+
+            // Agrupar por PRB e contar relacionamentos
+            let prbGroups = {};
+            prbData.forEach(ticket => {
+                let prbId = ticket.prb || 'UNKNOWN';
+                if (!prbGroups[prbId]) {
+                    prbGroups[prbId] = {
+                        prb: prbId,
+                        tickets: [],
+                        release: ticket.release || '—',
+                        mentions: 0,
+                        active_count: 0,
+                        groups: new Set(),
+                        priority: ticket.priority || 'N/A'
+                    };
+                }
+                prbGroups[prbId].tickets.push(ticket);
+                prbGroups[prbId].mentions++;
+                if (ticket.state === 'Open' || ticket.state === 'Aberto') prbGroups[prbId].active_count++;
+                prbGroups[prbId].groups.add(ticket.group || 'N/A');
+            });
+
+            // KPI Cards
+            let totalPrbs = Object.keys(prbGroups).length;
+            let totalTicketsComPrb = Object.values(prbGroups).reduce((s, g) => s + g.active_count, 0);
+            let avgTicketsPorPrb = (totalTicketsComPrb / totalPrbs).toFixed(1);
+
+            html += `
+            <div class="grid grid-cols-4 gap-4 mb-6">
+                <div class="report-card text-center" style="margin-bottom:0; border-top: 3px solid #E74C3C;">
+                    <div class="text-[11px] font-black text-red-600 mb-1 uppercase">PRBs Ativos</div>
+                    <div class="text-3xl font-black" style="color: #E74C3C;">${totalPrbs}</div>
+                    <div class="text-[10px] text-slate-500 mt-1">Problemas</div>
+                </div>
+                <div class="report-card text-center" style="margin-bottom:0; border-top: 3px solid #3498DB;">
+                    <div class="text-[11px] font-black text-blue-600 mb-1 uppercase">Tickets Abertos</div>
+                    <div class="text-3xl font-black" style="color: #3498DB;">${totalTicketsComPrb}</div>
+                    <div class="text-[10px] text-slate-500 mt-1">Associados</div>
+                </div>
+                <div class="report-card text-center" style="margin-bottom:0; border-top: 3px solid #9B59B6;">
+                    <div class="text-[11px] font-black text-purple-600 mb-1 uppercase">Média/PRB</div>
+                    <div class="text-3xl font-black" style="color: #9B59B6;">${avgTicketsPorPrb}</div>
+                    <div class="text-[10px] text-slate-500 mt-1">Tickets</div>
+                </div>
+                <div class="report-card text-center" style="margin-bottom:0; border-top: 3px solid #27AE60;">
+                    <div class="text-[11px] font-black text-green-600 mb-1 uppercase">Grupos Afetados</div>
+                    <div class="text-3xl font-black" style="color: #27AE60;">${new Set(Object.values(prbGroups).flatMap(g => Array.from(g.groups))).size}</div>
+                    <div class="text-[10px] text-slate-500 mt-1">Únicos</div>
+                </div>
+            </div>
+            `;
+
+            // Agrupa PRBs com mais tickets para exibir primeiro
+            let sortedPrbs = Object.values(prbGroups).sort((a, b) => b.active_count - a.active_count);
+
+            html += `<div class="report-card" style="padding: 0;"><div class="report-card-title"><i class="fas fa-link mr-2"></i> PRBs COM TICKETS AGRUPADOS</div>
+                <div style="padding: 15px; background: #f8fafc;">`;
+
+            sortedPrbs.forEach((prbGroup, idx) => {
+                let badgeColor = prbGroup.active_count > 5 ? '#E74C3C' : (prbGroup.active_count > 2 ? '#F39C12' : '#27AE60');
+                let hasRelated = prbGroup.tickets.some(t => t.related_tickets && t.related_tickets.length > 0);
+                let relatedBadge = hasRelated ? '<span style="background:#9B59B6; color:white; padding: 2px 6px; border-radius:12px; font-size:8px; font-weight:bold; margin-left:6px;"><i class="fas fa-link"></i> AGRUPADO</span>' : '';
+
+                html += `
+                <details class="saas-accordion" style="margin-bottom: 10px; background: white;">
+                    <summary style="background: #f8fafc; padding: 12px 14px; cursor: pointer;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span style="background: ${badgeColor}; color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 12px; min-width: 60px; text-align: center;">
+                                    ${prbGroup.prb}
+                                </span>
+                                <span style="background: #E8F4F8; color: #0284C7; padding: 2px 8px; border-radius: 6px; font-size: 9px; font-weight: bold;">
+                                    ${prbGroup.active_count} ticket${prbGroup.active_count > 1 ? 's' : ''}
+                                </span>
+                                ${prbGroup.release !== '—' ? `<span style="background: #FCE8F3; color: #BE185D; padding: 2px 8px; border-radius: 6px; font-size: 9px; font-weight: bold;">v${prbGroup.release}</span>` : ''}
+                                ${relatedBadge}
+                            </div>
+                            <i class="fas fa-chevron-down" style="color: #94a3b8; transition: transform 0.3s;"></i>
+                        </div>
+                    </summary>
+                    <div class="acc-content" style="background: white; padding: 12px 14px; border-top: 1px solid #e2e8f0;">
+                        <div style="font-size: 11px; line-height: 1.6;">
+                            <div style="margin-bottom: 10px; padding: 8px; background: #f0f9ff; border-left: 3px solid #0284C7; border-radius: 4px;">
+                                <strong>📊 Resumo:</strong> ${prbGroup.mentions} menção${prbGroup.mentions > 1 ? 's' : ''} | 
+                                <strong>👥 Grupos:</strong> ${Array.from(prbGroup.groups).join(', ')} |
+                                <strong>🎯 Prioridade:</strong> ${prbGroup.priority}
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <strong style="color: #475569; font-size: 10px; text-transform: uppercase;">Tickets Relacionados:</strong>
+                                <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px;">`;
+
+                prbGroup.tickets.slice(0, 10).forEach(ticket => {
+                    let ticketTypeIcon = ticket.type === 'INC' ? '🔴' : '🔵';
+                    let stateColor = ticket.state === 'Open' || ticket.state === 'Aberto' ? '#27AE60' : '#94a3b8';
+                    let relatedCount = (ticket.related_tickets && ticket.related_tickets.length) || 0;
+                    let relatedIndicator = relatedCount > 0 ? `<span style="margin-left: 4px; background: #9B59B6; color: white; padding: 1px 4px; border-radius: 3px; font-size: 7px; font-weight: bold;">+${relatedCount}</span>` : '';
+
+                    html += `
+                    <span style="background: white; border: 1px solid #cbd5e1; padding: 4px 8px; border-radius: 6px; font-size: 9px; font-weight: bold; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: all 0.2s; hover: border-color: #3498DB;" title="${ticket.number}: ${ticket.description}">
+                        ${ticketTypeIcon} <span style="color: ${stateColor};">${ticket.number}</span> ${relatedIndicator}
+                    </span>`;
+                });
+
+                if (prbGroup.tickets.length > 10) {
+                    html += `<span style="background: #e2e8f0; color: #64748b; padding: 4px 8px; border-radius: 6px; font-size: 8px; font-weight: bold;">+${prbGroup.tickets.length - 10}</span>`;
+                }
+
+                html += `</div></div>
+                        ${hasRelated ? `<div style="margin-top: 10px; padding: 8px; background: #F3E8FF; border-left: 3px solid #9B59B6; border-radius: 4px; font-size: 9px;">
+                            <strong>🔗 Agrupamentos Detectados:</strong> Há tickets compartilhando PRBs relacionados neste grupo.
+                        </div>` : ''}
+                    </div>
+                </details>`;
+            });
+
+            html += `</div></div>`;
+
+            return html;
+        }
+
+        // Função para adaptar dados de PRB para o formato do dashboard
+        function processPRBDataForDisplay(prbRawData) {
+            // Adapta os dados de PRB da planilha para o formato esperado por generatePRBTabImproved
+            if (!prbRawData || prbRawData.length === 0) return [];
+            
+            let processed = [];
+            let seenTickets = new Set();
+            
+            prbRawData.forEach(row => {
+                let number = String(row['Number'] || row['Ticket'] || row['RITM'] || '').trim();
+                let prb = String(row['PRB'] || '').trim();
+                let type = String(row['TicketType'] || row['Type'] || 'REQ').toUpperCase();
+                let state = String(row['State'] || row['Status'] || 'Open').toUpperCase();
+                let group = String(row['Assignment group'] || row['Grupo'] || '—').trim();
+                let priority = String(row['Priority'] || 'N/A').trim();
+                let desc = String(row['Short description'] || row['Description'] || row['Descrição'] || '').trim();
+                let release = String(row['Release_Version'] || row['Versão'] || '—').trim();
+                let related_str = String(row['Tickets_Relacionados'] || '').trim();
+                let related_tickets = related_str && related_str !== '—' ? related_str.split(',').map(t => t.trim()) : [];
+                
+                if (!number || !prb || seenTickets.has(number)) return;
+                seenTickets.add(number);
+                
+                processed.push({
+                    number: `${type}:${number}`,
+                    type: type,
+                    prb: prb,
+                    state: state,
+                    group: group,
+                    priority: priority,
+                    description: desc.substring(0, 80) + (desc.length > 80 ? '...' : ''),
+                    release: release,
+                    related_tickets: related_tickets
+                });
+            });
+            
+            return processed;
         }
 
         function generatePRBTab(rcaData, ptaskData, slaRCA, slaPTask, refDateObj) {
@@ -4382,10 +4608,14 @@
 
                 if (dI && dRS && dRU) document.getElementById('tab-cons').innerHTML = generateConsolidadoHTML(dI, dRS, dRU);
 
-                if (RawData.rca.length || RawData.ptask.length) {
+                // Prioriza PRBs se existirem, caso contrário usa RCA/PTASK
+                if (RawData.prb && RawData.prb.length > 0) {
+                    let prbProcessed = processPRBDataForDisplay(RawData.prb);
+                    document.getElementById('tab-prb').innerHTML = generatePRBTabImproved(prbProcessed);
+                } else if (RawData.rca.length || RawData.ptask.length) {
                     document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaRCA, slaP, dateMachine);
                 } else {
-                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK importado.</h3></div>`;
+                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK/PRB importado.</h3></div>`;
                 }
 
                 let allCombinedData = [...RawData.incs, ...RawData.reqs];
@@ -4400,7 +4630,7 @@
                             window.chartInstances.push(new Chart(cnv, {
                                 type: 'line',
                                 data: {
-                                    labels: keysM,
+                                    labels: keysM.map(k => dClass.m[k].label || k),
                                     datasets: [{
                                         label: 'Erros de Classificação',
                                         data: keysM.map(k => dClass.m[k].count),
@@ -4462,6 +4692,17 @@
                     } else {
                         filterTables();
                     }
+                    
+                    document.querySelectorAll('.report-card').forEach(card => {
+                        if(!card.querySelector('.btn-snap') && card.style.display !== 'none') {
+                            let btn = document.createElement('button');
+                            btn.className = 'btn-snap';
+                            btn.innerHTML = '<i class="fas fa-camera text-[10px]"></i>';
+                            btn.title = "Tirar Foto deste Gráfico/Tabela";
+                            btn.onclick = (e) => takeScreenshotItem(btn, e);
+                            card.appendChild(btn);
+                        }
+                    });
                 });
             }, 600);
         }
@@ -4492,6 +4733,36 @@
                 renderTodos();
             }
         });
+
+        // ==========================================
+
+
+        function takeScreenshotItem(btn, e) {
+            e.stopPropagation();
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-[10px]"></i>';
+            const card = btn.closest('.report-card');
+            if(!card) return;
+            
+            let titleText = "Item";
+            const titleEl = card.querySelector('.report-card-title');
+            if(titleEl) titleText = titleEl.innerText.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+            
+            html2canvas(card, { 
+                scale: 1.5, 
+                logging: false, 
+                useCORS: true,
+                backgroundColor: "#ffffff"
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `ITSM_${titleText}_${new Date().toISOString().slice(0, 10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                btn.innerHTML = '<i class="fas fa-camera text-[10px]"></i>';
+            }).catch(err => {
+                alert("Erro ao tirar print do item.");
+                btn.innerHTML = '<i class="fas fa-camera text-[10px]"></i>';
+            });
+        }
     </script>
 </body>
 
