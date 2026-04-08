@@ -2852,6 +2852,49 @@
 
             document.getElementById('modal-desc').innerHTML = modalDescHtml || 'Sem descrição detalhada fornecida na abertura.';
 
+            // Especialização para RCA (Problem)
+            if (tType === 'RCA') {
+                let rcaDueDate = getCol(ticketData, ['RCA Due Date', 'Prazo RCA', 'Due Date']) || 'N/A';
+                let rcaPubDate = getCol(ticketData, ['RCA Published Date', 'Data do RCA', 'Published Date']) || 'N/A';
+                let prbTasks = getCol(ticketData, ['Problem Tasks', 'Tasks', 'Related Tasks']) || '0';
+                let workNotes = getCol(ticketData, ['Work notes', 'Work Notes', 'Notas de Trabalho']) || '';
+                
+                let vRel = extractFromComments(workNotes, 'version');
+                let dRel = extractFromComments(workNotes, 'date');
+
+                let rcaExtraHtml = `
+                <div class="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg shadow-inner">
+                    <h4 class="text-xs font-black text-slate-800 uppercase mb-3 flex items-center gap-1.5"><i class="fas fa-microscope text-orange-600"></i> Detalhes Analíticos da RCA</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase">Problem Tasks</div>
+                            <div class="text-sm font-black text-slate-700">${prbTasks}</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase">RCA Due Date</div>
+                            <div class="text-sm font-black text-slate-700">${rcaDueDate}</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase">RCA Published</div>
+                            <div class="text-sm font-black text-emerald-600">${rcaPubDate}</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase">Versão Release</div>
+                            <div class="text-sm font-black text-blue-700">${vRel}</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase">Data da Release</div>
+                            <div class="text-sm font-black text-blue-700">${dRel}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 p-4 bg-white border border-blue-100 rounded-lg">
+                    <h4 class="text-xs font-black text-blue-800 uppercase mb-2 flex items-center gap-1.5"><i class="fas fa-sticky-note"></i> Work Notes Completas</h4>
+                    <div class="text-[11px] text-slate-600 whitespace-pre-wrap leading-relaxed">${workNotes || 'Nenhuma nota de trabalho registrada.'}</div>
+                </div>`;
+                document.getElementById('modal-desc').innerHTML += rcaExtraHtml;
+            }
+
             let req = getCol(ticketData, ['Requester', 'Caller', 'Solicitante']) || 'N/A';
             let asg = getCol(ticketData, ['Assigned to', 'Analista']) || 'Não Atribuído';
             document.getElementById('modal-req').innerText = req;
@@ -4338,22 +4381,35 @@
             let allPtasks = [];
 
             rcaData.forEach(r => {
+                let tk = getCol(r, ['Number', 'Problem', 'ID']) || '-';
                 let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!op || op.getTime() > refTime) return;
+
                 let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
-                let st = String(getCol(r, ['State', 'Status', 'RCA Status']) || '').toLowerCase();
-                if (clOrig && clOrig.getTime() <= refTime) { if (st.includes('clos') || st.includes('resolv') || st.includes('cancel') || st.includes('fech')) return; }
-                let asg = getCol(r, ['Assigned to', 'Analista']) || '-';
-                let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
-                let age = Math.floor((refDate - op) / 86400000);
-                let tk = getCol(r, ['Problem', 'Problema']) || '-';
-                let descClean = String(getCol(r, ['Short description', 'Descrição']) || '-').replace(/"/g, '&quot;');
-                let req = getCol(r, ['Requester', 'Caller']) || 'N/A';
+                let st = String(getCol(r, ['RCA Status', 'State', 'Status', 'Estado']) || '').toLowerCase();
                 
-                // Extração via Comentários
-                let comments = getCol(r, ['Additional comments', 'Comentários Adicionais', 'Comments']) || '';
-                let vRel = extractFromComments(comments, 'version');
-                let dRel = extractFromComments(comments, 'date');
+                // Filtro: manter abertos
+                if (clOrig && clOrig.getTime() <= refTime) {
+                    if (st.includes('clos') || st.includes('resolv') || st.includes('cancel') || st.includes('fech')) return;
+                }
+
+                let age = Math.floor((refDate - op) / 86400000);
+                if (age < 0) age = 0;
+                let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || '-';
+                let gp = getCol(r, ['Assignment group', 'Grupo', 'Group']) || '-';
+                let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
+                let descClean = String(getCol(r, ['Short description', 'Descrição']) || '-').replace(/"/g, '&quot;');
+                
+                // Novas Colunas
+                let prbTasks = getCol(r, ['Problem Tasks', 'Tasks', 'Related Tasks']) || '0';
+                let rcaStatus = getCol(r, ['RCA Status', 'State', 'Status']) || '-';
+                let rcaDueDate = getCol(r, ['RCA Due Date', 'Prazo RCA', 'Due Date']) || '-';
+                let rcaPubDate = getCol(r, ['RCA Published Date', 'Data do RCA', 'Published Date']) || '-';
+                let workNotes = getCol(r, ['Work notes', 'Work Notes', 'Notas de Trabalho']) || '';
+                
+                // Extração via Work notes
+                let vRel = extractFromComments(workNotes, 'version');
+                let dRel = extractFromComments(workNotes, 'date');
                 
                 // Contagem de Tickets Associados em Incs
                 let associatedCount = 0;
@@ -4367,44 +4423,42 @@
                 const dummyT = { 
                     tk: tk, 
                     desc: descClean, 
-                    req: req, 
                     as: asg, 
-                    gp: '-', 
-                    st: getCol(r, ['RCA Status', 'State', 'Status']) || '-', 
+                    gp: gp, 
+                    st: rcaStatus, 
                     age: age, 
                     idle: idle, 
                     opStr: op.toLocaleDateString('pt-BR'), 
-                    info: 'RCA pendente.',
                     v_rel: vRel,
                     d_rel: dRel,
-                    tks_assoc: associatedCount
+                    tks_assoc: associatedCount,
+                    prb_tasks: prbTasks,
+                    rca_due: rcaDueDate,
+                    rca_pub: rcaPubDate,
+                    notes: workNotes
                 };
                 allPrbs.push(dummyT);
 
                 rcaRows += `<tr class="ticket-row" ${buildDataAttrs(dummyT)}>
+                    <td data-label="Problem Tasks" style="text-align:center; font-weight: bold; color: #64748b;">${prbTasks}</td>
                     <td data-label="Problem" style="color:${C.PRI_D}; font-weight:bold;">
                         ${tk}
                         <button onclick="openTicketDetails('${tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
                     </td>
-                    <td data-label="Descrição da Causa Raiz" style="text-align:left;">
-                        <div class="text-expandable text-[12px] font-semibold text-slate-700">${descClean}</div>
-                        ${descClean.length > 70 ? `<button onclick="toggleText(this)" class="btn-expand">Expandir</button>` : ''}
+                    <td data-label="Assignment group" class="text-[11px] font-medium text-slate-600">${gp}</td>
+                    <td data-label="Assigned to" class="font-bold text-slate-800">${asg}</td>
+                    <td data-label="Incidents" style="text-align:center;">
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-bold text-[10px]">${associatedCount}</span>
                     </td>
-                    <td data-label="Tickets" style="text-align:center;">
-                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-bold text-[10px]">${dummyT.tks_assoc}</span>
+                    <td data-label="RCA Status">
+                        <span class="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-[10px] uppercase font-bold text-slate-700">${rcaStatus}</span>
                     </td>
-                    <td data-label="Analista Responsável" class="font-medium">${dummyT.as}</td>
-                    <td data-label="Rel. Versão" style="text-align:center;">
-                        <span class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-[10px] font-bold">${dummyT.v_rel}</span>
+                    <td data-label="RCA Due Date" style="text-align:center;" class="text-[10px] font-medium text-slate-600">${rcaDueDate}</td>
+                    <td data-label="RCA Published" style="text-align:center;" class="text-[10px] font-medium text-emerald-600">${rcaPubDate}</td>
+                    <td data-label="Work notes" class="text-left" style="max-width: 250px;">
+                        <div class="text-[10px] text-slate-500 line-clamp-2 hover:line-clamp-none transition-all cursor-help bg-slate-50 p-1.5 rounded border border-slate-100" title="Clique em 'Saiba mais' para ver o histórico completo.">${workNotes || 'Sem notas.'}</div>
+                        ${vRel !== '—' ? `<div class="mt-1 flex gap-1"><span class="bg-blue-50 text-blue-700 text-[9px] px-1.5 py-0.5 rounded border border-blue-100 font-bold">V: ${vRel}</span> ${dRel !== '—' ? `<span class="bg-emerald-50 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded border border-emerald-100 font-bold">${dRel}</span>` : ''}</div>` : ''}
                     </td>
-                    <td data-label="Data Release" style="text-align:center;">
-                        <span class="text-[10px] text-slate-600 font-medium">${dummyT.d_rel}</span>
-                    </td>
-                    <td data-label="SLA / Aging" style="text-align:right;">
-                        <div style="color:${age > slaRCA ? C.DAN : C.SUC}; font-weight:bold; font-size:13px;">${age > slaRCA ? `Estourado (${age}d)` : `No Prazo (${age}d)`}</div>
-                        ${dummyT.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${dummyT.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${dummyT.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
-                    </td>
-                    <td data-label="Status RCA" data-filter="${dummyT.st}"><span class="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-[10px] uppercase">${dummyT.st}</span></td>
                 </tr>`;
             });
 
@@ -4455,12 +4509,12 @@
             </div>
             `;
 
-            html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-search mr-2"></i> 1. PROBLEM RCA - CAUSAS RAIZ EM ABERTO</div>
-                <div class="st-dataframe-container"><table class="st-table">
-                <thead><tr>
-                    ${createTh("Problem", "12%")} ${createTh("Descrição da Causa Raiz", "auto", "left")} ${createTh("Tickets", "8%")} ${createTh("Analista Responsável", "12%")} ${createTh("Versão", "8%")} ${createTh("Data Release", "10%")} ${createTh("SLA / Aging", "10%", "right")} ${createTh("Status RCA", "10%")}
+            html += `<div class="report-card hover-premium"><div class="report-card-title text-orange-700 font-inter font-black"><i class="fas fa-search mr-2"></i> 1. PROBLEM RCA - CAUSAS RAIZ EM ABERTO</div>
+                <div class="st-dataframe-container shadow-inner border border-slate-200 rounded-lg overflow-hidden"><table class="st-table">
+                <thead><tr class="bg-slate-50 border-b border-slate-200">
+                    ${createTh("Tasks", "5%")} ${createTh("Problem", "12%")} ${createTh("Assignment group", "14%")} ${createTh("Assigned to", "14%")} ${createTh("Incidents", "8%")} ${createTh("Status", "10%")} ${createTh("RCA Due", "10%")} ${createTh("RCA Pub.", "10%")} ${createTh("Work notes", "auto", "left")}
                 </tr></thead>
-                <tbody>${rcaRows || `<tr><td colspan="5" class="text-center text-slate-500 py-6">Nenhuma RCA aberta no momento.</td></tr>`}</tbody>
+                <tbody>${rcaRows || `<tr><td colspan="9" class="text-center text-slate-500 py-10 font-bold"><i class="fas fa-check-circle text-emerald-500 text-3xl mb-2 block"></i>Nenhuma RCA aberta no momento.</td></tr>`}</tbody>
                 </table></div></div>`;
 
             html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-tasks mr-2"></i> 2. TASKS DE PROBLEMA (PTASK) ABERTAS</div>
