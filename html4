@@ -879,6 +879,56 @@
             padding-top: 12px;
         }
 
+        /* =========================================================
+           PAGINAÇÃO
+           ========================================================= */
+        .pagination-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            margin-top: -1px;
+        }
+        .pagination-btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .pagination-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transform: translateY(-1px);
+        }
+        .pagination-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #f1f5f9;
+        }
+        .pagination-info {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+        }
+
         .modal-btn {
             padding: 10px 20px;
             border-radius: 6px;
@@ -1382,8 +1432,7 @@
                         <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
                                 <label class="form-label"><i class="fas fa-database text-blue-600 mr-1"></i> Backup
                     Memória (JSON)</label>
-                                <div class="text-[9px] text-slate-500 mb-3 leading-tight">Exporte seus TODOs para não
-                    perdê-los se limpar o cache.</div>
+                                <div class="text-[9px] text-slate-500 mb-3 leading-tight">Exporte seu TODO Planner para não perder suas anotações entre sessões.</div>
                                 <div class="flex flex-col gap-2">
                                         <button onclick="exportBackupJSON()"
                         class="w-full bg-slate-800 text-white text-[10px] font-bold py-2 rounded shadow hover:bg-slate-700 transition"><i
@@ -1471,7 +1520,7 @@
                         class="fas fa-exchange-alt mr-1"></i> Erros Classificação</button>
                                 <button class="tab-btn" onclick="switchTab('tab-todo', this)"
                     style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i
-                        class="fas fa-tasks mr-1"></i> TODOs</button>
+                        class="fas fa-tasks mr-1"></i> TODO</button>
                             </div>
                     </div>
 
@@ -1510,7 +1559,7 @@
                                         <div id="tab-todo" class="animate-fade hidden-st tab-pane">
                                                 <div class="report-section-title"
                             style="background-color: var(--primary-dark);"><i class="fas fa-clipboard-check mr-2"></i>
-                            Gerenciador de Tarefas e Histórico</div>
+                            PLANEJAMENTO TODO - Gerenciador de Tarefas</div>
                                                 <div class="grid-2" style="grid-template-columns: 1fr 2fr;">
                                                         <div class="report-card">
                                                                 <div class="report-card-title"><i
@@ -1586,13 +1635,13 @@
                                                     </div>
                                             </div>
                                         <button onclick="closeTicketDetails()"
-                        class="text-slate-400 hover:text-red-500 text-3xl outline-none transition-colors"><i
+                        class="text-slate-400 hover:text-red-500 text-2xl outline-none transition-colors"><i
                             class="fas fa-times"></i></button>
                                     </div>
                                 
                                 <div class="flex-1 overflow-hidden flex flex-col lg:flex-row">
                                         <div
-                        class="w-full lg:w-1/3 border-r border-slate-200 overflow-y-auto p-6 bg-slate-50">
+                        class="w-full lg:w-[280px] border-r border-slate-200 overflow-y-auto p-4 bg-slate-50 flex-shrink-0">
                                                 
                                                 <div class="mb-4 grid grid-cols-2 gap-3">
                                                         <div
@@ -1671,7 +1720,7 @@
                             class="bg-blue-50/40 p-4 rounded-lg border border-blue-200 shadow-sm">
                                                         <h4
                                 class="text-xs font-black text-blue-800 uppercase mb-3 border-b border-blue-100 pb-2"><i
-                                    class="fas fa-tasks mr-1"></i> Ações Pendentes (TODOs)</h4>
+                                    class="fas fa-tasks mr-1"></i> TODO Planner</h4>
                                                         <div id="modal-todo-container"
                                 class="space-y-2 max-h-[250px] overflow-y-auto pr-2"></div>
                                                         <div class="mt-4 pt-3 border-t border-blue-100">
@@ -1735,6 +1784,30 @@
         // ==========================================
         const RawData = { incs: [], reqs: [], rca: [], ptask: [], prb: [] };
         window.openTodoAnalysts = new Set();
+        window.openModalTodoAnalysts = new Set();
+
+        const PAGE_SIZE = 60;
+        window.paginationState = {
+            search: 1,
+            drilldown: 1,
+            searchData: [],
+            drilldownData: [],
+            drilldownTitle: '',
+            drilldownVaultCat: '',
+            drilldownKey: ''
+        };
+
+        function changeSearchPage(page) {
+            window.paginationState.search = page;
+            renderSearchPage();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function changeDrilldownPage(page) {
+            window.paginationState.drilldown = page;
+            renderDrilldownPage();
+            document.getElementById('drilldown-table-container').scrollTop = 0;
+        }
         window.openModalTodoAnalysts = new Set();
         
         // ==========================================
@@ -2040,16 +2113,53 @@
         }
         function clearFiles() { location.reload(); }
 
+        function renderPaginationControls(type, totalItems, currentPage) {
+            const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+            if (totalPages <= 1) return '';
+
+            const changeFn = type === 'search' ? 'changeSearchPage' : 'changeDrilldownPage';
+            
+            return `
+            <div class="pagination-container">
+                <button class="pagination-btn" onclick="${changeFn}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-left"></i> Anterior
+                </button>
+                <div class="pagination-info">
+                    Página <span class="text-[var(--primary-dark)]">${currentPage}</span> de <span class="text-[var(--primary-dark)]">${totalPages}</span>
+                </div>
+                <button class="pagination-btn" onclick="${changeFn}(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                    Próximo <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            `;
+        }
+
         const getCol = (row, keys) => {
-            const rowKeys = Object.keys(row);
+            if (!row) return '';
             for (let k of keys) {
-                let kLow = String(k).toLowerCase();
-                let match = rowKeys.find(rk => String(rk).toLowerCase() === kLow);
-                if (match && row[match] !== undefined && row[match] !== "") {
-                    return row[match];
+                if (row[k] !== undefined && row[k] !== null && row[k] !== '') {
+                    return String(row[k]).trim();
                 }
             }
-            return "";
+            return '';
+        };
+
+        const findTicketRecord = (tkNumber) => {
+            if (!tkNumber || tkNumber === 'undefined') return null;
+            let cleanTk = String(tkNumber).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '').toUpperCase();
+            let found = null;
+            [RawData.incs, RawData.reqs, RawData.rca, RawData.ptask, RawData.uam].forEach(src => {
+                if (found || !src) return;
+                let f = src.find(r => {
+                    return Object.values(r).some(val => {
+                        if (val == null) return false;
+                        let cleanVal = String(val).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '').toUpperCase();
+                        return cleanVal === cleanTk;
+                    });
+                });
+                if (f) found = f;
+            });
+            return found;
         };
 
         const extractFromComments = (comments, type) => {
@@ -2259,9 +2369,11 @@
                 if (da && db) {
                     let ya = da[3].length === 2 ? '20' + da[3] : da[3];
                     let yb = db[3].length === 2 ? '20' + db[3] : db[3];
-                    return new Date(`${ya}-${da[2]}-${da[1]}`) - new Date(`${yb}-${db[2]}-${db[1]}`);
+                    // Z-A: Datas mais recentes primeiro (descendente)
+                    return new Date(`${yb}-${db[2]}-${db[1]}`) - new Date(`${ya}-${da[2]}-${da[1]}`);
                 }
-                return a.localeCompare(b);
+                // Z-A: Alfabeto invertido
+                return b.localeCompare(a, undefined, { numeric: true });
             });
 
             let drop = document.createElement('div');
@@ -2606,7 +2718,6 @@
                 logContent.scrollTop = logContent.scrollHeight;
             };
 
-            // 1. Iniciando varredura das tarefas
             addLog("Iniciando varredura das tarefas (TODO)...");
             await new Promise(r => setTimeout(r, 800));
 
@@ -2624,64 +2735,73 @@
             }
 
             addLog(`Encontrados ${count} tickets rastreados.`);
-            addLog("Compilando payload e formatando texto...");
+            addLog("Compilando dados técnicos e formatando texto...");
             await new Promise(r => setTimeout(r, 600));
 
-            // 2. Construindo Corpo HTML (Outlook Friendly)
             let htmlBody = `
-            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #334155; max-width: 700px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
-                <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: #ffffff; padding: 24px; text-align: center;">
-                    <h1 style="margin: 0; font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">DAILY REPORT / PLANEJAMENTO</h1>
-                    <p style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.9;">Auditado em ${new Date().toLocaleString('pt-BR')}</p>
+            <div style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; max-width: 800px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+                <div style="background: #1e3a8a; color: #ffffff; padding: 30px; text-align: center;">
+                    <h1 style="margin: 0; font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">DAILY REPORT / PLANEJAMENTO TODO</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 14px; opacity: 0.8;">Gerado em ${new Date().toLocaleString('pt-BR')}</p>
                 </div>
-                <div style="padding: 32px; background-color: #ffffff;">
+                <div style="padding: 30px;">
             `;
 
             for(let a in groups) {
                 htmlBody += `
-                <div style="margin-bottom: 32px;">
-                    <h2 style="font-size: 16px; font-weight: 700; color: #1e3a8a; border-left: 4px solid #1e3a8a; padding-left: 12px; margin-bottom: 16px;">👤 ANALISTA: ${a}</h2>
-                    <table style="width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; border: 1px solid #f1f5f9; border-radius: 8px; overflow: hidden;">
+                <div style="margin-bottom: 40px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px;">
+                    <h2 style="font-size: 18px; color: #1e3a8a; margin-bottom: 20px; display: flex; align-items: center;">
+                        <span style="background: #1e3a8a; color: white; padding: 4px 12px; border-radius: 6px; margin-right: 10px;">👤</span> ANALISTA: ${a}
+                    </h2>
                 `;
 
                 let tks = groups[a].sort((o1, o2) => o2.id.localeCompare(o1.id));
                 tks.forEach(t => {
-                    let tName = t.ticket && t.ticket !== 'undefined' ? t.ticket : "Atividades Gerais / Planejamento";
+                    let hasTicket = t.ticket && t.ticket !== 'undefined';
+                    let tName = hasTicket ? t.ticket : "Atividades Gerais";
+                    
+                    // Extração de metadados ricos
+                    let rec = findTicketRecord(t.ticket);
+                    let desc = rec ? getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) : '';
+                    let comments = rec ? getCol(rec, ['Additional comments', 'Work notes', 'Comentários']) : '';
+                    if (comments.length > 350) comments = comments.substring(0, 350) + "...";
+
                     htmlBody += `
-                    <tr style="background-color: #f8fafc;">
-                        <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-weight: 700; color: #1e293b;">📌 ${tName}</td>
-                        <td style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #64748b; font-size: 11px;">Data: ${t.date}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="2" style="padding: 12px 16px; border-bottom: 2px solid #f8fafc;">
-                            <ul style="margin: 0; padding-left: 0; list-style-type: none;">
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                            <span style="font-weight: 800; color: #1e3a8a; font-size: 15px;">📌 ${tName}</span>
+                            <span style="font-size: 12px; color: #64748b;">Aberto em: ${t.date}</span>
+                        </div>
+                        
+                        ${desc ? `<div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px;">📑 DESCRIÇÃO: ${desc}</div>` : ''}
+                        ${comments ? `<div style="font-size: 11px; color: #64748b; background: #ffffff; padding: 10px; border-radius: 6px; border-left: 3px solid #cbd5e1; margin-bottom: 15px;">💬 ÚLTIMA ATUALIZAÇÃO: <i>${comments}</i></div>` : ''}
+
+                        <ul style="margin: 0; padding-left: 0; list-style-type: none;">
                     `;
 
                     t.history.forEach(h => {
-                        let checkIcon = h.striked ? "✅" : "⬜";
-                        let textStyle = h.striked ? "text-decoration: line-through; color: #94a3b8;" : "color: #334155;";
-                        htmlBody += `<li style="margin-bottom: 8px; ${textStyle}">
-                            <span style="font-size: 14px; margin-right: 8px;">${checkIcon}</span>
-                            <span><small style="color: #64748b; font-weight:600;">[${h.date}]</small> ${h.text}</span>
+                        let checkColor = h.striked ? "#10b981" : "#cbd5e1";
+                        let checkIcon = h.striked ? "●" : "○";
+                        let textStyle = h.striked ? "text-decoration: line-through; color: #94a3b8;" : "color: #1e293b; font-weight: 500;";
+                        
+                        htmlBody += `
+                        <li style="margin-bottom: 10px; display: flex; align-items: flex-start; ${textStyle}">
+                            <span style="color: ${checkColor}; font-size: 20px; line-height: 1; margin-right: 12px; margin-top: -2px;">${checkIcon}</span>
+                            <span style="font-size: 13px;"><small style="color: #94a3b8; font-weight: bold; border: 1px solid #e2e8f0; padding: 2px 5px; border-radius: 4px; margin-right: 8px; font-size: 9px; vertical-align: middle;">${h.date.split(' ')[1]}</small> ${h.text}</span>
                         </li>`;
                     });
 
-
-                    htmlBody += `
-                            </ul>
-                        </td>
-                    </tr>
-                    `;
+                    htmlBody += `</ul></div>`;
                 });
 
-                htmlBody += `</table></div>`;
+                htmlBody += `</div>`;
             }
 
             htmlBody += `
                 </div>
-                <div style="background-color: #f8fafc; padding: 16px; text-align: center; color: #94a3b8; font-size: 11px; border-top: 1px solid #f1f5f9;">
-                    Este reporte foi geratedo automaticamente pelo <strong>IT Metrics Dashboard</strong>.<br>
-                    Favor não responder diretamente a este e-mail automático.
+                <div style="background-color: #f8fafc; padding: 24px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0;">
+                    Este reporte consolidado foi gerado pelo <strong>IT Metrics Dashboard - TODO Planner</strong>.<br>
+                    Favor validar as ações pendentes conforme planejamento acima.
                 </div>
             </div>`;
 
@@ -2696,8 +2816,8 @@
                     addLog("Construindo interface local (URI mailto)...");
                     
                     // Fallback to mailto (Plain Text)
-                    let plainBody = "DAILY REPORT - PLANEJAMENTO\n\nVerifique o dashboard para detalhes das tarefas.\nLink: " + window.location.href;
-                    let subject = "Extração diária - Planejamento - " + new Date().toLocaleDateString('pt-BR');
+                    let plainBody = "DAILY REPORT - PLANEJAMENTO TODO\n\nVerifique o dashboard para detalhes das tarefas.\nLink: " + window.location.href;
+                    let subject = "DAILY REPORT - PLANEJAMENTO TODO - " + new Date().toLocaleDateString('pt-BR');
                     let mailtoLink = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainBody)}`;
                     if(cc) mailtoLink += `&cc=${encodeURIComponent(cc)}`;
                     
@@ -2719,7 +2839,7 @@
                     body: JSON.stringify({
                         to: to,
                         cc: cc,
-                        subject: "Extrção diária - " + new Date().toLocaleDateString('pt-BR'),
+                        subject: "DAILY REPORT - PLANEJAMENTO TODO - " + new Date().toLocaleDateString('pt-BR'),
                         body: htmlBody
                     })
                 });
@@ -2756,49 +2876,66 @@
                 groups[t.analyst].push(t);
             });
 
-            container.innerHTML = Object.keys(groups).sort().map(analyst => {
+            // Z-A: Ordena analistas decrescente
+            container.innerHTML = Object.keys(groups).sort((a, b) => b.localeCompare(a)).map(analyst => {
                 let analystId = 'todo-analyst-' + analyst.replace(/\s/g, '');
                 let isOpen = window.openTodoAnalysts.has(analystId);
                 let tks = groups[analyst].sort((a, b) => b.id.localeCompare(a.id));
+                
                 return `
-                <div class="analyst-group border border-slate-200 border-l-4 border-l-[var(--primary)] mb-2 bg-white shadow-sm rounded">
-                    <div class="flex justify-between items-center p-2 cursor-pointer hover:bg-slate-50 transition" onclick="const b = this.nextElementSibling; const i = this.querySelector('.chevron-icon'); if(b.classList.contains('hidden')){b.classList.remove('hidden');i.style.transform='rotate(180deg)';window.openTodoAnalysts.add('${analystId}');}else{b.classList.add('hidden');i.style.transform='rotate(0deg)';window.openTodoAnalysts.delete('${analystId}');}">
-                        <div class="font-bold text-[11px] text-[var(--primary-dark)] flex items-center gap-1.5 w-full">
+                <div class="analyst-group border border-slate-200 border-l-4 border-l-[var(--primary)] mb-4 bg-slate-50/50 shadow-sm rounded-xl overflow-hidden">
+                    <div class="flex justify-between items-center p-3 cursor-pointer hover:bg-slate-100 transition" onclick="const b = this.nextElementSibling; const i = this.querySelector('.chevron-icon'); if(b.classList.contains('hidden')){b.classList.remove('hidden');i.style.transform='rotate(180deg)';window.openTodoAnalysts.add('${analystId}');}else{b.classList.add('hidden');i.style.transform='rotate(0deg)';window.openTodoAnalysts.delete('${analystId}');}">
+                        <div class="font-bold text-xs text-[var(--primary-dark)] flex items-center gap-2">
                             <i class="fas fa-chevron-down text-[10px] text-slate-400 transition-transform chevron-icon" style="${isOpen ? 'transform:rotate(180deg)' : ''}"></i> 
-                            <i class="fas fa-user text-slate-400"></i> ${analyst} 
-                            <span class="bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full text-[9px] ml-1">${tks.length} ticket(s) ativo(s)</span>
+                            <span class="bg-white p-1 rounded shadow-sm"><i class="fas fa-user text-blue-500"></i></span> ${analyst} 
+                            <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[9px] font-black ml-1">${tks.length} ATIVOS</span>
                         </div>
                     </div>
-                    <div class="p-2 pt-0 ${isOpen ? '' : 'hidden'} animate-fade border-t border-slate-100">
-                        ${tks.map(t => `
-                            <div class="mb-3 pb-3 border-b border-dashed border-slate-200 last:border-0 last:mb-0 last:pb-0">
-                                <div class="flex justify-between items-center mb-1">
-                                    <div class="flex items-center gap-2">
-                                        ${t.ticket && !t.ticket.includes('undefined') ? `<span onclick="openTicketDetails('${t.ticket}')" class="todo-badge hover:bg-blue-100 cursor-pointer text-[10px] py-0.5 px-1.5" title="Abrir ticket">${t.ticket} <i class="fas fa-external-link-alt ml-1 opacity-50"></i></span>` : `<span class="text-[9px] text-slate-400 bg-slate-100 px-1 py-0.5 rounded">Tarefa Geral</span>`}
-                                        <span class="text-[8px] text-slate-400">Criado: ${t.date}</span>
+                    <div class="p-4 pt-0 ${isOpen ? '' : 'hidden'} animate-fade border-t border-slate-100 bg-white">
+                        ${tks.map(t => {
+                            let rec = findTicketRecord(t.ticket);
+                            let desc = rec ? getCol(rec, ['Short description', 'Descrição Curta', 'Descrição']) : '';
+                            
+                            return `
+                            <div class="todo-card p-4 mb-4 last:mb-0 relative">
+                                <div class="flex justify-between items-start mb-3">
+                                    <div class="flex flex-col gap-1">
+                                        <div class="flex items-center gap-2">
+                                            ${t.ticket && !t.ticket.includes('undefined') ? 
+                                                `<span onclick="openTicketDetails('${t.ticket}')" class="todo-badge hover:bg-blue-600 hover:text-white transition-colors cursor-pointer text-[11px]" title="Ver Detalhes">${t.ticket}</span>` : 
+                                                `<span class="text-[9px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded uppercase tracking-tighter">Tarefa Geral</span>`
+                                            }
+                                            <span class="text-[9px] font-bold text-slate-300 uppercase tracking-widest"><i class="far fa-calendar-alt mr-1"></i>${t.date}</span>
+                                        </div>
+                                        ${desc ? `<div class="text-[10px] font-medium text-slate-500 line-clamp-1 max-w-[300px]" title="${desc}">${desc}</div>` : ''}
                                     </div>
-                                    <div class="flex gap-1.5">
-                                        <button onclick="event.stopPropagation(); completeTodo('${t.id}')" title="Concluir Task" class="text-emerald-500 hover:text-emerald-600 transition text-[12px]"><i class="fas fa-check-circle"></i></button>
-                                        <button onclick="event.stopPropagation(); deleteTodo('${t.id}')" title="Apagar Task" class="text-red-400 hover:text-red-600 transition text-[12px]"><i class="fas fa-trash"></i></button>
+                                    <div class="flex gap-2">
+                                        <button onclick="event.stopPropagation(); completeTodo('${t.id}')" title="Concluir Tudo" class="text-emerald-400 hover:text-emerald-600 transition text-lg"><i class="fas fa-check-double"></i></button>
+                                        <button onclick="event.stopPropagation(); deleteTodo('${t.id}')" title="Apagar Card" class="text-rose-300 hover:text-rose-500 transition text-lg"><i class="fas fa-trash-alt"></i></button>
                                     </div>
                                 </div>
-                                <div class="todo-history space-y-1 mt-1">
+
+                                <div class="space-y-2">
                                     ${t.history.map((h, idx) => `
-                                        <div class="history-entry border border-transparent hover:bg-slate-50 p-1.5 rounded group relative" style="cursor:pointer" title="Clique no texto para riscar a atividade">
-                                            <div class="text-[9px] font-bold text-slate-400 mb-0.5 flex justify-between items-center" onclick="toggleStrike('${t.id}', ${idx})">
-                                                <span><i class="far fa-clock"></i> ${h.date}</span>
+                                        <div class="group flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 transition cursor-pointer relative" onclick="toggleStrike('${t.id}', ${idx})">
+                                            <div class="todo-check-dot ${h.striked ? 'checked' : ''}">
+                                                <i class="fas fa-check"></i>
                                             </div>
-                                            <div class="history-text text-[11px] pr-5 ${h.striked ? 'striked opacity-50 line-through' : 'text-slate-700 font-medium'}" onclick="toggleStrike('${t.id}', ${idx})">${h.text}</div>
-                                            <button onclick="event.stopPropagation(); editTodoHistory('${t.id}', ${idx})" class="absolute right-1 top-2 text-slate-300 hover:text-blue-500 hidden group-hover:block transition p-1 bg-white shadow-sm border border-slate-200 rounded text-xs" title="Editar anotação"><i class="fas fa-edit"></i></button>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="text-[9px] font-black text-slate-400 mb-0.5">${h.date.split(' ')[1]}</div>
+                                                <div class="text-xs ${h.striked ? 'striked opacity-50 line-through italic text-slate-400' : 'text-slate-700 font-semibold'} break-words">${h.text}</div>
+                                            </div>
+                                            <button onclick="event.stopPropagation(); editTodoHistory('${t.id}', ${idx})" class="opacity-0 group-hover:opacity-100 transition p-1.5 text-slate-400 hover:text-blue-500 bg-white shadow-sm border rounded text-[10px]" title="Editar"><i class="fas fa-pen"></i></button>
                                         </div>
                                     `).join('')}
                                 </div>
-                                <div class="todo-update-wrapper mt-2 flex gap-1 items-center">
-                                    <input type="text" id="update-input-${t.id}" class="form-input flex-1 px-2 py-1.5 text-[10px]" placeholder="Add nova nota ou atualização rápida...">
-                                    <button onclick="addTodoUpdate('${t.id}')" class="bg-[var(--primary-dark)] text-white px-3 py-1.5 rounded text-[9px] font-bold uppercase hover:bg-blue-900 transition shadow-sm h-full">Add</button>
+
+                                <div class="mt-4 pt-3 border-t border-slate-50 flex gap-2">
+                                    <input type="text" id="update-input-${t.id}" class="form-input flex-1 px-3 py-2 text-xs border-slate-200 focus:border-blue-400 shadow-none bg-slate-50/50" placeholder="Adicionar nova anotação...">
+                                    <button onclick="addTodoUpdate('${t.id}')" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase hover:bg-black transition-all shadow-sm">Add</button>
                                 </div>
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                 </div>`;
             }).join('');
@@ -3013,7 +3150,7 @@
             let tkTodos = todoList.filter(t => t.ticket === tkNumber);
 
             if (tkTodos.length === 0) {
-                container.innerHTML = '<div class="text-[10px] text-slate-400 italic bg-white p-4 text-center rounded border border-dashed">Nenhuma ação vinculada a este ticket.</div>';
+                container.innerHTML = '<div class="text-[10px] text-slate-400 italic bg-white/50 p-4 text-center rounded-xl border border-dashed border-blue-200">Nenhuma ação vinculada a este ticket no TODO Planner.</div>';
                 return;
             }
 
@@ -3021,21 +3158,30 @@
                 let cardId = 'modal-todo-' + t.id;
                 let isOpen = window.openModalTodoAnalysts.has(cardId);
                 return `
-                <div class="bg-white border border-blue-200 rounded shadow-sm mb-2 overflow-hidden">
-                    <div class="flex justify-between items-center p-2 cursor-pointer hover:bg-slate-50 transition border-b border-slate-100" onclick="const b = this.nextElementSibling; const i = this.querySelector('.chevron-icon'); if(b.classList.contains('hidden')){b.classList.remove('hidden');i.style.transform='rotate(180deg)';window.openModalTodoAnalysts.add('${cardId}');}else{b.classList.add('hidden');i.style.transform='rotate(0deg)';window.openModalTodoAnalysts.delete('${cardId}');}">
-                        <span class="text-[10px] font-black text-blue-900 flex items-center gap-1.5"><i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform chevron-icon" style="${isOpen ? 'transform:rotate(180deg)' : ''}"></i> <i class="fas fa-user text-slate-400"></i> ${t.analyst} <span class="text-[8px] text-slate-400 font-normal ml-2">${t.date}</span></span>
+                <div class="bg-white border border-blue-100 rounded-xl shadow-sm mb-3 overflow-hidden">
+                    <div class="flex justify-between items-center p-3 cursor-pointer hover:bg-blue-50/50 transition border-b border-blue-50" onclick="const b = this.nextElementSibling; const i = this.querySelector('.chevron-icon'); if(b.classList.contains('hidden')){b.classList.remove('hidden');i.style.transform='rotate(180deg)';window.openModalTodoAnalysts.add('${cardId}');}else{b.classList.add('hidden');i.style.transform='rotate(0deg)';window.openModalTodoAnalysts.delete('${cardId}');}">
+                        <span class="text-[10px] font-black text-blue-900 flex items-center gap-2">
+                            <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform chevron-icon" style="${isOpen ? 'transform:rotate(180deg)' : ''}"></i> 
+                            <span class="bg-blue-50 p-1 rounded"><i class="fas fa-user text-blue-400"></i></span> 
+                            ${t.analyst} 
+                            <span class="text-[8px] text-slate-400 font-bold ml-2 uppercase">${t.date}</span>
+                        </span>
                         <div class="flex gap-2">
-                            <button onclick="event.stopPropagation(); completeTodo('${t.id}')" class="text-emerald-500 hover:text-emerald-600 transition"><i class="fas fa-check-circle"></i></button>
-                            <button onclick="event.stopPropagation(); deleteTodo('${t.id}')" class="text-red-400 hover:text-red-600 transition"><i class="fas fa-trash"></i></button>
+                            <button onclick="event.stopPropagation(); completeTodo('${t.id}')" class="text-emerald-400 hover:text-emerald-600 transition"><i class="fas fa-check-double"></i></button>
+                            <button onclick="event.stopPropagation(); deleteTodo('${t.id}')" class="text-rose-300 hover:text-rose-500 transition"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </div>
-                    <div class="p-2 ${isOpen ? '' : 'hidden'} animate-fade">
-                        <div class="space-y-1 relative">
+                    <div class="p-3 ${isOpen ? '' : 'hidden'} animate-fade bg-slate-50/30">
+                        <div class="space-y-2 relative">
                             ${t.history.map((h, idx) => `
-                                <div class="text-[10px] p-1.5 pr-6 rounded transition hover:bg-slate-50 flex items-start gap-1.5 ${h.striked ? 'striked opacity-50 bg-slate-50' : 'text-slate-700 font-bold'} group relative">
-                                    <span class="${h.striked ? 'text-emerald-500' : 'text-blue-500'} mt-[2px] text-[9px] cursor-pointer" onclick="toggleStrike('${t.id}', ${idx})" title="Clique para riscar a tarefa"><i class="${h.striked ? 'fas fa-check' : 'fas fa-circle'}"></i></span> 
-                                    <span class="flex-1 text-[11px] cursor-pointer" onclick="toggleStrike('${t.id}', ${idx})">${h.text}</span>
-                                    <button onclick="event.stopPropagation(); editTodoHistory('${t.id}', ${idx})" class="absolute right-1 top-1 text-slate-300 hover:text-blue-500 hidden group-hover:block transition p-1 bg-white shadow-sm border border-slate-200 rounded" title="Editar"><i class="fas fa-edit"></i></button>
+                                <div class="group flex items-start gap-3 p-2 rounded-lg hover:bg-white transition cursor-pointer relative" onclick="toggleStrike('${t.id}', ${idx})">
+                                    <div class="todo-check-dot ${h.striked ? 'checked' : ''}" style="width: 16px; height: 16px;">
+                                        <i class="fas fa-check" style="font-size: 8px;"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-[11px] ${h.striked ? 'striked opacity-50 line-through text-slate-400' : 'text-slate-700 font-bold'} break-words">${h.text}</div>
+                                    </div>
+                                    <button onclick="event.stopPropagation(); editTodoHistory('${t.id}', ${idx})" class="opacity-0 group-hover:opacity-100 transition p-1 text-slate-300 hover:text-blue-500 bg-white shadow-sm border rounded text-[8px]" title="Editar"><i class="fas fa-pen"></i></button>
                                 </div>
                             `).join('')}
                         </div>
@@ -3176,70 +3322,91 @@
                     return b.op - a.op;
                 });
 
-                let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-search mr-2"></i> RESULTADOS DA PESQUISA GLOBAL: "${inputVal}" (${results.length} encontrados)</div>`;
-
-                if (results.length === 0) {
-                    html += `<div class="report-card text-center py-10"><h3 class="text-slate-500 font-bold text-lg"><i class="fas fa-folder-open text-4xl block mb-4 text-slate-300"></i>Nenhum registro encontrado em toda a base de dados.</h3><p class="text-slate-400 mt-2 text-sm">Tente pesquisar por outro termo, ticket ou nome de analista.</p></div>`;
-                } else {
-                    let rows = results.map(t => {
-                        let opS = t.op ? t.op.toLocaleDateString('pt-BR') : '-';
-                        let clS = t.cl ? t.cl.toLocaleDateString('pt-BR') : 'Aberto';
-                        let age = (t.op && t.cl) ? Math.floor((t.cl - t.op) / 86400000) : (t.op ? Math.floor((new Date() - t.op) / 86400000) : '-');
-                        if (age < 0) age = 0;
-
-                        let stL = t.st.toLowerCase(), bC = '#f1f5f9', fC = '#475569';
-                        if (stL.includes('resolv') || stL.includes('complet')) { bC = '#ecfdf5'; fC = '#10b981'; }
-                        else if (stL.includes('cancel') || stL.includes('incomplet')) { bC = '#fee2e2'; fC = '#ef4444'; }
-                        else if (stL.includes('pend') || stL.includes('hold')) { bC = '#fef3c7'; fC = '#f59e0b'; }
-
-                        return `<tr class="ticket-row hover:bg-slate-50 transition" ${buildDataAttrs(t)}>
-                            <td data-label="Ticket Original" class="font-bold text-[var(--primary-dark)] text-center">
-                                ${t.tk}
-                                <div class="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded inline-block text-slate-500">${t.type}</div>
-                                <button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-2 bg-blue-50 hover:bg-blue-100 border border-blue-200/50 p-1.5 rounded text-[9px] uppercase shadow-sm transition"><i class="fas fa-history"></i> Saiba mais</button>
-                            </td>
-                            <td data-label="Descrição Completa" class="text-left w-[350px] max-w-[350px]">
-                                <div class="w-full h-auto max-h-[80px] overflow-y-auto overflow-x-hidden stylized-scrollbar border border-slate-100 bg-slate-50 p-1.5 rounded">
-                                    <div class="text-xs font-semibold text-slate-800 break-words mb-1">${t.desc}</div>
-                                    ${(t.longDesc && t.longDesc !== '-') ? `<div class="text-[10px] text-slate-500 italic break-words">${t.longDesc}</div>` : ''}
-                                    ${(t.info || t.reason) ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 break-words whitespace-normal">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
-                                </div>
-                            </td>
-                            <td data-label="Solicitante" class="text-center">${t.req}</td>
-                            <td data-label="Analista / Grupo" class="text-center">${t.asg}<br><span class="text-[9px] text-slate-400 block mt-1">${t.gp}</span></td>
-                            <td data-label="Status / Abertura" data-filter="${t.st}" class="text-center">
-                                <span style="background:${bC};color:${fC}; border: 1px solid ${fC}40;" class="px-2 py-0.5 rounded text-[9px] font-bold block mb-1 mx-auto w-max">${t.st}</span>
-                                ${t.reason ? `<span class="block text-[9px] text-slate-500 mt-1 truncate max-w-[100px] mx-auto" title="${t.reason}">${t.reason}</span>` : ''}
-                                <span class="text-[10px] text-slate-500 block mt-1"><i class="far fa-calendar-alt"></i> ${opS}</span>
-                            </td>
-                            <td data-label="Fechamento / Aging" class="text-right">
-                                <div class="font-bold text-sm ${t.cl ? 'text-[var(--primary-dark)]' : 'text-orange-500'}">${clS}</div>
-                                ${age !== '-' ? `<div class="text-[10px] text-slate-400 mt-1">${age}d de vida</div>` : ''}
-                                ${t.idle !== '-' ? `<div class="text-[10px] font-bold mt-1 ${t.idle > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : ''}
-                            </td>
-                        </tr>`;
-                    }).join('');
-
-                    html += `<div class="report-card">
-                        <div class="st-dataframe-container">
-                            <table class="st-table">
-                                <thead>
-                                    <tr>
-                                        ${createTh("Ticket Original", "15%")}
-                                        ${createTh("Descrição Completa", "35%", "left")}
-                                        ${createTh("Solicitante", "15%")}
-                                        ${createTh("Analista / Grupo", "15%")}
-                                        ${createTh("Status / Abertura", "10%")}
-                                        ${createTh("Datas / Ocioso", "10%", "right")}
-                                    </tr>
-                                </thead>
-                                <tbody>${rows}</tbody>
-                            </table>
-                        </div>
-                    </div>`;
-                }
-                document.getElementById('tab-search').innerHTML = html;
+                window.paginationState.searchData = results;
+                window.paginationState.search = 1;
+                renderSearchPage();
             }, 300);
+        }
+
+        function renderSearchPage() {
+            const results = window.paginationState.searchData;
+            const page = window.paginationState.search;
+            const start = (page - 1) * PAGE_SIZE;
+            const end = start + PAGE_SIZE;
+            const currentResults = results.slice(start, end);
+            const inputVal = document.getElementById('globalSearch').value;
+
+            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);">
+                <i class="fas fa-search mr-2"></i> RESULTADOS DA PESQUISA GLOBAL: "${inputVal}" 
+                (${results.length} encontrados - Página ${page})
+            </div>`;
+
+            if (results.length === 0) {
+                html += `<div class="report-card text-center py-10"><h3 class="text-slate-500 font-bold text-lg"><i class="fas fa-folder-open text-4xl block mb-4 text-slate-300"></i>Nenhum registro encontrado.</h3></div>`;
+                document.getElementById('tab-search').innerHTML = html;
+                switchTab('search');
+                return;
+            }
+
+            let rows = currentResults.map(t => {
+                let opS = t.op ? t.op.toLocaleDateString('pt-BR') : '-';
+                let clS = t.cl ? t.cl.toLocaleDateString('pt-BR') : 'Aberto';
+                let age = (t.op && t.cl) ? Math.floor((t.cl - t.op) / 86400000) : (t.op ? Math.floor((new Date() - t.op) / 86400000) : '-');
+                if (age < 0) age = 0;
+
+                let stL = t.st.toLowerCase(), bC = '#f1f5f9', fC = '#475569';
+                if (stL.includes('resolv') || stL.includes('complet')) { bC = '#ecfdf5'; fC = '#10b981'; }
+                else if (stL.includes('cancel') || stL.includes('incomplet')) { bC = '#fee2e2'; fC = '#ef4444'; }
+                else if (stL.includes('pend') || stL.includes('hold')) { bC = '#fef3c7'; fC = '#f59e0b'; }
+
+                return `<tr class="ticket-row hover:bg-slate-50 transition" ${buildDataAttrs(t)}>
+                    <td data-label="Ticket Original" class="font-bold text-[var(--primary-dark)] text-center">
+                        ${t.tk}
+                        <div class="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded inline-block text-slate-500">${t.type}</div>
+                        <button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-2 bg-blue-50 hover:bg-blue-100 border border-blue-200/50 p-1.5 rounded text-[9px] uppercase shadow-sm transition"><i class="fas fa-history"></i> Saiba mais</button>
+                    </td>
+                    <td data-label="Descrição Completa" class="text-left w-[350px] max-w-[350px]">
+                        <div class="w-full h-auto max-h-[80px] overflow-y-auto overflow-x-hidden stylized-scrollbar border border-slate-100 bg-slate-50 p-1.5 rounded">
+                            <div class="text-xs font-semibold text-slate-800 break-words mb-1">${t.desc}</div>
+                            ${(t.longDesc && t.longDesc !== '-') ? `<div class="text-[10px] text-slate-500 italic break-words">${t.longDesc}</div>` : ''}
+                            ${(t.info || t.reason) ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 break-words whitespace-normal">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
+                        </div>
+                    </td>
+                    <td data-label="Solicitante" class="text-center">${t.req}</td>
+                    <td data-label="Analista / Grupo" class="text-center">${t.asg}<br><span class="text-[9px] text-slate-400 block mt-1">${t.gp}</span></td>
+                    <td data-label="Status" data-filter="${t.st}" class="text-center">
+                        <span style="background:${bC};color:${fC}; border: 1px solid ${fC}40;" class="px-2 py-0.5 rounded text-[9px] font-bold block mb-1 mx-auto w-max">${t.st}</span>
+                        <span class="text-[10px] text-slate-500 block mt-1"><i class="far fa-calendar-alt"></i> ${opS}</span>
+                    </td>
+                    <td data-label="Datas / Ocioso" class="text-right">
+                        <div class="font-bold text-sm ${t.cl ? 'text-[var(--primary-dark)]' : 'text-orange-500'}">${clS}</div>
+                        ${age !== '-' ? `<div class="text-[10px] text-slate-400 mt-1">${age}d de vida</div>` : ''}
+                        ${t.idle !== '-' ? `<div class="text-[10px] font-bold mt-1 ${t.idle > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : ''}
+                    </td>
+                </tr>`;
+            }).join('');
+
+            html += `<div class="report-card">
+                <div class="st-dataframe-container border-0">
+                    <table class="st-table">
+                        <thead>
+                            <tr>
+                                ${createTh("Ticket Original", "15%")}
+                                ${createTh("Descrição Completa", "auto", "left")}
+                                ${createTh("Solicitante", "15%")}
+                                ${createTh("Analista / Grupo", "15%")}
+                                ${createTh("Status", "12%")}
+                                ${createTh("Datas / Ocioso", "12%", "right")}
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+                ${renderPaginationControls('search', results.length, page)}
+            </div>`;
+
+            document.getElementById('tab-search').innerHTML = html;
+            switchTab('search');
         }
 
         function filterTables() {
@@ -3443,7 +3610,9 @@
                 inSla: inSlaMes, outSla: resMes - inSlaMes, backlog,
                 inSlaTot, outSlaTot, tksInSlaTot, tksOutSlaTot,
                 trendM, trendD, topAnalistas, agingBuckets,
-                crits: criticals.sort((a, b) => b.age - a.age), noPrb: noPrb,
+                // Z-A: Chamados críticos ordenados por Número decrescente
+                crits: criticals.sort((a, b) => b.tk.localeCompare(a.tk, undefined, { numeric: true })), 
+                noPrb: noPrb.sort((a, b) => b.tk.localeCompare(a.tk, undefined, { numeric: true })),
                 allBacklogTks, allResolvedTks, allCanceledTks
             };
         }
@@ -3501,7 +3670,7 @@
                     res.tks.push(tObj);
 
                     if (op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()) {
-                        res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks.push(tObj);
+res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks.push(tObj);
                     }
                     res.m[mStrKey].tks.push(tObj);
                 }
@@ -3517,24 +3686,38 @@
         function openDrilldown(title, ticketArrayStrKey, vaultCat) {
             let tks = window.DrilldownVault[vaultCat][ticketArrayStrKey] || [];
             if (!tks || tks.length === 0) return;
+
+            // Z-A: Ordena por Aging decrescente (o mais antigo/crítico no topo)
+            tks.sort((a, b) => (b.age || 0) - (a.age || 0));
             
-            // Search Input inside the modal
-            let searchHtml = `
-            <div class="mb-4 relative group">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs transition-colors group-focus-within:text-blue-500"></i>
-                <input type="text" id="modal-search" placeholder="Filtrar nesta lista..." 
-                    class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700 shadow-sm"
-                    onkeyup="filterModalTable(this.value)">
-            </div>
-            `;
+            window.paginationState.drilldownData = tks;
+            window.paginationState.drilldown = 1;
+            window.paginationState.drilldownTitle = title;
+            window.paginationState.drilldownIsInc = (vaultCat === 'inc' || vaultCat === 'cons' || vaultCat === 'class');
+
+            renderDrilldownPage();
+            
+            document.getElementById('drilldown-modal-backdrop').classList.remove('hidden-st');
+            setTimeout(() => {
+                document.getElementById('drilldown-modal-backdrop').classList.remove('opacity-0');
+                document.getElementById('drilldown-modal-content').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function renderDrilldownPage() {
+            const results = window.paginationState.drilldownData;
+            const page = window.paginationState.drilldown;
+            const title = window.paginationState.drilldownTitle;
+            const isInc = window.paginationState.drilldownIsInc;
+            
+            const start = (page - 1) * PAGE_SIZE;
+            const end = start + PAGE_SIZE;
+            const currentResults = results.slice(start, end);
 
             document.getElementById('drilldown-title').innerText = title;
-            document.getElementById('drilldown-subtitle').innerText = `${tks.length} registros encontrados`;
-            
-            // Detecta se estamos olhando para Incidentes (Individual, Consolidado ou Classificações)
-            let isInc = (vaultCat === 'inc' || vaultCat === 'cons' || vaultCat === 'class');
+            document.getElementById('drilldown-subtitle').innerText = `${results.length} registros encontrados (Página ${page})`;
 
-            let rows = tks.map(t => {
+            let rows = currentResults.map(t => {
                 let stColor = '#475569', stBg = '#f1f5f9';
                 let st = (t.st || '').toLowerCase();
                 if (st.includes('resolv') || st.includes('complet')) { stColor = '#10b981'; stBg = '#ecfdf5'; }
@@ -3546,7 +3729,7 @@
                         ${t.tk}
                         <button onclick="openTicketDetails('${t.tk}')" class="mt-1 w-full text-center bg-blue-50 border border-blue-200/50 hover:bg-blue-100 rounded py-1 text-[9px] uppercase font-bold transition shadow-sm"><i class="fas fa-search mr-1"></i> Detalhes</button>
                     </td>
-                    <td data-label="Assunto / Info (Expansível)" class="text-left w-[350px] max-w-[350px]">
+                    <td data-label="Assunto / Info" class="text-left w-[350px] max-w-[350px]">
                         <div class="w-full h-auto max-h-[80px] overflow-y-auto overflow-x-hidden stylized-scrollbar border border-slate-100 bg-slate-50 p-1.5 rounded">
                             <div class="text-xs font-semibold text-slate-800 break-words mb-1">${t.desc}</div>
                             ${(t.longDesc && t.longDesc !== '-') ? `<div class="text-[10px] text-slate-500 italic break-words">${t.longDesc}</div>` : ''}
@@ -3558,7 +3741,6 @@
                     <td data-label="Grupo" class="text-center"><span class="text-[11px] bg-slate-100 px-2 py-1 rounded border border-slate-200 block max-w-[120px] mx-auto truncate" title="${t.gp}">${t.gp}</span></td>
                     <td data-label="Status" data-filter="${t.st}" class="text-center">
                         <span style="background:${stBg}; color:${stColor}; border:1px solid ${stColor}40;" class="px-2 py-0.5 rounded text-[9px] font-bold inline-block">${t.st}</span>
-                        ${t.reason ? `<span class="block text-[9px] text-slate-500 mt-1 truncate max-w-[100px] mx-auto" title="${t.reason}">${t.reason}</span>` : ''}
                     </td>
                     <td data-label="Abertura" class="text-center text-slate-500 text-[11px]"><i class="far fa-calendar-alt mr-1"></i>${t.opStr || '-'}</td>
                     ${isInc ? `<td data-label="PRB" class="text-center" style="font-weight:${(t.prb && t.prb !== 'N/A') ? 'bold' : 'normal'}; color:${(t.prb && t.prb !== 'N/A') ? 'var(--primary-dark)' : '#94a3b8'}">${t.prb || 'N/A'}</td>` : ''}
@@ -3569,13 +3751,21 @@
                 </tr>`;
             }).join('');
 
+            let searchHtml = `
+            <div class="mb-4 relative group">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs transition-colors group-focus-within:text-blue-500"></i>
+                <input type="text" id="modal-search" placeholder="Filtrar nesta lista..." 
+                    class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700 shadow-sm"
+                    onkeyup="filterModalTable(this.value)">
+            </div>`;
+
             document.getElementById('drilldown-table-container').innerHTML = `
                 ${searchHtml}
                 <div class="st-dataframe-container border-0 max-h-[60vh] stylized-scrollbar" style="overflow-y: auto;">
                     <table class="st-table w-full" id="drilldown-main-table">
                         <thead><tr>
                             ${createTh("Ticket", "10%")}
-                            ${createTh("Assunto / Info (Expansível)", "auto", "left")}
+                            ${createTh("Assunto / Info", "auto", "left")}
                             ${createTh("Solicitante", "12%")}
                             ${createTh("Analista", "12%")}
                             ${createTh("Grupo", "10%")}
@@ -3586,17 +3776,20 @@
                         </tr></thead>
                         <tbody>${rows}</tbody>
                     </table>
-                </div>
+                ${renderPaginationControls('drilldown', results.length, page)}
             `;
+        }
 
-            // Reset search input
-            if (document.getElementById('modal-search')) document.getElementById('modal-search').value = "";
+        function changeDrilldownPage(p) {
+            window.paginationState.drilldown = p;
+            renderDrilldownPage();
+            document.getElementById('drilldown-table-container').scrollTop = 0;
+        }
 
-            document.getElementById('drilldown-modal-backdrop').classList.remove('hidden-st');
-            setTimeout(() => {
-                document.getElementById('drilldown-modal-backdrop').classList.remove('opacity-0');
-                document.getElementById('drilldown-modal-content').classList.remove('scale-95');
-            }, 10);
+        function changeSearchPage(p) {
+            window.paginationState.search = p;
+            renderSearchPage();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function closeDrilldown() {
@@ -3660,7 +3853,8 @@
             });
 
             let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-folder-open mr-2"></i> VISÃO DE TICKETS ABERTOS POR GRUPO RESOLUTOR</div>`;
-            let sortedGroups = Object.keys(groups).sort();
+            // Z-A: Grupos ordenados de forma decrescente
+            let sortedGroups = Object.keys(groups).sort((a, b) => b.localeCompare(a));
             if (sortedGroups.length === 0) {
                 html += `<div class="report-card text-center py-10 text-slate-400 font-bold"><i class="fas fa-check-circle text-5xl mb-4 block text-emerald-400"></i>Nenhum ticket aberto encontrado na base para a data de referência selecionada. Parabéns!</div>`;
                 return html;
@@ -3701,7 +3895,8 @@
             <div class="text-[10px] text-slate-400 italic mb-2 px-2"><i class="fas fa-info-circle mr-1"></i> Lista agrupada por Grupo Resolutor ordenada por criticidade de SLA.</div>`;
 
             sortedGroups.forEach(gp => {
-                let tks = groups[gp].sort((a, b) => b.pctSla - a.pctSla);
+                // Z-A: Tickets dentro do grupo ordenados por %SLA (maior primeiro) e depois por Número (descendente)
+                let tks = groups[gp].sort((a, b) => (b.pctSla - a.pctSla) || b.tk.localeCompare(a.tk));
                 let rows = tks.map(t => {
                     let safePct = isNaN(t.pctSla) ? 0 : Math.min(t.pctSla, 100);
                     let pctText = isNaN(t.pctSla) ? '0%' : t.pctSla + '%';
@@ -3986,8 +4181,10 @@
 
                 let entries = Object.entries(dataObj);
                 if (isMonth) {
-                    entries.sort((a, b) => a[0].localeCompare(b[0]));
+                    // Z-A: Ordenação por data/chave decrescente
+                    entries.sort((a, b) => b[0].localeCompare(a[0]));
                 } else {
+                    // Z-A: Maior volume primeiro
                     entries.sort((a, b) => b[1].count - a[1].count);
                 }
 
@@ -4224,8 +4421,8 @@
             </div>
             `;
 
-            // Agrupa PRBs com mais tickets para exibir primeiro
-            let sortedPrbs = Object.values(prbGroups).sort((a, b) => b.active_count - a.active_count);
+            // Z-A: Agrupa PRBs com mais tickets primeiro, desempatando pelo ID decrescente
+            let sortedPrbs = Object.values(prbGroups).sort((a, b) => (b.active_count - a.active_count) || b.prb.localeCompare(a.prb, undefined, { numeric: true }));
 
             html += `<div class="report-card" style="padding: 0;"><div class="report-card-title"><i class="fas fa-link mr-2"></i> PRBs COM TICKETS AGRUPADOS</div>
                 <div style="padding: 15px; background: #f8fafc;">`;
@@ -4438,26 +4635,31 @@
                     notes: workNotes
                 };
                 allPrbs.push(dummyT);
+            });
 
-                rcaRows += `<tr class="ticket-row" ${buildDataAttrs(dummyT)}>
-                    <td data-label="Problem Tasks" style="text-align:center; font-weight: bold; color: #64748b;">${prbTasks}</td>
+            // Z-A: Ordenação global de Problems por Número decrescente
+            allPrbs.sort((a, b) => b.tk.localeCompare(a.tk, undefined, { numeric: true }));
+
+            allPrbs.forEach(t => {
+                rcaRows += `<tr class="ticket-row" ${buildDataAttrs(t)}>
+                    <td data-label="Problem Tasks" style="text-align:center; font-weight: bold; color: #64748b;">${t.prb_tasks}</td>
                     <td data-label="Problem" style="color:${C.PRI_D}; font-weight:bold;">
-                        ${tk}
-                        <button onclick="openTicketDetails('${tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
+                        ${t.tk}
+                        <button onclick="openTicketDetails('${t.tk}')" class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm"><i class="fas fa-history mr-1"></i> Saiba mais</button>
                     </td>
-                    <td data-label="Assignment group" class="text-[11px] font-medium text-slate-600">${gp}</td>
-                    <td data-label="Assigned to" class="font-bold text-slate-800">${asg}</td>
+                    <td data-label="Assignment group" class="text-[11px] font-medium text-slate-600">${t.gp}</td>
+                    <td data-label="Assigned to" class="font-bold text-slate-800">${t.as}</td>
                     <td data-label="Incidents" style="text-align:center;">
-                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-bold text-[10px]">${associatedCount}</span>
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-bold text-[10px]">${t.tks_assoc}</span>
                     </td>
                     <td data-label="RCA Status">
-                        <span class="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-[10px] uppercase font-bold text-slate-700">${rcaStatus}</span>
+                        <span class="bg-slate-100 px-2 py-1 rounded border border-slate-200 text-[10px] uppercase font-bold text-slate-700">${t.st}</span>
                     </td>
-                    <td data-label="RCA Due Date" style="text-align:center;" class="text-[10px] font-medium text-slate-600">${rcaDueDate}</td>
-                    <td data-label="RCA Published" style="text-align:center;" class="text-[10px] font-medium text-emerald-600">${rcaPubDate}</td>
+                    <td data-label="RCA Due Date" style="text-align:center;" class="text-[10px] font-medium text-slate-600">${t.rca_due}</td>
+                    <td data-label="RCA Published" style="text-align:center;" class="text-[10px] font-medium text-emerald-600">${t.rca_pub}</td>
                     <td data-label="Work notes" class="text-left" style="max-width: 250px;">
-                        <div class="text-[10px] text-slate-500 line-clamp-2 hover:line-clamp-none transition-all cursor-help bg-slate-50 p-1.5 rounded border border-slate-100" title="Clique em 'Saiba mais' para ver o histórico completo.">${workNotes || 'Sem notas.'}</div>
-                        ${vRel !== '—' ? `<div class="mt-1 flex gap-1"><span class="bg-blue-50 text-blue-700 text-[9px] px-1.5 py-0.5 rounded border border-blue-100 font-bold">V: ${vRel}</span> ${dRel !== '—' ? `<span class="bg-emerald-50 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded border border-emerald-100 font-bold">${dRel}</span>` : ''}</div>` : ''}
+                        <div class="text-[10px] text-slate-500 line-clamp-2 hover:line-clamp-none transition-all cursor-help bg-slate-50 p-1.5 rounded border border-slate-100" title="Clique em 'Saiba mais' para ver o histórico completo.">${t.notes || 'Sem notas.'}</div>
+                        ${t.v_rel !== '—' ? `<div class="mt-1 flex gap-1"><span class="bg-blue-50 text-blue-700 text-[9px] px-1.5 py-0.5 rounded border border-blue-100 font-bold">V: ${t.v_rel}</span> ${t.d_rel !== '—' ? `<span class="bg-emerald-50 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded border border-emerald-100 font-bold">${t.d_rel}</span>` : ''}</div>` : ''}
                     </td>
                 </tr>`;
             });
