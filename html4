@@ -44,7 +44,7 @@
             --gray-light: #F8FAFC;
             --info: #0284C7;
             --background: #F1F5F9;
-            --sidebar-width: 320px;
+            --sidebar-width: 280px;
         }
 
         body {
@@ -1464,6 +1464,9 @@
                         class="fas fa-history mr-1"></i> Data de Referência</label>
                 <input type="date" id="ref-date" class="form-input text-slate-800"
                     title="Recalcula todo o painel como se hoje fosse este dia.">
+                <button onclick="setToToday()" class="w-full mt-2 bg-blue-50 text-blue-700 text-[9px] font-black py-1 rounded border border-blue-100 hover:bg-blue-100 transition uppercase letter-spacing-1">
+                    <i class="fas fa-calendar-check mr-1"></i> Mover para Data Vigente
+                </button>
                 <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.4;">
                     Selecione um dia do passado para auditar o backlog retroativamente.</div>
             </div>
@@ -1518,9 +1521,10 @@
                     </div>
                 </div>
             </div>
-            <div style="margin-top: auto;">
+            <div style="margin-top: auto; padding-bottom: 10px;">
                 <button class="btn-process" onclick="processDashboard()"><i class="fas fa-bolt mr-2"></i> Gerar
                     Relatório</button>
+                <div class="text-[9px] text-slate-400 mt-2 text-center font-bold tracking-widest">VERSÃO 110.1</div>
             </div>
         </div>
     </aside>
@@ -1894,6 +1898,15 @@
             };
             localStorage.setItem('eliteMasterConfigV1', JSON.stringify(config));
             console.log("[CONFIG] Configurações salvas no localStorage.");
+        }
+
+        function setToToday() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            document.getElementById('ref-date').value = `${year}-${month}-${day}`;
+            saveConfigs();
         }
 
         function loadConfigs() {
@@ -2806,13 +2819,23 @@
 
                 analystTodos.forEach(t => {
                     const ticket = (t.ticket && !t.ticket.includes('undefined')) ? t.ticket : 'Geral';
-
-                    // Busca Contexto do Chamado
+                    // Busca Contexto do Chamado e Tipo para SLA
                     let context = '-';
+                    let slaConfig = 10; // Default
+                    let age = 0;
+
                     if (ticket !== 'Geral') {
                         let rec = findTicketRecord(ticket);
                         if (rec) {
                             context = getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '-';
+                            let opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
+                            let clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
+                            let refDate = new Date(document.getElementById('ref-date').value + 'T12:00:00');
+                            age = Math.floor(((clD ? clD : refDate) - opD) / 86400000);
+                            if (age < 0) age = 0;
+
+                            let isInc = (ticket.toUpperCase().startsWith('INC'));
+                            slaConfig = isInc ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
                         }
                     }
 
@@ -2825,13 +2848,25 @@
                         else if (done > 0) status = 'Parcialmente Efetuada';
                     }
 
+                    // Porcentagem SLA
+                    let pctSla = Math.min(Math.round((age / slaConfig) * 100), 150);
+
                     // Formatação do Histórico (espaço para o ícone desenhado)
-                    const historyLines = t.history.map(h => `      (${h.date.split(' ')[1]}) ${h.text}`);
+                    const historyLines = t.history.map(h => {
+                        const [datePart, timePart] = h.date.split(' ');
+                        const shortDate = datePart.substring(0, 5); // 09/04
+                        const shortTime = timePart.substring(0, 5); // 12:50
+                        return `      ${shortDate} às ${shortTime} - ${h.text}`;
+                    });
 
                     tableData.push([
                         ticket,
                         context,
-                        t.date,
+                        `${age} dias`,
+                        {
+                            content: `${pctSla}%`,
+                            val: pctSla
+                        },
                         status,
                         {
                             content: historyLines.join('\n'),
@@ -2842,22 +2877,23 @@
 
                 doc.autoTable({
                     startY: startY + 8,
-                    head: [['Ticket', 'Contexto', 'Planejado', 'Status', 'Ações / Histórico']],
+                    head: [['Ticket', 'Contexto', 'Aging', 'SLA%', 'Status', 'Ações / Histórico']],
                     body: tableData,
                     theme: 'grid',
                     headStyles: {
                         fillColor: primaryColor,
                         textColor: [255, 255, 255],
-                        fontSize: 8,
+                        fontSize: 7,
                         fontStyle: 'bold',
                         halign: 'center'
                     },
                     columnStyles: {
-                        0: { cellWidth: 22, fontStyle: 'bold', halign: 'center' },
-                        1: { cellWidth: 35, fontSize: 7 },
-                        2: { cellWidth: 20, halign: 'center', fontSize: 7 },
-                        3: { cellWidth: 25, halign: 'center', fontStyle: 'bold', fontSize: 7 },
-                        4: { cellWidth: 'auto', fontSize: 7 }
+                        0: { cellWidth: 22, fontStyle: 'bold', halign: 'center' }, // Ticket
+                        1: { cellWidth: 50, fontSize: 6.5 }, // Contexto (AUMENTADO para 50mm)
+                        2: { cellWidth: 12, halign: 'center', fontSize: 6.5 }, // Aging (REDUZIDO)
+                        3: { cellWidth: 15, halign: 'center', fontSize: 6.5 }, // SLA% (REDUZIDO)
+                        4: { cellWidth: 18, halign: 'center', fontStyle: 'bold', fontSize: 6.5 }, // Status (REDUZIDO)
+                        5: { cellWidth: 'auto', fontSize: 6.5 }  // Ações ( gets the remaining ~65mm)
                     },
                     styles: {
                         fontSize: 7,
@@ -2867,8 +2903,8 @@
                     },
                     margin: { left: 14, right: 14 },
                     willDrawCell: (data) => {
-                        // Cores para o Status (Coluna 3) - Estilo Badge
-                        if (data.section === 'body' && data.column.index === 3) {
+                        // Cores para o Status (Coluna 4) - Estilo Badge
+                        if (data.section === 'body' && data.column.index === 4) {
                             const val = data.cell.raw;
                             if (val === 'Efetuada') {
                                 data.cell.styles.fillColor = [20, 150, 80]; // Verde
@@ -2883,8 +2919,30 @@
                         }
                     },
                     didDrawCell: (data) => {
-                        // Desenhar ícones manuais na coluna de Histórico (Coluna 4)
-                        if (data.section === 'body' && data.column.index === 4) {
+                        // Desenhar Barra de SLA (Coluna 3)
+                        if (data.section === 'body' && data.column.index === 3) {
+                            const pct = data.cell.raw.val;
+                            const barWidth = 14;
+                            const barHeight = 2.0;
+                            const x = data.cell.x + (data.cell.width - barWidth) / 2;
+                            // Centralização Inteligente: Texto em cima, Barra em baixo
+                            const y = data.cell.y + (data.cell.height / 2) + 1.8;
+
+                            // Fundo da Barra
+                            doc.setFillColor(230, 230, 230);
+                            doc.rect(x, y, barWidth, barHeight, 'F');
+
+                            // Cor da Barra
+                            let color = [16, 185, 129]; // Verde
+                            if (pct > 100) color = [239, 68, 68]; // Vermelho
+                            else if (pct > 75) color = [245, 158, 11]; // Laranja
+
+                            doc.setFillColor(...color);
+                            doc.rect(x, y, Math.min(pct, 100) * (barWidth / 100), barHeight, 'F');
+                        }
+
+                        // Desenhar ícones manuais na coluna de Histórico (Coluna 5)
+                        if (data.section === 'body' && data.column.index === 5) {
                             const strikedItems = data.cell.raw.strikedItems;
                             if (!strikedItems) return;
 
@@ -2892,19 +2950,22 @@
                             let y = data.cell.y + 4.5;
 
                             strikedItems.forEach(isDone => {
+                                doc.setLineWidth(0.2);
                                 if (isDone) {
-                                    // Desenha Checkmark Verde
+                                    // Desenha Checkbox Marcado
                                     doc.setDrawColor(34, 197, 94);
-                                    doc.setLineWidth(0.4);
-                                    doc.line(x, y, x + 1, y + 1);
-                                    doc.line(x + 1, y + 1, x + 2.5, y - 1);
+                                    doc.setFillColor(240, 253, 244);
+                                    doc.rect(x, y - 1.2, 2.4, 2.4, 'FD');
+                                    // Checkmark
+                                    doc.setDrawColor(20, 150, 80);
+                                    doc.line(x + 0.5, y, x + 1, y + 0.5);
+                                    doc.line(x + 1, y + 0.5, x + 2, y - 0.5);
                                 } else {
-                                    // Desenha Círculo Cinza
-                                    doc.setDrawColor(200, 200, 200);
-                                    doc.setLineWidth(0.3);
-                                    doc.circle(x + 1.25, y, 0.8);
+                                    // Desenha Checkbox Vazio (Moderno)
+                                    doc.setDrawColor(148, 163, 184);
+                                    doc.rect(x, y - 1.2, 2.4, 2.4, 'D');
                                 }
-                                y += (data.cell.styles.lineHeight || 3.5); // Ajuste fino do line height
+                                y += (data.cell.styles.lineHeight || 3.8);
                             });
                         }
                     },
@@ -3015,15 +3076,18 @@
                     `;
 
                     t.history.forEach(h => {
-                        let checkColor = h.striked ? "#10b981" : "#cbd5e1";
-                        let checkIcon = h.striked ? "●" : "○";
+                        let checkColor = h.striked ? "#10b981" : "#94a3b8";
+                        let checkIcon = h.striked ? "☑" : "☐";
                         let textStyle = h.striked ? "text-decoration: line-through; color: #94a3b8;" : "color: #1e293b; font-weight: 500;";
 
+                        const [datePart, timePart] = h.date.split(' ');
+                        const stamp = `${datePart.substring(0, 5)} às ${timePart.substring(0, 5)}`;
+
                         htmlBody += `
-                        <li style="margin-bottom: 10px; display: flex; align-items: flex-start; ${textStyle}">
-                            <span style="color: ${checkColor}; font-size: 20px; line-height: 1; margin-right: 12px; margin-top: -2px;">${checkIcon}</span>
-                            <span style="font-size: 13px;"><small style="color: #94a3b8; font-weight: bold; border: 1px solid #e2e8f0; padding: 2px 5px; border-radius: 4px; margin-right: 8px; font-size: 9px; vertical-align: middle;">${h.date.split(' ')[1]}</small> ${h.text}</span>
-                        </li>`;
+                            <li style="margin-bottom: 10px; display: flex; align-items: flex-start; ${textStyle}">
+                                <span style="color: ${checkColor}; font-size: 18px; line-height: 1; margin-right: 12px; margin-top: -1px;">${checkIcon}</span>
+                                <span style="font-size: 13px;"><small style="color: #94a3b8; font-weight: bold; border: 1px solid #e2e8f0; padding: 2px 5px; border-radius: 4px; margin-right: 8px; font-size: 9px; vertical-align: middle;">${stamp}</small> ${h.text}</span>
+                            </li>`;
                     });
 
                     htmlBody += `</ul></div>`;
@@ -3153,11 +3217,11 @@
                                 <div class="space-y-1">
                                     ${t.history.map((h, idx) => `
                                         <div class="group flex items-start gap-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer relative" onclick="toggleStrike('${t.id}', ${idx})">
-                                            <div class="todo-check-dot ${h.striked ? 'checked' : ''} !w-3 !h-3 !text-[7px]">
-                                                <i class="fas fa-check"></i>
+                                            <div class="flex items-center justify-center w-4 h-4 mt-0.5 rounded transition ${h.striked ? 'bg-emerald-500 text-white' : 'border-2 border-slate-300 bg-white'}">
+                                                <i class="fas ${h.striked ? 'fa-check' : 'fa-minus'} text-[8px] ${h.striked ? '' : 'opacity-0'}"></i>
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <div class="text-[8px] font-black text-slate-400 mb-0">${h.date.split(' ')[1]}</div>
+                                                <div class="text-[8px] font-black text-slate-400 mb-0">${h.date.split(' ')[0].substring(0, 5)} às ${h.date.split(' ')[1].substring(0, 5)}</div>
                                                 <div class="text-[11px] ${h.striked ? 'striked opacity-50 line-through italic text-slate-400' : 'text-slate-700 font-semibold'} break-words">${h.text}</div>
                                             </div>
                                             <button onclick="event.stopPropagation(); editTodoHistory('${t.id}', ${idx})" class="opacity-0 group-hover:opacity-100 transition p-1 text-slate-400 hover:text-blue-500 bg-white shadow-sm border rounded text-[9px]" title="Editar"><i class="fas fa-pen"></i></button>
@@ -4511,6 +4575,14 @@
                 </tr>
             `).join('');
 
+            let topGpName = "-", topGpCount = 0;
+            if (Object.keys(d.gp).length > 0) {
+                let sortedGp = Object.entries(d.gp).sort((a, b) => b[1].count - a[1].count);
+                topGpName = sortedGp[0][0];
+                topGpCount = sortedGp[0][1].count;
+                window.DrilldownVault['class']['top_gp_month'] = sortedGp[0][1].tks;
+            }
+
             return `
             <div class="report-section-title" style="background-color: var(--danger);"><i class="fas fa-exchange-alt mr-2"></i> CLASSIFICAÇÕES INCORRETAS (REQ ⇄ INC)</div>
             
@@ -4534,10 +4606,11 @@
                         <div class="text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-tighter">Volume detectado no período vigente</div>
                     </div>
                     
-                    <div class="report-card text-center border-t-4 border-emerald-500 justify-center clickable-card bg-gradient-to-br from-white to-emerald-50/30 p-6 transition-all hover:shadow-md" style="margin-bottom:0;" onclick="openDrilldown('Com Vínculo (Mês)', 'linked_tks_month', 'class')">
-                        <div class="text-xs font-black text-emerald-600 mb-3 uppercase tracking-widest">Eficiência de Correção</div>
-                        <div class="text-6xl font-black text-slate-800">${d.monthTotal ? Math.round((d.monthLink / d.monthTotal) * 100) : 0}%</div>
-                        <div class="text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-tighter">${d.monthLink} de ${d.monthTotal} casos vinculados</div>
+                    <div class="report-card text-center border-t-4 border-orange-500 justify-center clickable-card bg-gradient-to-br from-white to-orange-50/30 p-6 transition-all hover:shadow-md" style="margin-bottom:0;" onclick="openDrilldown('Top Grupo Ofensor', 'top_gp_month', 'class')">
+                        <div class="text-xs font-black text-orange-600 mb-3 uppercase tracking-widest">Top Grupo Ofensor (Mês)</div>
+                        <div class="text-sm font-black text-slate-800 truncate px-1" title="${topGpName}">${topGpName}</div>
+                        <div class="text-5xl font-black text-slate-700 mt-2">${topGpCount}</div>
+                        <div class="text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-tighter">Grupo com maior recorrência</div>
                     </div>
 
                     <div class="report-card text-center border-t-4 border-blue-500 justify-center bg-gradient-to-br from-white to-blue-50/30 p-6" style="margin-bottom:0;">
@@ -4664,7 +4737,7 @@
                 </div>
             </div>`;
         }
-        
+
 
         function generatePRBTabImproved(prbData) {
             let html = `<div class="report-section-title" style = "background-color: #E74C3C;" > <i class="fas fa-shield-alt mr-2"></i> PRBs ATIVOS — PROBLEMAS AGRUPADOS E RELACIONADOS</div> `;
@@ -5051,114 +5124,114 @@
 
             const drawTrend = (canvas, tData, isD) => {
                 let keys = Object.keys(tData).sort();
-                let labels = keys.map(k => isD ? `${ k.split('-')[2] }/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
+                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
 
-        let instance = new Chart(document.getElementById(canvas), {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.INFO, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                    { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                    { type: 'bar', label: lblRes, data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                    { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
-                ]
-            },
-            options: {
-                maintainAspectRatio: false,
-                legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
-                scales: {
-                    xAxes: [{ stacked: true, gridLines: { display: false } }],
-                    yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }]
-                },
-                onClick: function (evt, activeElements) {
-                    if (activeElements.length > 0) {
-                        let idx = activeElements[0]._index;
-                        let datasetIdx = activeElements[0]._datasetIndex;
-                        let dKey = keys[idx];
-                        let lblDate = labels[idx];
+                let instance = new Chart(document.getElementById(canvas), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.INFO, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'bar', label: lblRes, data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                            { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
+                        ]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
+                        scales: {
+                            xAxes: [{ stacked: true, gridLines: { display: false } }],
+                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }]
+                        },
+                        onClick: function (evt, activeElements) {
+                            if (activeElements.length > 0) {
+                                let idx = activeElements[0]._index;
+                                let datasetIdx = activeElements[0]._datasetIndex;
+                                let dKey = keys[idx];
+                                let lblDate = labels[idx];
 
-                        let tksToDisplay = [];
-                        let dTitle = "";
+                                let tksToDisplay = [];
+                                let dTitle = "";
 
-                        if (datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Abertos em ${lblDate}`; }
-                        else if (datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Resolvidos em ${lblDate}`; }
-                        else if (datasetIdx === 3) { tksToDisplay = tData[dKey].tks_c; dTitle = `Cancelados em ${lblDate}`; }
-                        else return;
+                                if (datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Abertos em ${lblDate}`; }
+                                else if (datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Resolvidos em ${lblDate}`; }
+                                else if (datasetIdx === 3) { tksToDisplay = tData[dKey].tks_c; dTitle = `Cancelados em ${lblDate}`; }
+                                else return;
 
-                        window.DrilldownVault[id]['temp'] = tksToDisplay;
-                        openDrilldown(dTitle, 'temp', id);
+                                window.DrilldownVault[id]['temp'] = tksToDisplay;
+                                openDrilldown(dTitle, 'temp', id);
+                            }
+                        }
                     }
-                }
-            }
-        });
-        window.chartInstances.push(instance);
+                });
+                window.chartInstances.push(instance);
             };
-        drawTrend(`c-d-${id}`, d.trendD, true);
-        drawTrend(`c-m-${id}`, d.trendM, false);
+            drawTrend(`c-d-${id}`, d.trendD, true);
+            drawTrend(`c-m-${id}`, d.trendM, false);
 
-        let instA = new Chart(document.getElementById(`c-a-${id}`), {
-            type: 'horizontalBar',
-            data: { labels: d.topAnalistas.map(a => a.nome), datasets: [{ label: 'Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C.PRI_D }, { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C.SUC }] },
-            options: {
-                maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } },
-                scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ stacked: true, gridLines: { display: false } }] },
-                plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                onClick: function (evt, activeElements) {
-                    if (activeElements.length > 0) {
-                        let idx = activeElements[0]._index;
-                        let datasetIdx = activeElements[0]._datasetIndex;
-                        let analystName = d.topAnalistas[idx].nome;
+            let instA = new Chart(document.getElementById(`c-a-${id}`), {
+                type: 'horizontalBar',
+                data: { labels: d.topAnalistas.map(a => a.nome), datasets: [{ label: 'Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C.PRI_D }, { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C.SUC }] },
+                options: {
+                    maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } },
+                    scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ stacked: true, gridLines: { display: false } }] },
+                    plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                    onClick: function (evt, activeElements) {
+                        if (activeElements.length > 0) {
+                            let idx = activeElements[0]._index;
+                            let datasetIdx = activeElements[0]._datasetIndex;
+                            let analystName = d.topAnalistas[idx].nome;
 
-                        let tks = datasetIdx === 0 ? d.topAnalistas[idx].tks_ab : d.topAnalistas[idx].tks_res;
-                        let dTitle = datasetIdx === 0 ? `Tickets em Backlog de ${analystName}` : `Tickets Resolvidos por ${analystName}`;
+                            let tks = datasetIdx === 0 ? d.topAnalistas[idx].tks_ab : d.topAnalistas[idx].tks_res;
+                            let dTitle = datasetIdx === 0 ? `Tickets em Backlog de ${analystName}` : `Tickets Resolvidos por ${analystName}`;
 
-                        window.DrilldownVault[id]['temp'] = tks;
-                        openDrilldown(dTitle, 'temp', id);
+                            window.DrilldownVault[id]['temp'] = tks;
+                            openDrilldown(dTitle, 'temp', id);
+                        }
                     }
                 }
-            }
-        });
-        window.chartInstances.push(instA);
+            });
+            window.chartInstances.push(instA);
 
-        let agKeys = Object.keys(d.agingBuckets);
-        let instAg = new Chart(document.getElementById(`c-ag-${id}`), {
-            type: 'horizontalBar',
-            data: { labels: agKeys, datasets: [{ data: agKeys.map(k => d.agingBuckets[k].count), backgroundColor: agKeys.map(k => d.agingBuckets[k].color), barPercentage: 0.7, categoryPercentage: 0.8 }] },
-            options: {
-                maintainAspectRatio: false, legend: { display: false },
-                scales: { xAxes: [{ gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ gridLines: { display: false } }] },
-                plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } },
-                onClick: function (evt, activeElements) {
-                    if (activeElements.length > 0) {
-                        let idx = activeElements[0]._index;
-                        let bName = agKeys[idx];
-                        window.DrilldownVault[id]['temp'] = d.agingBuckets[bName].tks;
-                        openDrilldown(`Tickets no Range: ${bName}`, 'temp', id);
+            let agKeys = Object.keys(d.agingBuckets);
+            let instAg = new Chart(document.getElementById(`c-ag-${id}`), {
+                type: 'horizontalBar',
+                data: { labels: agKeys, datasets: [{ data: agKeys.map(k => d.agingBuckets[k].count), backgroundColor: agKeys.map(k => d.agingBuckets[k].color), barPercentage: 0.7, categoryPercentage: 0.8 }] },
+                options: {
+                    maintainAspectRatio: false, legend: { display: false },
+                    scales: { xAxes: [{ gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ gridLines: { display: false } }] },
+                    plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } },
+                    onClick: function (evt, activeElements) {
+                        if (activeElements.length > 0) {
+                            let idx = activeElements[0]._index;
+                            let bName = agKeys[idx];
+                            window.DrilldownVault[id]['temp'] = d.agingBuckets[bName].tks;
+                            openDrilldown(`Tickets no Range: ${bName}`, 'temp', id);
+                        }
                     }
                 }
-            }
-        });
-        window.chartInstances.push(instAg);
+            });
+            window.chartInstances.push(instAg);
 
-        let instP = new Chart(document.getElementById(`c-p-${id}`), {
-            type: 'doughnut',
-            data: { labels: ['SLA Cumprido (No Prazo)', 'SLA Estourado (Fora)'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN], borderWidth: 2, borderColor: '#fff' }] },
-            options: {
-                cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } },
-                plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (val, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x); return sum && val > 0 ? ((val / sum) * 100).toFixed(2).replace('.', ',') + '%' : ""; } } },
-                onClick: function (evt, activeElements) {
-                    if (activeElements.length > 0) {
-                        let idx = activeElements[0]._index;
-                        let tks = idx === 0 ? d.tksInSlaTot : d.tksOutSlaTot;
-                        let dTitle = idx === 0 ? `Tickets No Prazo SLA` : `Tickets Com SLA Estourado`;
-                        window.DrilldownVault[id]['temp'] = tks;
-                        openDrilldown(dTitle, 'temp', id);
+            let instP = new Chart(document.getElementById(`c-p-${id}`), {
+                type: 'doughnut',
+                data: { labels: ['SLA Cumprido (No Prazo)', 'SLA Estourado (Fora)'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN], borderWidth: 2, borderColor: '#fff' }] },
+                options: {
+                    cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } },
+                    plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (val, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x); return sum && val > 0 ? ((val / sum) * 100).toFixed(2).replace('.', ',') + '%' : ""; } } },
+                    onClick: function (evt, activeElements) {
+                        if (activeElements.length > 0) {
+                            let idx = activeElements[0]._index;
+                            let tks = idx === 0 ? d.tksInSlaTot : d.tksOutSlaTot;
+                            let dTitle = idx === 0 ? `Tickets No Prazo SLA` : `Tickets Com SLA Estourado`;
+                            window.DrilldownVault[id]['temp'] = tks;
+                            openDrilldown(dTitle, 'temp', id);
+                        }
                     }
                 }
-            }
-        });
-        window.chartInstances.push(instP);
+            });
+            window.chartInstances.push(instP);
         }
 
         function drawConsolidadoCharts(i, r, u) {
