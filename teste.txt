@@ -1082,7 +1082,7 @@ def build_html_table_html(df, header_bg=ModernColors.PRIMARY, zebra=True, show_t
 
             if "Aging" in df.columns and j == list(df.columns).index("Aging"):
                 try:
-                    if int(val) >= 30:
+                    if int(val) >= 7:  # AVISO VERMELHO A PARTIR DE 7 DIAS
                         color = "#ffffff"
                         bg_cell = ModernColors.DANGER
                         font_weight = "bold"
@@ -1430,32 +1430,45 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
         ptask_total = len(df_ptask)
         ptask_open = len(df_ptask[df_ptask['State_Bin'] == 'Open'])
 
-    req_aging_table_df = open_req_b[open_req_b["AGING_OPEN"] >= 20].copy()
+    # ---------------- TABELAS DE AGING CRÍTICO (REQs >= 10 dias | INCs >= 7 dias) ----------------
+    
+    # 1. Filtrar e montar Tabela de REQs (>= 10 dias)
+    req_aging_table_df = open_req_b[open_req_b["AGING_OPEN"] >= 10].copy()
     if not req_aging_table_df.empty:
-        req_aging_table_df = req_aging_table_df.sort_values(
-            by="AGING_OPEN", ascending=False)
+        req_aging_table_df = req_aging_table_df.sort_values(by="AGING_OPEN", ascending=False)
         req_aging_table_df["ETA"] = ETA_DATE
-        req_aging_table_df["Opened_Str"] = req_aging_table_df["Opened"].dt.strftime(
-            '%d/%m/%Y').fillna("-")
-        req_aging_table_df = req_aging_table_df[[
-            "Number", "Assigned to", "Requester", "State", "Opened_Str", "AGING_OPEN", "ETA"]]
-        req_aging_table_df.columns = [
-            "Request item", "Assigned to", "Requester", "State", "Opened", "Aging", "ETA"]
-        html_req_aging_table = f"""
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
-            <tr><td width="100%" valign="top">
-                {build_card("⚠️ REQs CRÍTICOS (AGING 20+ E 30+ DIAS)", build_html_table_html(req_aging_table_df, ModernColors.DANGER, show_totals=False))}
-            </td></tr>
-        </table>
-        """
+        req_aging_table_df["Opened_Str"] = req_aging_table_df["Opened"].dt.strftime('%d/%m/%Y').fillna("-")
+        req_aging_table_df = req_aging_table_df[["Number", "Assigned to", "Requester", "State", "Opened_Str", "AGING_OPEN", "ETA"]]
+        req_aging_table_df.columns = ["Request item", "Assigned to", "Requester", "State", "Opened", "Aging", "ETA"]
+        
+        card_req_aging = build_card("⚠️ REQs CRÍTICOS (AGING 10+ DIAS)", build_html_table_html(req_aging_table_df, ModernColors.DANGER, show_totals=False))
     else:
-        html_req_aging_table = f"""
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
-            <tr><td width="100%" valign="top">
-                {build_card("⚠️ REQs CRÍTICOS (AGING 20+ E 30+ DIAS)", "<div style='padding: 15px; color: #27AE60; font-weight: bold;'>✅ Nenhum REQ com mais de 20 dias de aging pendente.</div>")}
-            </td></tr>
-        </table>
-        """
+        card_req_aging = build_card("⚠️ REQs CRÍTICOS (AGING 10+ DIAS)", "<div style='padding: 15px; color: #27AE60; font-weight: bold;'>✅ Nenhum REQ com mais de 10 dias de aging pendente.</div>")
+
+    # 2. Filtrar e montar Tabela de INCs (>= 7 dias)
+    inc_aging_table_df = open_inc_b[open_inc_b["AGING_OPEN"] >= 7].copy()
+    if not inc_aging_table_df.empty:
+        inc_aging_table_df = inc_aging_table_df.sort_values(by="AGING_OPEN", ascending=False)
+        inc_aging_table_df["ETA"] = ETA_DATE
+        inc_aging_table_df["Opened_Str"] = inc_aging_table_df["Opened"].dt.strftime('%d/%m/%Y').fillna("-")
+        inc_aging_table_df = inc_aging_table_df[["Number", "Assigned to", "Requester", "State", "Opened_Str", "AGING_OPEN", "ETA"]]
+        inc_aging_table_df.columns = ["Incident", "Assigned to", "Requester", "State", "Opened", "Aging", "ETA"]
+        
+        card_inc_aging = build_card("🚨 INCs CRÍTICOS (AGING 7+ DIAS)", build_html_table_html(inc_aging_table_df, ModernColors.ORANGE, show_totals=False))
+    else:
+        card_inc_aging = build_card("🚨 INCs CRÍTICOS (AGING 7+ DIAS)", "<div style='padding: 15px; color: #27AE60; font-weight: bold;'>✅ Nenhum INC com mais de 7 dias de aging pendente.</div>")
+
+    # 3. Unir as duas tabelas empilhadas
+    html_aging_tables_combined = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+        <tr><td width="100%" valign="top" style="padding-bottom: 15px;">
+            {card_req_aging}
+        </td></tr>
+        <tr><td width="100%" valign="top">
+            {card_inc_aging}
+        </td></tr>
+    </table>
+    """
 
     daily_req = compute_daily_table_html(
         req, start_date=start_date, end_date=end_date, ticket_type="REQ", real_backlog=total_req_abertos_para_titulo)
@@ -1823,7 +1836,7 @@ def generate_advanced_html_report(df_reqs, df_incs, df_ptask, configs, q, output
                     {html_kpi_row1}
                     {html_kpi_row2}
                     
-                    {html_req_aging_table}
+                    {html_aging_tables_combined}
 
                     {build_section_title("💡 DISTRIBUIÇÃO E SLAS (GRÁFICOS PIZZA E ROSCA)", "#0B1E40")}
                     {grid_pizzas}
