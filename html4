@@ -2,29 +2,31 @@
 <html lang="pt-BR">
 
 <head>
-       
+
     <meta charset="UTF-8">
-       
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Dashboard - Sistema Analítico ITSM</title>
-       
+    <title>Dashboard - Sistema Analítico ITSM</title>
+
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-       
+
     <script src="https://cdn.tailwindcss.com"></script>
 
-       
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
-       
+
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@0.7.0"></script>
-       
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-       
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-       
+
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Calibri:wght@400;700&display=swap"
         rel="stylesheet">
-        <style>
+    <style>
         /* =========================================================
            PALETA DE CORES MASTER
            ========================================================= */
@@ -117,7 +119,7 @@
         }
 
         .sidebar-header {
-            padding: 1.5rem;
+            padding: 0.8rem 1rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -126,12 +128,12 @@
         }
 
         .sidebar-content {
-            padding: 1.5rem;
+            padding: 0.8rem;
             overflow-y: auto;
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 0.8rem;
         }
 
         @media (min-width: 1024px) {
@@ -351,21 +353,18 @@
 
         .btn-clear {
             background: transparent;
-            border: none;
             color: var(--danger);
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
             transition: 0.2s;
             font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            width: 100%;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 6px;
             border: 1px solid var(--danger);
-            margin-top: 10px;
         }
 
         .btn-clear:hover {
@@ -374,20 +373,20 @@
 
         .form-label {
             display: block;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 700;
             color: #475569;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .form-input {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             border-radius: 6px;
             border: 1px solid #cbd5e1;
-            font-size: 13px;
+            font-size: 11px;
             font-family: 'Inter';
             outline: none;
             transition: 0.2s;
@@ -403,7 +402,7 @@
             background: var(--primary-dark);
             color: white;
             border: none;
-            padding: 14px;
+            padding: 10px;
             border-radius: 8px;
             font-weight: bold;
             text-transform: uppercase;
@@ -412,7 +411,7 @@
             width: 100%;
             box-shadow: 0 4px 6px rgba(0, 24, 113, 0.2);
             letter-spacing: 1px;
-            font-size: 13px;
+            font-size: 11px;
         }
 
         .btn-process:hover {
@@ -454,7 +453,10 @@
             position: relative;
         }
 
-        .report-card:hover .btn-snap { display: block; }
+        .report-card:hover .btn-snap {
+            display: block;
+        }
+
         .btn-snap {
             display: none;
             position: absolute;
@@ -469,7 +471,11 @@
             z-index: 10;
             transition: 0.2s;
         }
-        .btn-snap:hover { background: #e2e8f0; color: #0f172a; }
+
+        .btn-snap:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
 
 
         .report-card-title {
@@ -892,6 +898,7 @@
             border-top: 1px solid #e2e8f0;
             margin-top: -1px;
         }
+
         .pagination-btn {
             background: white;
             border: 1px solid #cbd5e1;
@@ -906,19 +913,22 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
+
         .pagination-btn:hover:not(:disabled) {
             border-color: var(--primary);
             color: var(--primary);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             transform: translateY(-1px);
         }
+
         .pagination-btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
             background: #f1f5f9;
         }
+
         .pagination-info {
             font-size: 11px;
             font-weight: 700;
@@ -1199,584 +1209,627 @@
                 height: 220px !important;
             }
         }
-        
-
     </style>
 </head>
 
 <body>
-        <div id="mobile-overlay" class="overlay" onclick="toggleSidebar()"></div>
-        <div id="custom-confirm-modal"
+    <div id="mobile-overlay" class="overlay" onclick="toggleSidebar()"></div>
+    <div id="custom-confirm-modal"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st"
         style="z-index: 10000;">
-                <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade">
-                        <div class="text-center mb-6">
-                                <div
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade">
+            <div class="text-center mb-6">
+                <div
                     class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-                    <i class="fas fa-exclamation-triangle"></i></div>
-                                <h3 id="confirm-title" class="text-lg font-black text-slate-800 mb-2">Confirmar Ação?
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 id="confirm-title" class="text-lg font-black text-slate-800 mb-2">Confirmar Ação?
                 </h3>
-                                <p id="confirm-msg" class="text-sm text-slate-500">Esta ação não poderá ser desfeita.
+                <p id="confirm-msg" class="text-sm text-slate-500">Esta ação não poderá ser desfeita.
                 </p>
-                            </div>
-                        <div class="flex gap-3">
-                                <button id="btn-modal-cancel"
+            </div>
+            <div class="flex gap-3">
+                <button id="btn-modal-cancel"
                     class="modal-btn modal-btn-cancel flex-1 hover:bg-slate-50">Cancelar</button>
-                                <button id="btn-modal-confirm"
+                <button id="btn-modal-confirm"
                     class="modal-btn modal-btn-confirm flex-1 hover:bg-red-700">Confirmar</button>
-                            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW MODALS INJECTED HERE -->
+    <div id="todo-edit-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st"
+        style="z-index: 10000;">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade">
+            <div class="mb-4">
+                <h3 class="text-lg font-black text-slate-800 mb-2"><i class="fas fa-edit text-blue-500 mr-2"></i>Editar
+                    Anotação</h3>
+                <p class="text-[11px] text-slate-500 mb-4">Modifique o texto da tarefa. Deixe em branco para ignorar a
+                    alteração.</p>
+                <textarea id="todo-edit-input" class="form-input w-full h-24 text-sm resize-none"
+                    placeholder="Texto da tarefa..."></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeEditTodoModal()"
+                    class="modal-btn modal-btn-cancel flex-1 hover:bg-slate-50">Cancelar</button>
+                <button onclick="saveEditTodoModal()"
+                    class="modal-btn flex-1 bg-blue-600 border border-blue-700 text-white font-bold rounded shadow-sm hover:bg-blue-700">Salvar
+                    Modificação</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="email-todo-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st"
+        style="z-index: 10000;">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fade relative">
+            <button onclick="closeEmailModal()"
+                class="absolute top-3 right-4 text-slate-400 hover:text-red-500 transition text-lg"><i
+                    class="fas fa-times"></i></button>
+            <div class="mb-4 text-center">
+                <div
+                    class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fas fa-paper-plane"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-800 mb-1">Reporte Diário (Outlook)</h3>
+                <p class="text-[11px] text-slate-500">Formatará as tarefas automáticamentee abrirá no seu Client de
+                    Email (Win32 compatible).</p>
+            </div>
+            <div class="mb-5 space-y-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-700 mb-1">Destinatário (Para) *</label>
+                    <input type="email" id="email-to" class="form-input w-full text-xs"
+                        placeholder="ex: coord@empresa.com" onchange="saveConfigs()">
+                    <div class="mt-3">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">Em Cópia (CC):</label>
+                        <input type="email" id="email-cc" class="form-input w-full text-xs mt-1"
+                            placeholder="ex: suporte@empresa.com" onchange="saveConfigs()">
                     </div>
+                </div>
             </div>
 
-        <!-- NEW MODALS INJECTED HERE -->
-        <div id="todo-edit-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st" style="z-index: 10000;">
-            <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade">
-                <div class="mb-4">
-                    <h3 class="text-lg font-black text-slate-800 mb-2"><i class="fas fa-edit text-blue-500 mr-2"></i>Editar Anotação</h3>
-                    <p class="text-[11px] text-slate-500 mb-4">Modifique o texto da tarefa. Deixe em branco para ignorar a alteração.</p>
-                    <textarea id="todo-edit-input" class="form-input w-full h-24 text-sm resize-none" placeholder="Texto da tarefa..."></textarea>
+            <div id="email-logger-box" style="display:none;"
+                class="mb-4 bg-slate-900 rounded p-2 border border-slate-700 shadow-inner">
+                <div class="text-[9px] text-slate-400 font-bold uppercase mb-1 flex items-center justify-between">
+                    <span><i class="fas fa-terminal"></i> Console de Execução</span>
+                    <div class="flex gap-1">
+                        <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                        <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                        <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                    </div>
                 </div>
-                <div class="flex gap-3">
-                    <button onclick="closeEditTodoModal()" class="modal-btn modal-btn-cancel flex-1 hover:bg-slate-50">Cancelar</button>
-                    <button onclick="saveEditTodoModal()" class="modal-btn flex-1 bg-blue-600 border border-blue-700 text-white font-bold rounded shadow-sm hover:bg-blue-700">Salvar Modificação</button>
+                <div id="email-logger-content"
+                    class="text-[9px] font-mono text-slate-300 h-24 overflow-y-auto stylized-scrollbar pe-1">
+                    <!-- logs injetados via JS -->
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-5">
+                <button onclick="sendEmailTodo()"
+                    class="modal-btn flex-1 bg-[var(--primary-dark)] text-white font-bold rounded shadow-sm hover:bg-blue-900 py-3"><i
+                        class="fas fa-envelope mr-1"></i> Preparar E-mail</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GENERIC ALERT MODAL -->
+    <div id="alert-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st"
+        style="z-index: 10010;">
+        <div
+            class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade relative border-t-4 border-amber-500">
+            <div class="mb-4 text-center">
+                <div
+                    class="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl border border-amber-100">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 id="alert-modal-title" class="text-lg font-black text-slate-800 mb-1">Atenção</h3>
+                <p id="alert-modal-message" class="text-xs text-slate-500 leading-relaxed">Mensagem de alerta aqui.</p>
+            </div>
+            <div class="flex flex-col gap-3">
+                <button onclick="closeAlertModal()"
+                    class="modal-btn bg-slate-800 hover:bg-slate-900 text-white font-bold shadow-sm py-2 text-xs flex justify-center items-center">
+                    Entendi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW CONFIG MODAL -->
+    <div id="config-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st"
+        style="z-index: 10000;">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade relative">
+            <button onclick="closeConfigModal()"
+                class="absolute top-3 right-4 text-slate-400 hover:text-red-500 transition text-lg"><i
+                    class="fas fa-times"></i></button>
+
+            <div class="mb-4 text-center">
+                <div
+                    class="w-16 h-16 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-800 mb-1">Configurações de Dados</h3>
+                <p class="text-[11px] text-slate-500">Associe uma pasta em nuvem (ou local) para monitorar atualizações
+                    das planilhas automaticamente.</p>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded p-3 mb-5">
+                <div class="text-[10px] font-bold text-slate-600 mb-2 uppercase">Status da Conexão</div>
+                <div class="flex items-center gap-2 mb-2">
+                    <div id="sync-status-indicator" class="w-3 h-3 rounded-full bg-red-500 shadow shadow-red-200"></div>
+                    <span id="sync-status-text" class="text-xs font-semibold text-slate-700">Não Conectado</span>
+                </div>
+                <p id="sync-folder-path" class="text-[10px] text-slate-500 break-all italic">Nenhuma pasta vinculada
+                    nesta sessão.</p>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="bindCloudFolder()"
+                    class="modal-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm py-2 text-xs flex justify-center items-center">
+                    <i class="fas fa-folder-open mr-2"></i> Vincular Pasta Local/Nuvem
+                </button>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-100 text-center">
+                <p class="text-[9px] text-slate-400">Por segurança do navegador, a permissão na pasta é resetada ao
+                    fechar a janela completamente.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW UPDATE ALERT MODAL -->
+    <div id="update-alert-modal"
+        class="fixed top-4 right-4 bg-white rounded-lg shadow-2xl max-w-sm w-full p-4 border-l-4 border-emerald-500 transform transition-transform translate-x-[120%] hidden-st"
+        style="z-index: 10005;">
+        <div class="flex items-start gap-3">
+            <div class="text-emerald-500 text-2xl mt-1"><i class="fas fa-cloud-download-alt"></i></div>
+            <div class="flex-1">
+                <h4 class="text-sm font-black text-slate-800">Novos Dados Encontrados</h4>
+                <p class="text-[10px] text-slate-500 mb-3 mt-1 leading-tight">Foram detectadas modificações na sua pasta
+                    de relatórios vinculada. Deseja aplicar os dados mais recentes no dashboard?</p>
+                <div class="flex gap-2">
+                    <button onclick="dismissUpdateModal()"
+                        class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold rounded">Ignorar</button>
+                    <button onclick="triggerAutoSync()"
+                        class="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold rounded flex-1">Sincronizar
+                        Agora</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div id="email-todo-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st" style="z-index: 10000;">
-            <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fade relative">
-                <button onclick="closeEmailModal()" class="absolute top-3 right-4 text-slate-400 hover:text-red-500 transition text-lg"><i class="fas fa-times"></i></button>
-                <div class="mb-4 text-center">
-                    <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl"><i class="fas fa-paper-plane"></i></div>
-                    <h3 class="text-lg font-black text-slate-800 mb-1">Reporte Diário (Outlook)</h3>
-                    <p class="text-[11px] text-slate-500">Formatará as tarefas automáticamentee abrirá no seu Client de Email (Win32 compatible).</p>
+    <div id="global-tooltip">
+        <div class="tt-header">
+            <div class="tt-title" id="tt-tk">INC0000000</div>
+            <div class="tt-badge" id="tt-st">STATUS</div>
+        </div>
+        <div class="tt-body">
+            <div
+                style="color: #94a3b8; font-size: 9px; text-transform: uppercase; margin-bottom: 2px; font-weight: bold;">
+                <i class="fas fa-align-left mr-1"></i> Assunto Registrado
+            </div>
+            <div id="tt-desc" style="margin-bottom: 10px; font-size: 11px; color: #fff;">...</div>
+            <div
+                style="color: #94a3b8; font-size: 9px; text-transform: uppercase; margin-bottom: 2px; font-weight: bold;">
+                <i class="fas fa-user-circle mr-1"></i> Solicitante
+            </div>
+            <div id="tt-req" style="margin-bottom: 8px; font-size: 11px; color: #fff; font-weight:bold;">...
+            </div>
+        </div>
+        <div class="tt-meta">
+            <div><span>Atribuído a:</span><strong id="tt-as">...</strong></div>
+            <div><span>Grupo Resolutor:</span><strong id="tt-gp">...</strong></div>
+            <div><span>Data Abertura:</span><strong id="tt-op">...</strong></div>
+            <div><span>Aging Atual:</span><strong id="tt-age" style="color: #f87171;">...</strong></div>
+            <div id="tt-sla-container"
+                style="grid-column: span 2; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 6px;">
+                <span>SLA % Consumido</span>
+                <div class="w-full bg-slate-700 rounded-full h-3 mt-1 relative overflow-hidden border border-slate-600">
+                    <div id="tt-sla-bar" class="h-full absolute left-0 top-0 bottom-0 transition-all"
+                        style="width: 0%; background-color: #10b981 !important;"></div>
+                    <div id="tt-sla-text"
+                        class="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold z-10"
+                        style="text-shadow: 0 0 2px rgba(0,0,0,0.8);">0%</div>
                 </div>
-                <div class="mb-5 space-y-3">
+            </div>
+            <div
+                style="grid-column: span 2; margin-top: 2px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.2);">
+                <span>Ociosidade / Motivo da Espera</span>
+                <strong id="tt-idle"
+                    style="display: block; font-size: 11px; margin-top: 1px; color:#e2e8f0; font-weight:normal;">...</strong>
+            </div>
+        </div>
+    </div>
+
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-[#001871] text-white flex items-center justify-center font-bold text-lg shadow-md cursor-pointer"
+                    onclick="location.reload()">
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <h2 class="text-lg font-bold text-[#001871] cursor-pointer hover:underline"
+                    style="margin:0; letter-spacing: -0.5px;" onclick="location.reload()">
+                    Dashboard
+                </h2>
+            </div>
+            <button class="btn-toggle lg:hidden" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="sidebar-content">
+            <div class="time-machine">
+                <label
+                    style="font-size: 10px; font-weight: bold; margin-bottom: 6px; display: block; color:#475569; text-transform: uppercase; letter-spacing: 0.5px;"><i
+                        class="fas fa-history mr-1"></i> Data de Referência</label>
+                <input type="date" id="ref-date" class="form-input text-slate-800"
+                    title="Recalcula todo o painel como se hoje fosse este dia.">
+                <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.4;">
+                    Selecione um dia do passado para auditar o backlog retroativamente.</div>
+            </div>
+            <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <label class="form-label" style="margin:0; color: #475569;">Fontes de Dados</label>
+                    <button id="btn-clear-files" class="btn-clear" onclick="clearFiles()"><i
+                            class="fas fa-trash-alt"></i> Limpar</button>
+                </div>
+                <div id="dropzone"
+                    class="dropzone-discreet border-2 border-dashed border-slate-300 p-1.5 text-center cursor-pointer transition rounded-lg"
+                    onclick="document.getElementById('file-upload').click()">
+                    <i class="fas fa-cloud-upload-alt text-lg text-blue-500 mb-0.5"></i>
+                    <div class="text-[10px] font-bold text-slate-700">Arraste suas planilhas</div>
+                    <div class="text-[8px] text-slate-500 mt-[1px]">incident, sc_task, rca, ptask</div>
+                </div>
+                <input type="file" id="file-upload" multiple accept=".xlsx, .xls" class="hidden-st"
+                    onchange="handleFiles(event.target.files)">
+                <div id="file-status" class="mt-2 text-[9px] space-y-1"></div>
+            </div>
+            <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                <label class="form-label"><i class="fas fa-database text-blue-600 mr-1"></i> Backup (JSON)</label>
+                <div class="text-[8px] text-slate-500 mb-2 leading-tight">Exporte seu TODO Planner para não perder suas anotações.</div>
+                <div class="flex flex-col gap-1.5">
+                    <button onclick="exportBackupJSON()"
+                        class="w-full bg-slate-800 text-white text-[9px] font-bold py-1.5 rounded shadow hover:bg-slate-700 transition"><i
+                            class="fas fa-download mr-1"></i> Exportar JSON</button>
+                    <button onclick="document.getElementById('import-json').click()"
+                        class="w-full bg-white text-slate-700 border border-slate-300 text-[9px] font-bold py-1.5 rounded shadow-sm hover:bg-slate-50 transition"><i
+                            class="fas fa-upload mr-1"></i> Importar JSON</button>
+                    <input type="file" id="import-json" accept=".json" class="hidden-st"
+                        onchange="importBackupJSON(event)">
+                </div>
+            </div>
+            <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                <label class="form-label mb-2">Configuração de SLA (Dias)</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div><span style="font-size:9px; font-weight:700; color:#64748b; text-transform:uppercase;">INC /
+                            Geral</span><input type="number" id="sla-incs" value="7" class="form-input mt-1"
+                            onchange="saveConfigs()"></div>
+                    <div><span style="font-size:9px; font-weight:700; color:#64748b; text-transform:uppercase;">REQ /
+                            UAM</span><input type="number" id="sla-reqs" value="10" class="form-input mt-1"
+                            onchange="saveConfigs()"></div>
+                    <div><span
+                            style="font-size:9px; font-weight:700; color:#64748b; text-transform:uppercase;">PTASK</span><input
+                            type="number" id="sla-ptask" value="10" class="form-input mt-1" onchange="saveConfigs()">
+                    </div>
+                    <div><span
+                            style="font-size:9px; font-weight:700; color:#64748b; text-transform:uppercase;">RCA</span><input
+                            type="number" id="sla-rca" value="10" class="form-input mt-1" onchange="saveConfigs()">
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: auto;">
+                <button class="btn-process" onclick="processDashboard()"><i class="fas fa-bolt mr-2"></i> Gerar
+                    Relatório</button>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-wrapper">
+        <header class="top-header">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <button class="btn-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+                <div class="hidden sm:block">
+                    <h1
+                        style="margin: 0; font-size: 20px; font-weight: 900; color: var(--primary-dark); text-transform: uppercase; letter-spacing: -0.5px;">
+                        Painel Executivo ITSM</h1>
+                    <span id="extraction-time"
+                        class="text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded shadow-sm inline-block mt-1"><i
+                            class="fas fa-clock mr-1"></i> Aguardando extração...</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 w-full justify-end max-w-[450px]">
+                <div class="search-wrapper visible w-full" id="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="globalSearch" class="search-input"
+                        placeholder="Pesquisar ticket, assunto, status..." onkeyup="performGlobalSearch(event)">
+                </div>
+                <button onclick="takeScreenshot()"
+                    class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-blue-100 hover:text-blue-600 transition shadow-sm w-10 h-10 flex items-center justify-center flex-shrink-0"
+                    title="Tirar Foto da Tela (Baixar PNG)">
+                    <i class="fas fa-camera text-sm"></i>
+                </button>
+
+                <button onclick="manualSyncCheck()"
+                    class="bg-blue-600 text-white border border-blue-700 p-2 rounded-full hover:bg-blue-700 transition shadow-md w-10 h-10 flex items-center justify-center flex-shrink-0"
+                    id="btn-manual-sync" title="Sincronizar com a Nuvem agora">
+                    <i class="fas fa-sync text-sm" id="icon-sync"></i>
+                </button>
+                <button onclick="openConfigModal()"
+                    class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-emerald-100 hover:text-emerald-700 transition shadow-sm w-10 h-10 flex items-center justify-center flex-shrink-0"
+                    title="Configurações e Sincronização">
+                    <i class="fas fa-cog text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="tabs-sticky hidden-st" id="tabs-container">
+            <div class="tabs-nav">
+                <button class="tab-btn active" onclick="switchTab('tab-open', this)"
+                    style="color: var(--primary-dark); font-weight: 900;"><i class="fas fa-folder-open mr-1"></i>
+                    Tickets Abertos</button>
+                <button class="tab-btn" onclick="switchTab('tab-inc', this)"><i class="fas fa-bolt mr-1"></i>
+                    INCs</button>
+                <button class="tab-btn" onclick="switchTab('tab-req', this)"><i class="fas fa-tools mr-1"></i>
+                    REQs</button>
+                <button class="tab-btn" onclick="switchTab('tab-uam', this)"><i class="fas fa-key mr-1"></i>
+                    UAMs</button>
+                <button class="tab-btn" onclick="switchTab('tab-cons', this)"><i class="fas fa-globe mr-1"></i>
+                    Consolidado</button>
+                <button class="tab-btn" onclick="switchTab('tab-prb', this)"><i class="fas fa-bullseye mr-1"></i> PRB /
+                    PTASK</button>
+                <button class="tab-btn" onclick="switchTab('tab-class', this)"><i class="fas fa-exchange-alt mr-1"></i>
+                    Erros Classificação</button>
+                <button class="tab-btn" onclick="switchTab('tab-todo', this)"
+                    style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i
+                        class="fas fa-tasks mr-1"></i> TODO</button>
+            </div>
+        </div>
+
+        <div class="content-area" id="capture-area">
+            <div class="content-container">
+                <div id="init-alert"
+                    style="background-color: var(--primary-light); color: var(--primary-dark); padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 15px;">
+                    <i class="fas fa-file-import text-3xl text-blue-600"></i>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-700 mb-1">Destinatário (Para) *</label>
-                        <input type="email" id="email-to" class="form-input w-full text-xs" placeholder="ex: coord@empresa.com" onchange="saveConfigs()">
-                        <div class="mt-3">
-                            <label class="text-[10px] font-bold text-slate-400 uppercase">Em Cópia (CC):</label>
-                            <input type="email" id="email-cc" class="form-input w-full text-xs mt-1" placeholder="ex: suporte@empresa.com" onchange="saveConfigs()">
+                        <div class="font-bold text-blue-900 mb-1">Aguardando Importação</div>
+                        <div class="text-blue-800 text-sm font-normal">Utilize o menu lateral
+                            esquerdo para carregar os relatórios extraídos do ServiceNow.</div>
+                    </div>
+                </div>
+
+                <div id="loader" class="hidden-st"
+                    style="text-align: center; padding: 80px 20px; color: var(--primary-dark);">
+                    <i class="fas fa-circle-notch fa-spin"
+                        style="font-size: 48px; margin-bottom: 20px; color: var(--accent);"></i>
+                    <div style="font-size: 18px; font-weight: 800;">Processando Métricas
+                        Históricas...</div>
+                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Cruzando dados e
+                        renderizando visualizações via Chart.js</div>
+                </div>
+
+                <div id="report-content" class="hidden-st">
+                    <div id="tab-open" class="animate-fade tab-pane"></div>
+                    <div id="tab-inc" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-req" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-uam" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-cons" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-prb" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-class" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-search" class="animate-fade hidden-st tab-pane"></div>
+
+                    <div id="tab-todo" class="animate-fade hidden-st tab-pane">
+                        <div class="report-section-title" style="background-color: var(--primary-dark);"><i
+                                class="fas fa-clipboard-check mr-2"></i>
+                            PLANEJAMENTO TODO - Gerenciador de Tarefas</div>
+                        <div class="grid-2" style="grid-template-columns: 1fr 2fr;">
+                            <div class="report-card">
+                                <div class="report-card-title"><i class="fas fa-plus"></i> Nova Tarefa Inicial</div>
+                                <div style="display:flex; flex-direction:column; gap:15px;">
+                                    <div>
+                                        <label class="form-label">Analista
+                                            Responsável</label>
+                                        <select id="todo-analyst" class="form-input" onchange="updateTicketsDropdown()">
+                                            <option value="">Selecione um
+                                                analista...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Vincular
+                                            Chamados Abertos</label>
+                                        <select id="todo-tickets" class="form-input" multiple style="height: 100px;">
+                                            <option value="" disabled>
+                                                Selecione um analista primeiro...</option>
+                                        </select>
+                                        <div class="text-[10px] text-slate-500 mt-1">Segure CTRL para selecionar
+                                            múltiplos chamados.</div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Descrição /
+                                            Primeira Ação</label>
+                                        <textarea id="todo-desc" class="form-input" rows="3"
+                                            placeholder="Ex: Analista notificado via Teams..."></textarea>
+                                    </div>
+                                    <button class="btn-process" style="background: var(--primary-dark);"
+                                        onclick="addTodo()">Criar
+                                        Tarefa</button>
+                                </div>
+                            </div>
+                            <div class="report-card">
+                                <div class="report-card-title flex justify-between items-center">
+                                    <div class="flex items-center"><i class="fas fa-list mr-1"></i> Suas Tarefas Ativas
+                                        (<span id="todo-count">0</span>)</div>
+                                    <div class="flex gap-2">
+                                        <button onclick="exportTodosToPDF()" title="Salvar Planejamento em PDF"
+                                            class="text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded shadow-sm transition"><i
+                                                class="fas fa-file-pdf mr-1"></i> Salvar PDF</button>
+
+                                        <button onclick="openEmailModal()" title="Exportar TODO Planner e Enviar por E-mail"
+                                            class="text-[10px] bg-[var(--primary-dark)] hover:bg-blue-900 text-white px-2.5 py-1.5 rounded shadow-sm transition"><i
+                                                class="fas fa-envelope mr-1"></i> Enviar Daily</button>
+                                    </div>
+                                </div>
+                                <div id="todo-list" style="overflow-y:auto; max-height:500px; padding-right:10px;">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <div id="email-logger-box" style="display:none;" class="mb-4 bg-slate-900 rounded p-2 border border-slate-700 shadow-inner">
-                    <div class="text-[9px] text-slate-400 font-bold uppercase mb-1 flex items-center justify-between">
-                        <span><i class="fas fa-terminal"></i> Console de Execução</span>
-                        <div class="flex gap-1"><div class="w-2 h-2 rounded-full bg-red-500"></div><div class="w-2 h-2 rounded-full bg-yellow-500"></div><div class="w-2 h-2 rounded-full bg-green-500"></div></div>
-                    </div>
-                    <div id="email-logger-content" class="text-[9px] font-mono text-slate-300 h-24 overflow-y-auto stylized-scrollbar pe-1">
-                        <!-- logs injetados via JS -->
-                    </div>
-                </div>
-
-                <div class="flex gap-3 mt-5">
-                    <button onclick="sendEmailTodo()" class="modal-btn flex-1 bg-[var(--primary-dark)] text-white font-bold rounded shadow-sm hover:bg-blue-900 py-3"><i class="fas fa-envelope mr-1"></i> Preparar E-mail</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- GENERIC ALERT MODAL -->
-        <div id="alert-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st" style="z-index: 10010;">
-            <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade relative border-t-4 border-amber-500">
-                <div class="mb-4 text-center">
-                    <div class="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl border border-amber-100">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <h3 id="alert-modal-title" class="text-lg font-black text-slate-800 mb-1">Atenção</h3>
-                    <p id="alert-modal-message" class="text-xs text-slate-500 leading-relaxed">Mensagem de alerta aqui.</p>
-                </div>
-                <div class="flex flex-col gap-3">
-                    <button onclick="closeAlertModal()" class="modal-btn bg-slate-800 hover:bg-slate-900 text-white font-bold shadow-sm py-2 text-xs flex justify-center items-center">
-                        Entendi
-                    </button>
-                </div>
             </div>
         </div>
 
-        <!-- NEW CONFIG MODAL -->
-        <div id="config-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st" style="z-index: 10000;">
-            <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade relative">
-                <button onclick="closeConfigModal()" class="absolute top-3 right-4 text-slate-400 hover:text-red-500 transition text-lg"><i class="fas fa-times"></i></button>
-                
-                <div class="mb-4 text-center">
-                    <div class="w-16 h-16 bg-slate-100 text-slate-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-                        <i class="fas fa-cogs"></i>
-                    </div>
-                    <h3 class="text-lg font-black text-slate-800 mb-1">Configurações de Dados</h3>
-                    <p class="text-[11px] text-slate-500">Associe uma pasta em nuvem (ou local) para monitorar atualizações das planilhas automaticamente.</p>
-                </div>
-
-                <div class="bg-slate-50 border border-slate-200 rounded p-3 mb-5">
-                    <div class="text-[10px] font-bold text-slate-600 mb-2 uppercase">Status da Conexão</div>
-                    <div class="flex items-center gap-2 mb-2">
-                        <div id="sync-status-indicator" class="w-3 h-3 rounded-full bg-red-500 shadow shadow-red-200"></div>
-                        <span id="sync-status-text" class="text-xs font-semibold text-slate-700">Não Conectado</span>
-                    </div>
-                    <p id="sync-folder-path" class="text-[10px] text-slate-500 break-all italic">Nenhuma pasta vinculada nesta sessão.</p>
-                </div>
-
-                <div class="flex flex-col gap-3">
-                    <button onclick="bindCloudFolder()" class="modal-btn bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm py-2 text-xs flex justify-center items-center">
-                        <i class="fas fa-folder-open mr-2"></i> Vincular Pasta Local/Nuvem
-                    </button>
-                </div>
-                
-                <div class="mt-4 pt-4 border-t border-slate-100 text-center">
-                    <p class="text-[9px] text-slate-400">Por segurança do navegador, a permissão na pasta é resetada ao fechar a janela completamente.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- NEW UPDATE ALERT MODAL -->
-        <div id="update-alert-modal" class="fixed top-4 right-4 bg-white rounded-lg shadow-2xl max-w-sm w-full p-4 border-l-4 border-emerald-500 transform transition-transform translate-x-[120%] hidden-st" style="z-index: 10005;">
-            <div class="flex items-start gap-3">
-                <div class="text-emerald-500 text-2xl mt-1"><i class="fas fa-cloud-download-alt"></i></div>
-                <div class="flex-1">
-                    <h4 class="text-sm font-black text-slate-800">Novos Dados Encontrados</h4>
-                    <p class="text-[10px] text-slate-500 mb-3 mt-1 leading-tight">Foram detectadas modificações na sua pasta de relatórios vinculada. Deseja aplicar os dados mais recentes no dashboard?</p>
-                    <div class="flex gap-2">
-                        <button onclick="dismissUpdateModal()" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold rounded">Ignorar</button>
-                        <button onclick="triggerAutoSync()" class="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold rounded flex-1">Sincronizar Agora</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="global-tooltip">
-                <div class="tt-header">
-                        <div class="tt-title" id="tt-tk">INC0000000</div>
-                        <div class="tt-badge" id="tt-st">STATUS</div>
-                    </div>
-                <div class="tt-body">
-                        <div
-                style="color: #94a3b8; font-size: 9px; text-transform: uppercase; margin-bottom: 2px; font-weight: bold;">
-                <i class="fas fa-align-left mr-1"></i> Assunto Registrado</div>
-                        <div id="tt-desc" style="margin-bottom: 10px; font-size: 11px; color: #fff;">...</div>
-                        <div
-                style="color: #94a3b8; font-size: 9px; text-transform: uppercase; margin-bottom: 2px; font-weight: bold;">
-                <i class="fas fa-user-circle mr-1"></i> Solicitante</div>
-                        <div id="tt-req" style="margin-bottom: 8px; font-size: 11px; color: #fff; font-weight:bold;">...
-            </div>
-                    </div>
-                <div class="tt-meta">
-                        <div><span>Atribuído a:</span><strong id="tt-as">...</strong></div>
-                        <div><span>Grupo Resolutor:</span><strong id="tt-gp">...</strong></div>
-                        <div><span>Data Abertura:</span><strong id="tt-op">...</strong></div>
-                        <div><span>Aging Atual:</span><strong id="tt-age" style="color: #f87171;">...</strong></div>
-                        <div id="tt-sla-container"
-                style="grid-column: span 2; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 6px;">
-                                <span>SLA % Consumido</span>
-                                <div
-                    class="w-full bg-slate-700 rounded-full h-3 mt-1 relative overflow-hidden border border-slate-600">
-                                        <div id="tt-sla-bar"
-                        class="h-full absolute left-0 top-0 bottom-0 transition-all"
-                        style="width: 0%; background-color: #10b981 !important;"></div>
-                                        <div id="tt-sla-text"
-                        class="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold z-10"
-                        style="text-shadow: 0 0 2px rgba(0,0,0,0.8);">0%</div>
-                                    </div>
-                            </div>
-                        <div
-                style="grid-column: span 2; margin-top: 2px; padding-top: 6px; border-top: 1px dashed rgba(255,255,255,0.2);">
-                                <span>Ociosidade / Motivo da Espera</span>
-                                <strong id="tt-idle"
-                    style="display: block; font-size: 11px; margin-top: 1px; color:#e2e8f0; font-weight:normal;">...</strong>
-                            </div>
-                    </div>
-            </div>
-
-        <aside id="sidebar" class="sidebar">
-                <div class="sidebar-header">
-                        <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-[#001871] text-white flex items-center justify-center font-bold text-lg shadow-md cursor-pointer" onclick="location.reload()">
-                                    <i class="fas fa-chart-pie"></i>
-                                </div>
-                                <h2 class="text-lg font-bold text-[#001871] cursor-pointer hover:underline" style="margin:0; letter-spacing: -0.5px;" onclick="location.reload()">
-                                    Dashboard
-                                </h2>
-                            </div>
-                        <button class="btn-toggle lg:hidden" onclick="toggleSidebar()"><i
-                    class="fas fa-times"></i></button>
-                    </div>
-                <div class="sidebar-content">
-                        <div class="time-machine">
-                                <label
-                    style="font-size: 12px; font-weight: bold; margin-bottom: 8px; display: block; color:#e2e8f0; text-transform: uppercase; letter-spacing: 0.5px;"><i
-                        class="fas fa-history mr-1"></i> Data de Referência</label>
-                                <input type="date" id="ref-date" class="form-input text-slate-800"
-                    title="Recalcula todo o painel como se hoje fosse este dia.">
-                                <div style="font-size: 10px; color: #bae6fd; margin-top: 8px; line-height: 1.4;">
-                    Selecione um dia do passado para auditar o backlog retroativamente.</div>
-                            </div>
-                        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                                <div
-                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                        <label class="form-label" style="margin:0;">Fontes de Dados</label>
-                                        <button id="btn-clear-files" class="btn-clear hidden-st"
-                        onclick="clearFiles()"><i class="fas fa-trash-alt"></i> Limpar</button>
-                                    </div>
-                                <div id="dropzone"
-                    class="dropzone-discreet border-2 border-dashed border-slate-300 p-2 text-center cursor-pointer transition rounded-lg"
-                    onclick="document.getElementById('file-upload').click()">
-                                        <i class="fas fa-cloud-upload-alt text-xl text-blue-500 mb-1"></i>
-                                        <div class="text-[11px] font-bold text-slate-700">Arraste suas planilhas</div>
-                                        <div class="text-[9px] text-slate-500 mt-[2px]">incident, sc_task, rca, ptask</div>
-                                    </div>
-                                <input type="file" id="file-upload" multiple accept=".xlsx, .xls" class="hidden-st"
-                    onchange="handleFiles(event.target.files)">
-                                <div id="file-status" class="mt-3 text-[10px] space-y-1"></div>
-                            </div>
-                        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                                <label class="form-label"><i class="fas fa-database text-blue-600 mr-1"></i> Backup
-                    Memória (JSON)</label>
-                                <div class="text-[9px] text-slate-500 mb-3 leading-tight">Exporte seu TODO Planner para não perder suas anotações entre sessões.</div>
-                                <div class="flex flex-col gap-2">
-                                        <button onclick="exportBackupJSON()"
-                        class="w-full bg-slate-800 text-white text-[10px] font-bold py-2 rounded shadow hover:bg-slate-700 transition"><i
-                            class="fas fa-download mr-1"></i> Exportar JSON</button>
-                                        <button onclick="document.getElementById('import-json').click()"
-                        class="w-full bg-white text-slate-700 border border-slate-300 text-[10px] font-bold py-2 rounded shadow-sm hover:bg-slate-50 transition"><i
-                            class="fas fa-upload mr-1"></i> Importar JSON</button>
-                                        <input type="file" id="import-json" accept=".json" class="hidden-st"
-                        onchange="importBackupJSON(event)">
-                                    </div>
-                            </div>
-                        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                                <label class="form-label mb-3">Configuração de SLA (Dias)</label>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">INC / Geral</span><input type="number" id="sla-incs" value="7" class="form-input mt-1" onchange="saveConfigs()"></div>
-                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">REQ / UAM</span><input type="number" id="sla-reqs" value="10" class="form-input mt-1" onchange="saveConfigs()"></div>
-                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">PTASK</span><input type="number" id="sla-ptask" value="10" class="form-input mt-1" onchange="saveConfigs()"></div>
-                                        <div><span style="font-size:10px; font-weight:700; color:#64748b; text-transform:uppercase;">RCA</span><input type="number" id="sla-rca" value="10" class="form-input mt-1" onchange="saveConfigs()"></div>
-                                    </div>
-                            </div>
-                        <div style="margin-top: auto;">
-                                <button class="btn-process" onclick="processDashboard()"><i
-                        class="fas fa-bolt mr-2"></i> Gerar Relatório</button>
-                            </div>
-                    </div>
-            </aside>
-
-        <main class="main-wrapper">
-                <header class="top-header">
-                        <div style="display: flex; align-items: center; gap: 20px;">
-                                <button class="btn-toggle" onclick="toggleSidebar()"><i
-                        class="fas fa-bars"></i></button>
-                                <div class="hidden sm:block">
-                                        <h1
-                        style="margin: 0; font-size: 20px; font-weight: 900; color: var(--primary-dark); text-transform: uppercase; letter-spacing: -0.5px;">
-                        Painel Executivo ITSM</h1>
-                                        <span id="extraction-time"
-                        class="text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded shadow-sm inline-block mt-1"><i
-                            class="fas fa-clock mr-1"></i> Aguardando extração...</span>
-                                    </div>
-                            </div>
-                        
-                        <div class="flex items-center gap-3 w-full justify-end max-w-[450px]">
-                                <div class="search-wrapper visible w-full" id="search-container">
-                                        <i class="fas fa-search search-icon"></i>
-                                        <input type="text" id="globalSearch" class="search-input"
-                        placeholder="Pesquisar ticket, assunto, status..." onkeyup="performGlobalSearch(event)">
-                                    </div>
-                                <button onclick="takeScreenshot()"
-                    class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-blue-100 hover:text-blue-600 transition shadow-sm w-10 h-10 flex items-center justify-center flex-shrink-0"
-                    title="Tirar Foto da Tela (Baixar PNG)">
-                                        <i class="fas fa-camera text-sm"></i>
-                                </button>
-
-                                <button onclick="manualSyncCheck()"
-                    class="bg-blue-600 text-white border border-blue-700 p-2 rounded-full hover:bg-blue-700 transition shadow-md w-10 h-10 flex items-center justify-center flex-shrink-0"
-                    id="btn-manual-sync"
-                    title="Sincronizar com a Nuvem agora">
-                                        <i class="fas fa-sync text-sm" id="icon-sync"></i>
-                                </button>
-                                <button onclick="openConfigModal()"
-                    class="bg-slate-100 text-slate-600 border border-slate-200 p-2 rounded-full hover:bg-emerald-100 hover:text-emerald-700 transition shadow-sm w-10 h-10 flex items-center justify-center flex-shrink-0"
-                    title="Configurações e Sincronização">
-                                        <i class="fas fa-cog text-sm"></i>
-                                </button>
-                            </div>
-                    </header>
-
-                <div class="tabs-sticky hidden-st" id="tabs-container">
-                        <div class="tabs-nav">
-                                <button class="tab-btn active" onclick="switchTab('tab-open', this)"
-                    style="color: var(--primary-dark); font-weight: 900;"><i class="fas fa-folder-open mr-1"></i>
-                    Tickets Abertos</button>
-                                <button class="tab-btn" onclick="switchTab('tab-inc', this)"><i
-                        class="fas fa-bolt mr-1"></i> INCs</button>
-                                <button class="tab-btn" onclick="switchTab('tab-req', this)"><i
-                        class="fas fa-tools mr-1"></i> REQs</button>
-                                <button class="tab-btn" onclick="switchTab('tab-uam', this)"><i
-                        class="fas fa-key mr-1"></i> UAMs</button>
-                                <button class="tab-btn" onclick="switchTab('tab-cons', this)"><i
-                        class="fas fa-globe mr-1"></i> Consolidado</button>
-                                <button class="tab-btn" onclick="switchTab('tab-prb', this)"><i
-                        class="fas fa-bullseye mr-1"></i> PRB / PTASK</button>
-                                <button class="tab-btn" onclick="switchTab('tab-class', this)"><i
-                        class="fas fa-exchange-alt mr-1"></i> Erros Classificação</button>
-                                <button class="tab-btn" onclick="switchTab('tab-todo', this)"
-                    style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i
-                        class="fas fa-tasks mr-1"></i> TODO</button>
-                            </div>
-                    </div>
-
-                <div class="content-area" id="capture-area">
-                        <div class="content-container">
-                                <div id="init-alert"
-                    style="background-color: var(--primary-light); color: var(--primary-dark); padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 15px;">
-                                        <i class="fas fa-file-import text-3xl text-blue-600"></i>
-                                        <div>
-                                                <div class="font-bold text-blue-900 mb-1">Aguardando Importação</div>
-                                                <div class="text-blue-800 text-sm font-normal">Utilize o menu lateral
-                            esquerdo para carregar os relatórios extraídos do ServiceNow.</div>
-                                            </div>
-                                    </div>
-
-                                <div id="loader" class="hidden-st"
-                    style="text-align: center; padding: 80px 20px; color: var(--primary-dark);">
-                                        <i class="fas fa-circle-notch fa-spin"
-                        style="font-size: 48px; margin-bottom: 20px; color: var(--accent);"></i>
-                                        <div style="font-size: 18px; font-weight: 800;">Processando Métricas
-                        Históricas...</div>
-                                        <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Cruzando dados e
-                        renderizando visualizações via Chart.js</div>
-                                    </div>
-
-                                <div id="report-content" class="hidden-st">
-                                        <div id="tab-open" class="animate-fade tab-pane"></div>
-                                        <div id="tab-inc" class="animate-fade hidden-st tab-pane"></div>
-                                        <div id="tab-req" class="animate-fade hidden-st tab-pane"></div>
-                                        <div id="tab-uam" class="animate-fade hidden-st tab-pane"></div>
-                                        <div id="tab-cons" class="animate-fade hidden-st tab-pane"></div>
-                                        <div id="tab-prb" class="animate-fade hidden-st tab-pane"></div>
-                                        <div id="tab-class" class="animate-fade hidden-st tab-pane"></div>
-                                        <div id="tab-search" class="animate-fade hidden-st tab-pane"></div>
-                                        
-                                        <div id="tab-todo" class="animate-fade hidden-st tab-pane">
-                                                <div class="report-section-title"
-                            style="background-color: var(--primary-dark);"><i class="fas fa-clipboard-check mr-2"></i>
-                            PLANEJAMENTO TODO - Gerenciador de Tarefas</div>
-                                                <div class="grid-2" style="grid-template-columns: 1fr 2fr;">
-                                                        <div class="report-card">
-                                                                <div class="report-card-title"><i
-                                        class="fas fa-plus"></i> Nova Tarefa Inicial</div>
-                                                                <div
-                                    style="display:flex; flex-direction:column; gap:15px;">
-                                                                        <div>
-                                                                                <label class="form-label">Analista
-                                            Responsável</label>
-                                                                                <select id="todo-analyst"
-                                            class="form-input" onchange="updateTicketsDropdown()">
-                                                                                        <option value="">Selecione um
-                                                analista...</option>
-                                                                                    </select>
-                                                                            </div>
-                                                                        <div>
-                                                                                <label class="form-label">Vincular
-                                            Chamados Abertos</label>
-                                                                                <select id="todo-tickets"
-                                            class="form-input" multiple style="height: 100px;">
-                                                                                        <option value="" disabled>
-                                                Selecione um analista primeiro...</option>
-                                                                                    </select>
-                                                                                <div
-                                            class="text-[10px] text-slate-500 mt-1">Segure CTRL para selecionar
-                                            múltiplos chamados.</div>
-                                                                            </div>
-                                                                        <div>
-                                                                                <label class="form-label">Descrição /
-                                            Primeira Ação</label>
-                                                                                <textarea id="todo-desc"
-                                            class="form-input" rows="3"
-                                            placeholder="Ex: Analista notificado via Teams..."></textarea>
-                                                                            </div>
-                                                                        <button class="btn-process"
-                                        style="background: var(--primary-dark);" onclick="addTodo()">Criar
-                                        Tarefa</button>
-                                                                    </div>
-                                                            </div>
-                                                        <div class="report-card">
-                                                                <div class="report-card-title flex justify-between items-center"><div class="flex items-center"><i
-                                        class="fas fa-list mr-1"></i> Suas Tarefas Ativas (<span id="todo-count">0</span>)</div>
-                                        <button onclick="openEmailModal()" title="Exportar TODO Planner e Enviar por E-mail" class="text-[10px] bg-[var(--primary-dark)] hover:bg-blue-900 text-white px-2.5 py-1.5 rounded shadow-sm transition"><i class="fas fa-envelope mr-1"></i> Enviar Daily</button>
-                                </div>
-                                                                <div id="todo-list"
-                                    style="overflow-y:auto; max-height:500px; padding-right:10px;"></div>
-                                                            </div>
-                                                    </div>
-                                            </div>
-                                    </div>
-                            </div>
-                    </div>
-
-                <div id="ticket-modal-backdrop"
+        <div id="ticket-modal-backdrop"
             class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[10010] hidden-st flex items-center justify-center p-4 transition-opacity opacity-0">
-                        <div id="ticket-modal-content"
+            <div id="ticket-modal-content"
                 class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col transform transition-all scale-95 overflow-hidden">
-                                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
-                                        <div class="flex items-center gap-3">
-                                                <div
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                    <div class="flex items-center gap-3">
+                        <div
                             class="w-12 h-12 rounded-lg bg-[var(--primary-dark)] text-white flex items-center justify-center font-bold text-2xl shadow-sm">
-                            <i class="fas fa-ticket-alt"></i></div>
-                                                <div>
-                                                        <h3 id="modal-tk"
+                            <i class="fas fa-ticket-alt"></i>
+                        </div>
+                        <div>
+                            <h3 id="modal-tk"
                                 class="text-xl font-black text-[var(--primary-dark)] m-0 leading-tight tracking-tight">
                                 INC0000000</h3>
-                                                        <div class="flex items-center gap-2 mt-1 flex-wrap">
-                                                                <span id="modal-state"
+                            <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                <span id="modal-state"
                                     class="text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded shadow-sm">STATUS</span>
-                                                                <span id="modal-reason"
+                                <span id="modal-reason"
                                     class="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 hidden-st"></span>
-                                                            </div>
-                                                    </div>
-                                            </div>
-                                        <button onclick="closeTicketDetails()"
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="closeTicketDetails()"
                         class="text-slate-400 hover:text-red-500 text-2xl outline-none transition-colors"><i
                             class="fas fa-times"></i></button>
-                                    </div>
-                                
-                                <div class="flex-1 overflow-hidden flex flex-col lg:flex-row">
-                                        <div
+                </div>
+
+                <div class="flex-1 overflow-hidden flex flex-col lg:flex-row">
+                    <div
                         class="w-full lg:w-[280px] border-r border-slate-200 overflow-y-auto p-4 bg-slate-50 flex-shrink-0">
-                                                
-                                                <div class="mb-4 grid grid-cols-2 gap-3">
-                                                        <div
-                                class="bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
-                                                                <div
-                                    class="text-[10px] font-bold text-slate-400 uppercase mb-1">Aging Total</div>
-                                                                <div id="modal-age"
-                                    class="text-lg font-black text-slate-700">...</div>
-                                                            </div>
-                                                        <div
-                                class="bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
-                                                                <div
-                                    class="text-[10px] font-bold text-slate-400 uppercase mb-1">Ociosidade</div>
-                                                                <div id="modal-idle"
-                                    class="text-lg font-black text-slate-700">...</div>
-                                                            </div>
-                                                        <div
+
+                        <div class="mb-4 grid grid-cols-2 gap-3">
+                            <div class="bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Aging Total</div>
+                                <div id="modal-age" class="text-lg font-black text-slate-700">...</div>
+                            </div>
+                            <div class="bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Ociosidade</div>
+                                <div id="modal-idle" class="text-lg font-black text-slate-700">...</div>
+                            </div>
+                            <div
                                 class="col-span-2 bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
-                                                                <div
-                                    class="text-[10px] font-bold text-slate-400 uppercase mb-2">Progresso do SLA</div>
-                                                                <div
+                                <div class="text-[10px] font-bold text-slate-400 uppercase mb-2">Progresso do SLA</div>
+                                <div
                                     class="w-full bg-slate-100 rounded-full h-3 relative overflow-hidden border border-slate-300/50">
-                                                                        <div id="modal-sla-bar"
-                                        class="h-full absolute left-0 top-0 bottom-0 transition-all"
+                                    <div id="modal-sla-bar" class="h-full absolute left-0 top-0 bottom-0 transition-all"
                                         style="width: 0%; background-color: #10b981 !important;"></div>
-                                                                        <div id="modal-sla-text-modal"
+                                    <div id="modal-sla-text-modal"
                                         class="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold z-10"
                                         style="text-shadow: 0 0 2px rgba(0,0,0,0.8);">0%</div>
-                                                                    </div>
-                                                            </div>
-                                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                                                <div
-                            class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-slate-200">
-                                                        <h4
-                                class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2"><i
+                        <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                            <h4 class="text-xs font-black text-slate-400 uppercase mb-3 border-b pb-2"><i
                                     class="fas fa-info-circle mr-1"></i> Informações Gerais</h4>
-                                                        <div class="space-y-3">
-                                                                <div><label
+                            <div class="space-y-3">
+                                <div><label
                                         class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Solicitante</label>
                                     <div id="modal-req"
                                         class="text-sm font-bold text-slate-700 bg-slate-50 px-2 py-1.5 rounded border border-slate-100">
                                         ...</div>
                                 </div>
-                                                                <div><label
+                                <div><label
                                         class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Analista</label>
                                     <div id="modal-asg"
                                         class="text-sm font-bold text-blue-700 bg-blue-50 px-2 py-1.5 rounded border border-blue-100">
                                         ...</div>
                                 </div>
-                                                                <div><label
+                                <div><label
                                         class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Grupo</label>
                                     <div id="modal-gp"
                                         class="text-xs font-bold bg-slate-50 px-2 py-1.5 rounded border border-slate-100">
                                         ...</div>
                                 </div>
-                                                                <div
-                                    class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 mt-1">
-                                                                        <div><label
+                                <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 mt-1">
+                                    <div><label
                                             class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Abertura</label>
                                         <div id="modal-op"
                                             class="text-xs font-semibold bg-slate-50 px-2 py-1 rounded border border-slate-100">
                                             ...</div>
                                     </div>
-                                                                        <div><label
+                                    <div><label
                                             class="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Fechamento</label>
                                         <div id="modal-cl"
                                             class="text-xs font-semibold bg-slate-50 px-2 py-1 rounded border border-slate-100">
                                             ...</div>
                                     </div>
-                                                                    </div>
-                                                            </div>
-                                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                                                <div
-                            class="bg-blue-50/40 p-4 rounded-lg border border-blue-200 shadow-sm">
-                                                        <h4
-                                class="text-xs font-black text-blue-800 uppercase mb-3 border-b border-blue-100 pb-2"><i
+                        <div class="bg-blue-50/40 p-4 rounded-lg border border-blue-200 shadow-sm">
+                            <h4 class="text-xs font-black text-blue-800 uppercase mb-3 border-b border-blue-100 pb-2"><i
                                     class="fas fa-tasks mr-1"></i> TODO Planner</h4>
-                                                        <div id="modal-todo-container"
-                                class="space-y-2 max-h-[250px] overflow-y-auto pr-2"></div>
-                                                        <div class="mt-4 pt-3 border-t border-blue-100">
-                                                                <textarea id="modal-new-todo"
+                            <div id="modal-todo-container" class="space-y-2 max-h-[250px] overflow-y-auto pr-2"></div>
+                            <div class="mt-4 pt-3 border-t border-blue-100">
+                                <textarea id="modal-new-todo"
                                     class="w-full p-2 text-xs rounded border border-blue-200 outline-none focus:border-blue-500 font-inter"
                                     rows="2" placeholder="Nova ação para este ticket..."></textarea>
-                                                                <button onclick="addTodoFromModal()"
+                                <button onclick="addTodoFromModal()"
                                     class="w-full mt-2 bg-blue-600 text-white text-[10px] font-bold py-2 rounded uppercase shadow hover:bg-blue-700 transition"><i
                                         class="fas fa-plus mr-1"></i> Salvar Ação</button>
-                                                            </div>
-                                                    </div>
-                                            </div>
+                            </div>
+                        </div>
+                    </div>
 
-                                        <div class="flex-1 overflow-y-auto p-6 bg-white relative">
-                                                <h4 id="modal-title"
-                            class="text-lg font-black text-slate-800 mb-2 leading-tight">...</h4>
-                                                <div id="modal-desc"
+                    <div class="flex-1 overflow-y-auto p-6 bg-white relative">
+                        <h4 id="modal-title" class="text-lg font-black text-slate-800 mb-2 leading-tight">...</h4>
+                        <div id="modal-desc"
                             class="text-sm text-slate-600 mb-6 pb-4 border-b border-slate-100 bg-slate-50 p-4 rounded-lg border-l-4 border-blue-200 whitespace-pre-wrap leading-relaxed">
                             ...</div>
-                                                
-                                                <h4
-                            class="text-xs font-black text-[var(--primary-dark)] uppercase mb-4 sticky top-0 bg-white py-2 z-10 border-b border-slate-100">
-                            <i class="fas fa-comments mr-1"></i> Histórico de Interações (Thread)</h4>
-                                                <div id="modal-timeline" class="pl-2"></div>
-                                            </div>
-                                    </div>
-                            </div>
-                    </div>
 
-                <div id="drilldown-modal-backdrop"
+                        <h4
+                            class="text-xs font-black text-[var(--primary-dark)] uppercase mb-4 sticky top-0 bg-white py-2 z-10 border-b border-slate-100">
+                            <i class="fas fa-comments mr-1"></i> Histórico de Interações (Thread)
+                        </h4>
+                        <div id="modal-timeline" class="pl-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="drilldown-modal-backdrop"
             class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[10000] hidden-st flex items-center justify-center p-4 transition-opacity opacity-0">
-                        <div id="drilldown-modal-content"
+            <div id="drilldown-modal-content"
                 class="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[90vh] flex flex-col transform transition-all scale-95 overflow-hidden">
-                                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
-                                        <div class="flex items-center gap-3">
-                                                <div
+                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                    <div class="flex items-center gap-3">
+                        <div
                             class="w-10 h-10 rounded-lg bg-[var(--primary-dark)] text-white flex items-center justify-center font-bold text-xl shadow-sm">
-                            <i class="fas fa-table"></i></div>
-                                                <div>
-                                                        <h3 id="drilldown-title"
+                            <i class="fas fa-table"></i>
+                        </div>
+                        <div>
+                            <h3 id="drilldown-title"
                                 class="text-lg font-black text-[var(--primary-dark)] m-0 leading-tight tracking-tight">
                                 Detalhes</h3>
-                                                        <span id="drilldown-subtitle"
+                            <span id="drilldown-subtitle"
                                 class="text-[10px] uppercase font-bold text-slate-500 mt-1 inline-block">0
                                 registros</span>
-                                                    </div>
-                                            </div>
-                                        <button onclick="closeDrilldown()"
+                        </div>
+                    </div>
+                    <button onclick="closeDrilldown()"
                         class="text-slate-400 hover:text-red-500 text-3xl outline-none transition-colors"><i
                             class="fas fa-times"></i></button>
-                                    </div>
-                                <div class="flex-1 overflow-y-auto p-4 bg-white" id="drilldown-table-container">
-                                        </div>
-                            </div>
-                    </div>
-                </main>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 bg-white" id="drilldown-table-container">
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
         // ==========================================
@@ -1809,18 +1862,18 @@
             document.getElementById('drilldown-table-container').scrollTop = 0;
         }
         window.openModalTodoAnalysts = new Set();
-        
+
         // ==========================================
         // AUTO-SYNC (CLOUD FOLDER) LOGIC
         // ==========================================
         // Segurança: Limpa qualquer intervalo residual de carregamentos anteriores
-        if(window.syncContext && window.syncContext.interval) clearInterval(window.syncContext.interval);
-        
-        window.syncContext = { 
-            dirHandle: null, 
-            interval: null, 
+        if (window.syncContext && window.syncContext.interval) clearInterval(window.syncContext.interval);
+
+        window.syncContext = {
+            dirHandle: null,
+            interval: null,
             cacheStamps: {},
-            isSyncing: false 
+            isSyncing: false
         };
 
         function openConfigModal() { document.getElementById('config-modal').classList.remove('hidden-st'); }
@@ -1854,7 +1907,7 @@
                 console.log("[CONFIG] Configurações recuperadas.");
             }
         }
-        
+
         function showAlertModal(title, message) {
             document.getElementById('alert-modal-title').innerText = title;
             document.getElementById('alert-modal-message').innerText = message;
@@ -1899,26 +1952,26 @@
             try {
                 const handle = await window.showDirectoryPicker({ mode: 'read' });
                 window.syncContext.dirHandle = handle;
-                window.syncContext.cacheStamps = {}; 
-                
+                window.syncContext.cacheStamps = {};
+
                 // Salva no IndexedDB
                 await saveHandle(handle);
 
                 document.getElementById('sync-status-indicator').className = 'w-3 h-3 rounded-full bg-emerald-500 shadow shadow-emerald-200';
                 document.getElementById('sync-status-text').innerText = 'Pasta vinculada';
                 document.getElementById('sync-folder-path').innerText = handle.name;
-                
+
                 console.log("[SYNC] Pasta vinculada e salva no DB:", handle.name);
                 showAlertModal("Pasta Vinculada", "A pasta '" + handle.name + "' foi associada e será lembrada. Clique em Atualizar (🔄) no topo.");
                 setTimeout(() => closeConfigModal(), 500);
-            } catch(e) {
+            } catch (e) {
                 console.warn("Folder picker cancelado ou erro:", e);
             }
         }
 
         async function manualSyncCheck() {
             if (window.syncContext.isSyncing) return;
-            
+
             if (!window.syncContext.dirHandle) {
                 showAlertModal("Pasta não Vinculada", "Para sincronizar, você precisa primeiro associar uma pasta do seu computador ou nuvem (onde os arquivos .xlsx estão salvos).");
                 setTimeout(() => openConfigModal(), 500);
@@ -1927,17 +1980,17 @@
 
             const btn = document.getElementById('btn-manual-sync');
             const icon = document.getElementById('icon-sync');
-            
+
             window.syncContext.isSyncing = true;
             btn.classList.add('opacity-50', 'cursor-not-allowed');
             icon.classList.add('fa-spin');
-            
+
             const msg = document.getElementById('extraction-time');
             msg.className = "text-[10px] font-bold text-white bg-amber-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
             msg.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Lendo arquivos da pasta...';
-            
+
             console.log("[SYNC] Início da sincronização manual...");
-            
+
             try {
                 // Recupera permissão (Browser security: exige interação após refresh)
                 const permission = await window.syncContext.dirHandle.queryPermission({ mode: 'read' });
@@ -1946,23 +1999,23 @@
                     // O clique no botão 'Atualizar' conta como interação.
                     const req = await window.syncContext.dirHandle.requestPermission({ mode: 'read' });
                     if (req !== 'granted') {
-                         showAlertModal("Permissão Necessária", "O navegador bloqueou o acesso à pasta. Por favor, clique novamente em Atualizar e autorize o acesso.");
-                         throw new Error("Permissão negada");
+                        showAlertModal("Permissão Necessária", "O navegador bloqueou o acesso à pasta. Por favor, clique novamente em Atualizar e autorize o acesso.");
+                        throw new Error("Permissão negada");
                     }
                 }
 
                 // Lê TODOS os arquivos xlsx da pasta
                 let filesToProcess = [];
                 let totalFound = 0;
-                
+
                 for await (const entry of window.syncContext.dirHandle.values()) {
                     if (entry.kind !== 'file' || !entry.name.endsWith('.xlsx')) continue;
-                    
+
                     let nameLower = entry.name.toLowerCase();
-                    if(nameLower.includes('inc') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('ptask') || nameLower.includes('prb')) {
+                    if (nameLower.includes('inc') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('ptask') || nameLower.includes('prb')) {
                         const file = await entry.getFile();
                         totalFound++;
-                        
+
                         // Verifica se o arquivo é mais recente que o último processado
                         const cachedStamp = window.syncContext.cacheStamps[nameLower];
                         if (!cachedStamp || file.lastModified > cachedStamp) {
@@ -1974,25 +2027,25 @@
                         }
                     }
                 }
-                
+
                 if (totalFound === 0) {
                     showAlertModal("Nenhum Arquivo", "Não encontramos arquivos .xlsx válidos (INC, REQ, RCA, PTASK) na pasta vinculada.");
                     msg.className = "text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
                     msg.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Nenhum arquivo encontrado';
                     return;
                 }
-                
+
                 if (filesToProcess.length > 0) {
                     msg.innerHTML = `<i class="fas fa-cog fa-spin mr-1"></i> Processando ${filesToProcess.length} arquivo(s)...`;
-                    
+
                     // Processa todos os arquivos atualizados
                     await processArrayOfFiles(filesToProcess);
-                    
+
                     // Gera o relatório automaticamente
                     if (typeof processDashboard === 'function') {
                         processDashboard();
                     }
-                    
+
                     const now = new Date();
                     msg.className = "text-[10px] font-bold text-white bg-blue-600 px-2 py-0.5 rounded shadow-sm inline-block mt-1 animate-pulse";
                     msg.innerHTML = `<i class="fas fa-check-circle mr-1"></i> Atualizado: ${now.toLocaleTimeString('pt-BR')} (${filesToProcess.length} arquivo(s))`;
@@ -2006,7 +2059,7 @@
                         msg.innerHTML = '<i class="fas fa-clock mr-1"></i> Dados em dia';
                     }, 3000);
                 }
-                
+
             } catch (e) {
                 console.warn("[SYNC] Falha na sincronização ou permissão negada:", e);
                 showAlertModal("Erro de Acesso", "Não conseguimos acessar os arquivos. Clique na engrenagem e selecione a pasta novamente para reativar o acesso.");
@@ -2025,14 +2078,14 @@
         async function processArrayOfFiles(fileObjs) {
             return new Promise((resolve) => {
                 let processed = 0;
-                if(fileObjs.length === 0) return resolve();
-                
+                if (fileObjs.length === 0) return resolve();
+
                 fileObjs.forEach(obj => {
                     const reader = new FileReader();
                     reader.onload = e => {
                         parseExcelBlob(e.target.result, obj.name, obj.originalName || obj.file.name);
                         processed++;
-                        if(processed === fileObjs.length) resolve();
+                        if (processed === fileObjs.length) resolve();
                     };
                     reader.readAsArrayBuffer(obj.file);
                 });
@@ -2044,15 +2097,15 @@
             let msg = document.getElementById('extraction-time');
             msg.className = "text-[10px] font-bold text-white bg-amber-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
             msg.innerHTML = '<i class="fas fa-sync fa-spin mr-1"></i> Carregando Atualizações...';
-            
+
             setTimeout(async () => {
-                if(window.pendingFilesToProcess) {
+                if (window.pendingFilesToProcess) {
                     await processArrayOfFiles(window.pendingFilesToProcess);
                     window.pendingFilesToProcess = null;
                 }
-                
+
                 // Executa a macro normal do refresh
-                if(typeof processDashboard === 'function') {
+                if (typeof processDashboard === 'function') {
                     processDashboard();
                 }
 
@@ -2079,11 +2132,11 @@
             else if (nameLower.includes('prb') && cleanJson.length > 0) RawData.prb = cleanJson;
             else {
                 console.warn(`[DATA] Arquivo '${originalName}' ignorado ou sem dados válidos. Mantendo dados existentes.`);
-                return; 
+                return;
             }
 
             let badgeHtml = `<div class="file-badge"><span class="truncate"><i class="fas fa-file-excel mr-1"></i> ${originalName}</span><i class="fas fa-check"></i></div>`;
-            if(!document.getElementById('file-status').innerHTML.includes(originalName)) {
+            if (!document.getElementById('file-status').innerHTML.includes(originalName)) {
                 document.getElementById('file-status').innerHTML += badgeHtml;
                 document.getElementById('btn-clear-files').classList.remove('hidden-st');
             }
@@ -2118,7 +2171,7 @@
             if (totalPages <= 1) return '';
 
             const changeFn = type === 'search' ? 'changeSearchPage' : 'changeDrilldownPage';
-            
+
             return `
             <div class="pagination-container">
                 <button class="pagination-btn" onclick="${changeFn}(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
@@ -2202,14 +2255,14 @@
         function takeScreenshot() {
             const btn = document.querySelector('.fa-camera').parentElement;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i>';
-            
+
             // Otimizado: Redução de scale de 2.0 para 1.2 para ser instantâneo e redução de latência
-            html2canvas(document.getElementById('capture-area'), { 
-                scale: 1.2, 
-                logging: false, 
+            html2canvas(document.getElementById('capture-area'), {
+                scale: 1.2,
+                logging: false,
                 useCORS: true,
                 imageTimeout: 0,
-                backgroundColor: "#f8fafc" 
+                backgroundColor: "#f8fafc"
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `Painel_ITSM_EliteMaster_${new Date().toISOString().slice(0, 10)}.png`;
@@ -2249,12 +2302,12 @@
                     if (Array.isArray(newTodos)) {
                         todoList = newTodos;
                         saveTodos();
-                        
+
                         if (newConfig) {
                             localStorage.setItem('eliteMasterConfigV1', JSON.stringify(newConfig));
                             loadConfigs();
                         }
-                        
+
                         alert("Backup importado com sucesso! Dados e configurações restaurados.");
                         renderTodos();
                     }
@@ -2270,16 +2323,16 @@
             let details = document.querySelectorAll('#tab-open details.saas-accordion');
             let isOpen = Array.from(details).some(d => d.hasAttribute('open'));
 
-            if(isOpen) {
+            if (isOpen) {
                 // Ao menos um está aberto -> fechar todos
                 details.forEach(d => d.removeAttribute('open'));
                 let btn = document.getElementById('btn-toggle-accordions');
-                if(btn) btn.innerHTML = '<i class="fas fa-expand-alt"></i> Expandir Todos';
+                if (btn) btn.innerHTML = '<i class="fas fa-expand-alt"></i> Expandir Todos';
             } else {
                 // Todos fechados -> expandir todos
                 details.forEach(d => d.setAttribute('open', ''));
                 let btn = document.getElementById('btn-toggle-accordions');
-                if(btn) btn.innerHTML = '<i class="fas fa-compress-alt"></i> Recolher Todos';
+                if (btn) btn.innerHTML = '<i class="fas fa-compress-alt"></i> Recolher Todos';
             }
         };
 
@@ -2664,7 +2717,7 @@
 
         function editTodoHistory(tId, hIdx) {
             let tk = todoList.find(t => t.id === tId);
-            if(!tk) return;
+            if (!tk) return;
             currentEditTodo = { id: tId, idx: hIdx };
             document.getElementById('todo-edit-input').value = tk.history[hIdx].text;
             document.getElementById('todo-edit-modal').classList.remove('hidden-st');
@@ -2676,21 +2729,21 @@
         }
 
         function saveEditTodoModal() {
-            if(!currentEditTodo) return;
+            if (!currentEditTodo) return;
             let tk = todoList.find(t => t.id === currentEditTodo.id);
-            if(!tk) return;
+            if (!tk) return;
             let newText = document.getElementById('todo-edit-input').value.trim();
-            if(newText !== "") {
+            if (newText !== "") {
                 tk.history[currentEditTodo.idx].text = newText;
                 saveTodos();
                 renderTodos();
-                if(currentModalTk) renderModalTodos(currentModalTk);
+                if (currentModalTk) renderModalTodos(currentModalTk);
             }
             closeEditTodoModal();
         }
 
         function openEmailModal() {
-            if(todoList.length === 0) return alert("Não existem tarefasativas para enviar por e-mail no momento.");
+            if (todoList.length === 0) return alert("Não existem tarefasativas para enviar por e-mail no momento.");
             document.getElementById('email-todo-modal').classList.remove('hidden-st');
         }
 
@@ -2700,11 +2753,191 @@
             document.getElementById('email-todo-modal').classList.add('hidden-st');
         }
 
+        async function exportTodosToPDF() {
+            if (todoList.length === 0) return alert("Não existem tarefas ativas para exportar no momento.");
+
+            const { jsPDF } = window.jspdf;
+            const doc = jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const today = new Date().toLocaleDateString('pt-BR');
+            const now = new Date().toLocaleString('pt-BR');
+
+            // --- CONFIGURAÇÃO VISUAL --- 
+            const primaryColor = [30, 58, 138]; // #1E3A8A
+            const accentColor = [0, 24, 113];   // #001871
+            const textColor = [30, 41, 59];    // #1E293B
+
+            // --- CABEÇALHO ---
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, 210, 40, 'F');
+
+            doc.setTextColor(255, 255, 255);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(22);
+            doc.text("DAILY REPORT / PLANEJAMENTO TODO", 105, 20, { align: 'center' });
+
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Gerado em: ${now}`, 105, 30, { align: 'center' });
+
+            // --- AGRUPAMENTO POR ANALISTA ---
+            let groups = {};
+            todoList.forEach(t => {
+                if (!groups[t.analyst]) groups[t.analyst] = [];
+                groups[t.analyst].push(t);
+            });
+
+            let startY = 50;
+
+            for (let analyst in groups) {
+                // Título do Analista
+                doc.setDrawColor(226, 232, 240);
+                doc.setFillColor(248, 250, 252);
+                doc.rect(14, startY - 5, 182, 10, 'FD');
+
+                doc.setTextColor(...accentColor);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(12);
+                doc.text(`ANALISTA: ${analyst.toUpperCase()}`, 20, startY + 1.5);
+
+                const analystTodos = groups[analyst];
+                const tableData = [];
+
+                analystTodos.forEach(t => {
+                    const ticket = (t.ticket && !t.ticket.includes('undefined')) ? t.ticket : 'Geral';
+                    
+                    // Busca Contexto do Chamado
+                    let context = '-';
+                    if (ticket !== 'Geral') {
+                        let rec = findTicketRecord(ticket);
+                        if (rec) {
+                            context = getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '-';
+                        }
+                    }
+
+                    // Cálculo de Status
+                    let status = 'Pendente';
+                    const total = t.history.length;
+                    const done = t.history.filter(h => h.striked).length;
+                    if (total > 0) {
+                        if (done === total) status = 'Efetuada';
+                        else if (done > 0) status = 'Parcialmente Efetuada';
+                    }
+
+                    // Formatação do Histórico (espaço para o ícone desenhado)
+                    const historyLines = t.history.map(h => `      (${h.date.split(' ')[1]}) ${h.text}`);
+                    
+                    tableData.push([
+                        ticket,
+                        context,
+                        t.date,
+                        status,
+                        { 
+                            content: historyLines.join('\n'), 
+                            strikedItems: t.history.map(h => h.striked) 
+                        }
+                    ]);
+                });
+
+                doc.autoTable({
+                    startY: startY + 8,
+                    head: [['Ticket', 'Contexto', 'Planejado', 'Status', 'Ações / Histórico']],
+                    body: tableData,
+                    theme: 'grid',
+                    headStyles: { 
+                        fillColor: primaryColor, 
+                        textColor: [255, 255, 255],
+                        fontSize: 8,
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    columnStyles: {
+                        0: { cellWidth: 22, fontStyle: 'bold', halign: 'center' },
+                        1: { cellWidth: 35, fontSize: 7 },
+                        2: { cellWidth: 20, halign: 'center', fontSize: 7 },
+                        3: { cellWidth: 25, halign: 'center', fontStyle: 'bold', fontSize: 7 },
+                        4: { cellWidth: 'auto', fontSize: 7 }
+                    },
+                    styles: {
+                        fontSize: 7,
+                        cellPadding: 3,
+                        valign: 'middle',
+                        overflow: 'linebreak'
+                    },
+                    margin: { left: 14, right: 14 },
+                    willDrawCell: (data) => {
+                        // Cores para o Status (Coluna 3) - Estilo Badge
+                        if (data.section === 'body' && data.column.index === 3) {
+                            const val = data.cell.raw;
+                            if (val === 'Efetuada') {
+                                data.cell.styles.fillColor = [20, 150, 80]; // Verde
+                                data.cell.styles.textColor = [255, 255, 255];
+                            } else if (val === 'Parcialmente Efetuada') {
+                                data.cell.styles.fillColor = [255, 140, 0]; // Laranja
+                                data.cell.styles.textColor = [255, 255, 255];
+                            } else if (val === 'Pendente') {
+                                data.cell.styles.fillColor = [200, 30, 30]; // Vermelho
+                                data.cell.styles.textColor = [255, 255, 255];
+                            }
+                        }
+                    },
+                    didDrawCell: (data) => {
+                        // Desenhar ícones manuais na coluna de Histórico (Coluna 4)
+                        if (data.section === 'body' && data.column.index === 4) {
+                            const strikedItems = data.cell.raw.strikedItems;
+                            if (!strikedItems) return;
+
+                            const x = data.cell.x + 2;
+                            let y = data.cell.y + 4.5;
+
+                            strikedItems.forEach(isDone => {
+                                if (isDone) {
+                                    // Desenha Checkmark Verde
+                                    doc.setDrawColor(34, 197, 94);
+                                    doc.setLineWidth(0.4);
+                                    doc.line(x, y, x + 1, y + 1);
+                                    doc.line(x + 1, y + 1, x + 2.5, y - 1);
+                                } else {
+                                    // Desenha Círculo Cinza
+                                    doc.setDrawColor(200, 200, 200);
+                                    doc.setLineWidth(0.3);
+                                    doc.circle(x + 1.25, y, 0.8);
+                                }
+                                y += (data.cell.styles.lineHeight || 3.5); // Ajuste fino do line height
+                            });
+                        }
+                    },
+                    didDrawPage: (data) => {
+                        startY = data.cursor.y + 15;
+                    }
+                });
+
+                startY = doc.lastAutoTable.finalY + 15;
+                
+                // Verificar se precisa de nova página se o próximo grupo for grande
+                if (startY > 250) {
+                    doc.addPage();
+                    startY = 20;
+                }
+            }
+
+            // --- RODAPÉ ---
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(148, 163, 184);
+                doc.text(`Página ${i} de ${pageCount} - Dashboard ITSM Intelligence`, 105, 287, { align: 'center' });
+            }
+
+            const fileName = `Planejamento_TODO_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+        }
+
         async function sendEmailTodo() {
             let to = document.getElementById('email-to').value.trim();
             let cc = document.getElementById('email-cc').value.trim();
-            
-            if(!to) return alert("Por favor, preencha o Destinatário válido para prosseguir.");
+
+            if (!to) return alert("Por favor, preencha o Destinatário válido para prosseguir.");
 
             let logBox = document.getElementById('email-logger-box');
             let logContent = document.getElementById('email-logger-content');
@@ -2724,7 +2957,7 @@
             let groups = {};
             let count = 0;
             todoList.forEach(t => {
-                if(!groups[t.analyst]) groups[t.analyst] = [];
+                if (!groups[t.analyst]) groups[t.analyst] = [];
                 groups[t.analyst].push(t);
                 count++;
             });
@@ -2747,7 +2980,7 @@
                 <div style="padding: 30px;">
             `;
 
-            for(let a in groups) {
+            for (let a in groups) {
                 htmlBody += `
                 <div style="margin-bottom: 40px; border-bottom: 2px solid #f1f5f9; padding-bottom: 20px;">
                     <h2 style="font-size: 18px; color: #1e3a8a; margin-bottom: 20px; display: flex; align-items: center;">
@@ -2759,7 +2992,7 @@
                 tks.forEach(t => {
                     let hasTicket = t.ticket && t.ticket !== 'undefined';
                     let tName = hasTicket ? t.ticket : "Atividades Gerais";
-                    
+
                     // Extração de metadados ricos
                     let rec = findTicketRecord(t.ticket);
                     let desc = rec ? getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) : '';
@@ -2783,7 +3016,7 @@
                         let checkColor = h.striked ? "#10b981" : "#cbd5e1";
                         let checkIcon = h.striked ? "●" : "○";
                         let textStyle = h.striked ? "text-decoration: line-through; color: #94a3b8;" : "color: #1e293b; font-weight: 500;";
-                        
+
                         htmlBody += `
                         <li style="margin-bottom: 10px; display: flex; align-items: flex-start; ${textStyle}">
                             <span style="color: ${checkColor}; font-size: 20px; line-height: 1; margin-right: 12px; margin-top: -2px;">${checkIcon}</span>
@@ -2807,20 +3040,20 @@
 
             // 3. Comunicação com Bridge / Outlook
             addLog("Conectando ao Bridge local (localhost:5000)...");
-            
+
             try {
                 const statusRes = await fetch('http://localhost:5000/status', { method: 'GET' }).catch(() => null);
-                
+
                 if (!statusRes || !statusRes.ok) {
                     addLog("⚠️ Bridge Offline detectado.");
                     addLog("Construindo interface local (URI mailto)...");
-                    
+
                     // Fallback to mailto (Plain Text)
                     let plainBody = "DAILY REPORT - PLANEJAMENTO TODO\n\nVerifique o dashboard para detalhes das tarefas.\nLink: " + window.location.href;
                     let subject = "DAILY REPORT - PLANEJAMENTO TODO - " + new Date().toLocaleDateString('pt-BR');
                     let mailtoLink = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(plainBody)}`;
-                    if(cc) mailtoLink += `&cc=${encodeURIComponent(cc)}`;
-                    
+                    if (cc) mailtoLink += `&cc=${encodeURIComponent(cc)}`;
+
                     setTimeout(() => {
                         window.location.href = mailtoLink;
                         addLog("Comando executado via URI do Sistema!");
@@ -2872,67 +3105,67 @@
 
             let groups = {};
             todoList.forEach(t => {
-                if(!groups[t.analyst]) groups[t.analyst] = [];
+                if (!groups[t.analyst]) groups[t.analyst] = [];
                 groups[t.analyst].push(t);
             });
 
-            // Z-A: Ordena analistas decrescente
-            container.innerHTML = Object.keys(groups).sort((a, b) => b.localeCompare(a)).map(analyst => {
+            // A-Z: Ordena analistas crescente
+            container.innerHTML = Object.keys(groups).sort((a, b) => a.localeCompare(b)).map(analyst => {
                 let analystId = 'todo-analyst-' + analyst.replace(/\s/g, '');
                 let isOpen = window.openTodoAnalysts.has(analystId);
-                let tks = groups[analyst].sort((a, b) => b.id.localeCompare(a.id));
-                
+                let tks = groups[analyst].sort((a, b) => a.id.localeCompare(b.id));
+
                 return `
-                <div class="analyst-group border border-slate-200 border-l-4 border-l-[var(--primary)] mb-4 bg-slate-50/50 shadow-sm rounded-xl overflow-hidden">
-                    <div class="flex justify-between items-center p-3 cursor-pointer hover:bg-slate-100 transition" onclick="const b = this.nextElementSibling; const i = this.querySelector('.chevron-icon'); if(b.classList.contains('hidden')){b.classList.remove('hidden');i.style.transform='rotate(180deg)';window.openTodoAnalysts.add('${analystId}');}else{b.classList.add('hidden');i.style.transform='rotate(0deg)';window.openTodoAnalysts.delete('${analystId}');}">
+                <div class="analyst-group border border-slate-200 border-l-4 border-l-[var(--primary)] mb-3 bg-slate-50/50 shadow-sm rounded-xl overflow-hidden">
+                    <div class="flex justify-between items-center p-2.5 cursor-pointer hover:bg-slate-100 transition" onclick="const b = this.nextElementSibling; const i = this.querySelector('.chevron-icon'); if(b.classList.contains('hidden')){b.classList.remove('hidden');i.style.transform='rotate(180deg)';window.openTodoAnalysts.add('${analystId}');}else{b.classList.add('hidden');i.style.transform='rotate(0deg)';window.openTodoAnalysts.delete('${analystId}');}">
                         <div class="font-bold text-xs text-[var(--primary-dark)] flex items-center gap-2">
-                            <i class="fas fa-chevron-down text-[10px] text-slate-400 transition-transform chevron-icon" style="${isOpen ? 'transform:rotate(180deg)' : ''}"></i> 
+                            <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform chevron-icon" style="${isOpen ? 'transform:rotate(180deg)' : ''}"></i> 
                             <span class="bg-white p-1 rounded shadow-sm"><i class="fas fa-user text-blue-500"></i></span> ${analyst} 
                             <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[9px] font-black ml-1">${tks.length} ATIVOS</span>
                         </div>
                     </div>
-                    <div class="p-4 pt-0 ${isOpen ? '' : 'hidden'} animate-fade border-t border-slate-100 bg-white">
+                    <div class="p-3 pt-0 ${isOpen ? '' : 'hidden'} animate-fade border-t border-slate-100 bg-white">
                         ${tks.map(t => {
-                            let rec = findTicketRecord(t.ticket);
-                            let desc = rec ? getCol(rec, ['Short description', 'Descrição Curta', 'Descrição']) : '';
-                            
-                            return `
-                            <div class="todo-card p-4 mb-4 last:mb-0 relative">
-                                <div class="flex justify-between items-start mb-3">
-                                    <div class="flex flex-col gap-1">
+                    let rec = findTicketRecord(t.ticket);
+                    let desc = rec ? getCol(rec, ['Short description', 'Descrição Curta', 'Descrição']) : '';
+
+                    return `
+                            <div class="todo-card p-3 mb-2.5 last:mb-0 relative border border-slate-100 bg-slate-50/30 rounded-lg">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex flex-col gap-0.5">
                                         <div class="flex items-center gap-2">
-                                            ${t.ticket && !t.ticket.includes('undefined') ? 
-                                                `<span onclick="openTicketDetails('${t.ticket}')" class="todo-badge hover:bg-blue-600 hover:text-white transition-colors cursor-pointer text-[11px]" title="Ver Detalhes">${t.ticket}</span>` : 
-                                                `<span class="text-[9px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded uppercase tracking-tighter">Tarefa Geral</span>`
-                                            }
-                                            <span class="text-[9px] font-bold text-slate-300 uppercase tracking-widest"><i class="far fa-calendar-alt mr-1"></i>${t.date}</span>
+                                            ${t.ticket && !t.ticket.includes('undefined') ?
+                            `<span onclick="openTicketDetails('${t.ticket}')" class="todo-badge hover:bg-blue-600 hover:text-white transition-colors cursor-pointer text-[10px]" title="Ver Detalhes">${t.ticket}</span>` :
+                            `<span class="text-[8px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded uppercase tracking-tighter">Tarefa Geral</span>`
+                        }
+                                            <span class="text-[8px] font-bold text-slate-300 uppercase tracking-widest"><i class="far fa-calendar-alt mr-1"></i>${t.date}</span>
                                         </div>
-                                        ${desc ? `<div class="text-[10px] font-medium text-slate-500 line-clamp-1 max-w-[300px]" title="${desc}">${desc}</div>` : ''}
+                                        ${desc ? `<div class="text-[9px] font-medium text-slate-500 line-clamp-1 max-w-[280px]" title="${desc}">${desc}</div>` : ''}
                                     </div>
                                     <div class="flex gap-2">
-                                        <button onclick="event.stopPropagation(); completeTodo('${t.id}')" title="Concluir Tudo" class="text-emerald-400 hover:text-emerald-600 transition text-lg"><i class="fas fa-check-double"></i></button>
-                                        <button onclick="event.stopPropagation(); deleteTodo('${t.id}')" title="Apagar Card" class="text-rose-300 hover:text-rose-500 transition text-lg"><i class="fas fa-trash-alt"></i></button>
+                                        <button onclick="event.stopPropagation(); completeTodo('${t.id}')" title="Concluir Tudo" class="text-emerald-400 hover:text-emerald-600 transition text-sm"><i class="fas fa-check-double"></i></button>
+                                        <button onclick="event.stopPropagation(); deleteTodo('${t.id}')" title="Apagar Card" class="text-rose-300 hover:text-rose-500 transition text-sm"><i class="fas fa-trash-alt"></i></button>
                                     </div>
                                 </div>
 
-                                <div class="space-y-2">
+                                <div class="space-y-1">
                                     ${t.history.map((h, idx) => `
-                                        <div class="group flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 transition cursor-pointer relative" onclick="toggleStrike('${t.id}', ${idx})">
-                                            <div class="todo-check-dot ${h.striked ? 'checked' : ''}">
+                                        <div class="group flex items-start gap-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer relative" onclick="toggleStrike('${t.id}', ${idx})">
+                                            <div class="todo-check-dot ${h.striked ? 'checked' : ''} !w-3 !h-3 !text-[7px]">
                                                 <i class="fas fa-check"></i>
                                             </div>
                                             <div class="flex-1 min-w-0">
-                                                <div class="text-[9px] font-black text-slate-400 mb-0.5">${h.date.split(' ')[1]}</div>
-                                                <div class="text-xs ${h.striked ? 'striked opacity-50 line-through italic text-slate-400' : 'text-slate-700 font-semibold'} break-words">${h.text}</div>
+                                                <div class="text-[8px] font-black text-slate-400 mb-0">${h.date.split(' ')[1]}</div>
+                                                <div class="text-[11px] ${h.striked ? 'striked opacity-50 line-through italic text-slate-400' : 'text-slate-700 font-semibold'} break-words">${h.text}</div>
                                             </div>
-                                            <button onclick="event.stopPropagation(); editTodoHistory('${t.id}', ${idx})" class="opacity-0 group-hover:opacity-100 transition p-1.5 text-slate-400 hover:text-blue-500 bg-white shadow-sm border rounded text-[10px]" title="Editar"><i class="fas fa-pen"></i></button>
+                                            <button onclick="event.stopPropagation(); editTodoHistory('${t.id}', ${idx})" class="opacity-0 group-hover:opacity-100 transition p-1 text-slate-400 hover:text-blue-500 bg-white shadow-sm border rounded text-[9px]" title="Editar"><i class="fas fa-pen"></i></button>
                                         </div>
                                     `).join('')}
                                 </div>
 
-                                <div class="mt-4 pt-3 border-t border-slate-50 flex gap-2">
-                                    <input type="text" id="update-input-${t.id}" class="form-input flex-1 px-3 py-2 text-xs border-slate-200 focus:border-blue-400 shadow-none bg-slate-50/50" placeholder="Adicionar nova anotação...">
-                                    <button onclick="addTodoUpdate('${t.id}')" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase hover:bg-black transition-all shadow-sm">Add</button>
+                                <div class="mt-2 pt-2 border-t border-slate-100 flex gap-2">
+                                    <input type="text" id="update-input-${t.id}" class="form-input flex-1 px-2 py-1.5 text-[11px] border-slate-200 focus:border-blue-400 shadow-none bg-white" placeholder="Nova nota...">
+                                    <button onclick="addTodoUpdate('${t.id}')" class="bg-slate-800 text-white px-3 py-1.5 rounded-md text-[9px] font-black uppercase hover:bg-black transition-all shadow-sm">Add</button>
                                 </div>
                             </div>
                         `}).join('')}
@@ -2995,7 +3228,7 @@
                 let rcaPubDate = getCol(ticketData, ['RCA Published Date', 'Data do RCA', 'Published Date']) || 'N/A';
                 let prbTasks = getCol(ticketData, ['Problem Tasks', 'Tasks', 'Related Tasks']) || '0';
                 let workNotes = getCol(ticketData, ['Work notes', 'Work Notes', 'Notas de Trabalho']) || '';
-                
+
                 let vRel = extractFromComments(workNotes, 'version');
                 let dRel = extractFromComments(workNotes, 'date');
 
@@ -3113,7 +3346,7 @@
                     entries.push({ date: new Date(0), dS: '-', a: 'Sistema', t: 'Notas Brutas (Log)', txt: rawC.trim() });
                 }
             }
-            entries.sort((a, b) => b.date - a.date);
+            entries.sort((a, b) => a.date - b.date);
 
             document.getElementById('modal-timeline').innerHTML = entries.length ? entries.map(e => {
                 let isW = e.t.toLowerCase().includes('work note') || e.t.toLowerCase().includes('nota de trabalho');
@@ -3147,7 +3380,7 @@
 
         function renderModalTodos(tkNumber) {
             const container = document.getElementById('modal-todo-container');
-            let tkTodos = todoList.filter(t => t.ticket === tkNumber);
+            let tkTodos = todoList.filter(t => t.ticket === tkNumber).sort((a, b) => a.id.localeCompare(b.id));
 
             if (tkTodos.length === 0) {
                 container.innerHTML = '<div class="text-[10px] text-slate-400 italic bg-white/50 p-4 text-center rounded-xl border border-dashed border-blue-200">Nenhuma ação vinculada a este ticket no TODO Planner.</div>';
@@ -3611,7 +3844,7 @@
                 inSlaTot, outSlaTot, tksInSlaTot, tksOutSlaTot,
                 trendM, trendD, topAnalistas, agingBuckets,
                 // Z-A: Chamados críticos ordenados por Número decrescente
-                crits: criticals.sort((a, b) => b.tk.localeCompare(a.tk, undefined, { numeric: true })), 
+                crits: criticals.sort((a, b) => b.tk.localeCompare(a.tk, undefined, { numeric: true })),
                 noPrb: noPrb.sort((a, b) => b.tk.localeCompare(a.tk, undefined, { numeric: true })),
                 allBacklogTks, allResolvedTks, allCanceledTks
             };
@@ -3670,7 +3903,7 @@
                     res.tks.push(tObj);
 
                     if (op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()) {
-res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks.push(tObj);
+                        res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks.push(tObj);
                     }
                     res.m[mStrKey].tks.push(tObj);
                 }
@@ -3689,14 +3922,14 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
 
             // Z-A: Ordena por Aging decrescente (o mais antigo/crítico no topo)
             tks.sort((a, b) => (b.age || 0) - (a.age || 0));
-            
+
             window.paginationState.drilldownData = tks;
             window.paginationState.drilldown = 1;
             window.paginationState.drilldownTitle = title;
             window.paginationState.drilldownIsInc = (vaultCat === 'inc' || vaultCat === 'cons' || vaultCat === 'class');
 
             renderDrilldownPage();
-            
+
             document.getElementById('drilldown-modal-backdrop').classList.remove('hidden-st');
             setTimeout(() => {
                 document.getElementById('drilldown-modal-backdrop').classList.remove('opacity-0');
@@ -3709,7 +3942,7 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
             const page = window.paginationState.drilldown;
             const title = window.paginationState.drilldownTitle;
             const isInc = window.paginationState.drilldownIsInc;
-            
+
             const start = (page - 1) * PAGE_SIZE;
             const end = start + PAGE_SIZE;
             const currentResults = results.slice(start, end);
@@ -3798,7 +4031,7 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
             setTimeout(() => document.getElementById('drilldown-modal-backdrop').classList.add('hidden-st'), 300);
         }
 
-        window.filterModalTable = function(val) {
+        window.filterModalTable = function (val) {
             const term = val.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             const rows = document.querySelectorAll('#drilldown-main-table tbody tr');
             rows.forEach(tr => {
@@ -4182,7 +4415,7 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
                 let entries = Object.entries(dataObj);
                 if (isMonth) {
                     // Z-A: Ordenação por data/chave decrescente
-                    entries.sort((a, b) => b[0].localeCompare(a[0]));
+                    entries.sort((a, b) => a[0].localeCompare(b[0]));
                 } else {
                     // Z-A: Maior volume primeiro
                     entries.sort((a, b) => b[1].count - a[1].count);
@@ -4431,7 +4664,7 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
                 let badgeColor = prbGroup.active_count > 5 ? '#E74C3C' : (prbGroup.active_count > 2 ? '#F39C12' : '#27AE60');
                 let hasRelated = prbGroup.tickets.some(t => t.related_tickets && t.related_tickets.length > 0);
                 let relatedBadge = hasRelated ? '<span style="background:#9B59B6; color:white; padding: 2px 6px; border-radius:12px; font-size:8px; font-weight:bold; margin-left:6px;"><i class="fas fa-link"></i> AGRUPADO</span>' : '';
-                
+
                 // Ênfase visual: "X TICKETS VIGENTES COM INC"
                 let vigenesEmphasis = `<span style="background: #DC2626; color: white; padding: 3px 10px; border-radius: 14px; font-size: 10px; font-weight: 900; margin-left: 8px; text-transform: uppercase;">⭐ ${prbGroup.active_count} INC${prbGroup.active_count !== 1 ? 's' : ''}</span>`;
 
@@ -4498,14 +4731,14 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
         function processPRBDataForDisplay(prbRawData) {
             // Adapta os dados de PRB da planilha para o formato esperado por generatePRBTabImproved
             if (!prbRawData || prbRawData.length === 0) return [];
-            
+
             let processed = [];
             let seenTickets = new Set();
-            
+
             prbRawData.forEach(row => {
                 // Tenta detecitar se é dado agregado (linha de PRB) ou ticket individual
                 let isPRBAggregateRow = (row['Menções'] !== undefined && row['Tickets_abertos'] !== undefined && !row['Number']);
-                
+
                 if (isPRBAggregateRow) {
                     // Linha agregada de PRB (da aba "PRB ABERTOS")
                     let prb = String(row['PRB'] || '').trim();
@@ -4513,10 +4746,10 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
                     let release = String(row['Release_Version'] || '—').trim();
                     let mentions = parseInt(row['Menções'] || 0);
                     let top_grupo = String(row['Top grupo'] || '—').trim();
-                    
+
                     if (!prb || seenTickets.has(prb)) return;
                     seenTickets.add(prb);
-                    
+
                     // Cria entrada para PRB com formato que generatePRBTabImproved entende
                     processed.push({
                         number: prb,  // Usa PRB como identificador
@@ -4542,10 +4775,10 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
                     let release = String(row['Release_Version'] || row['Versão'] || '—').trim();
                     let related_str = String(row['Tickets_Relacionados'] || '').trim();
                     let related_tickets = related_str && related_str !== '—' ? related_str.split(',').map(t => t.trim()) : [];
-                    
+
                     if (!number || !prb || seenTickets.has(number)) return;
                     seenTickets.add(number);
-                    
+
                     let comments = String(row['Additional comments'] || row['Comentários Adicionais'] || row['Comments'] || '').trim();
                     let v_rel_extracted = extractFromComments(comments, 'version');
                     let d_rel_extracted = extractFromComments(comments, 'date');
@@ -4564,7 +4797,7 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
                     });
                 }
             });
-            
+
             return processed;
         }
 
@@ -4584,7 +4817,7 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
 
                 let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
                 let st = String(getCol(r, ['RCA Status', 'State', 'Status', 'Estado']) || '').toLowerCase();
-                
+
                 // Filtro: manter abertos
                 if (clOrig && clOrig.getTime() <= refTime) {
                     if (st.includes('clos') || st.includes('resolv') || st.includes('cancel') || st.includes('fech')) return;
@@ -4596,18 +4829,18 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
                 let gp = getCol(r, ['Assignment group', 'Grupo', 'Group']) || '-';
                 let idle = (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
                 let descClean = String(getCol(r, ['Short description', 'Descrição']) || '-').replace(/"/g, '&quot;');
-                
+
                 // Novas Colunas
                 let prbTasks = getCol(r, ['Problem Tasks', 'Tasks', 'Related Tasks']) || '0';
                 let rcaStatus = getCol(r, ['RCA Status', 'State', 'Status']) || '-';
                 let rcaDueDate = getCol(r, ['RCA Due Date', 'Prazo RCA', 'Due Date']) || '-';
                 let rcaPubDate = getCol(r, ['RCA Published Date', 'Data do RCA', 'Published Date']) || '-';
                 let workNotes = getCol(r, ['Work notes', 'Work Notes', 'Notas de Trabalho']) || '';
-                
+
                 // Extração via Work notes
                 let vRel = extractFromComments(workNotes, 'version');
                 let dRel = extractFromComments(workNotes, 'date');
-                
+
                 // Contagem de Tickets Associados em Incs
                 let associatedCount = 0;
                 if (window.RawData && window.RawData.incs) {
@@ -4617,15 +4850,15 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
                     }).length;
                 }
 
-                const dummyT = { 
-                    tk: tk, 
-                    desc: descClean, 
-                    as: asg, 
-                    gp: gp, 
-                    st: rcaStatus, 
-                    age: age, 
-                    idle: idle, 
-                    opStr: op.toLocaleDateString('pt-BR'), 
+                const dummyT = {
+                    tk: tk,
+                    desc: descClean,
+                    as: asg,
+                    gp: gp,
+                    st: rcaStatus,
+                    age: age,
+                    idle: idle,
+                    opStr: op.toLocaleDateString('pt-BR'),
                     v_rel: vRel,
                     d_rel: dRel,
                     tks_assoc: associatedCount,
@@ -5062,9 +5295,9 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
                     } else {
                         filterTables();
                     }
-                    
+
                     document.querySelectorAll('.report-card').forEach(card => {
-                        if(!card.querySelector('.btn-snap') && card.style.display !== 'none') {
+                        if (!card.querySelector('.btn-snap') && card.style.display !== 'none') {
                             let btn = document.createElement('button');
                             btn.className = 'btn-snap';
                             btn.innerHTML = '<i class="fas fa-camera text-[10px]"></i>';
@@ -5080,7 +5313,7 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
         // --- INICIALIZAÇÃO GERAL (Persistência) ---
         document.addEventListener('DOMContentLoaded', async () => {
             console.log("[INIT] Inicializando Painel com Persistência...");
-            
+
             // 1. Carrega Configurações (SLA, Email) do localStorage
             loadConfigs();
 
@@ -5094,7 +5327,7 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
                     document.getElementById('sync-folder-path').innerText = storedHandle.name;
                     console.log("[INIT] Pasta recuperada do DB:", storedHandle.name);
                 }
-            } catch(e) {
+            } catch (e) {
                 console.error("[INIT] Erro ao carregar pasta do DB:", e);
             }
 
@@ -5111,15 +5344,15 @@ res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks
             e.stopPropagation();
             btn.innerHTML = '<i class="fas fa-spinner fa-spin text-[10px]"></i>';
             const card = btn.closest('.report-card');
-            if(!card) return;
-            
+            if (!card) return;
+
             let titleText = "Item";
             const titleEl = card.querySelector('.report-card-title');
-            if(titleEl) titleText = titleEl.innerText.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-            
-            html2canvas(card, { 
-                scale: 1.5, 
-                logging: false, 
+            if (titleEl) titleText = titleEl.innerText.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+
+            html2canvas(card, {
+                scale: 1.5,
+                logging: false,
                 useCORS: true,
                 backgroundColor: "#ffffff"
             }).then(canvas => {
