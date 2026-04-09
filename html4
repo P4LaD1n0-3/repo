@@ -2570,14 +2570,14 @@
                 let barContainer = document.getElementById('tt-sla-container');
 
                 if (slaPct && slaPct !== 'undefined' && slaPct !== '') {
-                    let p = parseInt(slaPct);
+                    let p = parseFloat(String(slaPct).replace(',', '.'));
                     let safeP = isNaN(p) ? 0 : Math.min(p, 100);
                     let color = p > 100 ? '#ef4444' : (p > 75 ? '#f59e0b' : '#10b981');
                     if (isNaN(p)) color = '#94a3b8';
 
                     bar.style.width = safeP + '%';
                     bar.style.setProperty('background-color', color, 'important');
-                    barText.innerText = isNaN(p) ? '0%' : p + '%';
+                    barText.innerText = isNaN(p) ? '0,00%' : slaPct + '%';
                     barText.style.color = p > 55 ? '#ffffff' : '#1e293b';
                     barContainer.style.display = 'block';
                 } else {
@@ -3686,7 +3686,7 @@
             let longDesc = String(getCol(r, ['Description', 'description', 'Descrição Completa', 'Descrição', 'Additional details', 'additional_details']) || '').replace(/"/g, '&quot;');
             let reasonVal = String(getCol(r, ['Reason', 'reason', 'REASON', 'Motivo']) || '').toUpperCase();
 
-            let pctSla = slaDays ? Math.round((age / slaDays) * 100) : '';
+            let pctSla = slaDays ? ((age / slaDays) * 100).toFixed(2).replace('.', ',') : '0,00';
 
             return {
                 tk: tk,
@@ -3838,20 +3838,26 @@
             });
 
             return {
-                mttr: countRes ? (totalMttr / countRes).toFixed(1).replace('.', ',') : "0,0",
-                pct: resMes ? Math.round((inSlaMes / resMes) * 100) : 0,
+                mttr: countRes ? (totalMttr / countRes).toFixed(2).replace('.', ',') : "0,00",
+                pct: resMes ? ((inSlaMes / resMes) * 100).toFixed(2).replace('.', ',') : "0,00",
                 inSla: inSlaMes, outSla: resMes - inSlaMes, backlog,
                 inSlaTot, outSlaTot, tksInSlaTot, tksOutSlaTot,
                 trendM, trendD, topAnalistas, agingBuckets,
-                // Z-A: Chamados críticos ordenados por Número decrescente
-                crits: criticals.sort((a, b) => b.tk.localeCompare(a.tk, undefined, { numeric: true })),
-                noPrb: noPrb.sort((a, b) => b.tk.localeCompare(a.tk, undefined, { numeric: true })),
-                allBacklogTks, allResolvedTks, allCanceledTks
+                // Z-A: Chamados mais velhos/críticos no topo
+                crits: criticals.sort((a, b) => (b.age || 0) - (a.age || 0)),
+                noPrb: noPrb.sort((a, b) => (b.age || 0) - (a.age || 0)),
+                allBacklogTks: allBacklogTks.sort((a, b) => (b.age || 0) - (a.age || 0)),
+                allResolvedTks: allResolvedTks.sort((a, b) => (b.age || 0) - (a.age || 0)),
+                allCanceledTks: allCanceledTks.sort((a, b) => (b.age || 0) - (a.age || 0))
             };
         }
 
         function calculateClassifications(allData, refDateObj) {
-            let res = { total: 0, link: 0, noLink: 0, days: 0, max: 0, req: {}, gp: {}, asg: {}, m: {}, tks: [] };
+            let res = { 
+                total: 0, link: 0, noLink: 0, days: 0, max: 0, 
+                monthTotal: 0, monthLink: 0, monthNoLink: 0, monthDays: 0, monthMax: 0,
+                req: {}, gp: {}, asg: {}, m: {}, tks: [] 
+            };
 
             allData.forEach(r => {
                 let stOrig = String(getCol(r, ['State', 'Status', 'Estado']) || '').toLowerCase();
@@ -3882,12 +3888,21 @@
                     res.days += days;
                     if (days > res.max) res.max = days;
 
+                    let isCurrentMonth = (op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear());
+                    
+                    if (isCurrentMonth) {
+                        res.monthTotal++;
+                        if (linkedTicket) res.monthLink++; else res.monthNoLink++;
+                        res.monthDays += days;
+                        if (days > res.monthMax) res.monthMax = days;
+                    }
+
                     let mStrKey = op.getFullYear() + '-' + String(op.getMonth() + 1).padStart(2, '0');
                     let mStrLabel = op.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
                     if (!res.m[mStrKey]) res.m[mStrKey] = { count: 0, tks: [], label: mStrLabel };
                     res.m[mStrKey].count++;
 
-                    if (op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()) {
+                    if (isCurrentMonth) {
                         if (!res.req[reqName]) res.req[reqName] = { count: 0, tks: [] }; res.req[reqName].count++;
                         if (!res.gp[gpName]) res.gp[gpName] = { count: 0, tks: [] }; res.gp[gpName].count++;
                         if (!res.asg[asg]) res.asg[asg] = { count: 0, tks: [] }; res.asg[asg].count++;
@@ -3898,18 +3913,20 @@
                         rea: reason, st: stOrig.toUpperCase(), d: days, age: days, idle: idle, opStr: op.toLocaleDateString('pt-BR'), opS: op.toLocaleDateString('pt-BR'),
                         desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição']) || '-').replace(/"/g, '&quot;'),
                         info: closeNotes.replace(/"/g, '&quot;') || 'Nenhuma nota de fechamento registrada.',
-                        reason: reason
+                        reason: reason,
+                        isMonth: isCurrentMonth
                     };
                     res.tks.push(tObj);
 
-                    if (op.getMonth() === refDateObj.getMonth() && op.getFullYear() === refDateObj.getFullYear()) {
+                    if (isCurrentMonth) {
                         res.req[reqName].tks.push(tObj); res.gp[gpName].tks.push(tObj); res.asg[asg].tks.push(tObj);
                     }
                     res.m[mStrKey].tks.push(tObj);
                 }
             });
-            res.avg = res.total ? (res.days / res.total).toFixed(1).replace('.', ',') : "0,0";
-            res.tks.sort((a, b) => b.d - a.d);
+            res.avg = res.total ? (res.days / res.total).toFixed(2).replace('.', ',') : "0,00";
+            res.avgMonth = res.monthTotal ? (res.monthDays / res.monthTotal).toFixed(2).replace('.', ',') : "0,00";
+            res.tks.sort((a, b) => (b.age || 0) - (a.age || 0));
             return res;
         }
 
@@ -4069,7 +4086,7 @@
                 let prbVal = (prbRaw && String(prbRaw).trim() !== "" && String(prbRaw).trim() !== "undefined") ? String(prbRaw).trim() : 'N/A';
 
                 let idle = getDaysSilent(r, refDateObj, asg, op);
-                let pctSla = Math.round((age / slaConfig) * 100);
+                let pctSla = ((age / slaConfig) * 100).toFixed(2).replace('.', ',');
                 let stSla = age > slaConfig ? "Estourado" : "No Prazo";
                 openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: op.toLocaleDateString('pt-BR'), age, pctSla, stSla, slaConfig, idle, info: infoFinal, prb: prbVal });
             }
@@ -4163,7 +4180,7 @@
                         <td data-label="% SLA" class="text-center" style="width: 100px;">
                             <div class="w-full bg-slate-200 rounded-full h-4 relative shadow-inner mx-auto min-w-[70px] overflow-hidden border border-slate-300/50">
                                 <div class="h-full absolute left-0 top-0 bottom-0 transition-all" style="width: ${safePct}%; background-color: ${pctColor} !important;"></div>
-                                <div class="absolute inset-0 flex items-center justify-center text-[9px] font-bold z-10" style="color: ${t.pctSla > 55 ? '#ffffff' : '#1e293b'}; text-shadow: ${t.pctSla > 55 ? '0 0 2px rgba(0,0,0,0.8)' : 'none'};">${pctText}</div>
+                                <div class="absolute inset-0 flex items-center justify-center text-[9px] font-bold z-10" style="color: ${parseFloat(t.pctSla.replace(',', '.')) > 55 ? '#ffffff' : '#1e293b'}; text-shadow: ${parseFloat(t.pctSla.replace(',', '.')) > 55 ? '0 0 2px rgba(0,0,0,0.8)' : 'none'};">${pctText}</div>
                             </div>
                         </td>
                         <td data-label="Status SLA" class="text-center font-black ${stColor} uppercase text-[10px]">${t.stSla}</td>
@@ -4233,7 +4250,7 @@
                 let m = d.trendM[k];
                 let mesStr = new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
                 let saldo = m.a - (m.r + m.c);
-                let pctStr = m.r > 0 ? Math.round((m.inSla / m.r) * 100) : 0;
+                let pctStr = m.r > 0 ? ((m.inSla / m.r) * 100).toFixed(2).replace('.', ',') : "0,00";
                 let bgPct = pctStr >= 98 ? C.SUC : C.DAN;
                 let colorS = saldo > 0 ? C.PRI_D : (saldo < 0 ? C.PRI : C.GRY_D);
                 tA += m.a; tR += m.r; tC += m.c; tS += saldo; lastB = m.b;
@@ -4408,6 +4425,8 @@
             window.DrilldownVault['class']['all_tks'] = d.tks;
             window.DrilldownVault['class']['linked_tks'] = d.tks.filter(t => !t.l.includes('⚠️'));
             window.DrilldownVault['class']['nolink_tks'] = d.tks.filter(t => t.l.includes('⚠️'));
+            window.DrilldownVault['class']['all_tks_month'] = d.tks.filter(t => t.isMonth);
+            window.DrilldownVault['class']['linked_tks_month'] = d.tks.filter(t => t.isMonth && !t.l.includes('⚠️'));
 
             const buildAnalyticalTable = (title, dataObj, labelCol, isMonth = false) => {
                 let total = Object.values(dataObj).reduce((a, b) => a + b.count, 0);
@@ -4429,7 +4448,7 @@
                     <tr class="hover:bg-slate-50 cursor-pointer transition" onclick="openDrilldown('${displayKey}', '${dKey}', 'class')">
                         <td class="text-left font-bold text-blue-800">${displayKey} <i class="fas fa-external-link-alt text-[9px] text-slate-300 ml-1"></i></td>
                         <td class="font-bold">${value.count}</td>
-                        ${isMonth ? `<td class="font-bold text-blue-600">${Math.round((value.count / total) * 100)}%</td>` : ''}
+                        ${isMonth ? `<td class="font-bold text-blue-600">${((value.count / total) * 100).toFixed(2).replace('.', ',')}%</td>` : ''}
                     </tr>
                 `}).join('');
 
@@ -4482,28 +4501,28 @@
             return `
             <div class="report-section-title" style="background-color: var(--danger);"><i class="fas fa-exchange-alt mr-2"></i> CLASSIFICAÇÕES INCORRETAS (REQ ⇄ INC)</div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div class="report-card h-[300px]" style="margin-bottom:0;">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="report-card h-[300px] md:col-span-1" style="margin-bottom:0;">
                     <div class="report-card-title">Tendência Mensal (Histórica)</div>
                     <canvas id="chart-class-trend"></canvas>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="report-card text-center border-l-4 border-red-500 justify-center clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Total Incorretos', 'all_tks', 'class')">
-                        <div class="text-[10px] font-black text-red-600 mb-2 uppercase">Total Incorretos</div>
-                        <div class="text-4xl font-black">${d.total}</div>
+                <div class="md:col-span-2 grid grid-cols-2 gap-4">
+                    <div class="report-card text-center border-l-4 border-red-500 justify-center clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Total Incorretos (Mês)', 'all_tks_month', 'class')">
+                        <div class="text-[10px] font-black text-red-600 mb-2 uppercase">Incorretos (Mês)</div>
+                        <div class="text-4xl font-black">${d.monthTotal}</div>
                     </div>
-                    <div class="report-card text-center border-l-4 border-green-500 justify-center clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Com Vínculo', 'linked_tks', 'class')">
-                        <div class="text-[10px] font-black text-green-600 mb-2 uppercase">Com Vínculo</div>
-                        <div class="text-4xl font-black">${d.link}</div>
-                    </div>
-                    <div class="report-card text-center border-l-4 border-orange-500 justify-center clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Sem Vínculo (Erros de Link)', 'nolink_tks', 'class')">
-                        <div class="text-[10px] font-black text-orange-500 mb-2 uppercase">Sem Vínculo (Erro)</div>
-                        <div class="text-4xl font-black">${d.noLink}</div>
+                    <div class="report-card text-center border-l-4 border-green-500 justify-center clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Com Vínculo (Mês)', 'linked_tks_month', 'class')">
+                        <div class="text-[10px] font-black text-green-600 mb-2 uppercase">Com Vínculo (Mês)</div>
+                        <div class="text-4xl font-black">${d.monthLink}</div>
                     </div>
                     <div class="report-card text-center border-l-4 border-blue-500 justify-center" style="margin-bottom:0;">
-                        <div class="text-[10px] font-black text-blue-600 mb-2 uppercase">Detecção Média</div>
-                        <div class="text-4xl font-black">${d.avg}d</div>
+                        <div class="text-[10px] font-black text-blue-600 mb-2 uppercase">Tempo Médio-MTTR (Mês)</div>
+                        <div class="text-4xl font-black">${d.avgMonth}d</div>
+                    </div>
+                    <div class="report-card text-center border-l-4 border-amber-500 justify-center" style="margin-bottom:0;">
+                        <div class="text-[10px] font-black text-amber-600 mb-2 uppercase">Máximo Atraso (Mês)</div>
+                        <div class="text-4xl font-black">${d.monthMax}d</div>
                     </div>
                 </div>
             </div>
@@ -4627,7 +4646,7 @@
             // KPI Cards
             let totalPrbs = Object.keys(prbGroups).length;
             let totalTicketsComPrb = Object.values(prbGroups).reduce((s, g) => s + g.active_count, 0);
-            let avgTicketsPorPrb = (totalTicketsComPrb / totalPrbs).toFixed(1);
+            let avgTicketsPorPrb = (totalTicketsComPrb / totalPrbs).toFixed(2).replace('.', ',');
 
             html += `
             <div class="grid grid-cols-4 gap-4 mb-6">
@@ -5067,7 +5086,7 @@
                 data: { labels: ['SLA Cumprido (No Prazo)', 'SLA Estourado (Fora)'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN], borderWidth: 2, borderColor: '#fff' }] },
                 options: {
                     cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } },
-                    plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (val, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x); return sum && val > 0 ? Math.round((val / sum) * 100) + '%' : ""; } } },
+                    plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (val, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x); return sum && val > 0 ? ((val / sum) * 100).toFixed(2).replace('.', ',') + '%' : ""; } } },
                     onClick: function (evt, activeElements) {
                         if (activeElements.length > 0) {
                             let idx = activeElements[0]._index;
