@@ -4092,9 +4092,10 @@
                 let prbVal = (prbRaw && String(prbRaw).trim() !== "" && String(prbRaw).trim() !== "undefined") ? String(prbRaw).trim() : 'N/A';
 
                 let idle = getDaysSilent(r, refDateObj, asg, op);
-                let pctSla = ((age / slaConfig) * 100).toFixed(2).replace('.', ',');
+                let pctSlaNum = ((age / slaConfig) * 100);
+                let pctSla = pctSlaNum.toFixed(2).replace('.', ',');
                 let stSla = age > slaConfig ? "Estourado" : "No Prazo";
-                openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: op.toLocaleDateString('pt-BR'), age, pctSla, stSla, slaConfig, idle, info: infoFinal, prb: prbVal });
+                openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: op.toLocaleDateString('pt-BR'), age, pctSla, pctSlaNum, stSla, slaConfig, idle, info: infoFinal, prb: prbVal });
             }
             incs.forEach(r => processRow(r, 'INC', slaI));
             reqs.forEach(r => processRow(r, 'REQ', slaR));
@@ -4152,15 +4153,15 @@
 
             sortedGroups.forEach(gp => {
                 // Z-A: Tickets dentro do grupo ordenados por %SLA (maior primeiro) e depois por Número (descendente)
-                let tks = groups[gp].sort((a, b) => (b.pctSla - a.pctSla) || b.tk.localeCompare(a.tk));
+                let tks = groups[gp].sort((a, b) => (b.pctSlaNum - a.pctSlaNum) || b.tk.localeCompare(a.tk));
                 let rows = tks.map(t => {
-                    let safePct = isNaN(t.pctSla) ? 0 : Math.min(t.pctSla, 100);
-                    let pctText = isNaN(t.pctSla) ? '0%' : t.pctSla + '%';
-                    let pctColor = t.pctSla > 100 ? '#ef4444' : (t.pctSla > 75 ? '#f59e0b' : '#10b981');
-                    if (isNaN(t.pctSla)) pctColor = '#94a3b8';
+                    let safePct = isNaN(t.pctSlaNum) ? 0 : Math.min(t.pctSlaNum, 100);
+                    let pctText = isNaN(t.pctSlaNum) ? '0%' : t.pctSla + '%';
+                    let pctColor = t.pctSlaNum > 100 ? '#ef4444' : (t.pctSlaNum > 75 ? '#f59e0b' : '#10b981');
+                    if (isNaN(t.pctSlaNum)) pctColor = '#94a3b8';
 
-                    let stColor = t.pctSla > 100 ? 'text-red-600' : 'text-emerald-600';
-                    if (isNaN(t.pctSla)) stColor = 'text-slate-500';
+                    let stColor = t.pctSlaNum > 100 ? 'text-red-600' : 'text-emerald-600';
+                    if (isNaN(t.pctSlaNum)) stColor = 'text-slate-500';
 
                     return `
                     <tr class="ticket-row hover:bg-slate-50 transition" style="border-bottom: 1px solid #f1f5f9;" ${buildDataAttrs(t)}>
@@ -4186,7 +4187,7 @@
                         <td data-label="% SLA" class="text-center" style="width: 100px;">
                             <div class="w-full bg-slate-200 rounded-full h-4 relative shadow-inner mx-auto min-w-[70px] overflow-hidden border border-slate-300/50">
                                 <div class="h-full absolute left-0 top-0 bottom-0 transition-all" style="width: ${safePct}%; background-color: ${pctColor} !important;"></div>
-                                <div class="absolute inset-0 flex items-center justify-center text-[9px] font-bold z-10" style="color: ${parseFloat(t.pctSla.replace(',', '.')) > 55 ? '#ffffff' : '#1e293b'}; text-shadow: ${parseFloat(t.pctSla.replace(',', '.')) > 55 ? '0 0 2px rgba(0,0,0,0.8)' : 'none'};">${pctText}</div>
+                                <div class="absolute inset-0 flex items-center justify-center text-[9px] font-bold z-10" style="color: ${t.pctSlaNum > 55 ? '#ffffff' : '#1e293b'}; text-shadow: ${t.pctSlaNum > 55 ? '0 0 2px rgba(0,0,0,0.8)' : 'none'};">${pctText}</div>
                             </div>
                         </td>
                         <td data-label="Status SLA" class="text-center font-black ${stColor} uppercase text-[10px]">${t.stSla}</td>
@@ -4291,7 +4292,7 @@
             window.DrilldownVault[cat]['all_canc_month'] = d.allCanceledTks;
 
             let lblRes = typeStr === 'INC' ? 'Resolvidos' : 'Encerrados';
-            let pctColor = d.pct >= 98 ? C.SUC : C.DAN;
+            let pctColor = parseFloat(String(d.pct).replace(',', '.')) >= 98 ? C.SUC : C.DAN;
 
             let noPrbHtml = typeStr === 'INC' && d.noPrb.length > 0 ? `
             <div class="report-card" style="margin-top:20px; border-color: ${C.PRI_D};">
