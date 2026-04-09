@@ -3842,6 +3842,7 @@
             return {
                 mttr: countRes ? (totalMttr / countRes).toFixed(2).replace('.', ',') : "0,00",
                 pct: resMes ? ((inSlaMes / resMes) * 100).toFixed(2).replace('.', ',') : "0,00",
+                resMes: resMes,
                 inSla: inSlaMes, outSla: resMes - inSlaMes, backlog,
                 inSlaTot, outSlaTot, tksInSlaTot, tksOutSlaTot,
                 trendM, trendD, topAnalistas, agingBuckets,
@@ -4599,7 +4600,15 @@
                     <div class="text-4xl font-black text-slate-700">${u.backlog}</div>
                 </div>
             </div>
-            
+
+            <!-- NOVOS CARDS DE PRODUTIVIDADE -->
+            <div class="report-section-title" style="background-color: #334155; opacity: 0.85; margin-bottom: 15px;"><i class="fas fa-tachometer-alt mr-2"></i> RITMO DE FECHAMENTO (Mês Vigente)</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                ${buildProdCard("INC", i, "#1e3a8a")}
+                ${buildProdCard("REQ", r, "#2563eb")}
+                ${buildProdCard("UAM", u, "#60a5fa")}
+            </div>
+
             <div class="grid-2">
                 <div class="report-card" style="text-align:center;">
                     <div class="report-card-title">TOTAL ENTRADAS (Visão Histórica)</div>
@@ -4631,11 +4640,47 @@
             `;
         }
 
+        function buildProdCard(type, data, color) {
+            const refDate = new Date(document.getElementById('ref-date').value + 'T12:00:00');
+            const dayOfMonth = refDate.getDate();
+            const resMes = data.resMes || 0;
+            const avgDaily = (resMes / dayOfMonth).toFixed(1).replace('.', ',');
+            const avgWeekly = (resMes / (dayOfMonth / 7)).toFixed(1).replace('.', ',');
+
+            return `
+            <div class="report-card flex flex-col justify-between border-t-4 bg-gradient-to-br from-white to-slate-50" style="border-top-color: ${color}; margin-bottom:0; min-height: 180px;">
+                <div class="report-card-title text-center" style="color: ${color}; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 12px;">Produtividade ${type}</div>
+                
+                <div class="flex-1 flex flex-col justify-around">
+                    <div class="flex justify-between items-baseline px-2">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Total Mês</span>
+                        <span class="text-2xl font-black text-slate-800">${resMes}</span>
+                    </div>
+                    
+                    <div class="my-3 h-px bg-slate-100"></div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="text-center p-2 bg-slate-50 rounded border border-slate-100">
+                            <div class="text-[9px] font-black text-slate-500 uppercase leading-tight">Por Dia</div>
+                            <div class="text-xl font-black text-slate-700 mt-1">${avgDaily}</div>
+                            <div class="text-[8px] text-slate-400 italic">Média</div>
+                        </div>
+                        <div class="text-center p-2 bg-slate-50 rounded border border-slate-100">
+                            <div class="text-[9px] font-black text-slate-500 uppercase leading-tight">Por Semana</div>
+                            <div class="text-xl font-black text-slate-700 mt-1">${avgWeekly}</div>
+                            <div class="text-[8px] text-slate-400 italic">Média</div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+        
+
         function generatePRBTabImproved(prbData) {
-            let html = `<div class="report-section-title" style="background-color: #E74C3C;"><i class="fas fa-shield-alt mr-2"></i> PRBs ATIVOS — PROBLEMAS AGRUPADOS E RELACIONADOS</div>`;
+            let html = `<div class="report-section-title" style = "background-color: #E74C3C;" > <i class="fas fa-shield-alt mr-2"></i> PRBs ATIVOS — PROBLEMAS AGRUPADOS E RELACIONADOS</div> `;
 
             if (!prbData || prbData.length === 0) {
-                return html + `<div class="report-card" style="text-align: center; padding: 40px;"><p style="color: #94a3b8; font-size: 14px;">Nenhum PRB ativo no momento.</p></div>`;
+                return html + `<div class="report-card" style = "text-align: center; padding: 40px;" > <p style="color: #94a3b8; font-size: 14px;">Nenhum PRB ativo no momento.</p></div> `;
             }
 
             // Detectar se dados são agregados (já contêm Tickets_Vigentes) ou individuais
@@ -4674,7 +4719,7 @@
             let avgTicketsPorPrb = (totalTicketsComPrb / totalPrbs).toFixed(2).replace('.', ',');
 
             html += `
-            <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-4 gap-4 mb-6" >
                 <div class="report-card text-center" style="margin-bottom:0; border-top: 3px solid #E74C3C;">
                     <div class="text-[11px] font-black text-red-600 mb-1 uppercase">PRBs Ativos</div>
                     <div class="text-3xl font-black" style="color: #E74C3C;">${totalPrbs}</div>
@@ -4701,7 +4746,7 @@
             // Z-A: Agrupa PRBs com mais tickets primeiro, desempatando pelo ID decrescente
             let sortedPrbs = Object.values(prbGroups).sort((a, b) => (b.active_count - a.active_count) || b.prb.localeCompare(a.prb, undefined, { numeric: true }));
 
-            html += `<div class="report-card" style="padding: 0;"><div class="report-card-title"><i class="fas fa-link mr-2"></i> PRBs COM TICKETS AGRUPADOS</div>
+            html += `<div class="report-card" style = "padding: 0;" ><div class="report-card-title"><i class="fas fa-link mr-2"></i> PRBs COM TICKETS AGRUPADOS</div>
                 <div style="padding: 15px; background: #f8fafc;">`;
 
             sortedPrbs.forEach((prbGroup, idx) => {
@@ -4766,7 +4811,7 @@
                 </details>`;
             });
 
-            html += `</div></div>`;
+            html += `</div></div> `;
 
             return html;
         }
@@ -4828,7 +4873,7 @@
                     let d_rel_extracted = extractFromComments(comments, 'date');
 
                     processed.push({
-                        number: `${type}:${number}`,
+                        number: `${type}:${number} `,
                         type: type,
                         prb: prb,
                         state: state,
@@ -4847,7 +4892,7 @@
 
         function generatePRBTab(rcaData, ptaskData, slaRCA, slaPTask, refDateObj) {
             const refDate = new Date(refDateObj); refDate.setHours(23, 59, 59, 999); const refTime = refDate.getTime();
-            let html = `<div class="report-section-title" style="background-color: ${C.PRI_D};"><i class="fas fa-bullseye mr-2"></i> SESSÃO PRB TASKs (TODAS AS ABERTAS NO SISTEMA)</div>`;
+            let html = `<div class="report-section-title" style = "background-color: ${C.PRI_D};" > <i class="fas fa-bullseye mr-2"></i> SESSÃO PRB TASKs(TODAS AS ABERTAS NO SISTEMA)</div> `;
 
             let rcaRows = "";
             let ptaskRows = "";
@@ -4976,7 +5021,7 @@
             window.DrilldownVault['class']['all_ptasks'] = allPtasks;
 
             html += `
-            <div class="grid grid-cols-2 gap-6 mb-6">
+            <div class="grid grid-cols-2 gap-6 mb-6" >
                 <div class="report-card text-center border-l-4 border-orange-600 clickable-card" style="margin-bottom:0;" onclick="openDrilldown('RCAs Abertas (Problems)', 'all_prbs', 'class')">
                     <div class="text-[12px] font-black text-orange-600 mb-2 uppercase">Problemas / RCAs Abertas</div>
                     <div class="text-4xl font-black text-slate-700">${allPrbs.length}</div>
@@ -4988,21 +5033,21 @@
             </div>
             `;
 
-            html += `<div class="report-card hover-premium"><div class="report-card-title text-orange-700 font-inter font-black"><i class="fas fa-search mr-2"></i> 1. PROBLEM RCA - CAUSAS RAIZ EM ABERTO</div>
+            html += `<div class="report-card hover-premium" ><div class="report-card-title text-orange-700 font-inter font-black"><i class="fas fa-search mr-2"></i> 1. PROBLEM RCA - CAUSAS RAIZ EM ABERTO</div>
                 <div class="st-dataframe-container shadow-inner border border-slate-200 rounded-lg overflow-hidden"><table class="st-table">
                 <thead><tr class="bg-slate-50 border-b border-slate-200">
                     ${createTh("Tasks", "5%")} ${createTh("Problem", "12%")} ${createTh("Assignment group", "14%")} ${createTh("Assigned to", "14%")} ${createTh("Incidents", "8%")} ${createTh("Status", "10%")} ${createTh("RCA Due", "10%")} ${createTh("RCA Pub.", "10%")} ${createTh("Work notes", "auto", "left")}
                 </tr></thead>
                 <tbody>${rcaRows || `<tr><td colspan="9" class="text-center text-slate-500 py-10 font-bold"><i class="fas fa-check-circle text-emerald-500 text-3xl mb-2 block"></i>Nenhuma RCA aberta no momento.</td></tr>`}</tbody>
-                </table></div></div>`;
+                </table></div></div> `;
 
-            html += `<div class="report-card"><div class="report-card-title"><i class="fas fa-tasks mr-2"></i> 2. TASKS DE PROBLEMA (PTASK) ABERTAS</div>
+            html += `<div class="report-card" ><div class="report-card-title"><i class="fas fa-tasks mr-2"></i> 2. TASKS DE PROBLEMA (PTASK) ABERTAS</div>
                 <div class="st-dataframe-container"><table class="st-table">
                 <thead><tr>
                     ${createTh("Problem (Pai)", "15%")} ${createTh("PTASK", "15%")} ${createTh("Analista", "20%")} ${createTh("Grupo Resolutor", "25%")} ${createTh("SLA / Ocioso", "15%", "right")}
                 </tr></thead>
                 <tbody>${ptaskRows || `<tr><td colspan="5" class="text-center text-slate-500 py-6">Nenhuma PTASK aberta no momento.</td></tr>`}</tbody>
-                </table></div></div>`;
+                </table></div></div> `;
 
             return html;
         }
@@ -5016,114 +5061,114 @@
 
             const drawTrend = (canvas, tData, isD) => {
                 let keys = Object.keys(tData).sort();
-                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
+                let labels = keys.map(k => isD ? `${ k.split('-')[2] }/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
 
-                let instance = new Chart(document.getElementById(canvas), {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [
-                            { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.INFO, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: lblRes, data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
-                        ]
-                    },
-                    options: {
-                        maintainAspectRatio: false,
-                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
-                        scales: {
-                            xAxes: [{ stacked: true, gridLines: { display: false } }],
-                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }]
-                        },
-                        onClick: function (evt, activeElements) {
-                            if (activeElements.length > 0) {
-                                let idx = activeElements[0]._index;
-                                let datasetIdx = activeElements[0]._datasetIndex;
-                                let dKey = keys[idx];
-                                let lblDate = labels[idx];
+        let instance = new Chart(document.getElementById(canvas), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.INFO, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                    { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                    { type: 'bar', label: lblRes, data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                    { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
+                scales: {
+                    xAxes: [{ stacked: true, gridLines: { display: false } }],
+                    yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }]
+                },
+                onClick: function (evt, activeElements) {
+                    if (activeElements.length > 0) {
+                        let idx = activeElements[0]._index;
+                        let datasetIdx = activeElements[0]._datasetIndex;
+                        let dKey = keys[idx];
+                        let lblDate = labels[idx];
 
-                                let tksToDisplay = [];
-                                let dTitle = "";
+                        let tksToDisplay = [];
+                        let dTitle = "";
 
-                                if (datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Abertos em ${lblDate}`; }
-                                else if (datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Resolvidos em ${lblDate}`; }
-                                else if (datasetIdx === 3) { tksToDisplay = tData[dKey].tks_c; dTitle = `Cancelados em ${lblDate}`; }
-                                else return;
+                        if (datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Abertos em ${lblDate}`; }
+                        else if (datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Resolvidos em ${lblDate}`; }
+                        else if (datasetIdx === 3) { tksToDisplay = tData[dKey].tks_c; dTitle = `Cancelados em ${lblDate}`; }
+                        else return;
 
-                                window.DrilldownVault[id]['temp'] = tksToDisplay;
-                                openDrilldown(dTitle, 'temp', id);
-                            }
-                        }
+                        window.DrilldownVault[id]['temp'] = tksToDisplay;
+                        openDrilldown(dTitle, 'temp', id);
                     }
-                });
-                window.chartInstances.push(instance);
+                }
+            }
+        });
+        window.chartInstances.push(instance);
             };
-            drawTrend(`c-d-${id}`, d.trendD, true);
-            drawTrend(`c-m-${id}`, d.trendM, false);
+        drawTrend(`c-d-${id}`, d.trendD, true);
+        drawTrend(`c-m-${id}`, d.trendM, false);
 
-            let instA = new Chart(document.getElementById(`c-a-${id}`), {
-                type: 'horizontalBar',
-                data: { labels: d.topAnalistas.map(a => a.nome), datasets: [{ label: 'Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C.PRI_D }, { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C.SUC }] },
-                options: {
-                    maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } },
-                    scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ stacked: true, gridLines: { display: false } }] },
-                    plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                    onClick: function (evt, activeElements) {
-                        if (activeElements.length > 0) {
-                            let idx = activeElements[0]._index;
-                            let datasetIdx = activeElements[0]._datasetIndex;
-                            let analystName = d.topAnalistas[idx].nome;
+        let instA = new Chart(document.getElementById(`c-a-${id}`), {
+            type: 'horizontalBar',
+            data: { labels: d.topAnalistas.map(a => a.nome), datasets: [{ label: 'Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C.PRI_D }, { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C.SUC }] },
+            options: {
+                maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } },
+                scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ stacked: true, gridLines: { display: false } }] },
+                plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                onClick: function (evt, activeElements) {
+                    if (activeElements.length > 0) {
+                        let idx = activeElements[0]._index;
+                        let datasetIdx = activeElements[0]._datasetIndex;
+                        let analystName = d.topAnalistas[idx].nome;
 
-                            let tks = datasetIdx === 0 ? d.topAnalistas[idx].tks_ab : d.topAnalistas[idx].tks_res;
-                            let dTitle = datasetIdx === 0 ? `Tickets em Backlog de ${analystName}` : `Tickets Resolvidos por ${analystName}`;
+                        let tks = datasetIdx === 0 ? d.topAnalistas[idx].tks_ab : d.topAnalistas[idx].tks_res;
+                        let dTitle = datasetIdx === 0 ? `Tickets em Backlog de ${analystName}` : `Tickets Resolvidos por ${analystName}`;
 
-                            window.DrilldownVault[id]['temp'] = tks;
-                            openDrilldown(dTitle, 'temp', id);
-                        }
+                        window.DrilldownVault[id]['temp'] = tks;
+                        openDrilldown(dTitle, 'temp', id);
                     }
                 }
-            });
-            window.chartInstances.push(instA);
+            }
+        });
+        window.chartInstances.push(instA);
 
-            let agKeys = Object.keys(d.agingBuckets);
-            let instAg = new Chart(document.getElementById(`c-ag-${id}`), {
-                type: 'horizontalBar',
-                data: { labels: agKeys, datasets: [{ data: agKeys.map(k => d.agingBuckets[k].count), backgroundColor: agKeys.map(k => d.agingBuckets[k].color), barPercentage: 0.7, categoryPercentage: 0.8 }] },
-                options: {
-                    maintainAspectRatio: false, legend: { display: false },
-                    scales: { xAxes: [{ gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ gridLines: { display: false } }] },
-                    plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } },
-                    onClick: function (evt, activeElements) {
-                        if (activeElements.length > 0) {
-                            let idx = activeElements[0]._index;
-                            let bName = agKeys[idx];
-                            window.DrilldownVault[id]['temp'] = d.agingBuckets[bName].tks;
-                            openDrilldown(`Tickets no Range: ${bName}`, 'temp', id);
-                        }
+        let agKeys = Object.keys(d.agingBuckets);
+        let instAg = new Chart(document.getElementById(`c-ag-${id}`), {
+            type: 'horizontalBar',
+            data: { labels: agKeys, datasets: [{ data: agKeys.map(k => d.agingBuckets[k].count), backgroundColor: agKeys.map(k => d.agingBuckets[k].color), barPercentage: 0.7, categoryPercentage: 0.8 }] },
+            options: {
+                maintainAspectRatio: false, legend: { display: false },
+                scales: { xAxes: [{ gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ gridLines: { display: false } }] },
+                plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } },
+                onClick: function (evt, activeElements) {
+                    if (activeElements.length > 0) {
+                        let idx = activeElements[0]._index;
+                        let bName = agKeys[idx];
+                        window.DrilldownVault[id]['temp'] = d.agingBuckets[bName].tks;
+                        openDrilldown(`Tickets no Range: ${bName}`, 'temp', id);
                     }
                 }
-            });
-            window.chartInstances.push(instAg);
+            }
+        });
+        window.chartInstances.push(instAg);
 
-            let instP = new Chart(document.getElementById(`c-p-${id}`), {
-                type: 'doughnut',
-                data: { labels: ['SLA Cumprido (No Prazo)', 'SLA Estourado (Fora)'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN], borderWidth: 2, borderColor: '#fff' }] },
-                options: {
-                    cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } },
-                    plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (val, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x); return sum && val > 0 ? ((val / sum) * 100).toFixed(2).replace('.', ',') + '%' : ""; } } },
-                    onClick: function (evt, activeElements) {
-                        if (activeElements.length > 0) {
-                            let idx = activeElements[0]._index;
-                            let tks = idx === 0 ? d.tksInSlaTot : d.tksOutSlaTot;
-                            let dTitle = idx === 0 ? `Tickets No Prazo SLA` : `Tickets Com SLA Estourado`;
-                            window.DrilldownVault[id]['temp'] = tks;
-                            openDrilldown(dTitle, 'temp', id);
-                        }
+        let instP = new Chart(document.getElementById(`c-p-${id}`), {
+            type: 'doughnut',
+            data: { labels: ['SLA Cumprido (No Prazo)', 'SLA Estourado (Fora)'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN], borderWidth: 2, borderColor: '#fff' }] },
+            options: {
+                cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } },
+                plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (val, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x); return sum && val > 0 ? ((val / sum) * 100).toFixed(2).replace('.', ',') + '%' : ""; } } },
+                onClick: function (evt, activeElements) {
+                    if (activeElements.length > 0) {
+                        let idx = activeElements[0]._index;
+                        let tks = idx === 0 ? d.tksInSlaTot : d.tksOutSlaTot;
+                        let dTitle = idx === 0 ? `Tickets No Prazo SLA` : `Tickets Com SLA Estourado`;
+                        window.DrilldownVault[id]['temp'] = tks;
+                        openDrilldown(dTitle, 'temp', id);
                     }
                 }
-            });
-            window.chartInstances.push(instP);
+            }
+        });
+        window.chartInstances.push(instP);
         }
 
         function drawConsolidadoCharts(i, r, u) {
