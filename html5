@@ -276,12 +276,15 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             padding-top: 8px;
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE 10+ */
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE 10+ */
         }
 
         .tabs-nav::-webkit-scrollbar {
-            display: none; /* Chrome/Safari/Webkit */
+            display: none;
+            /* Chrome/Safari/Webkit */
         }
 
         .tab-btn {
@@ -1466,29 +1469,35 @@
                 <label
                     style="font-size: 10px; font-weight: bold; margin-bottom: 6px; display: block; color:#475569; text-transform: uppercase; letter-spacing: 0.5px;"><i
                         class="fas fa-calendar-alt mr-1"></i> Mês de Referência</label>
-                
+
                 <!-- Navegação de Mês -->
                 <div class="flex items-center gap-1 mb-2">
-                    <button onclick="changeMonth(-1)" class="p-2 bg-slate-100 border border-slate-200 rounded hover:bg-slate-200 transition text-slate-600 text-[10px]" title="Mês Anterior">
+                    <button onclick="changeMonth(-1)"
+                        class="p-2 bg-slate-100 border border-slate-200 rounded hover:bg-slate-200 transition text-slate-600 text-[10px]"
+                        title="Mês Anterior">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <input type="month" id="ref-date" class="form-input text-slate-800 text-center font-bold text-xs"
-                        style="padding: 6px 4px; flex: 1;"
-                        title="Período de auditoria consolidado.">
-                    <button onclick="changeMonth(1)" class="p-2 bg-slate-100 border border-slate-200 rounded hover:bg-slate-200 transition text-slate-600 text-[10px]" title="Próximo Mês">
+                        style="padding: 6px 4px; flex: 1;" title="Período de auditoria consolidado.">
+                    <button onclick="changeMonth(1)"
+                        class="p-2 bg-slate-100 border border-slate-200 rounded hover:bg-slate-200 transition text-slate-600 text-[10px]"
+                        title="Próximo Mês">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
 
                 <div class="flex gap-2">
-                    <button onclick="setToToday()" class="flex-1 bg-blue-50 text-blue-700 text-[9px] font-black py-2 rounded border border-blue-100 hover:bg-blue-100 transition uppercase letter-spacing-1">
+                    <button onclick="setToToday()"
+                        class="flex-1 bg-blue-50 text-blue-700 text-[9px] font-black py-2 rounded border border-blue-100 hover:bg-blue-100 transition uppercase letter-spacing-1">
                         <i class="fas fa-calendar-check mr-1"></i> Mês Atual
                     </button>
-                    <button id="btn-compare" onclick="toggleComparisonMode()" class="flex-1 bg-slate-100 text-slate-700 text-[9px] font-black py-2 rounded border border-slate-200 hover:bg-slate-200 transition uppercase letter-spacing-1">
+                    <button id="btn-compare" onclick="toggleComparisonMode()"
+                        class="flex-1 bg-slate-100 text-slate-700 text-[9px] font-black py-2 rounded border border-slate-200 hover:bg-slate-200 transition uppercase letter-spacing-1">
                         <i class="fas fa-balance-scale mr-1"></i> Comparar
                     </button>
                 </div>
-                <div id="comparison-badge" class="hidden-st mt-2 bg-amber-100 text-amber-700 text-[8px] font-bold py-1 px-2 rounded-full border border-amber-200 text-center animate-pulse">
+                <div id="comparison-badge"
+                    class="hidden-st mt-2 bg-amber-100 text-amber-700 text-[8px] font-bold py-1 px-2 rounded-full border border-amber-200 text-center animate-pulse">
                     <i class="fas fa-sync-alt fa-spin mr-1"></i> MODO COMPARAÇÃO ATIVO
                 </div>
                 <div style="font-size: 9px; color: #94a3b8; margin-top: 6px; line-height: 1.4;">
@@ -1605,7 +1614,8 @@
                     UAMs</button>
                 <button class="tab-btn" onclick="switchTab('tab-cons', this)"><i class="fas fa-globe mr-1"></i>
                     Consolidado</button>
-                <button class="tab-btn" onclick="switchTab('tab-prb', this)"><i class="fas fa-shield-alt mr-1"></i> PRBs</button>
+                <button class="tab-btn" onclick="switchTab('tab-prb', this)"><i class="fas fa-shield-alt mr-1"></i>
+                    PRBs</button>
                 <button class="tab-btn" onclick="switchTab('tab-class', this)"><i class="fas fa-exchange-alt mr-1"></i>
                     Erros Classificação</button>
                 <button class="tab-btn" onclick="switchTab('tab-todo', this)"
@@ -1929,14 +1939,14 @@
         function changeMonth(offset) {
             const input = document.getElementById('ref-date');
             if (!input.value) return;
-            
+
             const [year, month] = input.value.split('-').map(Number);
             const date = new Date(year, month - 1 + offset, 1);
-            
+
             const newYear = date.getFullYear();
             const newMonth = String(date.getMonth() + 1).padStart(2, '0');
             input.value = `${newYear}-${newMonth}`;
-            
+
             if (RawData.incs.length || RawData.reqs.length) {
                 processDashboard();
             }
@@ -1958,7 +1968,7 @@
             window.isComparisonActive = !window.isComparisonActive;
             const btn = document.getElementById('btn-compare');
             const badge = document.getElementById('comparison-badge');
-            
+
             if (window.isComparisonActive) {
                 btn.classList.remove('bg-slate-100', 'text-slate-700');
                 btn.classList.add('bg-amber-500', 'text-white', 'border-amber-600', 'shadow-md');
@@ -1968,7 +1978,7 @@
                 btn.classList.remove('bg-amber-500', 'text-white', 'border-amber-600', 'shadow-md');
                 badge.classList.add('hidden-st');
             }
-            
+
             // Re-processa se já houver dados
             if (RawData.incs.length || RawData.reqs.length) {
                 processDashboard();
@@ -1989,13 +1999,19 @@
             }
         }
 
-        function showAlertModal(title, message) {
+        let alertModalCallback = null;
+        function showAlertModal(title, message, callback = null) {
             document.getElementById('alert-modal-title').innerText = title;
             document.getElementById('alert-modal-message').innerText = message;
             document.getElementById('alert-modal').classList.remove('hidden-st');
+            alertModalCallback = callback;
         }
         function closeAlertModal() {
             document.getElementById('alert-modal').classList.add('hidden-st');
+            if (typeof alertModalCallback === 'function') {
+                alertModalCallback();
+                alertModalCallback = null;
+            }
         }
 
         // --- PERSISTÊNCIA (IndexedDB para o DirectoryHandle) ---
@@ -2054,8 +2070,7 @@
             if (window.syncContext.isSyncing) return;
 
             if (!window.syncContext.dirHandle) {
-                showAlertModal("Pasta não Vinculada", "Para sincronizar, você precisa primeiro associar uma pasta do seu computador ou nuvem (onde os arquivos .xlsx estão salvos).");
-                setTimeout(() => openConfigModal(), 500);
+                showAlertModal("Pasta não Vinculada", "Para sincronizar, você precisa primeiro associar uma pasta do seu computador ou nuvem (onde os arquivos .xlsx estão salvos).", openConfigModal);
                 return;
             }
 
@@ -3647,58 +3662,58 @@
                 return;
             }
 
-                document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-pane').forEach(c => { c.classList.add('hidden-st'); c.classList.remove('animate-fade'); });
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(c => { c.classList.add('hidden-st'); c.classList.remove('animate-fade'); });
 
-                const searchTab = document.getElementById('tab-search');
-                searchTab.classList.remove('hidden-st');
-                searchTab.classList.add('animate-fade');
+            const searchTab = document.getElementById('tab-search');
+            searchTab.classList.remove('hidden-st');
+            searchTab.classList.add('animate-fade');
 
-                let results = [];
-                const refDateInput = document.getElementById('ref-date').value;
-                const refDateObj = new Date(refDateInput + (refDateInput.length === 7 ? '-01' : '') + 'T12:00:00');
+            let results = [];
+            const refDateInput = document.getElementById('ref-date').value;
+            const refDateObj = new Date(refDateInput + (refDateInput.length === 7 ? '-01' : '') + 'T12:00:00');
 
-                [{ n: 'INC', d: RawData.incs }, { n: 'REQ', d: RawData.reqs }, { n: 'RCA', d: RawData.rca }, { n: 'PTASK', d: RawData.ptask }].forEach(src => {
-                    src.d.forEach(r => {
-                        let rowString = removeAccents(Object.values(r).join(" ").toUpperCase());
-                        if (rowString.includes(term)) {
-                            let asg = getCol(r, ['Assigned to', 'Analista']) || 'Não Atribuído';
-                            let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                            let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+            [{ n: 'INC', d: RawData.incs }, { n: 'REQ', d: RawData.reqs }, { n: 'RCA', d: RawData.rca }, { n: 'PTASK', d: RawData.ptask }].forEach(src => {
+                src.d.forEach(r => {
+                    let rowString = removeAccents(Object.values(r).join(" ").toUpperCase());
+                    if (rowString.includes(term)) {
+                        let asg = getCol(r, ['Assigned to', 'Analista']) || 'Não Atribuído';
+                        let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                        let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
 
-                            let tk = src.n === 'REQ' || src.n === 'UAM' ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket', 'Problem', 'Task']) || '-');
-                            let stOrig = String(getCol(r, ['State', 'Status', 'RCA Status']) || '').toUpperCase();
-                            let reasonOrig = String(getCol(r, ['Reason', 'reason', 'Motivo']) || '').toUpperCase();
-                            let holdReason = String(getCol(r, ['On hold reason', 'Motivo da espera']) || '');
+                        let tk = src.n === 'REQ' || src.n === 'UAM' ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket', 'Problem', 'Task']) || '-');
+                        let stOrig = String(getCol(r, ['State', 'Status', 'RCA Status']) || '').toUpperCase();
+                        let reasonOrig = String(getCol(r, ['Reason', 'reason', 'Motivo']) || '').toUpperCase();
+                        let holdReason = String(getCol(r, ['On hold reason', 'Motivo da espera']) || '');
 
-                            results.push({
-                                type: src.n,
-                                tk: tk,
-                                desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '-').replace(/"/g, '&quot;'),
-                                longDesc: String(getCol(r, ['Description', 'Descrição Completa']) || '-').replace(/"/g, '&quot;'),
-                                req: getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
-                                asg: asg,
-                                gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
-                                st: stOrig,
-                                reason: reasonOrig,
-                                info: holdReason,
-                                op: op,
-                                cl: cl,
-                                idle: (!cl || cl > refDateObj) ? getDaysSilent(r, refDateObj, asg, op) : '-'
-                            });
-                        }
-                    });
+                        results.push({
+                            type: src.n,
+                            tk: tk,
+                            desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '-').replace(/"/g, '&quot;'),
+                            longDesc: String(getCol(r, ['Description', 'Descrição Completa']) || '-').replace(/"/g, '&quot;'),
+                            req: getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
+                            asg: asg,
+                            gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
+                            st: stOrig,
+                            reason: reasonOrig,
+                            info: holdReason,
+                            op: op,
+                            cl: cl,
+                            idle: (!cl || cl > refDateObj) ? getDaysSilent(r, refDateObj, asg, op) : '-'
+                        });
+                    }
                 });
+            });
 
-                results.sort((a, b) => {
-                    if (!a.op) return 1;
-                    if (!b.op) return -1;
-                    return b.op - a.op;
-                });
+            results.sort((a, b) => {
+                if (!a.op) return 1;
+                if (!b.op) return -1;
+                return b.op - a.op;
+            });
 
-                window.paginationState.searchData = results;
-                window.paginationState.search = 1;
-                renderSearchPage();
+            window.paginationState.searchData = results;
+            window.paginationState.search = 1;
+            renderSearchPage();
         }
 
         function renderSearchPage() {
@@ -3849,11 +3864,11 @@
         function calculateSection(data, slaDays, type, refDateObj, isFullMonth = true) {
             const limitDate = new Date(refDateObj);
             const limitTime = limitDate.getTime();
-            
+
             // Para trend e inicialização
             const refMonth = limitDate.getMonth();
             const refYear = limitDate.getFullYear();
-            
+
             let totalMttr = 0, countRes = 0, inSlaMes = 0, resMes = 0, backlog = 0;
             let trendD = {}, trendM = {}, analistas = {}, criticals = [], noPrb = [];
             let agingBuckets = {};
@@ -3870,7 +3885,7 @@
             bucketsDef.forEach(b => agingBuckets[b.l] = { count: 0, color: b.min > slaDays ? '#D50000' : '#1E3A8A', tks: [] });
 
             // Inicializa trendD
-            let maxDay = isFullMonth ? limitDate.getDate() : 1; 
+            let maxDay = isFullMonth ? limitDate.getDate() : 1;
             // Para o modo 'Dia', só queremos o dia específico de refDateObj
             if (!isFullMonth) {
                 let sD = `${refYear}-${String(refMonth + 1).padStart(2, '0')}-${String(limitDate.getDate()).padStart(2, '0')}`;
@@ -3885,7 +3900,7 @@
             data.forEach(r => {
                 let opOrig = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!opOrig || opOrig.getTime() > limitTime) return;
-                
+
                 let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
                 let stOrig = String(getCol(r, ['State', 'Status', 'Estado']) || '').toLowerCase();
                 let cl = clOrig; let st = stOrig;
@@ -3898,13 +3913,13 @@
                 if (age < 0) age = 0;
 
                 // Para indicadores 'Mensais' ou 'Diários' dependendo do modo
-                let passMonth = isFullMonth ? (opOrig.getMonth() === refMonth && opOrig.getFullYear() === refYear) : 
-                                               (opOrig.getDate() === limitDate.getDate() && opOrig.getMonth() === refMonth && opOrig.getFullYear() === refYear);
+                let passMonth = isFullMonth ? (opOrig.getMonth() === refMonth && opOrig.getFullYear() === refYear) :
+                    (opOrig.getDate() === limitDate.getDate() && opOrig.getMonth() === refMonth && opOrig.getFullYear() === refYear);
 
                 let oY = opOrig.getFullYear(); let oM = String(opOrig.getMonth() + 1).padStart(2, '0');
                 let mKey = `${oY}-${oM}`;
                 if (!trendM[mKey]) trendM[mKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
-                
+
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
                 let tObj = buildTicketObject(r, limitDate, asg, opOrig, clOrig, stOrig, st, age, type, slaDays);
 
@@ -3920,17 +3935,17 @@
                 }
 
                 if (isRes && cl) {
-                    let cPass = isFullMonth ? (cl.getMonth() === refMonth && cl.getFullYear() === refYear) : 
-                                              (cl.getDate() === limitDate.getDate() && cl.getMonth() === refMonth && cl.getFullYear() === refYear);
-                    
+                    let cPass = isFullMonth ? (cl.getMonth() === refMonth && cl.getFullYear() === refYear) :
+                        (cl.getDate() === limitDate.getDate() && cl.getMonth() === refMonth && cl.getFullYear() === refYear);
+
                     let cY = cl.getFullYear(); let cM = String(cl.getMonth() + 1).padStart(2, '0'); let cD = String(cl.getDate()).padStart(2, '0');
                     let dcKey = `${cY}-${cM}-${cD}`;
 
                     if (cPass) {
-                        resMes++; 
+                        resMes++;
                         if (age <= slaDays) inSlaMes++;
                         allResolvedTks.push(tObj);
-                        
+
                         let mcKey = `${cY}-${cM}`;
                         if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
                         trendM[mcKey].r++;
@@ -3943,8 +3958,8 @@
                         totalMttr += age; countRes++;
                     }
                 } else if (isCanc && cl) {
-                    let cPass = isFullMonth ? (cl.getMonth() === refMonth && cl.getFullYear() === refYear) : 
-                                              (cl.getDate() === limitDate.getDate() && cl.getMonth() === refMonth && cl.getFullYear() === refYear);
+                    let cPass = isFullMonth ? (cl.getMonth() === refMonth && cl.getFullYear() === refYear) :
+                        (cl.getDate() === limitDate.getDate() && cl.getMonth() === refMonth && cl.getFullYear() === refYear);
                     if (cPass) {
                         allCanceledTks.push(tObj);
                         let cY = cl.getFullYear(); let cM = String(cl.getMonth() + 1).padStart(2, '0'); let cD = String(cl.getDate()).padStart(2, '0');
@@ -3972,8 +3987,8 @@
                 }
 
                 if (isRes && cl) {
-                    let cPass = isFullMonth ? (cl.getMonth() === refMonth && cl.getFullYear() === refYear) : 
-                                              (cl.getDate() === limitDate.getDate() && cl.getMonth() === refMonth && cl.getFullYear() === refYear);
+                    let cPass = isFullMonth ? (cl.getMonth() === refMonth && cl.getFullYear() === refYear) :
+                        (cl.getDate() === limitDate.getDate() && cl.getMonth() === refMonth && cl.getFullYear() === refYear);
                     if (cPass) {
                         if (!analistas[asg]) analistas[asg] = { ab: 0, res: 0, tks_ab: [], tks_res: [] };
                         analistas[asg].res++;
@@ -4073,8 +4088,8 @@
                         if (daysInt > res.monthMax) res.monthMax = daysInt;
                     }
 
-                    let mStrKey = op.getFullYear() + '-' + String(op.getMonth() + 1).padStart(2, '0');
-                    let mStrLabel = op.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
+                    let mStrKey = dateToCompare.getFullYear() + '-' + String(dateToCompare.getMonth() + 1).padStart(2, '0');
+                    let mStrLabel = dateToCompare.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
                     if (!res.m[mStrKey]) res.m[mStrKey] = { count: 0, tks: [], label: mStrLabel };
                     res.m[mStrKey].count++;
 
@@ -4429,8 +4444,9 @@
                 let m = d.trendM[k];
                 let mesStr = new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
                 let saldo = m.a - (m.r + m.c);
-                let pctStr = m.r > 0 ? ((m.inSla / m.r) * 100).toFixed(2).replace('.', ',') : "0,00";
-                let bgPct = pctStr >= 98 ? C.SUC : C.DAN;
+                let pctVal = m.r > 0 ? (m.inSla / m.r) * 100 : 0;
+                let pctStr = pctVal.toFixed(2).replace('.', ',');
+                let bgPct = pctVal >= 98 ? C.SUC : C.DAN;
                 let colorS = saldo > 0 ? C.PRI_D : (saldo < 0 ? C.PRI : C.GRY_D);
                 tA += m.a; tR += m.r; tC += m.c; tS += saldo; lastB = m.b;
                 rows += `<tr>
@@ -4468,7 +4484,7 @@
 
             // Lógica de Comparação
             let comp = window.isComparisonActive ? window.ComparisonData[cat] : null;
-            
+
             const renderComparison = (valHoje, label = "") => {
                 if (!comp) return "";
                 return `
@@ -4780,7 +4796,7 @@
         function generateConsolidadoHTML(i, r, u) {
             let getTotals = (d, key) => { let s = 0; if (d?.trendM) Object.keys(d.trendM).forEach(k => s += d.trendM[k][key]); return s; };
             let totIn = getTotals(i, 'a') + getTotals(r, 'a') + getTotals(u, 'a');
-            
+
             window.DrilldownVault['cons']['inc_b'] = i.allBacklogTks || [];
             window.DrilldownVault['cons']['req_b'] = r.allBacklogTks || [];
             window.DrilldownVault['cons']['uam_b'] = u.allBacklogTks || [];
@@ -5112,7 +5128,7 @@
 
         function generatePRBTab(rcaData, ptaskData, slaRCA, slaPTask, refDateObj) {
             const refDate = new Date(refDateObj); refDate.setHours(23, 59, 59, 999); const refTime = refDate.getTime();
-            
+
             let allPrbs = [];
             let allPtasks = [];
             let rcaOpenBySector = {}; // For filtering RCA != Published
@@ -5142,7 +5158,7 @@
                 let workNotes = String(getCol(r, ['Work notes', 'Work Notes', 'Work notes list', 'Additional comments']) || '');
                 let shortDesc = String(getCol(r, ['Short description', 'Descrição']) || '');
                 let combinedText = shortDesc + " " + workNotes;
-                
+
                 let vRel = extractFromComments(combinedText, 'release');
                 let dRel = extractFromComments(combinedText, 'deploy');
 
@@ -5156,7 +5172,7 @@
                 // Contagem de Tickets Associados em Incs
                 let associatedIncs = [];
                 const slaIncs = parseInt(document.getElementById('sla-incs')?.value) || 7;
-                
+
                 // Normaliza o ID do PRB para comparação
                 const tkNormalized = tk.trim().toUpperCase();
 
@@ -5164,17 +5180,17 @@
                     associatedIncs = window.RawData.incs.filter(inc => {
                         let incPrbRaw = String(getCol(inc, ['Problem', 'Problema', 'Problem ID', 'problem_id']) || '').trim().toUpperCase();
                         let incShortDesc = String(getCol(inc, ['Short description', 'Descrição']) || '').toUpperCase();
-                        
+
                         // Match se o ID do PRB está no campo Problem OU nas notas/descrição curta
                         return (tk !== '-' && (incPrbRaw.includes(tkNormalized) || combinedText.toUpperCase().includes(incPrbRaw) || incShortDesc.includes(tkNormalized)));
                     }).map(inc => {
                         let iOp = safeDate(getCol(inc, ['Opened', 'Data Abertura', 'Created']));
                         let iAge = iOp ? Math.floor((refDate - iOp) / 86400000) : 0;
                         if (iAge < 0) iAge = 0;
-                        
+
                         let pctNum = (iAge / slaIncs) * 100;
                         let stSla = iAge > slaIncs ? 'FORA DO PRAZO' : 'DENTRO DO PRAZO';
-                        
+
                         return {
                             tk: getCol(inc, ['Number', 'Ticket', 'Número']) || '-',
                             desc: String(getCol(inc, ['Short description', 'Descrição']) || '-'),
@@ -5212,7 +5228,7 @@
                     rca_pub: getCol(r, ['RCA Published Date', 'Data RCA', 'data_publicacao_rca']) || '-'
                 };
                 allPrbs.push(prbObj);
-                
+
                 if (isRcaOpen) {
                     if (!rcaOpenBySector[gp]) rcaOpenBySector[gp] = { count: 0, tks: [] };
                     rcaOpenBySector[gp].tks.push(prbObj);
@@ -5222,14 +5238,14 @@
             ptaskData.forEach(r => {
                 let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!op || op.getTime() > refTime) return;
-                
+
                 let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
                 let stOrig = String(getCol(r, ['State', 'Status', 'Estado', 'status']) || '').toUpperCase();
-                
+
                 // Filtro para PTASKs abertas: Excluir estados terminais
                 const terminalStates = ['CLOSED', 'RESOLVED', 'CANCELLED', 'FECHADO', 'RESOLVIDO', 'CANCELADO', 'COMPLETED'];
                 let isTerminal = terminalStates.some(ts => stOrig.includes(ts));
-                
+
                 // Se fechado antes ou no dia da referência, e o status é terminal, pula
                 if (clOrig && clOrig.getTime() <= refTime && isTerminal) return;
                 // Se o status atual é terminal, pula
@@ -5238,15 +5254,15 @@
                 let age = Math.floor((refDate - op) / 86400000);
                 let tk = getCol(r, ['Number', 'Task', 'Número']) || '-';
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || '-';
-                let dummyT = { 
-                    tk: tk, 
-                    desc: getCol(r, ['Problem', 'Problema', 'Short description', 'Descrição']) || '-', 
-                    as: asg, 
-                    gp: getCol(r, ['Assignment group', 'Grupo']) || '-', 
-                    st: stOrig, 
-                    age: age, 
+                let dummyT = {
+                    tk: tk,
+                    desc: getCol(r, ['Problem', 'Problema', 'Short description', 'Descrição']) || '-',
+                    as: asg,
+                    gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
+                    st: stOrig,
+                    age: age,
                     idle: (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-',
-                    opStr: op.toLocaleDateString('pt-BR') 
+                    opStr: op.toLocaleDateString('pt-BR')
                 };
                 allPtasks.push(dummyT);
             });
@@ -5256,7 +5272,7 @@
             let openRcaCount = openRcaTks.length;
             let openPtasks = allPtasks; // Já filtradas acima
             let openPtaskCount = openPtasks.length;
-            
+
             // Agrega todos os INCs de impacto para o card de Impacto Total
             let allImpactedIncs = [];
             let seenIncs = new Set();
@@ -5274,7 +5290,7 @@
             window.DrilldownVault['class']['all_impacted_incs'] = allImpactedIncs;
 
             // Tabela de Setores (Breakdown)
-            let sectorRows = Object.entries(rcaOpenBySector).sort((a,b) => b[1].count - a[1].count).map(([sector, data], idx) => {
+            let sectorRows = Object.entries(rcaOpenBySector).sort((a, b) => b[1].count - a[1].count).map(([sector, data], idx) => {
                 let dKey = `rca_sector_${idx}`;
                 window.DrilldownVault['class'][dKey] = data.tks;
                 return `<tr class="hover:bg-slate-50 cursor-pointer transition border-b border-slate-50" onclick="openDrilldown('RCAs do Setor: ${sector}', '${dKey}', 'class')">
@@ -5364,7 +5380,7 @@
             let unifiedList = [
                 ...allPrbs.map(p => ({ ...p, type: 'PRB', typeLabel: 'Problema (RCA)', typeColor: 'bg-blue-600', icon: 'fa-bullseye' })),
                 ...allPtasks.map(t => ({ ...t, type: 'PTASK', typeLabel: 'Problem Task', typeColor: 'bg-indigo-600', icon: 'fa-tasks' }))
-            ].sort((a,b) => b.age - a.age);
+            ].sort((a, b) => b.age - a.age);
 
             let combinedRows = unifiedList.map((t, idx) => {
                 let statusColor = '';
@@ -5461,9 +5477,10 @@
                             yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }]
                         },
                         onClick: function (evt, activeElements) {
-                            if (activeElements.length > 0) {
-                                let idx = activeElements[0]._index;
-                                let datasetIdx = activeElements[0]._datasetIndex;
+                            const activePoint = this.getElementAtEvent(evt)[0];
+                            if (activePoint) {
+                                let idx = activePoint._index;
+                                let datasetIdx = activePoint._datasetIndex;
                                 let dKey = keys[idx];
                                 let lblDate = labels[idx];
 
@@ -5494,9 +5511,10 @@
                     scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ stacked: true, gridLines: { display: false } }] },
                     plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
                     onClick: function (evt, activeElements) {
-                        if (activeElements.length > 0) {
-                            let idx = activeElements[0]._index;
-                            let datasetIdx = activeElements[0]._datasetIndex;
+                        const activePoint = this.getElementAtEvent(evt)[0];
+                        if (activePoint) {
+                            let idx = activePoint._index;
+                            let datasetIdx = activePoint._datasetIndex;
                             let analystName = d.topAnalistas[idx].nome;
 
                             let tks = datasetIdx === 0 ? d.topAnalistas[idx].tks_ab : d.topAnalistas[idx].tks_res;
@@ -5599,9 +5617,10 @@
                             yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }]
                         },
                         onClick: function (evt, activeElements) {
-                            if (activeElements.length > 0) {
-                                let idx = activeElements[0]._index;
-                                let datasetIdx = activeElements[0]._datasetIndex;
+                            const activePoint = this.getElementAtEvent(evt)[0];
+                            if (activePoint) {
+                                let idx = activePoint._index;
+                                let datasetIdx = activePoint._datasetIndex;
                                 let dKey = keys[idx];
                                 let lblDate = labels[idx];
 
@@ -5621,7 +5640,7 @@
                 });
                 window.chartInstances.push(instance);
             };
-                    drawC('c-d-cons', cTrendD, true); drawC('c-m-cons', cTrendM, false);
+            drawC('c-d-cons', cTrendD, true); drawC('c-m-cons', cTrendM, false);
         }
 
         // ==========================================
@@ -5654,7 +5673,7 @@
                 const refDateInput = document.getElementById('ref-date').value;
                 const now = new Date();
                 let dateMachine;
-                
+
                 if (refDateInput) {
                     const [y, m] = refDateInput.split('-').map(Number);
                     const lastDay = new Date(y, m, 0, 23, 59, 59, 999);
@@ -5678,7 +5697,7 @@
                 window.ComparisonData = { inc: null, req: null, uam: null };
 
                 let dI = null, dRS = null, dRU = null;
-                
+
                 // Processamento de INCs
                 if (RawData.incs.length) {
                     dI = calculateSection(RawData.incs, slaI, "INC", dateMachine, true);
@@ -5695,19 +5714,19 @@
                     rS = RawData.reqs.filter(r => !isUam(r));
                     rU = RawData.reqs.filter(r => isUam(r));
 
-                    if (rS.length) { 
-                        dRS = calculateSection(rS, slaR, "REQ", dateMachine, true); 
+                    if (rS.length) {
+                        dRS = calculateSection(rS, slaR, "REQ", dateMachine, true);
                         if (window.isComparisonActive) {
                             window.ComparisonData.req = calculateSection(rS, slaR, "REQ", dateToday, false);
                         }
-                        document.getElementById('tab-req').innerHTML = generateSectionHTML('req', "SESSÃO REQs (SUPORTE GERAL)", C.PRI_D, dRS, "REQ"); 
+                        document.getElementById('tab-req').innerHTML = generateSectionHTML('req', "SESSÃO REQs (SUPORTE GERAL)", C.PRI_D, dRS, "REQ");
                     }
-                    if (rU.length) { 
-                        dRU = calculateSection(rU, slaR, "REQ", dateMachine, true); 
+                    if (rU.length) {
+                        dRU = calculateSection(rU, slaR, "REQ", dateMachine, true);
                         if (window.isComparisonActive) {
                             window.ComparisonData.uam = calculateSection(rU, slaR, "REQ", dateToday, false);
                         }
-                        document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "SESSÃO UAMs (ACESSOS)", C.PRI_D, dRU, "REQ"); 
+                        document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "SESSÃO UAMs (ACESSOS)", C.PRI_D, dRU, "REQ");
                     }
                 }
 
@@ -5718,10 +5737,10 @@
                         const cI = window.ComparisonData.inc || { backlog: 0, resMes: 0, inSla: 0, outSla: 0, pct: "0,00", mttr: "0,00" };
                         const cR = window.ComparisonData.req || { backlog: 0, resMes: 0, inSla: 0, outSla: 0, pct: "0,00", mttr: "0,00" };
                         const cU = window.ComparisonData.uam || { backlog: 0, resMes: 0, inSla: 0, outSla: 0, pct: "0,00", mttr: "0,00" };
-                        
+
                         const totRes = cI.resMes + cR.resMes + cU.resMes;
                         const totIn = cI.inSla + cR.inSla + cU.inSla;
-                        
+
                         window.ComparisonData.cons = {
                             backlog: cI.backlog + cR.backlog + cU.backlog,
                             resMes: totRes,
