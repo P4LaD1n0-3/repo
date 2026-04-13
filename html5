@@ -5216,17 +5216,22 @@
                     as: asg,
                     gp: gp,
                     st: stOrig,
+                    stRca: stOrig, // RCA Status
                     age: age,
                     idle: idle,
                     opStr: op.toLocaleDateString('pt-BR'),
+                    clStr: clOrig ? clOrig.toLocaleDateString('pt-BR') : '-',
+                    clNote: getCol(r, ['Close notes', 'Notas de fechamento', 'close_notes']) || '-',
+                    ci: getCol(r, ['Configuration item', 'CI', 'Item de configuracao', 'cmdb_ci']) || '-',
+                    work_notes: workNotes.substring(0, 100) + (workNotes.length > 100 ? '...' : ''),
                     v_rel: vRel,
                     d_rel: dRel,
                     tks_assoc: associatedIncs.length,
                     associated_incs: associatedIncs,
                     is_rca_open: isRcaOpen,
-                    prb_tasks: getCol(r, ['Problem Tasks', 'Tasks', 'Task count']) || '0',
-                    rca_due: getCol(r, ['RCA Due Date', 'Prazo RCA', 'prazo_rca']) || '-',
-                    rca_pub: getCol(r, ['RCA Published Date', 'Data RCA', 'data_publicacao_rca']) || '-'
+                    prb_tasks: getCol(r, ['Problem Tasks', 'Tasks', 'Related Tasks']) || '0',
+                    rca_due: getCol(r, ['RCA Due Date', 'Prazo RCA', 'prazo_rca', 'due_date']) || '-',
+                    rca_pub: getCol(r, ['RCA Published Date', 'Data RCA', 'data_publicacao_rca', 'resolved_at']) || '-'
                 };
                 allPrbs.push(prbObj);
 
@@ -5262,9 +5267,17 @@
                     as: asg,
                     gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
                     st: stOrig,
+                    stRca: '-', // PTASK doesn't have RCA Status directly
                     age: age,
                     idle: (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-',
-                    opStr: op.toLocaleDateString('pt-BR')
+                    opStr: op.toLocaleDateString('pt-BR'),
+                    clStr: clOrig ? clOrig.toLocaleDateString('pt-BR') : '-',
+                    clNote: getCol(r, ['Close notes', 'Notas de fechamento']) || '-',
+                    ci: getCol(r, ['Configuration item', 'CI', 'Item de configuração']) || '-',
+                    work_notes: (getCol(r, ['Work notes', 'Work Notes']) || '-').substring(0, 100),
+                    rca_due: '-',
+                    rca_pub: '-',
+                    tks_assoc: '0'
                 };
                 allPtasks.push(dummyT);
             });
@@ -5394,7 +5407,8 @@
 
                 return `
                 <tr class="ticket-row" ${buildDataAttrs(t)}>
-                    <td data-label="Ticket" class="text-left">
+                    <!-- Number / Identification -->
+                    <td data-label="Number" class="text-left">
                         <div class="flex items-center gap-2">
                             <div class="w-7 h-7 rounded flex items-center justify-center text-white ${t.typeColor} text-[10px] shadow-sm">
                                 <i class="fas ${t.icon}"></i>
@@ -5403,31 +5417,35 @@
                                 <div class="text-[11px] font-black text-slate-800">${t.tk}</div>
                                 <div class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${t.typeLabel}</div>
                                 <button onclick="openTicketDetails('${t.tk}')" 
-                                        class="mt-2 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-1 px-2 text-[9px] uppercase font-bold transition-colors shadow-sm">
+                                        class="mt-1 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-0.5 px-1 text-[8px] uppercase font-bold transition-colors shadow-sm">
                                     <i class="fas fa-history mr-1"></i> Saiba mais
                                 </button>
                             </div>
                         </div>
                     </td>
-                    <td data-label="PRB" class="text-[11px] font-bold" style="color:var(--primary-dark)">
-                        ${t.prb || '-'}
+                    <td data-label="Problem" class="text-[11px] font-bold" style="color:var(--primary-dark)">${t.prb || '-'}</td>
+                    <td data-label="Short description" class="text-left" style="min-width: 200px;">
+                        <div class="text-[10px] font-bold text-slate-800 line-clamp-2" title="${t.desc}">${t.desc}</div>
                     </td>
-                    <td data-label="Analista" class="text-[11px] font-medium text-slate-600">
-                        ${t.as}
-                    </td>
-                    <td data-label="Grupo" class="text-[10px] text-slate-400 font-semibold">
-                        ${t.gp}
-                    </td>
-                    <td data-label="Contexto / Descrição" class="text-left" style="max-width: 250px;">
-                        <div class="text-[11px] font-bold text-slate-800 line-clamp-1" title="${t.desc}">${t.desc}</div>
-                        ${t.v_rel && t.v_rel !== '—' ? `<span class="bg-blue-50 text-blue-700 text-[8px] px-1 rounded border border-blue-100 font-bold mr-1">V: ${t.v_rel}</span>` : ''}
-                        ${t.d_rel && t.d_rel !== '—' ? `<span class="bg-emerald-50 text-emerald-700 text-[8px] px-1 rounded border border-emerald-100 font-bold">D: ${t.d_rel}</span>` : ''}
-                        ${t.type === 'PTASK' ? `<div class="text-[9px] text-indigo-500 font-bold mt-0.5"><i class="fas fa-link mr-1"></i>Vínculo: ${t.desc}</div>` : ''}
-                    </td>
-                    <td data-label="Status" class="text-center">
+                    <td data-label="Configuration item" class="text-[10px] text-slate-500">${t.ci}</td>
+                    <td data-label="Assigned to" class="text-[10px] font-medium text-slate-600">${t.as}</td>
+                    <td data-label="Assignment group" class="text-[10px] text-slate-400 font-semibold">${t.gp}</td>
+                    <td data-label="State" class="text-center">
                         <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase ${statusColor}">${t.st}</span>
                     </td>
-                    <td data-label="Métricas" style="text-align:right;">
+                    <td data-label="Related Incidents" class="text-center font-bold text-blue-600">${t.tks_assoc}</td>
+                    <td data-label="RCA Status" class="text-[9px] font-bold text-slate-500">${t.stRca}</td>
+                    <td data-label="RCA Due Date" class="text-[9px] text-orange-600 font-bold">${t.rca_due}</td>
+                    <td data-label="RCA Published" class="text-[9px] text-emerald-600 font-bold">${t.rca_pub}</td>
+                    <td data-label="Opened" class="text-[9px] text-slate-500">${t.opStr}</td>
+                    <td data-label="Closed" class="text-[9px] text-slate-500">${t.clStr}</td>
+                    <td data-label="Close notes" class="text-left">
+                        <div class="text-[9px] text-slate-400 line-clamp-1 italic" title="${t.clNote}">${t.clNote}</div>
+                    </td>
+                    <td data-label="Work notes" class="text-left">
+                        <div class="text-[9px] text-slate-400 line-clamp-1" title="${t.work_notes}">${t.work_notes}</div>
+                    </td>
+                    <td data-label="Aging/Ocioso" style="text-align:right;">
                         <div class="font-bold text-xs ${t.age > (t.type === 'PRB' ? slaRCA : slaPTask) ? 'text-red-600' : 'text-slate-700'}">${t.age}d</div>
                         ${t.idle !== '-' ? `<div class="text-[9px] font-bold mt-1 ${t.idle > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d</div>` : ''}
                     </td>
@@ -5440,13 +5458,27 @@
                     <span><i class="fas fa-exchange-alt mr-2 text-blue-600"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTAS)</span>
                     <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">${unifiedList.length} ITENS NO BACKLOG</span>
                 </div>
-                <div class="st-dataframe-container">
-                    <table class="st-table">
+                <div class="st-dataframe-container" style="overflow-x: auto;">
+                    <table class="st-table" style="min-width: 1800px;">
                         <thead><tr>
-                            ${createTh("Ticket", "12%")} ${createTh("PRB", "10%")} ${createTh("Analista", "12%")} ${createTh("Grupo", "12%")} ${createTh("Contexto / Descrição", "auto", "left")}
-                            ${createTh("Status", "10%")} ${createTh("Aging/Ocioso", "10%", "right")}
+                            ${createTh("Number", "8%")} 
+                            ${createTh("Problem", "8%")} 
+                            ${createTh("Short description", "10%", "left")}
+                            ${createTh("Configuration item", "8%")}
+                            ${createTh("Assigned to", "8%")}
+                            ${createTh("Assignment group", "8%")}
+                            ${createTh("State", "6%")}
+                            ${createTh("Related Inc.", "4%")}
+                            ${createTh("RCA Status", "6%")}
+                            ${createTh("RCA Due Date", "7%")}
+                            ${createTh("RCA Published", "7%")}
+                            ${createTh("Opened", "6%")}
+                            ${createTh("Closed", "6%")}
+                            ${createTh("Close notes", "8%")}
+                            ${createTh("Work notes", "8%")}
+                            ${createTh("Aging/Ocioso", "6%", "right")}
                         </tr></thead>
-                        <tbody>${combinedRows || '<tr><td colspan="7" class="p-10 text-center font-bold text-slate-400">Nenhum Problema ou Task em aberto.</td></tr>'}</tbody>
+                        <tbody>${combinedRows || '<tr><td colspan="16" class="p-10 text-center font-bold text-slate-400">Nenhum Problema ou Task em aberto.</td></tr>'}</tbody>
                     </table>
                 </div>
             </div>`;
