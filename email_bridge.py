@@ -3,6 +3,7 @@ import json
 import base64
 import platform
 import subprocess
+import sqlite3
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -67,6 +68,30 @@ def get_status():
         "platform": platform.system(),
         "ready": True
     })
+
+@app.route('/rpa/logs', methods=['GET'])
+def get_rpa_logs():
+    """Lê os logs da base do robô de dados em RPA/tickets_processados.db"""
+    try:
+        # A API roda no html_report, então sobe um diretório e entra em RPA
+        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "RPA", "tickets_processados.db")
+        
+        if not os.path.exists(db_path):
+            return jsonify({"status": "error", "message": "Banco de dados RPA ainda não criado.", "data": []})
+
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM processados ORDER BY data_processamento DESC LIMIT 100")
+            rows = cursor.fetchall()
+            
+            # Converte os resultados para um dict list
+            data = [dict(row) for row in rows]
+            
+            return jsonify({"status": "success", "data": data})
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e), "data": []})
 
 @app.route('/send-email', methods=['POST'])
 def send_email():
