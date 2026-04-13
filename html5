@@ -5592,6 +5592,11 @@
                     <td class="text-slate-500 text-[10px] text-center"><i class="far fa-envelope mr-1"></i>${r.data_recebimento}</td>
                     <td class="text-slate-400 text-[9px] text-center"><i class="fas fa-cogs mr-1"></i>${r.data_processamento}</td>
                     <td class="text-center">${stBadge}</td>
+                    <td class="text-center">
+                        ${r.arquivo_caminho 
+                            ? \`<button class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded text-[9px] font-bold border border-blue-200" onclick="readRpaEmail('\${r.arquivo_caminho.replace(/\\\\/g, '\\\\\\\\')}')" title="Ler E-mail">Ver E-mail</button>\` 
+                            : '<span class="text-[9px] text-slate-300">N/A</span>'}
+                    </td>
                 </tr>`;
             }).join('');
 
@@ -5612,8 +5617,9 @@
                             ${createTh("Data Recebimento", "12%")}
                             ${createTh("Data Extracao (RPA)", "12%")}
                             ${createTh("Resultado", "10%")}
+                            ${createTh("Ações", "5%", "center")}
                         </tr></thead>
-                        <tbody>${rows || '<tr><td colspan="6" class="p-10 text-center font-bold text-slate-400">Nenhum registro encontrado no Banco de Dados.</td></tr>'}</tbody>
+                        <tbody>${rows || '<tr><td colspan="7" class="p-10 text-center font-bold text-slate-400">Nenhum registro encontrado no Banco de Dados.</td></tr>'}</tbody>
                     </table>
                 </div>
             </div>`;
@@ -6086,7 +6092,71 @@
                 btn.innerHTML = '<i class="fas fa-camera text-[10px]"></i>';
             });
         }
+
+        // ==========================================
+        // RPA EMAIL VIEWER MODAL LOGIC
+        // ==========================================
+        async function readRpaEmail(filepath) {
+            const modal = document.getElementById('rpaEmailModal');
+            const contentDiv = document.getElementById('rpaEmailContent');
+            
+            modal.classList.remove('hidden');
+            contentDiv.innerHTML = '<div class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-4xl text-purple-600 mb-4"></i><div class="font-bold text-slate-500">Carregando e-mail...</div></div>';
+            
+            try {
+                // Fetch the actual email content served by Python bridge
+                const response = await fetch('http://localhost:5000/rpa/email?filepath=' + encodeURIComponent(filepath));
+                if (!response.ok) throw new Error('API do Robô Indisponível');
+                
+                const responseData = await response.json();
+                
+                if (responseData.status === 'error') {
+                   contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle block text-3xl mb-2"></i> ${responseData.message}</div>`;
+                   return;
+                }
+
+                // Render in a sandboxed iframe to prevent CSS bleeding
+                contentDiv.innerHTML = `<iframe style="width: 100%; height: 60vh; border: 1px solid #e2e8f0; border-radius: 8px; background: white;" srcdoc="${escapeHTMLDoc(responseData.content)}"></iframe>`;
+
+            } catch (error) {
+                contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold"><i class="fas fa-ban block text-3xl mb-2"></i> Não foi possível conectar ao bridge (localhost:5000)</div>`;
+            }
+        }
+
+        function closeRpaEmailModal() {
+            document.getElementById('rpaEmailModal').classList.add('hidden');
+            document.getElementById('rpaEmailContent').innerHTML = '';
+        }
+
+        function escapeHTMLDoc(html) {
+            return html
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
     </script>
+
+    <!-- Modal de Visualização de E-mail RPA -->
+    <div id="rpaEmailModal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
+            <div class="bg-purple-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
+                <div class="font-bold text-lg flex items-center">
+                    <i class="fas fa-envelope-open-text mr-3"></i> Visualizador de E-mail RPA
+                </div>
+                <button onclick="closeRpaEmailModal()" class="text-white hover:text-purple-200 transition bg-transparent hover:bg-purple-500 rounded p-1 w-8 h-8 flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-hidden flex-1 flex flex-col bg-slate-50" id="rpaEmailContent">
+                <!-- Iframe injetado pelo js -->
+            </div>
+            <div class="p-4 bg-white border-t border-slate-100 flex justify-end shrink-0">
+                <button onclick="closeRpaEmailModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2 rounded font-bold transition">Fechar</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
