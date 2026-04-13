@@ -1,0 +1,317 @@
+import logging
+import unicodedata
+import re
+import sqlite3
+import os
+import time
+from datetime import datetime, timedelta
+from dataclasses import dataclass, field
+from typing import Optional, Dict, List
+
+# Importação da biblioteca do Windows para interagir com o Outlook
+try:
+    import win32com.client
+    import pywintypes
+except ImportError:
+    raise ImportError(
+        "A biblioteca pywin32 é obrigatória. Instale com: pip install pywin32")
+
+# ==========================================
+# 1. MODELOS DE DADOS
+# ==========================================
+
+
+@dataclass
+class EmailMessage:
+    """Representação estruturada de um e-mail processado do Outlook."""
+    entry_id: str  # ID único do e-mail no Outlook (Chave Primária)
+    ticket_number: Optional[str]  # Número do chamado (INC, RITM, etc.)
+    subject: str
+    sender: str
+    date: str
+    body: str
+    categoria: str = "TICKET_TRACKING"
+    attachments: List[str] = field(default_factory=list)
+
+
+# ==========================================
+# 2. BANCO DE DADOS (SQLite)
+# ==========================================
+
+class DatabaseManager:
+    """Gerencia a persistência dos e-mails já processados em um arquivo SQLite."""
+
+    def __init__(self, db_name: str = "tickets_processados.db"):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.db_path = os.path.join(base_dir, db_name)
+        self._init_db()
+
+    def _init_db(self):
+        """Cria a tabela se ela não existir."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS processados (
+                    entry_id TEXT PRIMARY KEY,
+                    ticket_number TEXT,
+                    assunto TEXT,
+                    remetente TEXT,
+                    data_recebimento DATETIME,
+                    data_processamento DATETIME,
+                    status TEXT,
+                    detalhes TEXT,
+                    arquivo_caminho TEXT
+                )
+            ''')
+            # Migração para quem já possui a tabela
+            try:
+                cursor.execute('ALTER TABLE processados ADD COLUMN arquivo_caminho TEXT')
+            except sqlite3.OperationalError:
+                pass
+            conn.commit()
+
+    def is_processed(self, entry_id: str) -> bool:
+        """Verifica se o e-mail já existe no banco com status de SUCESSO."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT 1 FROM processados 
+                WHERE entry_id = ? AND status = 'SUCESSO'
+            ''', (entry_id,))
+            return cursor.fetchone() is not None
+
+    def mark_as_processed(self, email: EmailMessage, status: str, detalhes: str = "", filepath: str = ""):
+        """Registra o e-mail no banco de dados."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                REPLACE INTO processados (entry_id, ticket_number, assunto, remetente, data_recebimento, data_processamento, status, detalhes, arquivo_caminho)
+                VALUES (?, ?, ?, ?, ?, datetime('now', 'localtime'), ?, ?, ?)
+            ''', (email.entry_id, email.ticket_number, email.subject, email.sender, email.date, status, detalhes, filepath))
+            conn.commit()
+
+
+# ==========================================
+# 3. CLASSIFICADOR (Lógica de Negócio)
+# ==========================================
+
+class TicketTracker:
+    """Rastreador de Tickets para encontrar INC e PRB."""
+
+    def __init__(self):
+        # Regex para encontrar INC ou PRB.
+        # Ex: INC0012345, PRB1234567, INC12345, PRB12345
+        self.regex_ticket = re.compile(
+            r"\b(INC|PRB)\d{4,10}\b", re.IGNORECASE)
+
+    def extrair_tickets(self, texto: str) -> List[str]:
+        """Busca no texto todos os números de chamados do ServiceNow (INC ou PRB)."""
+        matches = self.regex_ticket.findall(texto)
+        return list(set([match.upper() for match in matches]))  # Retorna lista única
+
+
+# ==========================================
+# 4. UTILITÁRIOS (Logs e Diretórios)
+# ==========================================
+
+def setup_logger(name: str = "Ticket_TrackerBot") -> logging.Logger:
+    logger = logging.getLogger(name)
+    if not logger.handlers:
+        logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(message)s", datefmt="%H:%M:%S")
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+    return logger
+
+
+logger = setup_logger()
+
+
+def get_outlook_folder(namespace, folder_name: str):
+    if folder_name.upper() == "INBOX":
+        return namespace.GetDefaultFolder(6)
+    try:
+        root_folder = namespace.Folders.Item(1)
+        for folder in root_folder.Folders:
+            if folder.Name.lower() == folder_name.lower():
+                return folder
+        logger.warning(
+            f"Pasta '{folder_name}' não encontrada. Usando INBOX como fallback.")
+        return namespace.GetDefaultFolder(6)
+    except Exception as e:
+        logger.error(f"Erro ao buscar pasta {folder_name}: {e}")
+        return namespace.GetDefaultFolder(6)
+
+
+def get_outlook_namespace():
+    try:
+        logger.info("Conectando ao aplicativo Outlook local...")
+        outlook = win32com.client.Dispatch("Outlook.Application")
+        return outlook.GetNamespace("MAPI")
+    except pywintypes.com_error as e:
+        logger.error(f"Falha ao conectar no Outlook. Erro: {e}")
+        raise
+
+
+# ==========================================
+# 5. ORQUESTRADOR PRINCIPAL
+# ==========================================
+
+def process_ticket_emails(
+    days_back: int = 0,
+    mail_folder: str = "INBOX",
+    max_results: Optional[int] = None
+) -> Dict[str, List[EmailMessage]]:
+    """
+    Fluxo principal: Lê e-mails, procura por INCs/PRBs e salva os dados.
+    """
+    db = DatabaseManager()
+    tracker = TicketTracker()
+
+    resultados: Dict[str, List[EmailMessage]] = {}
+
+    # Setup diretório path_temp
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    temp_dir = os.path.join(base_dir, "path_temp")
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+
+    try:
+        namespace = get_outlook_namespace()
+        folder = get_outlook_folder(namespace, mail_folder)
+
+        logger.info(f"Lendo e-mails da pasta: {folder.Name}")
+        items = folder.Items
+        items.Sort("[ReceivedTime]", True)
+
+        cutoff_date = datetime.now() - timedelta(days=days_back)
+        count_processados = 0
+
+        for item in items:
+            if item.Class != 43:  # Ignora o que não for e-mail
+                continue
+
+            try:
+                item_date = item.ReceivedTime.replace(tzinfo=None)
+            except AttributeError:
+                continue
+
+            if item_date < cutoff_date:
+                break  # Atingiu limite de data retroativa
+
+            # 1. Identificação Básica
+            entry_id = item.EntryID
+            subject = item.Subject or "Sem Assunto"
+            body = item.Body or ""
+
+            # 2. Verifica se já processamos este e-mail antes
+            if db.is_processed(entry_id):
+                logger.debug(
+                    f"Ignorando e-mail já processado: {subject[:30]}...")
+                continue
+
+            # 3. Parse e Extração de Tickets
+            try:
+                sender = item.SenderEmailAddress
+            except Exception:
+                sender = getattr(item, 'SenderName', "Desconhecido")
+
+            date_str = item_date.strftime("%Y-%m-%d %H:%M:%S")
+            conteudo_analise = f"{subject} {body}"
+
+            # Extrai os tickets (INC ou PRB)
+            # A função extract the full match instead of group. Modification to fix findall issue.
+            # Using finditer ensures we get the full string (e.g. "INC00123") instead of just the capture group ("INC")
+            tickets_encontrados = list(set([match.group(0).upper() for match in tracker.regex_ticket.finditer(conteudo_analise)]))
+            
+            if not tickets_encontrados:
+                 # Se não tem ticket, ignoramos para esta lógica.
+                logger.debug(f"Nenhum INC/PRB encontrado em: {subject[:40]}")
+                continue
+
+
+            # Para cada ticket encontrado no e-mail, criamos um registro.
+            for ticket_num in tickets_encontrados:
+                email_msg = EmailMessage(
+                    entry_id=entry_id,
+                    ticket_number=ticket_num,
+                    subject=subject,
+                    sender=sender,
+                    date=date_str,
+                    body=body
+                )
+
+                if ticket_num not in resultados:
+                    resultados[ticket_num] = []
+
+                # Salvar o e-mail fisicamente no path_temp
+                html_body_content = ""
+                try:
+                    html_body_content = item.HTMLBody
+                except Exception:
+                    html_body_content = ""
+                
+                content_to_save = html_body_content if html_body_content else body
+                
+                safe_ticket = re.sub(r'[^A-Za-z0-9]', '', ticket_num)
+                safe_id = re.sub(r'[^A-Za-z0-9]', '', entry_id)[-10:]
+                filename = f"{safe_ticket}_{safe_id}.html"
+                filepath = os.path.join(temp_dir, filename)
+                
+                try:
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        if content_to_save.strip().startswith('<html') or '<body' in content_to_save.lower():
+                            f.write(content_to_save)
+                        else:
+                            f.write(f"<html><body><pre>{content_to_save}</pre></body></html>")
+                except Exception as e:
+                    logger.error(f"Erro ao salvar arquivo fisico do e-mail: {e}")
+                    filepath = ""
+
+                # Registra sucesso com o path_temp
+                db.mark_as_processed(email_msg, status="SUCESSO", detalhes=f"Vínculo com {ticket_num}", filepath=filepath)
+                resultados[ticket_num].append(email_msg)
+                count_processados += 1
+                logger.info(f"E-mail vinculado ao ticket [{ticket_num}] ({subject[:30]}...) -> Salvo em {filename}")
+
+            if max_results and count_processados >= max_results:
+                logger.info("Limite máximo de resultados atingido.")
+                break
+
+    except Exception as e:
+        logger.error(f"Erro crítico no orquestrador: {e}")
+
+    logger.info(
+        f"Rotina concluída. {count_processados} vinculações realizadas nesta execução.")
+    return resultados
+
+
+# ==========================================
+# 6. EXECUÇÃO
+# ==========================================
+
+if __name__ == "__main__":
+    print("\n" + "="*60)
+    print(" RASTREADOR INICIADO: Buscando INCs e PRBs no Outlook")
+    print("="*60 + "\n")
+
+    # Ajuste os parâmetros conforme a necessidade
+    dicionario_resultados = process_ticket_emails(
+        days_back=7,  # Busca uma semana atrás
+        mail_folder="INBOX",
+        max_results=50
+    )
+
+    print("\n" + "="*50)
+    print(" RESUMO DOS TICKETS ENCONTRADOS ")
+    print("="*50)
+
+    if not dicionario_resultados:
+        print("Nenhum ticket encontrado no período analisado.")
+    else:
+        for ticket, lista_emails in dicionario_resultados.items():
+            print(f"[{ticket}]: {len(lista_emails)} e-mail(s) associado(s).")
+            for i, email_obj in enumerate(lista_emails, 1):
+                print(f"  {i}. Em: {email_obj.date} | Remetente: {email_obj.sender} | Assunto: {email_obj.subject[:50]}...")
