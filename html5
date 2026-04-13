@@ -4913,7 +4913,7 @@
 
 
         function generatePRBTabImproved(prbData) {
-            let html = `<div class="report-section-title" style = "background-color: #E74C3C;" > <i class="fas fa-shield-alt mr-2"></i> PRBs ATIVOS — PROBLEMAS AGRUPADOS E RELACIONADOS</div> `;
+            let html = `<div class="report-section-title" style = "background-color: #E74C3C;" > <i class="fas fa-shield-alt mr-2"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTAS)</div> `;
 
             if (!prbData || prbData.length === 0) {
                 return html + `<div class="report-card" style = "text-align: center; padding: 40px;" > <p style="color: #94a3b8; font-size: 14px;">Nenhum PRB ativo no momento.</p></div> `;
@@ -5211,6 +5211,7 @@
 
                 const prbObj = {
                     tk: tk,
+                    prb: tk,
                     desc: descClean,
                     as: asg,
                     gp: gp,
@@ -5256,7 +5257,8 @@
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || '-';
                 let dummyT = {
                     tk: tk,
-                    desc: getCol(r, ['Problem', 'Problema', 'Short description', 'Descrição']) || '-',
+                    prb: getCol(r, ['Problem', 'Problema']) || '-',
+                    desc: getCol(r, ['Short description', 'Descrição']) || '-',
                     as: asg,
                     gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
                     st: stOrig,
@@ -5302,7 +5304,7 @@
                 </tr>`;
             }).join('');
 
-            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-bullseye mr-2"></i> GESTÃO DE PROBLEMAS E RCA (PRB / PTASK)</div>`;
+            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-bullseye mr-2"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTAS)</div>`;
 
             // Novo Estilo: Tabelas ao invés de Cards
             const generalIndicatorRows = [
@@ -5392,7 +5394,7 @@
 
                 return `
                 <tr class="ticket-row" ${buildDataAttrs(t)}>
-                    <td data-label="Identificação" class="text-left">
+                    <td data-label="Ticket" class="text-left">
                         <div class="flex items-center gap-2">
                             <div class="w-7 h-7 rounded flex items-center justify-center text-white ${t.typeColor} text-[10px] shadow-sm">
                                 <i class="fas ${t.icon}"></i>
@@ -5407,9 +5409,14 @@
                             </div>
                         </div>
                     </td>
-                    <td data-label="Responsável" class="text-[11px] font-medium text-slate-600 text-left">
-                        ${t.gp}<br>
-                        <span class="text-[10px] text-slate-400 font-semibold">${t.as}</span>
+                    <td data-label="PRB" class="text-[11px] font-bold" style="color:var(--primary-dark)">
+                        ${t.prb || '-'}
+                    </td>
+                    <td data-label="Analista" class="text-[11px] font-medium text-slate-600">
+                        ${t.as}
+                    </td>
+                    <td data-label="Grupo" class="text-[10px] text-slate-400 font-semibold">
+                        ${t.gp}
                     </td>
                     <td data-label="Contexto / Descrição" class="text-left" style="max-width: 250px;">
                         <div class="text-[11px] font-bold text-slate-800 line-clamp-1" title="${t.desc}">${t.desc}</div>
@@ -5430,16 +5437,16 @@
             html += `
             <div class="report-card">
                 <div class="report-card-title flex justify-between items-center">
-                    <span><i class="fas fa-exchange-alt mr-2 text-blue-600"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTASK)</span>
+                    <span><i class="fas fa-exchange-alt mr-2 text-blue-600"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTAS)</span>
                     <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">${unifiedList.length} ITENS NO BACKLOG</span>
                 </div>
                 <div class="st-dataframe-container">
                     <table class="st-table">
                         <thead><tr>
-                            ${createTh("Ticket / Tipo", "15%")} ${createTh("Responsável", "20%", "left")} ${createTh("Contexto / Descrição", "auto", "left")}
-                            ${createTh("Status", "12%")} ${createTh("Aging/Ocioso", "10%", "right")}
+                            ${createTh("Ticket", "12%")} ${createTh("PRB", "10%")} ${createTh("Analista", "12%")} ${createTh("Grupo", "12%")} ${createTh("Contexto / Descrição", "auto", "left")}
+                            ${createTh("Status", "10%")} ${createTh("Aging/Ocioso", "10%", "right")}
                         </tr></thead>
-                        <tbody>${combinedRows || '<tr><td colspan="5" class="p-10 text-center font-bold text-slate-400">Nenhum Problema ou Task em aberto.</td></tr>'}</tbody>
+                        <tbody>${combinedRows || '<tr><td colspan="7" class="p-10 text-center font-bold text-slate-400">Nenhum Problema ou Task em aberto.</td></tr>'}</tbody>
                     </table>
                 </div>
             </div>`;
