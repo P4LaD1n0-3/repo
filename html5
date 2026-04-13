@@ -4157,6 +4157,8 @@
             const end = start + PAGE_SIZE;
             const currentResults = results.slice(start, end);
 
+            const isPrbDrill = title.includes("RCA") || title.includes("Problem") || title.includes("PRB") || title.includes("PTASK");
+
             document.getElementById('drilldown-title').innerText = title;
             document.getElementById('drilldown-subtitle').innerText = `${results.length} registros encontrados (Página ${page})`;
 
@@ -4179,7 +4181,7 @@
                             ${t.info || t.reason ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 break-words whitespace-normal">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
                         </div>
                     </td>
-                    <td data-label="Solicitante" class="text-center">${t.req}</td>
+                    ${!isPrbDrill ? `<td data-label="Solicitante" class="text-center">${t.req || 'N/A'}</td>` : ''}
                     <td data-label="Analista" class="text-center font-medium">${t.as}</td>
                     <td data-label="Grupo" class="text-center"><span class="text-[11px] bg-slate-100 px-2 py-1 rounded border border-slate-200 block max-w-[120px] mx-auto truncate" title="${t.gp}">${t.gp}</span></td>
                     <td data-label="Status" data-filter="${t.st}" class="text-center">
@@ -4209,7 +4211,7 @@
                         <thead><tr>
                             ${createTh("Ticket", "10%")}
                             ${createTh("Assunto / Info", "auto", "left")}
-                            ${createTh("Solicitante", "12%")}
+                            ${!isPrbDrill ? createTh("Solicitante", "12%") : ''}
                             ${createTh("Analista", "12%")}
                             ${createTh("Grupo", "10%")}
                             ${createTh("Status", "8%")}
@@ -5261,13 +5263,13 @@
                 let tk = getCol(r, ['Number', 'Task', 'Número']) || '-';
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || '-';
                 let dummyT = {
-                    tk: tk,
-                    prb: getCol(r, ['Problem', 'Problema']) || '-',
+                    tk: getCol(r, ['Problem', 'Problema']) || '-', // Exibe o PRB pai na coluna Number
+                    prb: tk, // Exibe o ID da PTASK na coluna Problem/PTASK
                     desc: getCol(r, ['Short description', 'Descrição']) || '-',
                     as: asg,
                     gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
                     st: stOrig,
-                    stRca: '-', // PTASK doesn't have RCA Status directly
+                    stRca: '-', 
                     age: age,
                     idle: (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-',
                     opStr: op.toLocaleDateString('pt-BR'),
@@ -5423,7 +5425,7 @@
                             </div>
                         </div>
                     </td>
-                    <td data-label="Problem" class="text-[11px] font-bold" style="color:var(--primary-dark)">${t.prb || '-'}</td>
+                    <td data-label="Problem / PTASK" class="text-[11px] font-bold" style="color:var(--primary-dark)">${t.prb || '-'}</td>
                     <td data-label="Short description" class="text-left" style="min-width: 200px;">
                         <div class="text-[10px] font-bold text-slate-800 line-clamp-2" title="${t.desc}">${t.desc}</div>
                     </td>
@@ -5462,7 +5464,7 @@
                     <table class="st-table" style="min-width: 1800px;">
                         <thead><tr>
                             ${createTh("Number", "8%")} 
-                            ${createTh("Problem", "8%")} 
+                            ${createTh("Problem / PTASK", "8%")} 
                             ${createTh("Short description", "10%", "left")}
                             ${createTh("Configuration item", "8%")}
                             ${createTh("Assigned to", "8%")}
