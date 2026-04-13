@@ -73,11 +73,12 @@ def get_status():
 def get_rpa_logs():
     """Lê os logs da base do robô de dados em RPA/tickets_processados.db"""
     try:
-        # A API roda no html_report, então sobe um diretório e entra em RPA
-        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "RPA", "tickets_processados.db")
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        RPA_DIR = os.path.join(os.path.dirname(BASE_DIR), "RPA")
+        db_path = os.path.join(RPA_DIR, "tickets_processados.db")
         
         if not os.path.exists(db_path):
-            return jsonify({"status": "error", "message": "Banco de dados RPA ainda não criado.", "data": []})
+            return jsonify({"status": "error", "message": f"Banco de dados RPA não criado em: {db_path}", "data": []})
 
         with sqlite3.connect(db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -92,6 +93,20 @@ def get_rpa_logs():
 
     except Exception as e:
         return jsonify({"status": "error", "message": str(e), "data": []})
+
+@app.route('/rpa/email', methods=['GET'])
+def get_rpa_email():
+    """Lê o arquivo físico do e-mail do disco"""
+    filepath = request.args.get('filepath')
+    if not filepath or not os.path.exists(filepath):
+        return jsonify({"status": "error", "message": "Caminho do arquivo não fornecido ou e-mail excluído.", "content": ""})
+
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        return jsonify({"status": "success", "content": content})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Erro de leitura: {str(e)}", "content": ""})
 
 @app.route('/send-email', methods=['POST'])
 def send_email():
