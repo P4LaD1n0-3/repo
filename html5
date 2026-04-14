@@ -2679,7 +2679,7 @@
                     bar.style.width = safeP + '%';
                     bar.style.setProperty('background-color', color, 'important');
                     barText.innerText = isNaN(p) ? '0,00%' : slaPct + '%';
-                    barText.style.color = p > 55 ? '#ffffff' : '#1e293b';
+                    barText.style.color = '#ffffff';
                     barContainer.style.display = 'block';
                 } else {
                     barContainer.style.display = 'none';
@@ -3431,8 +3431,11 @@
             }
 
             let refDateInput = document.getElementById('ref-date').value;
-            let refDate = new Date(refDateInput + (refDateInput.length === 7 ? '-01' : '') + 'T12:00:00');
-            let age = Math.floor(((clD ? clD : refDate) - opD) / 86400000);
+            let [refY, refM] = refDateInput.split('-');
+            let isCurrentMonth = (new Date().getFullYear() == refY && (new Date().getMonth() + 1) == refM);
+            let refDate = isCurrentMonth ? new Date() : new Date(refY, refM, 0, 23, 59, 59);
+
+            let age = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
             if (age < 0) age = 0;
 
             let idle = (!clD || clD > refDate) ? getDaysSilent(ticketData, refDate, asg, opD) : '-';
@@ -3459,7 +3462,7 @@
             slaBar.style.width = safeP + '%';
             slaBar.style.setProperty('background-color', slaColor, 'important');
             slaText.innerText = isNaN(pctSla) ? '0%' : pctSla + '%';
-            slaText.style.color = pctSla > 55 ? '#ffffff' : '#1e293b';
+            slaText.style.color = '#ffffff';
 
             let regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(([^)]+)\)/gm;
             let rawC = "";
@@ -3926,10 +3929,8 @@
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
                 let tObj = buildTicketObject(r, limitDate, asg, opOrig, clOrig, stOrig, st, age, type, slaDays);
 
-                if (passMonth) {
-                    trendM[mKey].a++;
-                    trendM[mKey].tks_a.push(tObj);
-                }
+                trendM[mKey].a++;
+                trendM[mKey].tks_a.push(tObj);
 
                 let oD = String(opOrig.getDate()).padStart(2, '0');
                 let dKey = `${oY}-${oM}-${oD}`;
@@ -3942,19 +3943,19 @@
                         (cl.getDate() === limitDate.getDate() && cl.getMonth() === refMonth && cl.getFullYear() === refYear);
 
                     let cY = cl.getFullYear(); let cM = String(cl.getMonth() + 1).padStart(2, '0'); let cD = String(cl.getDate()).padStart(2, '0');
-                    let dcKey = `${cY}-${cM}-${cD}`;
+                    
+                    let mcKey = `${cY}-${cM}`;
+                    if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
+                    trendM[mcKey].r++;
+                    trendM[mcKey].tks_r.push(tObj);
+                    if (age <= slaDays) trendM[mcKey].inSla++;
 
                     if (cPass) {
                         resMes++;
                         if (age <= slaDays) inSlaMes++;
                         allResolvedTks.push(tObj);
 
-                        let mcKey = `${cY}-${cM}`;
-                        if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
-                        trendM[mcKey].r++;
-                        trendM[mcKey].tks_r.push(tObj);
-                        if (age <= slaDays) trendM[mcKey].inSla++;
-
+                        let dcKey = `${cY}-${cM}-${cD}`;
                         if (trendD[dcKey]) {
                             trendD[dcKey].r++; trendD[dcKey].tks_r.push(tObj);
                         }
@@ -3963,9 +3964,16 @@
                 } else if (isCanc && cl) {
                     let cPass = isFullMonth ? (cl.getMonth() === refMonth && cl.getFullYear() === refYear) :
                         (cl.getDate() === limitDate.getDate() && cl.getMonth() === refMonth && cl.getFullYear() === refYear);
+                    
+                    let cY = cl.getFullYear(); let cM = String(cl.getMonth() + 1).padStart(2, '0'); let cD = String(cl.getDate()).padStart(2, '0');
+                    
+                    let mcKey = `${cY}-${cM}`;
+                    if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
+                    trendM[mcKey].c++;
+                    trendM[mcKey].tks_c.push(tObj);
+
                     if (cPass) {
                         allCanceledTks.push(tObj);
-                        let cY = cl.getFullYear(); let cM = String(cl.getMonth() + 1).padStart(2, '0'); let cD = String(cl.getDate()).padStart(2, '0');
                         let dcKey = `${cY}-${cM}-${cD}`;
                         if (trendD[dcKey]) { trendD[dcKey].c++; trendD[dcKey].tks_c.push(tObj); }
                     }
