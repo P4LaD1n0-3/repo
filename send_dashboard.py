@@ -1,166 +1,142 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Dashboard Emailer Automation
-Downloads ticket data, reads the local dashboard, and sends it via Outlook.
-"""
 
 import os
-import sys
-import platform
-import subprocess
-import urllib.request
-from datetime import datetime
+import requests
+import win32com.client
 from dotenv import load_dotenv
 
-# Path configuration
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DASHBOARD_PATH = os.path.join(BASE_DIR, "index.html")
-ENV_PATH = os.path.join(os.path.dirname(BASE_DIR), ".env")
+# ============================================================================
+# CONFIGURATION & ENVIRONMENT VARIABLES
+# ============================================================================
+load_dotenv()
 
-# Ticket Files Configuration (Names as used in the project)
-TICKET_FILES = {
-    "URL_INCIDENT": "incident.xlsx",
-    "URL_PROBLEM": "problem_rca.xlsx",
-    "URL_TASK": "sc_task.xlsx"
+EMAIL_SUBJECT = os.getenv("titulo", "ServiceNow Automated Report")
+EMAIL_TO = os.getenv("destinatario", "")
+EMAIL_CC = os.getenv("copia", "")
+EMAIL_IMPORTANCE = os.getenv("importance", 2)
+
+DOWNLOAD_DIR = "path_temp"
+HTML_REPORT_PATH = "index_v1.2.html"
+
+# TODO: Replace with your actual ServiceNow export URLs
+# Example: "https://[instance].service-now.com/incident.do?EXCEL&sysparm_query=active=true"
+FILES_TO_DOWNLOAD = {
+    "incident.xls": "URL_FOR_INCIDENT_XLS",
+    "problem_rca.xls": "URL_FOR_PROBLEM_RCA_XLS",
+    "sc_task.xls": "URL_FOR_SC_TASK_XLS"
 }
 
-def log(msg):
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
+# ServiceNow Credentials (if basic auth is needed for direct download)
+SNOW_USER = os.getenv("SNOW_USER", "")
+SNOW_PASS = os.getenv("SNOW_PASS", "")
 
-def download_file(url, target_name):
-    """Downloads a file from a URL to the local directory."""
-    target_path = os.path.join(BASE_DIR, target_name)
+# ============================================================================
+# FUNCTIONS
+# ============================================================================
+
+def ensure_dir(path: str):
+    """Ensures that the directory exists."""
+    if not os.path.exists(path):
+        os.makedirs(path, exist_ok=True)
+        print(f"Directory created: {path}")
+
+def download_file(url: str, dest_path: str) -> bool:
+    """Downloads a file from a URL to the specified destination."""
+    print(f"Downloading {dest_path}...")
     try:
-        log(f"Baixando {target_name} de {url[:40]}...")
-        # Use a User-Agent to avoid blocks from some servers (like ServiceNow)
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req) as response, open(target_path, 'wb') as out_file:
-            data = response.read()
-            out_file.write(data)
-        log(f"✓ {target_name} baixado com sucesso.")
-        return target_path
+        # If your ServiceNow instance requires authentication, pass auth=(SNOW_USER, SNOW_PASS)
+        response = requests.get(url, stream=True, timeout=30)
+        response.raise_for_status()
+        
+        with open(dest_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+                
+        print(f"Successfully downloaded: {dest_path}")
+        return True
     except Exception as e:
-        log(f"❌ Erro ao baixar {target_name}: {e}")
-        return None
+        print(f"Error downloading {url}: {e}")
+        return False
 
-def send_outlook_windows(to, cc, subject, html_body, attachments):
-    """Sends email via Outlook COM interface on Windows."""
+def send_email_with_attachments(body_html: str, attachments: list):
+    """Sends an email via Outlook with the given HTML body and attachments."""
+    print("\n--- Preparing Outlook Email ---")
+    
+    if not EMAIL_TO:
+        print("Warning: 'destinatario' is empty in .env. Email might fail.")
+
     try:
-        import win32com.client
         outlook = win32com.client.Dispatch("outlook.application")
         mail = outlook.CreateItem(0)
-        mail.To = to
-        mail.CC = cc
-        mail.Subject = subject
-        mail.HTMLBody = html_body
         
-        # Priority mapping (1=Low, 2=Normal, 3=High)
+        mail.To = EMAIL_TO
+        if EMAIL_CC:
+            mail.CC = EMAIL_CC
+            
+        mail.Subject = EMAIL_SUBJECT
         try:
-            importance = int(os.getenv("importance", 2))
-            mail.Importance = importance
-        except:
+            mail.Importance = int(EMAIL_IMPORTANCE)
+        except ValueError:
             mail.Importance = 2
+            
+        mail.HTMLBody = body_html
 
-        for path in attachments:
-            if path and os.path.exists(path):
-                mail.Attachments.Add(os.path.abspath(path))
-        
+        # Attach all valid files
+        attached_count = 0
+        for file_path in attachments:
+            if os.path.exists(file_path):
+                abs_path = os.path.abspath(file_path)
+                mail.Attachments.Add(abs_path)
+                attached_count += 1
+                print(f"Attached: {file_path}")
+            else:
+                print(f"Warning: Attachment not found - {file_path}")
+
         mail.Send()
-        return True, "E-mail enviado com sucesso via Outlook (Windows)."
-    except Exception as e:
-        return False, f"Erro no Windows/Outlook: {e}"
-
-def send_outlook_mac(to, cc, subject, html_body, attachments):
-    """Fallback for Mac using AppleScript to control Outlook."""
-    try:
-        # Note: HTML via AppleScript is challenging. 
-        # For Mac, we often create a draft or use a specialized library.
-        # This implementation creates a draft with attachments and the HTML body as plain text fallback
-        # or simplified rich text if possible.
+        print(f"Email sent successfully with {attached_count} attachments!")
         
-        attachment_scripts = []
-        for path in attachments:
-            if path and os.path.exists(path):
-                abs_path = os.path.abspath(path)
-                attachment_scripts.append(f'make new attachment with properties {{file name:"{abs_path}"}} at end of attachments')
-
-        attachments_str = "\n            ".join(attachment_scripts)
-        
-        # Simplified AppleScript for Mac Outlook
-        as_script = f'''
-        tell application "Microsoft Outlook"
-            set newMessage to make new outgoing message with properties {{subject:"{subject}", content:"{html_body}"}}
-            tell newMessage
-                make new recipient at end of recipients with properties {{email address:{{address:"{to}"}}}}
-                {f'make new recipient at end of cc recipients with properties {{email address:{{address:"{cc}"}}}}' if cc else ""}
-                {attachments_str}
-            end tell
-            send newMessage
-        end tell
-        '''
-        subprocess.run(['osascript', '-e', as_script], check=True)
-        return True, "Mensagem enviada via Outlook for Mac."
     except Exception as e:
-        return False, f"Erro no Mac/Outlook: {e}"
+        print(f"Critical error sending email: {e}")
+
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
 
 def main():
-    # 1. Load Configuration
-    if os.path.exists(ENV_PATH):
-        load_dotenv(ENV_PATH)
-        log("Arquivo .env carregado.")
+    print("=" * 80)
+    print("STARTING DOWNLOAD AND EMAIL PROCESS")
+    print("=" * 80)
+
+    ensure_dir(DOWNLOAD_DIR)
+    downloaded_files = []
+
+    # 1. Download the Excel files
+    for filename, url in FILES_TO_DOWNLOAD.items():
+        file_path = os.path.join(DOWNLOAD_DIR, filename)
+        success = download_file(url, file_path)
+        if success:
+            downloaded_files.append(file_path)
+
+    # 2. Add the HTML index to the attachments list
+    if os.path.exists(HTML_REPORT_PATH):
+        downloaded_files.append(HTML_REPORT_PATH)
     else:
-        log("⚠️ Arquivo .env não encontrado no diretório raiz.")
+        print(f"Warning: {HTML_REPORT_PATH} not found. It will not be attached.")
 
-    # 2. Download Ticket Files
-    downloaded_paths = []
-    for env_key, file_name in TICKET_FILES.items():
-        url = os.getenv(env_key)
-        if url:
-            path = download_file(url, file_name)
-            if path:
-                downloaded_paths.append(path)
-        else:
-            log(f"⚠️ URL não definida para {env_key} no .env. Pulando download.")
-            # Verify if local file exists to attach anyway
-            local_path = os.path.join(BASE_DIR, file_name)
-            if os.path.exists(local_path):
-                downloaded_paths.append(local_path)
-
-    # 3. Read Dashboard HTML
-    if not os.path.exists(DASHBOARD_PATH):
-        log("❌ Dashboard index.html não encontrado. Encerrando.")
-        return
-
-    with open(DASHBOARD_PATH, 'r', encoding='utf-8') as f:
-        html_body = f.read()
-    log("✓ Dashbord HTML lido com sucesso.")
-
-    # 4. Prepare Email Metadata
-    to = os.getenv("destinatario", "")
-    cc = os.getenv("copia", "")
-    subject_prefix = os.getenv("titulo", "Dashboard ITSM Report")
-    subject = f"{subject_prefix} - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-
-    if not to:
-        log("❌ Variável 'destinatario' não definida no .env. E-mail não enviado.")
-        return
-
-    # 5. Delivery
-    system = platform.system()
-    log(f"Iniciando envio no sistema: {system}")
-    
-    if system == "Windows":
-        success, msg = send_outlook_windows(to, cc, subject, html_body, downloaded_paths)
-    elif system == "Darwin": # Mac
-        success, msg = send_outlook_mac(to, cc, subject, html_body, downloaded_paths)
+    # 3. Read the HTML file to use as the email body (optional, or you can use a simple message)
+    email_body = ""
+    if os.path.exists(HTML_REPORT_PATH):
+        with open(HTML_REPORT_PATH, 'r', encoding='utf-8') as f:
+            email_body = f.read()
     else:
-        success, msg = False, f"Sistema {system} não suportado para disparos automáticos de Outlook."
+        email_body = "<p>Please find the requested reports and the dashboard attached.</p>"
 
-    if success:
-        log(f"✨ {msg}")
+    # 4. Send the email
+    if downloaded_files:
+        send_email_with_attachments(body_html=email_body, attachments=downloaded_files)
     else:
-        log(f"🚨 {msg}")
+        print("No files were prepared. Email process aborted.")
 
 if __name__ == "__main__":
     main()
