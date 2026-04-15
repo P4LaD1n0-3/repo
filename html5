@@ -2646,9 +2646,9 @@
         }
 
         function createTh(label, width = "auto", align = "center") {
-            let justify = align === 'left' ? 'justify-start' : (align === 'right' ? 'justify-end' : 'justify-center');
-            return `<th style="width:${width}; text-align:${align};" onclick="sortTable(this)">
-                        <div class="flex ${justify} items-center gap-1.5 w-full">
+            // Força alinhamento central em todos os cabeçalhos
+            return `<th style="width:${width}; text-align:center !important;" onclick="sortTable(this)">
+                        <div class="flex justify-center items-center gap-1.5 w-full">
                             <span style="white-space: nowrap;">${label}</span> 
                             <div class="flex items-center gap-1 flex-shrink-0">
                                 <i class="fas fa-sort opacity-30 text-[10px]"></i> 
@@ -4392,7 +4392,7 @@
                 let stLower = st.toLowerCase();
                 let infoFinal = (stLower.includes('hold') || stLower.includes('espera')) && holdReason ? String(holdReason).replace(/"/g, '&quot;') : '';
 
-                let prbRaw = getCol(r, ['Problem', 'PRB', 'Problema', 'problem_id']);
+                let prbRaw = getCol(r, ['Problem', 'PRB', 'Problema', 'problem_id', 'Problem ID', 'Número do Problema', 'problem_number']);
                 let prbVal = (prbRaw && String(prbRaw).trim() !== "" && String(prbRaw).trim() !== "undefined") ? String(prbRaw).trim() : 'N/A';
 
                 let idle = getDaysSilent(r, refDateObj, asg, op);
@@ -4430,19 +4430,19 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 justify-center py-1">
-                    <div class="bg-blue-50 border border-blue-100 px-2.5 py-1 rounded shadow-inner flex items-center">
+                    <div class="bg-blue-50 border border-blue-100 px-2.5 py-1 rounded shadow-inner flex items-center cursor-pointer hover:bg-blue-100 transition" onclick="filterOpenTickets('INC')">
                         <span class="text-[9px] font-black text-blue-400 uppercase tracking-tighter mr-2">INC</span>
                         <span class="text-xs font-black text-blue-800">${countTags.INC}</span>
                     </div>
-                    <div class="bg-purple-50 border border-purple-100 px-2.5 py-1 rounded shadow-inner flex items-center">
+                    <div class="bg-purple-50 border border-purple-100 px-2.5 py-1 rounded shadow-inner flex items-center cursor-pointer hover:bg-purple-100 transition" onclick="filterOpenTickets('REQ')">
                         <span class="text-[9px] font-black text-purple-400 uppercase tracking-tighter mr-2">REQ</span>
                         <span class="text-xs font-black text-purple-800">${countTags.REQ}</span>
                     </div>
-                    <div class="bg-amber-50 border border-amber-100 px-2.5 py-1 rounded shadow-inner flex items-center">
+                    <div class="bg-amber-50 border border-amber-100 px-2.5 py-1 rounded shadow-inner flex items-center cursor-pointer hover:bg-amber-100 transition" onclick="filterOpenTickets('UAM')">
                         <span class="text-[9px] font-black text-amber-500 uppercase tracking-tighter mr-2">UAM</span>
                         <span class="text-xs font-black text-amber-800">${countTags.UAM}</span>
                     </div>
-                    <div class="bg-[var(--primary-dark)] border border-blue-900 px-3 py-1 rounded shadow-lg flex items-center">
+                    <div class="bg-[var(--primary-dark)] border border-blue-900 px-3 py-1 rounded shadow-lg flex items-center cursor-pointer hover:brightness-110 transition" onclick="filterOpenTickets('')">
                         <span class="text-[9px] font-black text-blue-300 uppercase tracking-wider mr-2">TOTAL</span>
                         <span class="text-xs font-black text-white">${openTks.length}</span>
                     </div>
@@ -4474,9 +4474,6 @@
                             <div class="text-[9px] bg-slate-200 px-1 rounded inline-block text-slate-500 ml-1">${t.type}</div>
                             <button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-1.5 bg-blue-50 border border-blue-200/50 p-1 rounded text-[9px] uppercase hover:bg-blue-100 transition shadow-sm"><i class="fas fa-history"></i> Saiba mais</button>
                         </td>
-                        <td data-label="PRB" class="text-center">
-                            ${t.type === 'INC' ? (t.prb !== 'N/A' && t.prb !== '' && t.prb !== 'undefined' ? `<span class="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded border border-red-200 text-[10px]"><i class="fas fa-bug mr-1"></i>${t.prb}</span>` : '<span class="text-slate-300 text-[10px]">N/A</span>') : '<span class="text-slate-300 text-[10px]">-</span>'}
-                        </td>
                         <td data-label="Descrição Completa" class="text-left">
                             <div class="text-expandable font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 2;">${t.desc}</div>
                             ${t.longDesc && t.longDesc !== '-' ? `<div class="text-expandable text-[10px] text-slate-500 mb-1" style="-webkit-line-clamp: 2;">${t.longDesc}</div>` : ''}
@@ -4488,6 +4485,9 @@
                         <td data-label="State" class="text-center">
                             <span class="px-2 py-1 bg-slate-100 border border-slate-200 rounded text-[9px] uppercase font-bold block mx-auto w-max">${t.st}</span>
                             ${t.reason ? `<span class="block text-[9px] text-slate-500 mt-1 truncate max-w-[100px] mx-auto" title="${t.reason}">${t.reason}</span>` : ''}
+                        </td>
+                        <td data-label="PRB" class="text-center">
+                            ${t.type === 'INC' ? (t.prb !== 'N/A' && t.prb !== '' && t.prb !== 'undefined' ? `<span class="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded border border-red-200 text-[10px]"><i class="fas fa-bug mr-1"></i>${t.prb}</span>` : '<span class="text-slate-300 text-[10px]">N/A</span>') : '<span class="text-slate-300 text-[10px]">-</span>'}
                         </td>
                         <td data-label="Abertura" class="text-center"><i class="far fa-calendar-alt text-slate-400 mr-1"></i>${t.opStr}</td>
                         <td data-label="Aging (dias)" class="text-center font-bold text-base ${t.age > t.slaConfig ? 'text-red-600' : 'text-slate-700'}">${t.age}</td>
@@ -4513,12 +4513,12 @@
                             <table class="st-table w-full">
                                 <thead><tr>
                                     ${createTh("Número", "10%")}
-                                    ${createTh("PRB", "8%")}
                                     ${createTh("Descrição Completa / Status", "25%", "left")}
                                     ${createTh("Requester", "12%")}
                                     ${createTh("Analista", "12%")}
                                     ${createTh("Grupo", "12%")}
                                     ${createTh("State", "10%")}
+                                    ${createTh("PRB", "8%")}
                                     ${createTh("Abertura", "8%")}
                                     ${createTh("Aging", "5%")}
                                     ${createTh("% SLA", "8%")}
@@ -4534,6 +4534,10 @@
         }
 
         window.filterOpenTickets = function (term) {
+            const input = document.querySelector('#tab-open input[onkeyup*="filterOpenTickets"]');
+            if (input && input.value !== term) {
+                input.value = term;
+            }
             const cleanTerm = term.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             document.querySelectorAll('#tab-open details.saas-accordion').forEach(acc => {
                 let hasVisibleRow = false;
@@ -4987,11 +4991,25 @@
 
         function buildProdCard(type, data, color, comp = null) {
             const refDateInput = document.getElementById('ref-date').value;
+            const now = new Date();
             const refDate = new Date(refDateInput + (refDateInput.length === 7 ? '-01' : '') + 'T12:00:00');
-            const dayOfMonth = refDate.getDate();
+            
+            // Lógica para divisor de dias (Média Diária)
+            let daysDivisor;
+            const isCurrentMonth = (now.getFullYear() === refDate.getFullYear() && now.getMonth() === refDate.getMonth());
+            
+            if (isCurrentMonth) {
+                daysDivisor = now.getDate();
+            } else {
+                // Pega o último dia do mês selecionado
+                daysDivisor = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).getDate();
+            }
+            
+            if (daysDivisor < 1) daysDivisor = 1;
+
             const resMes = data.resMes || 0;
-            const avgDaily = (resMes / dayOfMonth).toFixed(1).replace('.', ',');
-            const avgWeekly = (resMes / (dayOfMonth / 7)).toFixed(1).replace('.', ',');
+            const avgDaily = (resMes / daysDivisor).toFixed(1).replace('.', ',');
+            const avgWeekly = (resMes / (daysDivisor / 7)).toFixed(1).replace('.', ',');
 
             const statsHtml = comp ? `
                 <div class="flex flex-col gap-2 px-1 bg-blue-50/50 p-2 rounded border border-blue-100/50">
