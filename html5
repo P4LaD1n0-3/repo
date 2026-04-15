@@ -1247,7 +1247,7 @@
     <!-- NEW MODALS INJECTED HERE -->
     <div id="todo-edit-modal"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st"
-        style="z-index: 10000;">
+        style="z-index: 10050;">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-fade">
             <div class="mb-4">
                 <h3 class="text-lg font-black text-slate-800 mb-2"><i class="fas fa-edit text-blue-500 mr-2"></i>Editar
@@ -1269,7 +1269,7 @@
 
     <div id="email-todo-modal"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st"
-        style="z-index: 10000;">
+        style="z-index: 10040;">
         <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fade relative">
             <button onclick="closeEmailModal()"
                 class="absolute top-3 right-4 text-slate-400 hover:text-red-500 transition text-lg"><i
@@ -1911,6 +1911,16 @@
         const RawData = { incs: [], reqs: [], rca: [], ptask: [], prb: [] };
         window.openTodoAnalysts = new Set();
         window.openModalTodoAnalysts = new Set();
+        window.TicketsWithEmail = new Set(); // Global set for tickets with RPA emails
+
+        function getEmailIndicator(tk) {
+            if (!tk) return '';
+            const cleanTk = tk.includes(':') ? tk.split(':')[1].trim() : tk.trim();
+            if (window.TicketsWithEmail.has(cleanTk)) {
+                return `<i class="fas fa-envelope text-purple-500 ml-1.5 cursor-help" title="E-mail vinculado detectado via RPA"></i>`;
+            }
+            return '';
+        }
 
         const PAGE_SIZE = 60;
         window.paginationState = {
@@ -3590,6 +3600,7 @@
                              <span class="text-[8px] text-slate-400 font-bold ml-2 uppercase">${t.date}</span>
                         </span>
                         <div class="flex gap-2">
+                             <button onclick="event.stopPropagation(); editTodoHistory('${t.id}', 0)" title="Editar Tarefa" class="text-blue-400 hover:text-blue-600 transition"><i class="fas fa-pen"></i></button>
                             <button onclick="event.stopPropagation(); completeTodo('${t.id}')" title="Concluir Atividade" class="text-emerald-400 hover:text-emerald-600 transition"><i class="fas fa-check-double"></i></button>
                             <button onclick="event.stopPropagation(); deleteTodo('${t.id}')" title="Excluir Atividade" class="text-rose-300 hover:text-rose-500 transition"><i class="fas fa-trash-alt"></i></button>
                         </div>
@@ -3601,8 +3612,12 @@
                                     <div class="todo-check-dot ${h.striked ? 'checked' : ''}" style="width: 16px; height: 16px;">
                                         <i class="fas fa-check" style="font-size: 8px;"></i>
                                     </div>
-                                    <div class="flex-1 min-w-0">
+                                    <div class="flex-1 min-w-0 flex justify-between items-center">
                                         <div class="text-[11px] ${h.striked ? 'striked opacity-50 line-through text-slate-400' : 'text-slate-700 font-bold'} break-words">${h.text}</div>
+                                        <button onclick="event.stopPropagation(); editTodoHistory('${t.id}', ${idx})" 
+                                                class="opacity-0 group-hover:opacity-100 transition p-1 text-slate-300 hover:text-blue-500 bg-white shadow-sm border rounded text-[8px]" title="Editar Texto">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
                                     </div>
                                 </div>
                             `).join('')}
@@ -3844,7 +3859,7 @@
 
                 return `<tr class="ticket-row hover:bg-slate-50 transition" ${buildDataAttrs(t)}>
                     <td data-label="Ticket Original" class="font-bold text-[var(--primary-dark)] text-center">
-                        ${t.tk}
+                        ${t.tk} ${getEmailIndicator(t.tk)}
                         <div class="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded inline-block text-slate-500">${t.type}</div>
                         <button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-2 bg-blue-50 hover:bg-blue-100 border border-blue-200/50 p-1.5 rounded text-[9px] uppercase shadow-sm transition"><i class="fas fa-history"></i> Saiba mais</button>
                     </td>
@@ -5526,7 +5541,7 @@
                                 <i class="fas ${t.icon}"></i>
                             </div>
                             <div>
-                                <div class="text-[11px] font-black text-slate-800">${t.tk}</div>
+                                <div class="text-[11px] font-black text-slate-800">${t.tk} ${getEmailIndicator(t.tk)}</div>
                                 <div class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${t.typeLabel}</div>
                                 <button onclick="openTicketDetails('${t.tk}')" 
                                         class="mt-1 w-full text-center bg-blue-50/50 hover:bg-blue-100 text-[var(--primary-dark)] border border-blue-200/50 hover:border-blue-300 rounded py-0.5 px-1 text-[8px] uppercase font-bold transition-colors shadow-sm">
@@ -5619,6 +5634,24 @@
 
             return html;
         }
+
+        async function initializeRpaGlobalData() {
+            try {
+                const response = await fetch('http://localhost:5000/rpa/logs');
+                if (!response.ok) return;
+                const res = await response.json();
+                if (res.status === 'success' && res.data) {
+                    window.TicketsWithEmail = new Set(res.data.map(d => d.ticket_number));
+                    console.log(`[RPA] Global sync complete: ${window.TicketsWithEmail.size} tickets with emails.`);
+                    // Optional: re-render search or tabs if already populated
+                }
+            } catch (e) {
+                console.warn("RPA Bridge offline, global sync skipped.");
+            }
+        }
+        
+        // Chamar na inicialização
+        initializeRpaGlobalData();
 
         async function fetchRPALogs() {
             try {
@@ -6275,7 +6308,7 @@
     </script>
 
     <!-- Modal de Visualização de E-mail RPA -->
-    <div id="rpaEmailModal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
+    <div id="rpaEmailModal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 z-[10060] flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
             <div class="bg-purple-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
                 <div class="font-bold text-lg flex items-center">
