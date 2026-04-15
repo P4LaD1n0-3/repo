@@ -72,6 +72,7 @@ def get_status():
 @app.route('/rpa/logs', methods=['GET'])
 def get_rpa_logs():
     """Lê os logs da base do robô de dados em RPA/tickets_processados.db"""
+    ticket_filter = request.args.get('ticket')
     try:
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         RPA_DIR = os.path.join(os.path.dirname(BASE_DIR), "RPA")
@@ -83,12 +84,18 @@ def get_rpa_logs():
         with sqlite3.connect(db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM processados ORDER BY data_processamento DESC LIMIT 100")
+            
+            if ticket_filter:
+                cursor.execute("""
+                    SELECT * FROM processados 
+                    WHERE ticket_number = ? OR assunto LIKE ? 
+                    ORDER BY data_processamento DESC LIMIT 100
+                """, (ticket_filter, f"%{ticket_filter}%"))
+            else:
+                cursor.execute("SELECT * FROM processados ORDER BY data_processamento DESC LIMIT 100")
+                
             rows = cursor.fetchall()
-            
-            # Converte os resultados para um dict list
             data = [dict(row) for row in rows]
-            
             return jsonify({"status": "success", "data": data})
 
     except Exception as e:
