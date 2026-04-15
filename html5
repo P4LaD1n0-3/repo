@@ -1829,16 +1829,47 @@
                     </div>
 
                     <div class="flex-1 overflow-y-auto p-6 bg-white relative">
-                        <h4 id="modal-title" class="text-lg font-black text-slate-800 mb-2 leading-tight">...</h4>
-                        <div id="modal-desc"
-                            class="text-sm text-slate-600 mb-6 pb-4 border-b border-slate-100 bg-slate-50 p-4 rounded-lg border-l-4 border-blue-200 whitespace-pre-wrap leading-relaxed">
-                            ...</div>
+                        <h4 id="modal-title" class="text-lg font-black text-slate-800 mb-4 leading-tight">...</h4>
 
-                        <h4
-                            class="text-xs font-black text-[var(--primary-dark)] uppercase mb-4 sticky top-0 bg-white py-2 z-10 border-b border-slate-100">
-                            <i class="fas fa-comments mr-1"></i> Histórico de Interações (Thread)
-                        </h4>
-                        <div id="modal-timeline" class="pl-2"></div>
+                        <!-- ACORDEÃO 1: DETALHES E PRB -->
+                        <details class="saas-accordion mb-4" open>
+                            <summary class="flex justify-between items-center bg-slate-50 p-3 cursor-pointer rounded-t-lg border-b border-slate-200">
+                                <span class="text-xs font-black text-slate-700 uppercase">
+                                    <i class="fas fa-file-alt mr-2 text-blue-500"></i> Detalhes do Chamado & Informações PRB
+                                </span>
+                            </summary>
+                            <div class="acc-content p-4 bg-white">
+                                <div id="modal-desc" class="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
+                                    ...
+                                </div>
+                            </div>
+                        </details>
+
+                        <!-- ACORDEÃO 2: HISTÓRICO DE INTERAÇÕES -->
+                        <details class="saas-accordion mb-4" open>
+                            <summary class="flex justify-between items-center bg-slate-50 p-3 cursor-pointer rounded-t-lg border-b border-slate-200">
+                                <span class="text-xs font-black text-slate-700 uppercase">
+                                    <i class="fas fa-comments mr-2 text-blue-500"></i> Histórico de Interações (Thread)
+                                </span>
+                            </summary>
+                            <div class="acc-content p-4 bg-white">
+                                <div id="modal-timeline" class="pl-2"></div>
+                            </div>
+                        </details>
+
+                        <!-- ACORDEÃO 3: COMUNICAÇÕES RPA (MINIMIZADO) -->
+                        <details id="modal-rpa-accordion" class="saas-accordion mb-4">
+                            <summary class="flex justify-between items-center bg-purple-50 p-3 cursor-pointer rounded-t-lg border-b border-purple-100">
+                                <span class="text-xs font-black text-purple-700 uppercase">
+                                    <i class="fas fa-envelope-open-text mr-2"></i> Comunicações Encontradas (RPA/Outlook)
+                                </span>
+                            </summary>
+                            <div class="acc-content p-4 bg-white">
+                                <div id="modal-rpa-emails" class="grid grid-cols-1 gap-3">
+                                    <div class="text-center py-4 text-slate-400 text-[10px] italic">Buscando comunicações relacionadas...</div>
+                                </div>
+                            </div>
+                        </details>
                     </div>
                 </div>
             </div>
@@ -3524,6 +3555,7 @@
             }).join('') : '<div class="text-center py-10 bg-slate-50 border border-dashed rounded-lg text-slate-400 text-sm font-bold"><i class="fas fa-comment-slash text-3xl mb-3 block opacity-30"></i>Nenhum registro de interação técnica encontrado.</div>';
 
             renderModalTodos(tkNumber);
+            fetchAttachedEmails(tkNumber);
 
             document.getElementById('ticket-modal-backdrop').classList.remove('hidden-st');
             setTimeout(() => {
@@ -3549,23 +3581,20 @@
             }
 
             container.innerHTML = tkTodos.map(t => {
-                let cardId = 'modal-todo-' + t.id;
-                // Modificado para forçar aberto por padrão dentro do modal para ampla visibilidade
                 return `
                 <div class="bg-white border border-blue-100 rounded-xl shadow-sm mb-3 overflow-hidden">
-                    <div class="flex justify-between items-center p-3 cursor-pointer hover:bg-blue-50/50 transition border-b border-blue-50" onclick="const b = this.nextElementSibling; const i = this.querySelector('.chevron-icon'); if(b.classList.contains('hidden')){b.classList.remove('hidden');i.style.transform='rotate(180deg)';}else{b.classList.add('hidden');i.style.transform='rotate(0deg)';}">
+                    <div class="flex justify-between items-center p-3 cursor-pointer hover:bg-blue-50/50 transition border-b border-blue-50" onclick="const b = this.nextElementSibling; if(b.classList.contains('hidden')){b.classList.remove('hidden');}else{b.classList.add('hidden');}">
                         <span class="text-[10px] font-black text-blue-900 flex items-center gap-2">
-                            <i class="fas fa-chevron-down text-[9px] text-slate-400 transition-transform chevron-icon" style="transform:rotate(180deg)"></i> 
-                            <span class="bg-blue-50 p-1 rounded"><i class="fas fa-user text-blue-400"></i></span> 
-                            ${t.analyst} 
-                            <span class="text-[8px] text-slate-400 font-bold ml-2 uppercase">${t.date}</span>
+                             <span class="bg-blue-50 p-1 rounded"><i class="fas fa-user text-blue-400"></i></span> 
+                             ${t.analyst} 
+                             <span class="text-[8px] text-slate-400 font-bold ml-2 uppercase">${t.date}</span>
                         </span>
                         <div class="flex gap-2">
                             <button onclick="event.stopPropagation(); completeTodo('${t.id}')" title="Concluir Atividade" class="text-emerald-400 hover:text-emerald-600 transition"><i class="fas fa-check-double"></i></button>
                             <button onclick="event.stopPropagation(); deleteTodo('${t.id}')" title="Excluir Atividade" class="text-rose-300 hover:text-rose-500 transition"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </div>
-                    <div class="p-3 animate-fade bg-slate-50/30">
+                    <div class="p-3 bg-slate-50/30">
                         <div class="space-y-2 relative">
                             ${t.history.map((h, idx) => `
                                 <div class="group flex items-start gap-3 p-2 rounded-lg hover:bg-white transition cursor-pointer relative" onclick="toggleStrike('${t.id}', ${idx})">
@@ -3575,13 +3604,59 @@
                                     <div class="flex-1 min-w-0">
                                         <div class="text-[11px] ${h.striked ? 'striked opacity-50 line-through text-slate-400' : 'text-slate-700 font-bold'} break-words">${h.text}</div>
                                     </div>
-                                    <button onclick="event.stopPropagation(); editTodoHistory('${t.id}', ${idx})" class="opacity-0 group-hover:opacity-100 transition p-1 text-slate-300 hover:text-blue-500 bg-white shadow-sm border rounded text-[8px]" title="Editar"><i class="fas fa-pen"></i></button>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
-                </div>
-            `}).join('');
+                </div>`;
+            }).join('');
+        }
+
+        async function fetchAttachedEmails(tkNumber) {
+            const container = document.getElementById('modal-rpa-emails');
+            const accordion = document.getElementById('modal-rpa-accordion');
+            
+            // Extrai o número do ticket (limpando o prefixo do tipo se houver)
+            const cleanTk = tkNumber.includes(':') ? tkNumber.split(':')[1].trim() : tkNumber.trim();
+            
+            container.innerHTML = '<div class="text-center py-4 text-purple-600"><i class="fas fa-circle-notch fa-spin mr-2"></i>Buscando vínculos no Outlook...</div>';
+            accordion.classList.remove('hidden-st');
+
+            try {
+                const response = await fetch(`http://localhost:5000/rpa/logs?ticket=${encodeURIComponent(cleanTk)}`);
+                if (!response.ok) throw new Error('Serviço Offline');
+                
+                const res = await response.json();
+                
+                if (res.status === 'success' && res.data && res.data.length > 0) {
+                    container.innerHTML = res.data.map(email => `
+                        <div class="bg-purple-50 border border-purple-100 p-3 rounded-lg flex items-center justify-between hover:bg-purple-100 transition-all group">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <div class="w-8 h-8 rounded bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                                <div class="overflow-hidden">
+                                    <div class="text-[11px] font-black text-slate-700 truncate" title="${email.assunto}">${email.assunto}</div>
+                                    <div class="text-[9px] text-slate-500 font-bold flex items-center gap-2">
+                                        <span><i class="fas fa-user mr-1 opacity-50"></i> ${email.remetente.split('<')[0]}</span>
+                                        <span class="opacity-30">|</span>
+                                        <span><i class="far fa-calendar-alt mr-1 opacity-50"></i> ${email.data_recebimento}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="readRpaEmail('${email.arquivo_caminho.replace(/\\/g, '\\\\')}')" 
+                                    class="bg-white text-purple-600 border border-purple-200 px-3 py-1.5 rounded-md text-[9px] font-black uppercase hover:bg-purple-600 hover:text-white transition-all shadow-sm shrink-0">
+                                Ver Conteúdo
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div class="text-center py-6 bg-slate-50 border border-dashed rounded-lg text-slate-400 text-[10px] font-bold"><i class="fas fa-search-minus text-2xl mb-2 block opacity-20"></i>Nenhuma comunicação vinculada detectada para este ticket.</div>';
+                }
+            } catch (e) {
+                console.error("RPA Fetch Error Modal:", e);
+                container.innerHTML = '<div class="text-center py-4 text-red-500 text-[10px] font-bold">Serviço de ponte RPA local não está rodando.</div>';
+            }
         }
 
         function addTodoFromModal() {
@@ -5426,7 +5501,13 @@
             let unifiedList = [
                 ...allPrbs.map(p => ({ ...p, type: 'PRB', typeLabel: 'Problema (RCA)', typeColor: 'bg-blue-600', icon: 'fa-bullseye' })),
                 ...allPtasks.map(t => ({ ...t, type: 'PTASK', typeLabel: 'Problem Task', typeColor: 'bg-indigo-600', icon: 'fa-tasks' }))
-            ].sort((a, b) => b.age - a.age);
+            ].sort((a, b) => {
+                // PRB (Problemas) devem ser jogados no final da lista
+                if (a.type === 'PRB' && b.type !== 'PRB') return 1;
+                if (a.type !== 'PRB' && b.type === 'PRB') return -1;
+                // Ordenação secundária por Age (mais velhos primeiro)
+                return b.age - a.age;
+            });
 
             let combinedRows = unifiedList.map((t, idx) => {
                 let statusColor = '';
@@ -6184,10 +6265,10 @@
         }
 
         function escapeHTMLDoc(html) {
+            if (!html) return '';
+            // Para srcdoc, precisamos apenas garantir que as aspas que delimitam o atributo não quebrem
+            // e que o conteúdo seja injetado de forma segura mas funcional como HTML.
             return html
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
         }
