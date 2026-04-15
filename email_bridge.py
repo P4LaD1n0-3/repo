@@ -86,11 +86,21 @@ def get_rpa_logs():
             cursor = conn.cursor()
             
             if ticket_filter:
-                cursor.execute("""
-                    SELECT * FROM processados 
-                    WHERE ticket_number = ? OR assunto LIKE ? 
-                    ORDER BY data_processamento DESC LIMIT 100
-                """, (ticket_filter, f"%{ticket_filter}%"))
+                terms = [t.strip() for t in ticket_filter.split(',') if t.strip()]
+                if terms:
+                    # Construir query dinâmica para suportar múltiplos termos com LIKE (__contains__)
+                    query = "SELECT * FROM processados WHERE "
+                    conditions = []
+                    params = []
+                    for term in terms:
+                        conditions.append("(ticket_number LIKE ? OR assunto LIKE ?)")
+                        params.extend([f"%{term}%", f"%{term}%"])
+                    
+                    query += " OR ".join(conditions)
+                    query += " ORDER BY data_processamento DESC LIMIT 100"
+                    cursor.execute(query, params)
+                else:
+                    cursor.execute("SELECT * FROM processados ORDER BY data_processamento DESC LIMIT 100")
             else:
                 cursor.execute("SELECT * FROM processados ORDER BY data_processamento DESC LIMIT 100")
                 
