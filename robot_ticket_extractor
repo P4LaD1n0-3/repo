@@ -102,7 +102,7 @@ class TicketTracker:
         # Regex para encontrar INC ou PRB.
         # Ex: INC0012345, PRB1234567, INC12345, PRB12345
         self.regex_ticket = re.compile(
-            r"\b(INC|PRB)\d{4,10}\b", re.IGNORECASE)
+            r"\b(INC|PRB|RITM|SCTASK|PTASK|TASK)\d{4,10}\b", re.IGNORECASE)
 
     def extrair_tickets(self, texto: str) -> List[str]:
         """Busca no texto todos os números de chamados do ServiceNow (INC ou PRB)."""
