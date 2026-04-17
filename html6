@@ -2959,24 +2959,31 @@
                     let slaConfig = 10; // Default
                     let age = 0;
 
+                    let opD = null;
+                    let clD = null;
+                    
                     if (ticket !== 'Geral') {
                         let rec = findTicketRecord(ticket);
                         if (rec) {
                             context = getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '-';
-                            let opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
-                            let clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
-                            let refDateInput = document.getElementById('ref-date').value;
-                            let refDate = new Date(refDateInput + (refDateInput.length === 7 ? '-01' : '') + 'T12:00:00');
-                            if (opD) {
-                                age = Math.floor(((clD ? clD : refDate) - opD) / 86400000);
-                                if (isNaN(age) || age < 0) age = 0;
-                            } else {
-                                age = 0;
-                            }
-
+                            opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
+                            clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
                             let isInc = (ticket.toUpperCase().startsWith('INC'));
                             slaConfig = isInc ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
                         }
+                    }
+
+                    if (!opD && t.date) {
+                        let parts = t.date.split('/');
+                        if (parts.length === 3) opD = new Date(parts[2], parts[1] - 1, parts[0], 12, 0, 0);
+                    }
+
+                    let refDateInput = document.getElementById('ref-date') ? document.getElementById('ref-date').value : new Date().toISOString().substring(0, 10);
+                    let refDate = new Date(refDateInput + (refDateInput.length === 7 ? '-01' : '') + 'T12:00:00');
+                    
+                    if (opD) {
+                        age = Math.floor(((clD ? clD : refDate) - opD) / 86400000);
+                        if (isNaN(age) || age < 0) age = 0;
                     }
 
                     // Cálculo de Status
@@ -2992,12 +2999,9 @@
                     let pctSla = (isNaN(age) || isNaN(slaConfig) || slaConfig === 0) ? 0 : Math.min(Math.round((age / slaConfig) * 100), 150);
                     if (isNaN(pctSla)) pctSla = 0;
 
-                    // Formatação do Histórico (espaço para o ícone desenhado)
+                    // Formatação do Histórico (espaço para o ícone desenhado e pílula minimalista)
                     const historyLines = t.history.map(h => {
-                        const [datePart, timePart] = h.date.split(' ');
-                        const shortDate = datePart.substring(0, 5); // 09/04
-                        const shortTime = timePart.substring(0, 5); // 12:50
-                        return `      ${shortDate} às ${shortTime} - ${h.text}`;
+                        return `             ${h.text}`;
                     });
 
                     tableData.push([
@@ -3011,7 +3015,11 @@
                         status,
                         {
                             content: historyLines.join('\n'),
-                            strikedItems: t.history.map(h => h.striked)
+                            strikedItems: t.history.map(h => h.striked),
+                            datesInfo: t.history.map(h => {
+                                const splits = h.date ? h.date.split(' ') : [];
+                                return (splits[0] && splits[1]) ? `${splits[0].substring(0, 5)} ${splits[1].substring(0, 5)}` : '';
+                            })
                         }
                     ]);
                 });
@@ -3085,12 +3093,14 @@
                         // Desenhar ícones manuais na coluna de Histórico (Coluna 5)
                         if (data.section === 'body' && data.column.index === 5) {
                             const strikedItems = data.cell.raw.strikedItems;
+                            const datesInfo = data.cell.raw.datesInfo;
                             if (!strikedItems) return;
 
                             const x = data.cell.x + 2;
                             let y = data.cell.y + 4.5;
+                            const pillX = x + 3.5;
 
-                            strikedItems.forEach(isDone => {
+                            strikedItems.forEach((isDone, idx) => {
                                 doc.setLineWidth(0.2);
                                 if (isDone) {
                                     // Desenha Checkbox Marcado
@@ -3106,6 +3116,20 @@
                                     doc.setDrawColor(148, 163, 184);
                                     doc.rect(x, y - 1.2, 2.4, 2.4, 'D');
                                 }
+                                
+                                // Draw Date Pill
+                                if (datesInfo && datesInfo[idx]) {
+                                    doc.setDrawColor(226, 232, 240); // slate-200
+                                    doc.setFillColor(248, 250, 252); // slate-50
+                                    doc.roundedRect(pillX, y - 1.6, 12, 3.2, 0.5, 0.5, 'FD');
+                                    doc.setTextColor(100, 116, 139); // slate-500
+                                    
+                                    let oldFSize = doc.internal.getFontSize();
+                                    doc.setFontSize(5);
+                                    doc.text(datesInfo[idx], pillX + 1, y + 0.6);
+                                    doc.setFontSize(oldFSize);
+                                }
+
                                 y += (data.cell.styles.lineHeight || 3.8);
                             });
                         }
