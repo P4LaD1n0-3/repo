@@ -2929,16 +2929,49 @@
             closeEditTodoModal();
         }
 
+        const ITIL_STANDARD_HEADERS = {
+            'PRB / Problema': ['Problem', 'PRB', 'Problema', 'problem_id'],
+            'Solicitante': ['Requester', 'Caller', 'Solicitante', 'u_caller'],
+            'Analista Resp.': ['Assigned to', 'Analista', 'assigned_to'],
+            'Grupo Resp.': ['Assignment group', 'Grupo', 'assignment_group'],
+            'Estado do Ticket': ['State', 'Status', 'RCA Status', 'Estado'],
+            'Prioridade': ['Priority', 'Prioridade', 'priority'],
+            'Data de Abertura': ['Opened', 'opened_at', 'Data Abertura', 'Created'],
+            'Data de Fechamento': ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento'],
+            'Catálogo / RITM': ['Request item', 'Request Item', 'RITM', 'Item de solicitação'],
+            'Categoria': ['Category', 'Categoria', 'category'],
+            'Subcategoria': ['Subcategory', 'Subcategoria', 'subcategory'],
+            'Notas de Trabalho': ['Work notes', 'Work Notes', 'Notas de Trabalho']
+        };
+
         function openExportConfigModal() {
-            let possibleHeaders = new Set();
-            if (window.RawData && window.RawData.incs) {
-                window.RawData.incs.forEach(inc => Object.keys(inc).forEach(k => possibleHeaders.add(k)));
-            }
-            if (window.RawData && window.RawData.reqs) {
-                window.RawData.reqs.forEach(req => Object.keys(req).forEach(k => possibleHeaders.add(k)));
+            let possibleHeaders = new Set(Object.keys(ITIL_STANDARD_HEADERS));
+            
+            if (window.RawData) {
+                if (window.RawData.incs) {
+                    window.RawData.incs.forEach(inc => Object.keys(inc).forEach(k => possibleHeaders.add(k)));
+                }
+                if (window.RawData.reqs) {
+                    window.RawData.reqs.forEach(req => Object.keys(req).forEach(k => possibleHeaders.add(k)));
+                }
+                if (window.RawData.prb) {
+                    window.RawData.prb.forEach(prb => Object.keys(prb).forEach(k => possibleHeaders.add(k)));
+                }
+                if (window.RawData.ptask) {
+                    window.RawData.ptask.forEach(pt => Object.keys(pt).forEach(k => possibleHeaders.add(k)));
+                }
+                if (window.RawData.rca) {
+                    window.RawData.rca.forEach(rca => Object.keys(rca).forEach(k => possibleHeaders.add(k)));
+                }
             }
             
-            let sortedHeaders = Array.from(possibleHeaders).filter(h => !['Ticket', 'Number', 'Ações / Histórico'].includes(h)).sort();
+            let sortedHeaders = Array.from(possibleHeaders).filter(h => !['Ticket', 'Number', 'Ações / Histórico'].includes(h)).sort((a,b) => {
+                let aIsStd = Object.keys(ITIL_STANDARD_HEADERS).includes(a);
+                let bIsStd = Object.keys(ITIL_STANDARD_HEADERS).includes(b);
+                if (aIsStd && !bIsStd) return -1;
+                if (!aIsStd && bIsStd) return 1;
+                return a.localeCompare(b);
+            });
             
             let htmlStr = `
                 <div class="mb-3">
@@ -2957,12 +2990,16 @@
                         Campos Dinâmicos dos Tickets
                     </label>
                     <div class="max-h-[150px] overflow-y-auto grid grid-cols-2 gap-2 text-slate-600 p-1 stylized-scrollbar border border-slate-100 rounded">
-                        ${sortedHeaders.length ? sortedHeaders.map(h => `
+                        ${sortedHeaders.length ? sortedHeaders.map(h => {
+                            let isStd = Object.keys(ITIL_STANDARD_HEADERS).includes(h);
+                            let titleCls = isStd ? 'font-bold text-blue-800' : '';
+                            return `
                             <label class="flex items-center text-[9px] hover:bg-slate-50 p-1.5 rounded transition border border-transparent hover:border-slate-200">
                                 <input type="checkbox" value="${h}" ${dynamicExportConfig.CustomFields.includes(h) ? 'checked' : ''} class="exp-cfg-custom mr-1 form-checkbox text-blue-600 h-3 w-3"> 
-                                <span class="truncate" title="${h}">${h}</span>
+                                <span class="truncate ${titleCls}" title="${h}">${isStd ? '⭐ ' : ''}${h}</span>
                             </label>
-                        `).join('') : '<div class="text-[9px] col-span-2 text-slate-400 p-2 text-center">Importe Arquivos (CSV) na aba principal para dispor de cabeçalhos dinâmicos.</div>'}
+                            `;
+                        }).join('') : '<div class="text-[9px] col-span-2 text-slate-400 p-2 text-center">Importe Arquivos (CSV) na aba principal para dispor de cabeçalhos dinâmicos.</div>'}
                     </div>
                 </div>
             `;
@@ -3130,7 +3167,8 @@
                     if (dynamicExportConfig.Status) rowData.push(status);
                     
                     dynamicExportConfig.CustomFields.forEach(f => {
-                        if (rec) rowData.push(String(getCol(rec, [f]) || '-').slice(0, 80));
+                        let searchKeys = ITIL_STANDARD_HEADERS[f] || [f];
+                        if (rec) rowData.push(String(getCol(rec, searchKeys) || '-').slice(0, 80));
                         else rowData.push('-');
                     });
                     
@@ -3374,7 +3412,8 @@
                     if (dynamicExportConfig['SLA%']) toExportKeys.push({ label: 'SLA%', val: `${pctSla}%` });
                     if (dynamicExportConfig.Status) toExportKeys.push({ label: 'Status', val: status });
                     dynamicExportConfig.CustomFields.forEach(f => {
-                         let v = rec ? (getCol(rec, [f]) || '-') : '-';
+                         let searchKeys = ITIL_STANDARD_HEADERS[f] || [f];
+                         let v = rec ? (getCol(rec, searchKeys) || '-') : '-';
                          toExportKeys.push({ label: f.toUpperCase(), val: String(v).slice(0, 80) });
                     });
                     
