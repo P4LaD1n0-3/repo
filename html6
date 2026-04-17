@@ -1320,6 +1320,37 @@
         </div>
     </div>
 
+    <!-- EXPORT CONFIG MODAL -->
+    <div id="export-config-modal"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st"
+        style="z-index: 10040;">
+        <div class="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 animate-fade relative">
+            <button onclick="closeExportConfigModal()"
+                class="absolute top-3 right-4 text-slate-400 hover:text-red-500 transition text-lg"><i
+                    class="fas fa-times"></i></button>
+            <div class="mb-4 text-center">
+                <div
+                    class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-800 mb-1">Configurar Colunas de Relatório</h3>
+                <p class="text-[11px] text-slate-500">Selecione as informações desejadas para exportação do TODO (PDF e E-mail).</p>
+            </div>
+            
+            <div id="export-config-body" class="mb-5 text-left">
+                <!-- rendered by JS -->
+            </div>
+
+            <div class="flex gap-3 mt-5">
+                <button onclick="closeExportConfigModal()"
+                    class="modal-btn modal-btn-cancel flex-1 hover:bg-slate-50">Cancelar</button>
+                <button onclick="saveExportConfigModal()"
+                    class="modal-btn flex-1 bg-emerald-600 border border-emerald-700 text-white font-bold rounded shadow-sm hover:bg-emerald-700">Gravar 
+                    Configuração</button>
+            </div>
+        </div>
+    </div>
+
     <!-- GENERIC ALERT MODAL -->
     <div id="alert-modal"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 hidden-st"
@@ -1701,6 +1732,9 @@
                                     <div class="flex items-center"><i class="fas fa-list mr-1"></i> Suas Tarefas Ativas
                                         (<span id="todo-count">0</span>)</div>
                                     <div class="flex gap-2">
+                                        <button onclick="openExportConfigModal()" title="Configurar Relatório"
+                                            class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 min-w-[32px] py-1.5 rounded shadow-sm border border-slate-200 transition"><i
+                                                class="fas fa-cog"></i></button>
                                         <button onclick="exportTodosToPDF()" title="Salvar Planejamento em PDF"
                                             class="text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded shadow-sm transition"><i
                                                 class="fas fa-file-pdf mr-1"></i> Salvar PDF</button>
@@ -2283,6 +2317,9 @@
         }
 
         let todoList = JSON.parse(localStorage.getItem('eliteMasterTodosV69')) || [];
+        let dynamicExportConfig = JSON.parse(localStorage.getItem('todoExportConfig')) || {
+            Contexto: true, Aging: true, 'SLA%': true, Status: true, CustomFields: []
+        };
         let GlobalOpenTickets = [];
         let activeTableFilters = {};
 
@@ -2892,6 +2929,69 @@
             closeEditTodoModal();
         }
 
+        function openExportConfigModal() {
+            let possibleHeaders = new Set();
+            if (window.RawData && window.RawData.incs) {
+                window.RawData.incs.forEach(inc => Object.keys(inc).forEach(k => possibleHeaders.add(k)));
+            }
+            if (window.RawData && window.RawData.reqs) {
+                window.RawData.reqs.forEach(req => Object.keys(req).forEach(k => possibleHeaders.add(k)));
+            }
+            
+            let sortedHeaders = Array.from(possibleHeaders).filter(h => !['Ticket', 'Number', 'Ações / Histórico'].includes(h)).sort();
+            
+            let htmlStr = `
+                <div class="mb-3">
+                    <label class="block text-[10px] font-bold text-slate-700 mb-2">Campos Padrão do Sistema</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center text-[10px] text-slate-600 cursor-not-allowed opacity-70"><input type="checkbox" disabled checked class="mr-1 form-checkbox text-blue-600 h-3 w-3 cursor-not-allowed"> Ticket (Fixo)</label>
+                        <label class="flex items-center text-[10px] text-slate-600"><input type="checkbox" id="exp-cfg-Contexto" ${dynamicExportConfig.Contexto ? 'checked' : ''} class="mr-1 form-checkbox text-blue-600 h-3 w-3"> Contexto / Assunto</label>
+                        <label class="flex items-center text-[10px] text-slate-600"><input type="checkbox" id="exp-cfg-Aging" ${dynamicExportConfig.Aging ? 'checked' : ''} class="mr-1 form-checkbox text-blue-600 h-3 w-3"> Aging (Idade do Ticket)</label>
+                        <label class="flex items-center text-[10px] text-slate-600"><input type="checkbox" id="exp-cfg-SLA" ${dynamicExportConfig['SLA%'] ? 'checked' : ''} class="mr-1 form-checkbox text-blue-600 h-3 w-3"> Barra de SLA%</label>
+                        <label class="flex items-center text-[10px] text-slate-600"><input type="checkbox" id="exp-cfg-Status" ${dynamicExportConfig.Status ? 'checked' : ''} class="mr-1 form-checkbox text-blue-600 h-3 w-3"> Status da Tarefa</label>
+                        <label class="flex items-center text-[10px] text-slate-600 cursor-not-allowed opacity-70"><input type="checkbox" disabled checked class="mr-1 form-checkbox text-blue-600 h-3 w-3 cursor-not-allowed"> Ações / Histórico (Fixo)</label>
+                    </div>
+                </div>
+                <div class="border-t border-slate-100 mt-3 pt-3">
+                    <label class="block text-[10px] font-bold text-slate-700 mb-2 flex justify-between items-center">
+                        Campos Dinâmicos dos Tickets
+                    </label>
+                    <div class="max-h-[150px] overflow-y-auto grid grid-cols-2 gap-2 text-slate-600 p-1 stylized-scrollbar border border-slate-100 rounded">
+                        ${sortedHeaders.length ? sortedHeaders.map(h => `
+                            <label class="flex items-center text-[9px] hover:bg-slate-50 p-1.5 rounded transition border border-transparent hover:border-slate-200">
+                                <input type="checkbox" value="${h}" ${dynamicExportConfig.CustomFields.includes(h) ? 'checked' : ''} class="exp-cfg-custom mr-1 form-checkbox text-blue-600 h-3 w-3"> 
+                                <span class="truncate" title="${h}">${h}</span>
+                            </label>
+                        `).join('') : '<div class="text-[9px] col-span-2 text-slate-400 p-2 text-center">Importe Arquivos (CSV) na aba principal para dispor de cabeçalhos dinâmicos.</div>'}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('export-config-body').innerHTML = htmlStr;
+            document.getElementById('export-config-modal').classList.remove('hidden-st');
+        }
+
+        function closeExportConfigModal() {
+            document.getElementById('export-config-modal').classList.add('hidden-st');
+        }
+
+        function saveExportConfigModal() {
+            dynamicExportConfig.Contexto = document.getElementById('exp-cfg-Contexto').checked;
+            dynamicExportConfig.Aging = document.getElementById('exp-cfg-Aging').checked;
+            dynamicExportConfig['SLA%'] = document.getElementById('exp-cfg-SLA').checked;
+            dynamicExportConfig.Status = document.getElementById('exp-cfg-Status').checked;
+            
+            let customCheckboxes = document.querySelectorAll('.exp-cfg-custom');
+            let selCustom = [];
+            customCheckboxes.forEach(cb => {
+                if(cb.checked) selCustom.push(cb.value);
+            });
+            dynamicExportConfig.CustomFields = selCustom;
+            
+            localStorage.setItem('todoExportConfig', JSON.stringify(dynamicExportConfig));
+            closeExportConfigModal();
+        }
+
         function openEmailModal() {
             if (todoList.length === 0) return alert("Não existem tarefasativas para enviar por e-mail no momento.");
             document.getElementById('email-todo-modal').classList.remove('hidden-st');
@@ -2907,7 +3007,7 @@
             if (todoList.length === 0) return alert("Não existem tarefas ativas para exportar no momento.");
 
             const { jsPDF } = window.jspdf;
-            const doc = jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            const doc = jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
             const today = new Date().toLocaleDateString('pt-BR');
             const now = new Date().toLocaleString('pt-BR');
 
@@ -2952,23 +3052,47 @@
                 const analystTodos = groups[analyst];
                 const tableData = [];
 
+                let activeHeaders = ['Ticket'];
+                if (dynamicExportConfig.Contexto) activeHeaders.push('Contexto');
+                if (dynamicExportConfig.Aging) activeHeaders.push('Aging');
+                if (dynamicExportConfig['SLA%']) activeHeaders.push('SLA%');
+                if (dynamicExportConfig.Status) activeHeaders.push('Status');
+                dynamicExportConfig.CustomFields.forEach(f => activeHeaders.push(f));
+                activeHeaders.push('Ações / Histórico');
+
+                let colIdxSLA = activeHeaders.indexOf('SLA%');
+                let colIdxStatus = activeHeaders.indexOf('Status');
+                let colIdxAcoes = activeHeaders.indexOf('Ações / Histórico');
+
+                let colStylesObj = {
+                    0: { cellWidth: 22, fontStyle: 'bold', halign: 'center' }
+                };
+                if (dynamicExportConfig.Contexto) colStylesObj[activeHeaders.indexOf('Contexto')] = { cellWidth: 50, fontSize: 6.5 };
+                if (dynamicExportConfig.Aging) colStylesObj[activeHeaders.indexOf('Aging')] = { cellWidth: 12, halign: 'center', fontSize: 6.5 };
+                if (dynamicExportConfig['SLA%']) colStylesObj[activeHeaders.indexOf('SLA%')] = { cellWidth: 15, halign: 'center', fontSize: 6.5 };
+                if (dynamicExportConfig.Status) colStylesObj[activeHeaders.indexOf('Status')] = { cellWidth: 18, halign: 'center', fontStyle: 'bold', fontSize: 6.5 };
+                dynamicExportConfig.CustomFields.forEach(f => {
+                    colStylesObj[activeHeaders.indexOf(f)] = { cellWidth: 'auto', fontSize: 6.5 };
+                });
+                colStylesObj[colIdxAcoes] = { cellWidth: 'auto', fontSize: 6.5 };
+
                 analystTodos.forEach(t => {
-                    const ticket = (t.ticket && !t.ticket.includes('undefined')) ? t.ticket : 'Geral';
-                    // Busca Contexto do Chamado e Tipo para SLA
+                    const ticketToUse = (t.ticket && !t.ticket.includes('undefined')) ? t.ticket : 'Geral';
                     let context = '-';
                     let slaConfig = 10; // Default
                     let age = 0;
+                    let rec = null;
 
                     let opD = null;
                     let clD = null;
                     
-                    if (ticket !== 'Geral') {
-                        let rec = findTicketRecord(ticket);
+                    if (ticketToUse !== 'Geral') {
+                        rec = findTicketRecord(ticketToUse);
                         if (rec) {
                             context = getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '-';
                             opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
                             clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
-                            let isInc = (ticket.toUpperCase().startsWith('INC'));
+                            let isInc = (ticketToUse.toUpperCase().startsWith('INC'));
                             slaConfig = isInc ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
                         }
                     }
@@ -2997,32 +3121,34 @@
                     if (isNaN(pctSla)) pctSla = 0;
 
                     // Formatação do Histórico
-                    // O espaçamento seguro da pílula é feito nativamente via padding-left na célula (didParseCell)
                     const historyLines = t.history.map(h => h.text);
 
-                    tableData.push([
-                        ticket,
-                        context,
-                        `${age} dias`,
-                        {
-                            content: `${pctSla}%`,
-                            val: pctSla
-                        },
-                        status,
-                        {
-                            content: historyLines.join('\n'),
-                            strikedItems: t.history.map(h => h.striked),
-                            datesInfo: t.history.map(h => {
-                                const splits = h.date ? h.date.split(' ') : [];
-                                return (splits[0] && splits[1]) ? `${splits[0].substring(0, 5)} ${splits[1].substring(0, 5)}` : '';
-                            })
-                        }
-                    ]);
+                    let rowData = [ticketToUse];
+                    if (dynamicExportConfig.Contexto) rowData.push(context);
+                    if (dynamicExportConfig.Aging) rowData.push(`${age} dias`);
+                    if (dynamicExportConfig['SLA%']) rowData.push({ content: `${pctSla}%`, val: pctSla });
+                    if (dynamicExportConfig.Status) rowData.push(status);
+                    
+                    dynamicExportConfig.CustomFields.forEach(f => {
+                        if (rec) rowData.push(String(getCol(rec, [f]) || '-').slice(0, 80));
+                        else rowData.push('-');
+                    });
+                    
+                    rowData.push({
+                        content: historyLines.join('\n'),
+                        strikedItems: t.history.map(h => h.striked),
+                        datesInfo: t.history.map(h => {
+                            const splits = h.date ? h.date.split(' ') : [];
+                            return (splits[0] && splits[1]) ? `${splits[0].substring(0, 5)} ${splits[1].substring(0, 5)}` : '';
+                        })
+                    });
+
+                    tableData.push(rowData);
                 });
 
                 doc.autoTable({
                     startY: startY + 8,
-                    head: [['Ticket', 'Contexto', 'Aging', 'SLA%', 'Status', 'Ações / Histórico']],
+                    head: [activeHeaders],
                     body: tableData,
                     theme: 'grid',
                     headStyles: {
@@ -3032,14 +3158,7 @@
                         fontStyle: 'bold',
                         halign: 'center'
                     },
-                    columnStyles: {
-                        0: { cellWidth: 22, fontStyle: 'bold', halign: 'center' }, // Ticket
-                        1: { cellWidth: 50, fontSize: 6.5 }, // Contexto (AUMENTADO para 50mm)
-                        2: { cellWidth: 12, halign: 'center', fontSize: 6.5 }, // Aging (REDUZIDO)
-                        3: { cellWidth: 15, halign: 'center', fontSize: 6.5 }, // SLA% (REDUZIDO)
-                        4: { cellWidth: 18, halign: 'center', fontStyle: 'bold', fontSize: 6.5 }, // Status (REDUZIDO)
-                        5: { cellWidth: 'auto', fontSize: 6.5 }  // Ações ( gets the remaining ~65mm)
-                    },
+                    columnStyles: colStylesObj,
                     styles: {
                         fontSize: 7,
                         cellPadding: 3,
@@ -3048,13 +3167,12 @@
                     },
                     margin: { left: 14, right: 14 },
                     didParseCell: (data) => {
-                        if (data.section === 'body' && data.column.index === 5) {
+                        if (data.section === 'body' && data.column.index === colIdxAcoes) {
                             data.cell.styles.cellPadding = { top: 3, right: 3, bottom: 3, left: 18 };
                         }
                     },
                     willDrawCell: (data) => {
-                        // Cores para o Status (Coluna 4) - Estilo Badge
-                        if (data.section === 'body' && data.column.index === 4) {
+                        if (colIdxStatus !== -1 && data.section === 'body' && data.column.index === colIdxStatus) {
                             const val = data.cell.raw;
                             if (val === 'Efetuada') {
                                 data.cell.styles.fillColor = [20, 150, 80]; // Verde
@@ -3069,30 +3187,25 @@
                         }
                     },
                     didDrawCell: (data) => {
-                        // Desenhar Barra de SLA (Coluna 3)
-                        if (data.section === 'body' && data.column.index === 3) {
+                        if (colIdxSLA !== -1 && data.section === 'body' && data.column.index === colIdxSLA) {
                             const pct = data.cell.raw.val;
                             const barWidth = 14;
                             const barHeight = 2.0;
                             const x = data.cell.x + (data.cell.width - barWidth) / 2;
-                            // Centralização Inteligente: Texto em cima, Barra em baixo
                             const y = data.cell.y + (data.cell.height / 2) + 1.8;
 
-                            // Fundo da Barra
                             doc.setFillColor(230, 230, 230);
                             doc.rect(x, y, barWidth, barHeight, 'F');
 
-                            // Cor da Barra
-                            let color = [16, 185, 129]; // Verde
-                            if (pct > 100) color = [239, 68, 68]; // Vermelho
-                            else if (pct > 75) color = [245, 158, 11]; // Laranja
+                            let color = [16, 185, 129];
+                            if (pct > 100) color = [239, 68, 68];
+                            else if (pct > 75) color = [245, 158, 11];
 
                             doc.setFillColor(...color);
                             doc.rect(x, y, Math.min(pct, 100) * (barWidth / 100), barHeight, 'F');
                         }
 
-                        // Desenhar ícones manuais na coluna de Histórico (Coluna 5)
-                        if (data.section === 'body' && data.column.index === 5) {
+                        if (colIdxAcoes !== -1 && data.section === 'body' && data.column.index === colIdxAcoes) {
                             const strikedItems = data.cell.raw.strikedItems;
                             const datesInfo = data.cell.raw.datesInfo;
                             if (!strikedItems) return;
@@ -3104,26 +3217,22 @@
                             strikedItems.forEach((isDone, idx) => {
                                 doc.setLineWidth(0.2);
                                 if (isDone) {
-                                    // Desenha Checkbox Marcado
                                     doc.setDrawColor(34, 197, 94);
                                     doc.setFillColor(240, 253, 244);
                                     doc.rect(x, y - 1.2, 2.4, 2.4, 'FD');
-                                    // Checkmark
                                     doc.setDrawColor(20, 150, 80);
                                     doc.line(x + 0.5, y, x + 1, y + 0.5);
                                     doc.line(x + 1, y + 0.5, x + 2, y - 0.5);
                                 } else {
-                                    // Desenha Checkbox Vazio (Moderno)
                                     doc.setDrawColor(148, 163, 184);
                                     doc.rect(x, y - 1.2, 2.4, 2.4, 'D');
                                 }
                                 
-                                // Draw Date Pill
                                 if (datesInfo && datesInfo[idx]) {
-                                    doc.setDrawColor(226, 232, 240); // slate-200
-                                    doc.setFillColor(248, 250, 252); // slate-50
+                                    doc.setDrawColor(226, 232, 240);
+                                    doc.setFillColor(248, 250, 252);
                                     doc.roundedRect(pillX, y - 1.6, 12, 3.2, 0.5, 0.5, 'FD');
-                                    doc.setTextColor(100, 116, 139); // slate-500
+                                    doc.setTextColor(100, 116, 139);
                                     
                                     let oldFSize = doc.internal.getFontSize();
                                     doc.setFontSize(5);
@@ -3155,7 +3264,7 @@
                 doc.setPage(i);
                 doc.setFontSize(8);
                 doc.setTextColor(148, 163, 184);
-                doc.text(`Página ${i} de ${pageCount} - Dashboard ITSM Intelligence`, 105, 287, { align: 'center' });
+                doc.text(`Página ${i} de ${pageCount} - Dashboard ITSM Intelligence`, 148.5, 200, { align: 'center' }); // Landscape base
             }
 
             const fileName = `Planejamento_TODO_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -3222,20 +3331,70 @@
                     let hasTicket = t.ticket && t.ticket !== 'undefined';
                     let tName = hasTicket ? t.ticket : "Atividades Gerais";
 
-                    // Extração de metadados ricos
-                    let rec = findTicketRecord(t.ticket);
-                    let desc = rec ? getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) : '';
-                    let comments = rec ? getCol(rec, ['Additional comments', 'Work notes', 'Comentários']) : '';
-                    if (comments.length > 350) comments = comments.substring(0, 350) + "...";
+                    let rec = null;
+                    let context = '';
+                    let comments = '';
+                    let age = 0;
+                    let pctSla = 0;
+                    
+                    if (tName !== 'Geral' && tName !== "Atividades Gerais") {
+                        rec = findTicketRecord(tName);
+                        if (rec) {
+                            context = getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '';
+                            comments = getCol(rec, ['Additional comments', 'Work notes', 'Comentários']) || '';
+                            if (comments.length > 350) comments = comments.substring(0, 350) + "...";
+                            
+                            let opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
+                            let clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
+                            if (!opD && t.date) {
+                                let parts = t.date.split('/');
+                                if (parts.length === 3) opD = new Date(parts[2], parts[1] - 1, parts[0], 12, 0, 0);
+                            }
+                            if (opD) {
+                                age = clD ? Math.floor((clD - opD) / 86400000) : Math.floor((new Date() - opD) / 86400000);
+                                if (isNaN(age) || age < 0) age = 0;
+                            }
+                            let isInc = (tName.toUpperCase().startsWith('INC'));
+                            let slaConfig = isInc ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
+                            pctSla = (isNaN(age) || isNaN(slaConfig) || slaConfig === 0) ? 0 : Math.min(Math.round((age / slaConfig) * 100), 100);
+                        }
+                    }
+
+                    let status = 'Pendente';
+                    const total = t.history.length;
+                    const done = t.history.filter(h => h.striked).length;
+                    if (total > 0) {
+                        if (done === total) status = 'Efetuada';
+                        else if (done > 0) status = 'Parcialmente Efetuada';
+                    }
+
+                    let dynamicLabelsHtml = '';
+                    let toExportKeys = [];
+                    if (dynamicExportConfig.Aging) toExportKeys.push({ label: 'Aging', val: `${age} dias` });
+                    if (dynamicExportConfig['SLA%']) toExportKeys.push({ label: 'SLA%', val: `${pctSla}%` });
+                    if (dynamicExportConfig.Status) toExportKeys.push({ label: 'Status', val: status });
+                    dynamicExportConfig.CustomFields.forEach(f => {
+                         let v = rec ? (getCol(rec, [f]) || '-') : '-';
+                         toExportKeys.push({ label: f.toUpperCase(), val: String(v).slice(0, 80) });
+                    });
+                    
+                    if (toExportKeys.length > 0) {
+                        dynamicLabelsHtml = `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;">`;
+                        toExportKeys.forEach(dk => {
+                            dynamicLabelsHtml += `<div style="background: #e2e8f0; color: #334155; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 4px; border: 1px solid #cbd5e1;">${dk.label}: <span style="color: #0f172a;">${dk.val}</span></div>`;
+                        });
+                        dynamicLabelsHtml += `</div>`;
+                    }
 
                     htmlBody += `
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
                         <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
                             <span style="font-weight: 800; color: #1e3a8a; font-size: 15px;">📌 ${tName}</span>
-                            <span style="font-size: 12px; color: #64748b;">Aberto em: ${t.date}</span>
+                            <span style="font-size: 12px; color: #64748b;">${t.date ? `Criado em: ${t.date}` : ''}</span>
                         </div>
                         
-                        ${desc ? `<div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px;">📑 DESCRIÇÃO: ${desc}</div>` : ''}
+                        ${dynamicExportConfig.Contexto && context ? `<div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px;">📑 CONTEXTO: ${context}</div>` : ''}
+                        ${dynamicLabelsHtml}
                         ${comments ? `<div style="font-size: 11px; color: #64748b; background: #ffffff; padding: 10px; border-radius: 6px; border-left: 3px solid #cbd5e1; margin-bottom: 15px;">💬 ÚLTIMA ATUALIZAÇÃO: <i>${comments}</i></div>` : ''}
 
                         <ul style="margin: 0; padding-left: 0; list-style-type: none;">
