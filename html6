@@ -4190,7 +4190,7 @@
                         <span style="background:${bC};color:${fC}; border: 1px solid ${fC}40;" class="px-2 py-0.5 rounded text-[9px] font-bold block mb-1 mx-auto w-max">${t.st}</span>
                         <span class="text-[10px] text-slate-500 block mt-1"><i class="far fa-calendar-alt"></i> ${opS}</span>
                     </td>
-                    <td data-label="Datas / Ocioso" class="text-right">
+                    <td data-label="AGING" class="text-right">
                         <div class="font-bold text-sm ${t.cl ? 'text-[var(--primary-dark)]' : 'text-orange-500'}">${clS}</div>
                         ${age !== '-' ? `<div class="text-[10px] text-slate-400 mt-1">${age}d de vida</div>` : ''}
                         ${t.idle !== '-' ? `<div class="text-[10px] font-bold mt-1 ${t.idle > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : ''}
@@ -4208,7 +4208,7 @@
                                 ${createTh("Solicitante", "15%")}
                                 ${createTh("Analista / Grupo", "15%")}
                                 ${createTh("Status", "12%")}
-                                ${createTh("Datas / Ocioso", "12%", "right")}
+                                ${createTh("AGING", "12%", "right")}
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
@@ -4630,7 +4630,7 @@
                     </td>
                     <td data-label="Abertura" class="text-center text-slate-500 text-[11px]"><i class="far fa-calendar-alt mr-1"></i>${t.opStr || '-'}</td>
                     ${isInc ? `<td data-label="PRB" class="text-center" style="font-weight:${(t.prb && t.prb !== 'N/A') ? 'bold' : 'normal'}; color:${(t.prb && t.prb !== 'N/A') ? 'var(--primary-dark)' : '#94a3b8'}">${t.prb || 'N/A'}</td>` : ''}
-                    <td data-label="Aging / Ocioso" class="text-right">
+                    <td data-label="AGING" class="text-right">
                         <div class="font-bold text-sm ${t.age > (t.slaConfig || 7) ? 'text-red-500' : 'text-slate-700'}">${t.age}d totais</div>
                         ${t.idle !== '-' ? `<div class="text-[10px] font-bold mt-1 ${t.idle > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div class="text-[10px] text-slate-400 mt-1"><i class="fas fa-user-clock"></i> N/A</div>`}
                     </td>
@@ -4638,11 +4638,16 @@
             }).join('');
 
             let searchHtml = `
-            <div class="mb-4 relative group">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs transition-colors group-focus-within:text-blue-500"></i>
-                <input type="text" id="modal-search" placeholder="Filtrar nesta lista..." 
-                    class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700 shadow-sm"
-                    onkeyup="filterModalTable(this.value)">
+            <div class="mb-4 flex flex-col md:flex-row gap-2 relative group">
+                <div class="relative flex-1">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs transition-colors group-focus-within:text-blue-500"></i>
+                    <input type="text" id="modal-search" placeholder="Filtrar nesta lista..." 
+                        class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700 shadow-sm"
+                        onkeyup="filterModalTable(this.value)">
+                </div>
+                <button onclick="exportDrilldownPdf()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md transition-all flex items-center justify-center shrink-0">
+                    <i class="fas fa-file-pdf mr-2"></i> Baixar PDF
+                </button>
             </div>`;
 
             document.getElementById('drilldown-table-container').innerHTML = `
@@ -4658,7 +4663,7 @@
                             ${createTh("Status", "8%")}
                             ${createTh("Abertura", "8%")}
                             ${isInc ? createTh("PRB", "8%") : ''}
-                            ${createTh("Aging / Ocioso", "10%", "right")}
+                            ${createTh("AGING", "10%", "right")}
                         </tr></thead>
                         <tbody>${rows}</tbody>
                     </table>
@@ -4691,6 +4696,74 @@
                 const text = tr.innerText.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
                 tr.style.display = text.includes(term) ? '' : 'none';
             });
+        };
+
+        window.exportDrilldownPdf = function () {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
+            
+            const title = window.paginationState.drilldownTitle || "Exportação";
+            const isPrbDrill = title.includes("RCA") || title.includes("Problem") || title.includes("PRB") || title.includes("PTASK");
+            const isInc = window.paginationState.drilldownIsInc;
+            
+            const searchInput = document.getElementById('modal-search');
+            const term = searchInput ? searchInput.value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() : "";
+
+            let allData = window.paginationState.drilldownData || [];
+            
+            const filteredData = allData.filter(t => {
+                if (!term) return true;
+                const rowText = `${t.tk} ${t.desc} ${t.longDesc} ${t.req} ${t.as} ${t.gp} ${t.st} ${t.opStr} ${t.prb} ${t.info} ${t.reason}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+                return rowText.includes(term);
+            });
+
+            if (filteredData.length === 0) return alert("Nenhum registro para exportar com este filtro.");
+
+            doc.setFillColor(30, 58, 138); 
+            doc.rect(0, 0, 297, 30, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text(title.toUpperCase(), 148, 15, { align: 'center' });
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Total filtrado e exportado: ${filteredData.length} chamados | Data: ${new Date().toLocaleString('pt-BR')}`, 148, 22, { align: 'center' });
+
+            let head = [];
+            if (!isPrbDrill && isInc) head = [["Ticket", "Assunto", "Solicitante", "Analista", "Grupo", "Status", "Abertura", "PRB", "AGING"]];
+            else if (!isPrbDrill && !isInc) head = [["Ticket", "Assunto", "Solicitante", "Analista", "Grupo", "Status", "Abertura", "AGING"]];
+            else head = [["Ticket", "Assunto", "Analista", "Grupo", "Status", "Abertura", "AGING"]];
+
+            let body = filteredData.map(t => {
+                let infoClean = t.info ? t.info.replace(/&quot;/g, '"') : "";
+                let rReas = t.reason ? `(${t.reason})` : "";
+                let descFull = `${t.desc}\n${infoClean} ${rReas}`.trim();
+                
+                let row = [];
+                row.push(t.tk || "-");
+                row.push(descFull || "-");
+                if (!isPrbDrill) row.push(t.req || "N/A");
+                row.push(t.as || "-");
+                row.push(t.gp || "-");
+                row.push(t.st || "-");
+                row.push(t.opStr || "-");
+                if (isInc) row.push(t.prb || "N/A");
+                row.push(`${t.age}d`);
+                return row;
+            });
+
+            doc.autoTable({
+                startY: 35,
+                head: head,
+                body: body,
+                styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+                headStyles: { fillColor: [0, 24, 113], textColor: 255, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [241, 245, 249] },
+                columnStyles: { 1: { cellWidth: 80 } },
+                margin: { top: 35, bottom: 15, right: 10, left: 10 },
+            });
+
+            doc.save(`Export_Detalhado_${new Date().getTime()}.pdf`);
         };
 
         // ==========================================
@@ -4952,7 +5025,7 @@
                 <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle mr-2"></i> INCIDENTES CRÍTICOS SEM PRB (${d.noPrb.length})</div>
                 <div class="st-dataframe-container"><table class="st-table">
                 <thead><tr>
-                    ${createTh("Ticket", "12%")} ${createTh("Assunto / Info", "auto", "left")} ${createTh("Analista", "18%")} ${createTh("Aging / Ocioso", "15%", "right")}
+                    ${createTh("Ticket", "12%")} ${createTh("Assunto / Info", "auto", "left")} ${createTh("Analista", "18%")} ${createTh("AGING", "15%", "right")}
                 </tr></thead>
                 <tbody>${d.noPrb.map(t => `
                     <tr class="ticket-row" ${buildDataAttrs(t)}>
@@ -4966,7 +5039,7 @@
                             <div class="text-expandable text-[10px] text-slate-500"><strong class="text-slate-600">Info:</strong> ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>
                         </td>
                         <td data-label="Analista">${t.as}</td>
-                        <td data-label="Aging / Ocioso" style="text-align: right;">
+                        <td data-label="AGING" style="text-align: right;">
                             <div style="color:${C.DAN}; font-weight:bold; font-size:13px;">${t.age}d totais</div>
                             ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
                         </td>
@@ -5062,7 +5135,7 @@
                         <thead><tr>
                             ${createTh("Ticket", "10%")} ${createTh("Assunto / Info (Expansível)", "auto", "left")} ${createTh("Solicitante", "15%")}
                             ${createTh("Analista", "12%")} ${createTh("Grupo", "12%")} ${createTh("Status", "10%")}
-                            ${createTh("PRB", "8%")} ${createTh("Aging / Ocioso", "10%", "right")}
+                            ${createTh("PRB", "8%")} ${createTh("AGING", "10%", "right")}
                         </tr></thead>
                         <tbody>
                             ${d.crits.length ? d.crits.map(t => `
@@ -5082,7 +5155,7 @@
                                     ${t.reason ? `<span class="block text-[9px] text-slate-500 mt-1 truncate max-w-[100px] mx-auto" title="${t.reason}">${t.reason}</span>` : ''}
                                 </td>
                                 <td data-label="PRB" style="font-weight:${t.prb !== 'N/A' ? 'bold' : 'normal'}; color:${t.prb !== 'N/A' ? C.PRI_D : C.GRY}">${t.prb}</td>
-                                <td data-label="Aging / Ocioso" style="text-align:right;">
+                                <td data-label="AGING" style="text-align:right;">
                                     <div style="color:${C.DAN}; font-weight:bold; font-size:13px;">${t.age}d totais</div>
                                     ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
                                 </td>
