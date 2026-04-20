@@ -4443,14 +4443,20 @@
                 tks_ab: analistas[k].tks_ab, tks_res: analistas[k].tks_res
             })).sort((a, b) => b.tot - a.tot).slice(0, 10);
 
-            const calcBacklog = (trendObj) => {
-                let keys = Object.keys(trendObj).sort(); let b = 0;
-                keys.forEach(k => { let s = trendObj[k].a - (trendObj[k].r + trendObj[k].c); b += s; trendObj[k].b = b; });
-            };
-            calcBacklog(trendM);
+            let mKeys = Object.keys(trendM).sort(); 
+            let mb = backlog;
+            for (let i = mKeys.length - 1; i >= 0; i--) {
+                let k = mKeys[i];
+                trendM[k].b = mb;
+                mb -= (trendM[k].a - (trendM[k].r + trendM[k].c));
+            }
 
             let dKeys = Object.keys(trendD).sort(); let db = backlog;
-            for (let i = dKeys.length - 1; i >= 0; i--) { let k = dKeys[i]; trendD[k].b = db; db -= (trendD[k].a - (trendD[k].r + trendD[k].c)); }
+            for (let i = dKeys.length - 1; i >= 0; i--) { 
+                let k = dKeys[i]; 
+                trendD[k].b = db; 
+                db -= (trendD[k].a - (trendD[k].r + trendD[k].c)); 
+            }
 
             let inSlaTot = 0, outSlaTot = 0;
             let tksInSlaTot = [], tksOutSlaTot = [];
