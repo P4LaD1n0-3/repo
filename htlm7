@@ -5650,19 +5650,28 @@
                 return prbsList.map(prbGroup => {
                     let hasTickets = prbGroup.tickets && prbGroup.tickets.length > 0;
                     
+                    let hasTickets = prbGroup.tickets && prbGroup.tickets.length > 0;
+                    
                     let ticketsHtml = '';
                     if (hasTickets) {
                         ticketsHtml = `<ul>`;
                         prbGroup.tickets.forEach(ticket => {
-                            let ticketTypeIcon = ticket.type === 'INC' ? '🔴' : '🔵';
-                            let stateColor = ticket.state === 'Open' || ticket.state === 'Aberto' ? '#27AE60' : '#94a3b8';
+                            let isInc = ticket.type === 'INC';
+                            let ticketTypeIcon = isInc ? '🔴' : '🔵';
+                            
+                            // Emphasize states
+                            let isOpen = ticket.state === 'Open' || ticket.state === 'Aberto' || ticket.state === 'OPEN' || ticket.state === 'IN PROGRESS';
+                            let stateStyle = isOpen ? (isInc ? 'background: #FECACA; color: #991B1B;' : 'background: #FEF08A; color: #B45309;') : 'background: #E2E8F0; color: #475569;';
+                            let statusBadge = `<span style="${stateStyle} padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase;">${isOpen ? (isInc ? '🔥 ' : '⚠️ ') : ''}${ticket.state}</span>`;
+                            
                             let relatedCount = (ticket.related_tickets && ticket.related_tickets.length) || 0;
                             let relatedIndicator = relatedCount > 0 ? `<span style="margin-left: 4px; background: #9B59B6; color: white; padding: 1px 4px; border-radius: 3px; font-size: 7px; font-weight: bold;">+${relatedCount}</span>` : '';
                             
                             ticketsHtml += `
                             <li>
                                 <span style="font-size: 11px; color: #475569; display: flex; align-items: center; gap: 6px;">
-                                    ${ticketTypeIcon} <b style="color:${stateColor}">${ticket.number}</b> 
+                                    ${ticketTypeIcon} <b>${ticket.number}</b> 
+                                    ${statusBadge}
                                     ${relatedIndicator}
                                     <span style="color:#64748b; font-size:10px;">- ${ticket.description || 'Sem descrição'}</span>
                                 </span>
@@ -5673,16 +5682,21 @@
                         ticketsHtml = `<ul><li><span style="font-size: 10px; color: #94a3b8;">Nenhum ticket associado</span></li></ul>`;
                     }
                     
-                    let badgeColor = prbGroup.active_count > 5 ? '#E74C3C' : (prbGroup.active_count > 2 ? '#F39C12' : '#27AE60');
+                    let badgeColor = prbGroup.active_count > 5 ? '#E74C3C' : (prbGroup.active_count > 0 ? '#F39C12' : '#27AE60');
+                    let rcaStatusStr = prbGroup.state || (prbGroup.active_count > 0 ? 'OPEN' : 'PUBLISHED');
+                    let rcaBadge = (rcaStatusStr !== 'PUBLISHED' && rcaStatusStr !== 'CLOSED')
+                        ? `<span style="background: #FEF08A; color: #B45309; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">⚠️ RCA: ${rcaStatusStr}</span>` 
+                        : `<span style="background: #DCFCE7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">✅ RCA: ${rcaStatusStr}</span>`;
                     
                     return `
                     <li>
                         <details open>
                             <summary style="font-weight: bold; color: #334155; font-size: 12px;">
-                                <span style="background: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; font-size: 10px; margin-right: 8px;">
+                                <span style="background: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; font-size: 10px; margin-right: 4px;">
                                     ${prbGroup.prb}
                                 </span>
-                                <span style="font-weight: normal; font-size: 10px; color: #64748b;">
+                                ${rcaBadge}
+                                <span style="font-weight: normal; font-size: 10px; color: #64748b; margin-left: 8px;">
                                     (${prbGroup.active_count} vigentes | ${prbGroup.mentions} menções)
                                 </span>
                                 ${prbGroup.release !== '—' ? `<span style="background: #FCE8F3; color: #BE185D; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; margin-left:6px;">v${prbGroup.release}</span>` : ''}
@@ -6087,6 +6101,7 @@
                 
                 return prbsList.map(prb => {
                     let ptasksForPrb = allPtasks.filter(t => t.tk === prb.tk);
+                    let ptasksForPrb = allPtasks.filter(t => t.tk === prb.tk);
                     let incsForPrb = prb.associated_incs || [];
                     let hasChildren = ptasksForPrb.length > 0 || incsForPrb.length > 0;
                     
@@ -6096,11 +6111,14 @@
                         
                         // Render PTASKs
                         ptasksForPrb.forEach(ptask => {
-                            let stateColor = (ptask.st === 'OPEN' || ptask.st === 'ABERTO') ? '#F39C12' : '#94a3b8';
+                            let isOpen = !['CLOSED', 'RESOLVED', 'CANCELLED', 'COMPLETED', 'PUBLISHED'].some(ts => ptask.st.toUpperCase().includes(ts));
+                            let stateStyle = isOpen ? 'background: #FEF08A; color: #B45309;' : 'background: #E2E8F0; color: #475569;';
+                            let statusBadge = `<span style="${stateStyle} padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase;">${isOpen ? '⚠️ ' : ''}${ptask.st}</span>`;
                             childrenHtml += `
                             <li>
                                 <span style="font-size: 11px; color: #475569; display: flex; align-items: center; gap: 6px;">
-                                    🔵 <b style="color:${stateColor}">${ptask.prb}</b> 
+                                    🔵 <b>${ptask.prb}</b> 
+                                    ${statusBadge}
                                     <span style="color:#64748b; font-size:10px;">- ${ptask.desc || 'Sem descrição'}</span>
                                 </span>
                             </li>`;
@@ -6108,11 +6126,14 @@
                         
                         // Render INCs
                         incsForPrb.forEach(inc => {
-                            let stateColor = inc.st.includes('OPEN') || inc.st.includes('ABERTO') ? '#E74C3C' : '#94a3b8';
+                            let isOpen = inc.st.includes('OPEN') || inc.st.includes('ABERTO') || inc.st.includes('IN PROGRESS') || inc.st.includes('NEW');
+                            let stateStyle = isOpen ? 'background: #FECACA; color: #991B1B;' : 'background: #E2E8F0; color: #475569;';
+                            let statusBadge = `<span style="${stateStyle} padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase;">${isOpen ? '🔥 ' : ''}${inc.st}</span>`;
                             childrenHtml += `
                             <li>
                                 <span style="font-size: 11px; color: #475569; display: flex; align-items: center; gap: 6px;">
-                                    🔴 <b style="color:${stateColor}">${inc.tk}</b> 
+                                    🔴 <b>${inc.tk}</b> 
+                                    ${statusBadge}
                                     <span style="color:#64748b; font-size:10px;">- ${inc.desc || 'Sem descrição'}</span>
                                 </span>
                             </li>`;
@@ -6124,15 +6145,19 @@
                     }
                     
                     let badgeColor = prb.is_rca_open ? '#E74C3C' : '#27AE60';
+                    let rcaBadge = prb.is_rca_open 
+                        ? `<span style="background: #FEF08A; color: #B45309; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">⚠️ RCA: ${prb.stRca}</span>` 
+                        : `<span style="background: #DCFCE7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">✅ RCA: ${prb.stRca}</span>`;
                     
                     return `
                     <li>
                         <details ${prb.is_rca_open ? 'open' : ''}>
                             <summary style="font-weight: bold; color: #334155; font-size: 12px;">
-                                <span style="background: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; font-size: 10px; margin-right: 8px;">
+                                <span style="background: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; font-size: 10px; margin-right: 4px;">
                                     ${prb.tk}
                                 </span>
-                                <span style="font-weight: normal; font-size: 10px; color: #64748b;">
+                                ${rcaBadge}
+                                <span style="font-weight: normal; font-size: 10px; color: #64748b; margin-left: 8px;">
                                     (${ptasksForPrb.length} PTASKs | ${incsForPrb.length} INCs)
                                 </span>
                                 <span style="font-size: 11px; font-weight: normal; margin-left: 8px; color: #475569;">
