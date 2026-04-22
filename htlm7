@@ -5775,7 +5775,7 @@
                 } else {
                     // Linha de ticket individual
                     let number = String(row['Number'] || row['Ticket'] || row['RITM'] || '').trim();
-                    let prb = String(row['PRB'] || '').trim();
+                    let prb = String(row['PRB'] || '').trim().toUpperCase();
                     let type = String(row['TicketType'] || row['Type'] || 'REQ').toUpperCase();
                     let state = String(row['State'] || row['Status'] || 'Open').toUpperCase();
                     let group = String(row['Assignment group'] || row['Grupo'] || '—').trim();
@@ -5784,6 +5784,14 @@
                     let release = String(row['Release_Version'] || row['Versão'] || '—').trim();
                     let related_str = String(row['Tickets_Relacionados'] || '').trim();
                     let related_tickets = related_str && related_str !== '—' ? related_str.split(',').map(t => t.trim()) : [];
+
+                    // Extração rigorosa (Fallback): se a coluna PRB estiver vazia ou mal formatada, procura via regex no texto
+                    if (!prb || !prb.startsWith('PRB')) {
+                        let comments = String(row['Additional comments'] || row['Comentários Adicionais'] || row['Comments'] || '').toUpperCase();
+                        let subject = String(row['Assunto'] || '').toUpperCase();
+                        let match = (desc.toUpperCase() + " " + comments + " " + subject + " " + related_str.toUpperCase()).match(/PRB[0-9]+/);
+                        if (match) prb = match[0];
+                    }
 
                     if (!number || !prb || seenTickets.has(number)) return;
                     seenTickets.add(number);
@@ -5812,6 +5820,31 @@
 
         function generatePRBTab(rcaData, ptaskData, slaRCA, slaPTask, refDateObj) {
             const refDate = new Date(refDateObj); refDate.setHours(23, 59, 59, 999); const refTime = refDate.getTime();
+
+            // --- NOVO: Rastreamento Robusto de PRB -> INCs (Herança / Reuso) ---
+            // Analisa todas as INCs em busca de PRBs mencionados em qualquer campo de texto
+            let globalPrbToIncsMap = {};
+            if (window.RawData && window.RawData.incs) {
+                window.RawData.incs.forEach(inc => {
+                    let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
+                    if (!incNum) return;
+                    
+                    let incPrbRaw = String(getCol(inc, ['Problem', 'Problema', 'Problem ID', 'problem_id']) || '').toUpperCase();
+                    let incShortDesc = String(getCol(inc, ['Short description', 'Descrição', 'Assunto']) || '').toUpperCase();
+                    let incNotes = String(getCol(inc, ['Work notes', 'Additional comments', 'Comentários', 'Description']) || '').toUpperCase();
+                    
+                    let combinedIncText = `${incPrbRaw} ${incShortDesc} ${incNotes}`;
+                    // Tenta capturar múltiplos PRBs mencionados (resolve casos como "RITM9889436/PRB0113800")
+                    let prbMatches = combinedIncText.match(/PRB[0-9]+/g) || [];
+                    
+                    let uniquePrbs = [...new Set(prbMatches)];
+                    uniquePrbs.forEach(pNum => {
+                        if (!globalPrbToIncsMap[pNum]) globalPrbToIncsMap[pNum] = [];
+                        globalPrbToIncsMap[pNum].push(inc);
+                    });
+                });
+            }
+            // ------------------------------------------------------------------
 
             let allPrbs = [];
             let allPtasks = [];
@@ -5864,22 +5897,28 @@
                 let relList = relRaw ? relRaw.split(/[,\s;]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC')) : [];
 
                 if (window.RawData && window.RawData.incs) {
-                    // Busca tickets explicitamente mencionados
+                    // Busca tickets explicitamente mencionados na coluna do PRB
                     let explicitIncs = window.RawData.incs.filter(inc => {
                         let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
                         return relList.includes(incNum);
                     });
 
-                    // Busca tickets que mencionam o PRB no campo Problem ou descrição (lógica legada)
-                    let fuzzyIncs = window.RawData.incs.filter(inc => {
-                        let incPrbRaw = String(getCol(inc, ['Problem', 'Problema', 'Problem ID', 'problem_id']) || '').trim().toUpperCase();
-                        let incShortDesc = String(getCol(inc, ['Short description', 'Descrição']) || '').toUpperCase();
-                        return (tk !== '-' && (incPrbRaw.includes(tkNormalized) || combinedText.toUpperCase().includes(incPrbRaw) || incShortDesc.includes(tkNormalized)));
-                    });
+                    // Busca tickets do mapeamento global via Regex (Herança / Reuso)
+                    let mappedIncs = globalPrbToIncsMap[tkNormalized] || [];
+
+                    // Busca tickets que o próprio PRB menciona inversamente no seu texto
+                    let prbIncMatches = combinedText.toUpperCase().match(/INC[0-9]+/g) || [];
+                    let prbMentionedIncs = [];
+                    if (prbIncMatches.length > 0) {
+                        prbMentionedIncs = window.RawData.incs.filter(inc => {
+                            let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
+                            return prbIncMatches.includes(incNum);
+                        });
+                    }
 
                     // Unifica e remove duplicatas
                     const seen = new Set();
-                    associatedIncs = [...explicitIncs, ...fuzzyIncs].filter(inc => {
+                    associatedIncs = [...explicitIncs, ...mappedIncs, ...prbMentionedIncs].filter(inc => {
                         let num = (getCol(inc, ['Number', 'Ticket', 'Número']) || '-').trim().toUpperCase();
                         if (seen.has(num)) return false;
                         seen.add(num);
