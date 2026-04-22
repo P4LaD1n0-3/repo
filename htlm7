@@ -649,6 +649,7 @@
         .text-expandable {
             display: -webkit-box;
             -webkit-line-clamp: 2;
+            line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             white-space: normal;
@@ -660,6 +661,7 @@
 
         .text-expandable.expanded {
             -webkit-line-clamp: unset;
+            line-clamp: unset;
             display: block;
         }
 
@@ -5650,8 +5652,6 @@
                 return prbsList.map(prbGroup => {
                     let hasTickets = prbGroup.tickets && prbGroup.tickets.length > 0;
                     
-                    let hasTickets = prbGroup.tickets && prbGroup.tickets.length > 0;
-                    
                     let ticketsHtml = '';
                     if (hasTickets) {
                         ticketsHtml = `<ul>`;
@@ -6100,7 +6100,6 @@
                 if (!prbsList || prbsList.length === 0) return `<li style="padding: 1rem; color: #94a3b8; border:none;">Nenhum item encontrado.</li>`;
                 
                 return prbsList.map(prb => {
-                    let ptasksForPrb = allPtasks.filter(t => t.tk === prb.tk);
                     let ptasksForPrb = allPtasks.filter(t => t.tk === prb.tk);
                     let incsForPrb = prb.associated_incs || [];
                     let hasChildren = ptasksForPrb.length > 0 || incsForPrb.length > 0;
