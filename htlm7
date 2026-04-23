@@ -5754,107 +5754,33 @@
             let prbsAbertos = sortedPrbs.filter(p => p.active_count > 0 || p.state === 'OPEN');
             let prbsEncerrados = sortedPrbs.filter(p => p.active_count === 0 && p.state !== 'OPEN');
 
-            function buildTreeHTML(prbsList) {
-                if (!prbsList || prbsList.length === 0) return `<li style="padding: 1rem; color: #94a3b8; border:none;">Nenhum item encontrado.</li>`;
-                
-                return prbsList.map(prbGroup => {
-                    let hasTickets = prbGroup.tickets && prbGroup.tickets.length > 0;
-                    
-                    let ticketsHtml = '';
-                    if (hasTickets) {
-                        ticketsHtml = `<ul>`;
-                        prbGroup.tickets.forEach(ticket => {
-                            let isInc = ticket.type === 'INC';
-                            let isPtask = ticket.type === 'PTASK';
-                            let ticketTypeIcon = isInc ? '🔴' : (isPtask ? '🔵' : '🔵');
-                            
-                            // Emphasize states
-                            let isOpen = isPtask ? !ticket.isTerminal : (ticket.state === 'Open' || ticket.state === 'Aberto' || ticket.state === 'OPEN' || ticket.state === 'IN PROGRESS');
-                            let stateStyle = isOpen ? (isInc ? 'background: #FECACA; color: #991B1B;' : 'background: #FEF08A; color: #B45309;') : 'background: #E2E8F0; color: #475569;';
-                            let statusBadge = `<span style="${stateStyle} padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase;">${isOpen ? (isInc ? '🔥 ' : '⚠️ ') : ''}${ticket.state}</span>`;
-                            
-                            let relatedCount = ticket.related_count !== undefined ? ticket.related_count : ((ticket.related_tickets && ticket.related_tickets.length) || 0);
-                            let relatedIndicator = relatedCount > 0 ? `<span style="margin-left: 4px; background: #9B59B6; color: white; padding: 1px 4px; border-radius: 3px; font-size: 7px; font-weight: bold;" title="Incidentes relacionados vinculados">+${relatedCount} rel</span>` : '';
-                            
-                            ticketsHtml += `
-                            <li class="cursor-pointer hover:bg-slate-50 transition p-1 rounded" onclick="openTicketDetails('${ticket.number}', true)">
-                                <span style="font-size: 11px; color: #475569; display: flex; align-items: center; gap: 6px;">
-                                    ${ticketTypeIcon} <b>${ticket.number}</b> 
-                                    ${statusBadge}
-                                    ${relatedIndicator}
-                                    <span style="color:#64748b; font-size:10px;">- ${ticket.description || 'Sem descrição'}</span>
-                                </span>
-                            </li>`;
-                        });
-                        ticketsHtml += `</ul>`;
-                    } else {
-                        ticketsHtml = `<ul><li><span style="font-size: 10px; color: #94a3b8;">Nenhum ticket associado</span></li></ul>`;
-                    }
-                    
-                    let badgeColor = prbGroup.active_count > 5 ? '#E74C3C' : (prbGroup.active_count > 0 ? '#F39C12' : '#27AE60');
-                    let rcaStatusStr = prbGroup.state || (prbGroup.active_count > 0 ? 'OPEN' : 'PUBLISHED');
-                    let rcaBadge = (rcaStatusStr !== 'PUBLISHED' && rcaStatusStr !== 'CLOSED')
-                        ? `<span style="background: #FEF08A; color: #B45309; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">⚠️ RCA: ${rcaStatusStr}</span>` 
-                        : `<span style="background: #DCFCE7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">✅ RCA: ${rcaStatusStr}</span>`;
-                    
-                    return `
-                    <li>
-                        <details open>
-                            <summary style="font-weight: bold; color: #334155; font-size: 12px; cursor: pointer;">
-                                <span onclick="openTicketDetails('${prbGroup.prb}', true); event.preventDefault();" class="hover:opacity-80 transition" style="background: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; font-size: 10px; margin-right: 4px;">
-                                    ${prbGroup.prb}
-                                </span>
-                                ${rcaBadge}
-                                <span style="font-weight: normal; font-size: 10px; color: #64748b; margin-left: 8px;">
-                                    (${prbGroup.active_count} vigentes | ${prbGroup.related_count_total} relacionados | ${prbGroup.mentions} menções)
-                                </span>
-                                ${prbGroup.release !== '—' ? `<span style="background: #FCE8F3; color: #BE185D; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; margin-left:6px;">v${prbGroup.release}</span>` : ''}
-                            </summary>
-                            ${ticketsHtml}
-                        </details>
-                    </li>
-                    `;
-                }).join('');
-            }
-
-            html += `
-            <div class="report-card" style="padding: 0;">
-                <div class="report-card-title flex justify-between items-center border-b border-slate-100">
-                    <span><i class="fas fa-sitemap mr-2"></i> HIERARQUIA DE PROBLEMAS E TAREFAS (ÁRVORE)</span>
-                </div>
-                <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-start">
-                    <button onclick="document.querySelectorAll('#tab-prb details').forEach(d => d.open = !d.open)" class="text-[11px] bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 px-4 py-1.5 rounded shadow-sm font-bold transition flex items-center"><i class="fas fa-sort mr-2"></i> Expandir / Recolher Árvores</button>
-                </div>
-                <div style="padding: 15px; background: #f8fafc; display:flex; flex-direction:column; gap:15px;">
-                    <section class="panel" style="padding: 1.5em; background: white; border-radius: 8px; border: 1px solid #e2e8f0; margin:0;">
-                        <h3 style="color: #E74C3C; font-size: 14px; margin-top: 0; margin-bottom: 1em; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; font-weight:bold;">
-                            <i class="fas fa-folder-open mr-2"></i> PRBs Abertos
-                        </h3>
-                        <ul class="tree">
-                            ${buildTreeHTML(prbsAbertos)}
-                        </ul>
-                    </section>
-                    
-                    <section class="panel" style="padding: 1.5em; background: white; border-radius: 8px; border: 1px solid #e2e8f0; margin:0;">
-                        <h3 style="color: #27AE60; font-size: 14px; margin-top: 0; margin-bottom: 1em; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; font-weight:bold;">
-                            <i class="fas fa-folder mr-2"></i> PRBs Encerrados
-                        </h3>
-                        <ul class="tree">
-                            ${buildTreeHTML(prbsEncerrados)}
-                        </ul>
-                    </section>
-                </div>
-            </div>
-            `;
-
-            // Tabelas Analíticas Restauradas
             let openPtaskCount = 0;
             let ptaskGroupCount = new Set();
+            let mappedPtasks = [];
             if (ptaskData) {
-                openPtaskCount = ptaskData.filter(t => !['CLOSED', 'RESOLVED', 'CANCELLED', 'COMPLETED'].some(s => String(t.State||t.Status||t.status||'').toUpperCase().includes(s))).length;
+                let pOpen = ptaskData.filter(t => !['CLOSED', 'RESOLVED', 'CANCELLED', 'COMPLETED'].some(s => String(t.State||t.Status||t.status||'').toUpperCase().includes(s)));
+                openPtaskCount = pOpen.length;
+                
+                let refDateLocal = refDateObj ? new Date(refDateObj) : new Date();
+                mappedPtasks = pOpen.map(r => {
+                    let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                    return {
+                        tk: getCol(r, ['Number', 'Task', 'Número']) || '-',
+                        desc: getCol(r, ['Short description', 'Descrição']) || '-',
+                        as: getCol(r, ['Assigned to', 'Analista', 'Assignee']) || '-',
+                        gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
+                        st: String(getCol(r, ['State', 'Status', 'Estado', 'status']) || '').toUpperCase(),
+                        age: op ? Math.floor((refDateLocal - op) / 86400000) : 0,
+                        idle: '-'
+                    };
+                });
                 ptaskData.forEach(t => { if(t['Assignment group'] || t['Grupo']) ptaskGroupCount.add(t['Assignment group'] || t['Grupo']); });
             }
-            let allImpactedIncsCount = Object.values(prbGroups).reduce((acc, g) => acc + g.tickets.filter(t=>t.type==='INC').length, 0);
+
+            let mappedIncs = Object.values(prbGroups).flatMap(g => g.tickets.filter(t=>t.type==='INC').map(t => {
+                return { tk: t.number, desc: t.description, as: '-', gp: t.group, st: t.state, age: t.age, idle: '-' };
+            }));
+            let allImpactedIncsCount = mappedIncs.length;
 
             let rcaOpenBySector = {};
             Object.values(prbGroups).forEach(p => {
@@ -5865,14 +5791,20 @@
                     gps.forEach(g => {
                         if (!rcaOpenBySector[g]) rcaOpenBySector[g] = { count: 0, tks: [] };
                         rcaOpenBySector[g].count++;
-                        rcaOpenBySector[g].tks.push(p);
+                        rcaOpenBySector[g].tks.push({
+                            tk: p.prb,
+                            desc: p.tickets.length > 0 ? (p.tickets.find(t=>t.type==='INC')?.description || 'PRB Agrupador') : 'PRB Agrupador',
+                            as: '-', gp: Array.from(p.groups).join(', '), st: p.state || (p.active_count > 0 ? 'OPEN' : 'PUBLISHED'),
+                            age: p.tickets.length > 0 ? p.tickets[0].age : 0, idle: '-'
+                        });
                     });
                 }
             });
 
+            if (!window.DrilldownVault) window.DrilldownVault = { class: {} };
+
             let sectorRows = Object.entries(rcaOpenBySector).sort((a, b) => b[1].count - a[1].count).map(([sector, data], idx) => {
                 let dKey = `rca_sector_dyn_${idx}`;
-                if (!window.DrilldownVault) window.DrilldownVault = { class: {} };
                 window.DrilldownVault['class'][dKey] = data.tks;
                 return `<tr class="hover:bg-slate-50 cursor-pointer transition border-b border-slate-50" onclick="openDrilldown('RCAs do Setor: ${sector}', '${dKey}', 'class')">
                     <td class="py-2 text-xs font-bold text-slate-700 uppercase tracking-tight text-left">${sector}</td>
@@ -5883,13 +5815,26 @@
                 </tr>`;
             }).join('');
 
+            // Map prbsAbertos
+            let mappedPrbsAbertos = prbsAbertos.map(p => {
+                return {
+                    tk: p.prb, desc: p.tickets.length > 0 ? (p.tickets.find(t=>t.type==='INC')?.description || 'PRB Agrupador') : 'PRB Agrupador',
+                    as: '-', gp: Array.from(p.groups).join(', '), st: p.state || (p.active_count > 0 ? 'OPEN' : 'PUBLISHED'),
+                    age: p.tickets.length > 0 ? p.tickets[0].age : 0, idle: '-'
+                };
+            });
+
+            window.DrilldownVault['class']['all_prbs_rca_open_dyn'] = mappedPrbsAbertos;
+            window.DrilldownVault['class']['all_ptasks_open_dyn'] = mappedPtasks;
+            window.DrilldownVault['class']['all_impacted_incs_dyn'] = mappedIncs;
+
             let generalIndicatorRows = [
-                { label: 'RCAs em Aberto (PRBs)', count: prbsAbertos.length, color: 'orange' },
-                { label: 'PTASKs Abertas (Consolidado)', count: openPtaskCount, color: 'indigo' },
-                { label: 'Impacto Total (Incidentes Únicos)', count: allImpactedIncsCount, color: 'blue' },
-                { label: 'Setores com Problemas/Tarefas', count: new Set([...Object.values(prbGroups).flatMap(g=>Array.from(g.groups)), ...ptaskGroupCount]).size, color: 'emerald' }
+                { label: 'RCAs em Aberto (PRBs)', count: prbsAbertos.length, color: 'orange', dKey: 'all_prbs_rca_open_dyn' },
+                { label: 'PTASKs Abertas (Consolidado)', count: openPtaskCount, color: 'indigo', dKey: 'all_ptasks_open_dyn' },
+                { label: 'Impacto Total (Incidentes Únicos)', count: allImpactedIncsCount, color: 'blue', dKey: 'all_impacted_incs_dyn' },
+                { label: 'Setores com Problemas/Tarefas', count: new Set([...Object.values(prbGroups).flatMap(g=>Array.from(g.groups)), ...ptaskGroupCount]).size, color: 'emerald', dKey: 'all_prbs_rca_open_dyn' }
             ].map(row => `
-                <tr class="hover:bg-slate-50 cursor-pointer transition">
+                <tr class="hover:bg-slate-50 cursor-pointer transition" onclick="openDrilldown('${row.label}', '${row.dKey}', 'class')">
                     <td class="py-2 text-xs font-bold text-slate-700 uppercase tracking-tight">${row.label}</td>
                     <td class="py-2 text-right">
                         <span class="bg-${row.color}-50 text-${row.color}-600 px-2 py-0.5 rounded text-[10px] font-black">${row.count}</span>
@@ -5898,11 +5843,8 @@
                 </tr>
             `).join('');
 
-            let prbsWithRelease = sortedPrbs.filter(p => p.release !== '—').length;
-            let prbsWithDate = sortedPrbs.filter(p => p.data_release !== '—').length;
-
             html += `
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <!-- Tabela de Indicadores Gerais -->
                 <div class="report-card" style="border-top: 3px solid var(--primary-dark);">
                     <div class="report-card-title flex justify-between items-center">
@@ -5929,33 +5871,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Card de Acurácia Metadata (Regex) -->
-            <div class="report-card mb-6" style="border-top: 3px solid #10b981;">
-                <div class="report-card-title"><i class="fas fa-microchip mr-2"></i> RESUMO DE EXTRAÇÃO DE METADADOS (REGEX)</div>
-                <div class="p-4 pt-1">
-                    <p class="text-[10px] text-slate-500 mb-3 italic">A extração via Regex identificou versão de release em <b>${prbsWithRelease}</b> registros e datas de deploy em <b>${prbsWithDate}</b> registros automáticos.</p>
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="bg-slate-50 p-2 rounded border border-slate-200 text-center">
-                            <div class="text-[9px] font-black text-slate-400 uppercase">Acurácia v_Release</div>
-                            <div class="text-xl font-black text-blue-600">${((prbsWithRelease / (sortedPrbs.length || 1)) * 100).toFixed(0)}%</div>
-                        </div>
-                        <div class="bg-slate-50 p-2 rounded border border-slate-200 text-center">
-                            <div class="text-[9px] font-black text-slate-400 uppercase">Acurácia d_Deploy</div>
-                            <div class="text-xl font-black text-emerald-600">${((prbsWithDate / (sortedPrbs.length || 1)) * 100).toFixed(0)}%</div>
-                        </div>
-                        <div class="bg-slate-50 p-2 rounded border border-slate-200 text-center">
-                            <div class="text-[9px] font-black text-slate-400 uppercase">Total Problems</div>
-                            <div class="text-xl font-black text-slate-700">${sortedPrbs.length}</div>
-                        </div>
-                        <div class="bg-slate-50 p-2 rounded border border-slate-200 text-center">
-                            <div class="text-[9px] font-black text-slate-400 uppercase">Total PTASKs</div>
-                            <div class="text-xl font-black text-slate-700">${ptaskData ? ptaskData.length : 0}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-
             return html;
         }
 
