@@ -3751,7 +3751,7 @@
             let cleanTk = String(tkNumber).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '').toUpperCase();
 
             [RawData.incs, RawData.reqs, RawData.rca, RawData.ptask].forEach((src, i) => {
-                if (ticketData) return;
+                if (ticketData || !src) return;
                 let f = src.find(r => {
                     return Object.values(r).some(val => {
                         if (val == null) return false;
@@ -3764,6 +3764,21 @@
                     tType = i === 0 ? 'INC' : i === 1 ? 'REQ' : i === 2 ? 'RCA' : 'PTASK';
                 }
             });
+
+            // Se não encontrou no RawData, procura no cache de PRB dinâmico
+            if (!ticketData && window.PrbGroupsCache) {
+                if (window.PrbGroupsCache[cleanTk]) {
+                    let pGroup = window.PrbGroupsCache[cleanTk];
+                    ticketData = {
+                        'Problem': pGroup.prb,
+                        'Short description': 'PRB Extraído Dinamicamente',
+                        'State': pGroup.state || (pGroup.active_count > 0 ? 'OPEN' : 'PUBLISHED'),
+                        'Description': `Problema detectado via incidentes.\n\nMenções: ${pGroup.mentions}\nTickets Abertos: ${pGroup.active_count}\nIncidentes Relacionados: ${pGroup.related_count_total}\nVersão (RCA): ${pGroup.release}\n\nPTASKs e INCs contidos nesta árvore de problemas podem ser vistos na aba PRB.`,
+                        'Additional comments': 'Este PRB foi gerado pelas referências nos incidentes.'
+                    };
+                    tType = 'RCA';
+                }
+            }
 
             if (!ticketData) {
                 return alert("Detalhes do ticket não encontrados na base importada. \nTicket: " + tkNumber);
@@ -5575,11 +5590,11 @@
         }
 
 
-        function generatePRBTabImproved(prbData) {
-            let html = `<div class="report-section-title" style = "background-color: #E74C3C;" > <i class="fas fa-shield-alt mr-2"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTAS)</div> `;
+        function generatePRBTabImproved(prbData, ptaskData, rcaData, refDateObj) {
+            let html = `<div class="report-section-title" style="background-color: #E74C3C;"> <i class="fas fa-shield-alt mr-2"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTAS)</div>`;
 
             if (!prbData || prbData.length === 0) {
-                return html + `<div class="report-card" style = "text-align: center; padding: 40px;" > <p style="color: #94a3b8; font-size: 14px;">Nenhum PRB ativo no momento.</p></div> `;
+                return html + `<div class="report-card" style="text-align: center; padding: 40px;"> <p style="color: #94a3b8; font-size: 14px;">Nenhum PRB ativo no momento.</p></div>`;
             }
 
             // Detectar se dados são agregados (já contêm Tickets_Vigentes) ou individuais
@@ -5595,9 +5610,9 @@
                         tickets: [],
                         release: ticket.release || '—',
                         data_release: ticket.data_release || '—',
-                        mentions: ticket.vigentes !== undefined ? 0 : 0,  // Para dados agregados
-                        active_count: isAggregateData ? (ticket.vigentes || 0) : 0,  // Use vigentes se disponível
-                        vigentes: ticket.vigentes || 0,  // Novo campo para dados agregados
+                        mentions: ticket.vigentes !== undefined ? 0 : 0,
+                        active_count: isAggregateData ? (ticket.vigentes || 0) : 0,
+                        vigentes: ticket.vigentes || 0,
                         groups: new Set(),
                         priority: ticket.priority || 'N/A',
                         related_count_total: 0
@@ -5615,8 +5630,51 @@
                 prbGroups[prbId].groups.add(ticket.group || 'N/A');
             });
 
+            // Integrar PTASKs e RCAs (se disponíveis)
+            if (ptaskData && ptaskData.length > 0) {
+                let refDate = refDateObj ? new Date(refDateObj) : new Date(); 
+                refDate.setHours(23, 59, 59, 999);
+                ptaskData.forEach(r => {
+                    let prbId = String(getCol(r, ['Problem', 'Problema']) || '').trim().toUpperCase();
+                    if (!prbId || !prbId.startsWith('PRB')) return;
+                    
+                    if (!prbGroups[prbId]) {
+                        prbGroups[prbId] = {
+                            prb: prbId, tickets: [], release: '—', data_release: '—', mentions: 0,
+                            active_count: 0, vigentes: 0, groups: new Set(), priority: 'N/A', related_count_total: 0
+                        };
+                    }
+                    
+                    let stOrig = String(getCol(r, ['State', 'Status', 'Estado', 'status']) || '').toUpperCase();
+                    let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                    let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                    let age = op ? Math.floor((refDate - op) / 86400000) : 0;
+                    let tk = getCol(r, ['Number', 'Task', 'Número']) || '-';
+                    
+                    prbGroups[prbId].tickets.push({
+                        number: tk, type: 'PTASK', state: stOrig,
+                        group: getCol(r, ['Assignment group', 'Grupo']) || '-',
+                        description: getCol(r, ['Short description', 'Descrição']) || '-',
+                        age: age, related_count: 0, 
+                        isTerminal: ['CLOSED', 'RESOLVED', 'CANCELLED', 'COMPLETED'].some(ts => stOrig.includes(ts))
+                    });
+                });
+            }
+
+            // Integrar dados específicos de RCA, se houver problem.xlsx
+            if (rcaData && rcaData.length > 0) {
+                rcaData.forEach(r => {
+                    let prbId = String(getCol(r, ['Number', 'Problem', 'Número']) || '').trim().toUpperCase();
+                    if (!prbId || !prbGroups[prbId]) return;
+                    let rcaSt = String(getCol(r, ['RCA Status', 'Status', 'Estado', 'State']) || '').toUpperCase();
+                    prbGroups[prbId].state = rcaSt;
+                });
+            }
+
             // Ordena os problemas pelo número de tickets abertos + incidentes relacionados
             let sortedPrbs = Object.values(prbGroups).sort((a, b) => (b.active_count + b.related_count_total) - (a.active_count + a.related_count_total));
+
+            window.PrbGroupsCache = prbGroups; // Disponibiliza no escopo global para o modal
 
             // KPI Cards
             let totalPrbs = Object.keys(prbGroups).length;
@@ -5663,10 +5721,11 @@
                         ticketsHtml = `<ul>`;
                         prbGroup.tickets.forEach(ticket => {
                             let isInc = ticket.type === 'INC';
-                            let ticketTypeIcon = isInc ? '🔴' : '🔵';
+                            let isPtask = ticket.type === 'PTASK';
+                            let ticketTypeIcon = isInc ? '🔴' : (isPtask ? '🔵' : '🔵');
                             
                             // Emphasize states
-                            let isOpen = ticket.state === 'Open' || ticket.state === 'Aberto' || ticket.state === 'OPEN' || ticket.state === 'IN PROGRESS';
+                            let isOpen = isPtask ? !ticket.isTerminal : (ticket.state === 'Open' || ticket.state === 'Aberto' || ticket.state === 'OPEN' || ticket.state === 'IN PROGRESS');
                             let stateStyle = isOpen ? (isInc ? 'background: #FECACA; color: #991B1B;' : 'background: #FEF08A; color: #B45309;') : 'background: #E2E8F0; color: #475569;';
                             let statusBadge = `<span style="${stateStyle} padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase;">${isOpen ? (isInc ? '🔥 ' : '⚠️ ') : ''}${ticket.state}</span>`;
                             
@@ -5674,7 +5733,7 @@
                             let relatedIndicator = relatedCount > 0 ? `<span style="margin-left: 4px; background: #9B59B6; color: white; padding: 1px 4px; border-radius: 3px; font-size: 7px; font-weight: bold;" title="Incidentes relacionados vinculados">+${relatedCount} rel</span>` : '';
                             
                             ticketsHtml += `
-                            <li>
+                            <li class="cursor-pointer hover:bg-slate-50 transition p-1 rounded" onclick="openTicketDetails('${ticket.number}', true)">
                                 <span style="font-size: 11px; color: #475569; display: flex; align-items: center; gap: 6px;">
                                     ${ticketTypeIcon} <b>${ticket.number}</b> 
                                     ${statusBadge}
@@ -5697,8 +5756,8 @@
                     return `
                     <li>
                         <details open>
-                            <summary style="font-weight: bold; color: #334155; font-size: 12px;">
-                                <span style="background: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; font-size: 10px; margin-right: 4px;">
+                            <summary style="font-weight: bold; color: #334155; font-size: 12px; cursor: pointer;">
+                                <span onclick="openTicketDetails('${prbGroup.prb}', true); event.preventDefault();" class="hover:opacity-80 transition" style="background: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; font-size: 10px; margin-right: 4px;">
                                     ${prbGroup.prb}
                                 </span>
                                 ${rcaBadge}
@@ -5716,7 +5775,10 @@
 
             html += `
             <div class="report-card" style="padding: 0;">
-                <div class="report-card-title"><i class="fas fa-sitemap mr-2"></i> HIERARQUIA DE PROBLEMAS (ÁRVORE)</div>
+                <div class="report-card-title flex justify-between items-center">
+                    <span><i class="fas fa-sitemap mr-2"></i> HIERARQUIA DE PROBLEMAS E TAREFAS (ÁRVORE)</span>
+                    <button onclick="document.querySelectorAll('#tab-prb details').forEach(d => d.open = !d.open)" class="text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded font-bold transition">Expandir / Recolher Tudo</button>
+                </div>
                 <div style="padding: 15px; background: #f8fafc; display:flex; flex-direction:column; gap:15px;">
                     <section class="panel" style="padding: 1.5em; background: white; border-radius: 8px; border: 1px solid #e2e8f0; margin:0;">
                         <h3 style="color: #E74C3C; font-size: 14px; margin-top: 0; margin-bottom: 1em; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; font-weight:bold;">
@@ -5739,8 +5801,66 @@
             </div>
             `;
 
+            // Tabelas Analíticas Restauradas
+            let openPtaskCount = 0;
+            let ptaskGroupCount = new Set();
+            if (ptaskData) {
+                openPtaskCount = ptaskData.filter(t => !['CLOSED', 'RESOLVED', 'CANCELLED', 'COMPLETED'].some(s => String(t.State||t.Status||t.status||'').toUpperCase().includes(s))).length;
+                ptaskData.forEach(t => { if(t['Assignment group'] || t['Grupo']) ptaskGroupCount.add(t['Assignment group'] || t['Grupo']); });
+            }
+            let allImpactedIncsCount = Object.values(prbGroups).reduce((acc, g) => acc + g.tickets.filter(t=>t.type==='INC').length, 0);
+
+            let generalIndicatorRows = [
+                { label: 'RCAs em Aberto (PRBs)', count: prbsAbertos.length, color: 'orange' },
+                { label: 'PTASKs Abertas (Consolidado)', count: openPtaskCount, color: 'indigo' },
+                { label: 'Impacto Total (Incidentes Únicos)', count: allImpactedIncsCount, color: 'blue' },
+                { label: 'Setores com Problemas/Tarefas', count: new Set([...Object.values(prbGroups).flatMap(g=>Array.from(g.groups)), ...ptaskGroupCount]).size, color: 'emerald' }
+            ].map(row => `
+                <tr class="hover:bg-slate-50 cursor-pointer transition">
+                    <td class="py-2 text-xs font-bold text-slate-700 uppercase tracking-tight">${row.label}</td>
+                    <td class="py-2 text-right">
+                        <span class="bg-${row.color}-50 text-${row.color}-600 px-2 py-0.5 rounded text-[10px] font-black">${row.count}</span>
+                    </td>
+                    <td class="py-2 text-right w-8"><i class="fas fa-chevron-right text-slate-300 text-[10px]"></i></td>
+                </tr>
+            `).join('');
+
+            html += `
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <!-- Tabela de Indicadores Gerais -->
+                <div class="report-card" style="border-top: 3px solid var(--primary-dark);">
+                    <div class="report-card-title flex justify-between items-center">
+                        <span><i class="fas fa-list-ul mr-2"></i> RESUMO GERAL DE INDICADORES</span>
+                        <span class="bg-blue-100 text-blue-700 text-[9px] px-2 py-0.5 rounded-full font-bold">ITSM GLOBAL</span>
+                    </div>
+                    <div class="px-4 pb-2">
+                        <table class="w-full">
+                            <tbody>${generalIndicatorRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Resumo Metadados -->
+                <div class="report-card" style="border-top: 3px solid #10b981;">
+                    <div class="report-card-title"><i class="fas fa-microchip mr-2"></i> RESUMO DA EXTRAÇÃO GLOBAL</div>
+                    <div class="p-4 pt-1">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-slate-50 p-3 rounded border border-slate-200 text-center">
+                                <div class="text-[9px] font-black text-slate-400 uppercase">Total Problems</div>
+                                <div class="text-2xl font-black text-slate-700">${sortedPrbs.length}</div>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded border border-slate-200 text-center">
+                                <div class="text-[9px] font-black text-slate-400 uppercase">Total PTASKs</div>
+                                <div class="text-2xl font-black text-slate-700">${ptaskData ? ptaskData.length : 0}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
             return html;
         }
+
 
         // Função para adaptar dados de PRB para o formato do dashboard
         function processPRBDataForDisplay(prbRawData) {
@@ -5817,7 +5937,7 @@
                     let d_rel_extracted = extractFromComments(comments, 'date');
 
                     processed.push({
-                        number: `${type}:${number} `,
+                        number: number,
                         type: type,
                         prb: prb,
                         state: state,
@@ -6728,7 +6848,7 @@
 
                 if (prbDataToProcess.length > 0) {
                     let prbProcessed = processPRBDataForDisplay(prbDataToProcess);
-                    document.getElementById('tab-prb').innerHTML = generatePRBTabImproved(prbProcessed);
+                    document.getElementById('tab-prb').innerHTML = generatePRBTabImproved(prbProcessed, RawData.ptask, RawData.rca, dateMachine);
                 } else if (RawData.rca && RawData.rca.length || RawData.ptask && RawData.ptask.length) {
                     document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaRCA, slaP, dateMachine);
                 } else {
