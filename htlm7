@@ -5872,6 +5872,99 @@
                 </div>
             </div>
             `;
+
+            function buildTreeHTML(prbsList) {
+                if (!prbsList || prbsList.length === 0) return `<li style="padding: 1rem; color: #94a3b8; border:none;">Nenhum item encontrado.</li>`;
+                
+                return prbsList.map(prbGroup => {
+                    let hasTickets = prbGroup.tickets && prbGroup.tickets.length > 0;
+                    
+                    let ticketsHtml = '';
+                    if (hasTickets) {
+                        ticketsHtml = `<ul>`;
+                        prbGroup.tickets.forEach(ticket => {
+                            let isInc = ticket.type === 'INC';
+                            let isPtask = ticket.type === 'PTASK';
+                            let ticketTypeIcon = isInc ? '🔴' : (isPtask ? '🔵' : '🔵');
+                            
+                            // Emphasize states
+                            let isOpen = isPtask ? !ticket.isTerminal : (ticket.state === 'Open' || ticket.state === 'Aberto' || ticket.state === 'OPEN' || ticket.state === 'IN PROGRESS');
+                            let stateStyle = isOpen ? (isInc ? 'background: #FECACA; color: #991B1B;' : 'background: #FEF08A; color: #B45309;') : 'background: #E2E8F0; color: #475569;';
+                            let statusBadge = `<span style="${stateStyle} padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase;">${isOpen ? (isInc ? '🔥 ' : '⚠️ ') : ''}${ticket.state}</span>`;
+                            
+                            let relatedCount = ticket.related_count !== undefined ? ticket.related_count : ((ticket.related_tickets && ticket.related_tickets.length) || 0);
+                            let relatedIndicator = relatedCount > 0 ? `<span style="margin-left: 4px; background: #9B59B6; color: white; padding: 1px 4px; border-radius: 3px; font-size: 7px; font-weight: bold;" title="Incidentes relacionados vinculados">+${relatedCount} rel</span>` : '';
+                            
+                            ticketsHtml += `
+                            <li class="cursor-pointer hover:bg-slate-50 transition p-1 rounded" onclick="openTicketDetails('${ticket.number}', true)">
+                                <span style="font-size: 11px; color: #475569; display: flex; align-items: center; gap: 6px;">
+                                    ${ticketTypeIcon} <b>${ticket.number}</b> 
+                                    ${statusBadge}
+                                    ${relatedIndicator}
+                                    <span style="color:#64748b; font-size:10px;">- ${ticket.description || 'Sem descrição'}</span>
+                                </span>
+                            </li>`;
+                        });
+                        ticketsHtml += `</ul>`;
+                    } else {
+                        ticketsHtml = `<ul><li><span style="font-size: 10px; color: #94a3b8;">Nenhum ticket associado</span></li></ul>`;
+                    }
+                    
+                    let badgeColor = prbGroup.active_count > 5 ? '#E74C3C' : (prbGroup.active_count > 0 ? '#F39C12' : '#27AE60');
+                    let rcaStatusStr = prbGroup.state || (prbGroup.active_count > 0 ? 'OPEN' : 'PUBLISHED');
+                    let rcaBadge = (rcaStatusStr !== 'PUBLISHED' && rcaStatusStr !== 'CLOSED')
+                        ? `<span style="background: #FEF08A; color: #B45309; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">⚠️ RCA: ${rcaStatusStr}</span>` 
+                        : `<span style="background: #DCFCE7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">✅ RCA: ${rcaStatusStr}</span>`;
+                    
+                    return `
+                    <li>
+                        <details open>
+                            <summary style="font-weight: bold; color: #334155; font-size: 12px; cursor: pointer;">
+                                <span onclick="openTicketDetails('${prbGroup.prb}', true); event.preventDefault();" class="hover:opacity-80 transition" style="background: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; font-size: 10px; margin-right: 4px;">
+                                    ${prbGroup.prb}
+                                </span>
+                                ${rcaBadge}
+                                <span style="font-weight: normal; font-size: 10px; color: #64748b; margin-left: 8px;">
+                                    (${prbGroup.active_count} vigentes | ${prbGroup.related_count_total} relacionados | ${prbGroup.mentions} menções)
+                                </span>
+                                ${prbGroup.release !== '—' ? `<span style="background: #FCE8F3; color: #BE185D; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; margin-left:6px;">v${prbGroup.release}</span>` : ''}
+                            </summary>
+                            ${ticketsHtml}
+                        </details>
+                    </li>
+                    `;
+                }).join('');
+            }
+
+            html += `
+            <div class="report-card" style="padding: 0;">
+                <div class="report-card-title flex justify-between items-center border-b border-slate-100">
+                    <span><i class="fas fa-sitemap mr-2"></i> HIERARQUIA DE PROBLEMAS E TAREFAS (ÁRVORE)</span>
+                </div>
+                <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-start">
+                    <button onclick="document.querySelectorAll('#tab-prb details').forEach(d => d.open = !d.open)" class="text-[11px] bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 px-4 py-1.5 rounded shadow-sm font-bold transition flex items-center"><i class="fas fa-sort mr-2"></i> Expandir / Recolher Árvores</button>
+                </div>
+                <div style="padding: 15px; background: #f8fafc; display:flex; flex-direction:column; gap:15px;">
+                    <section class="panel" style="padding: 1.5em; background: white; border-radius: 8px; border: 1px solid #e2e8f0; margin:0;">
+                        <h3 style="color: #E74C3C; font-size: 14px; margin-top: 0; margin-bottom: 1em; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; font-weight:bold;">
+                            <i class="fas fa-folder-open mr-2"></i> PRBs Abertos
+                        </h3>
+                        <ul class="tree">
+                            ${buildTreeHTML(prbsAbertos)}
+                        </ul>
+                    </section>
+                    
+                    <section class="panel" style="padding: 1.5em; background: white; border-radius: 8px; border: 1px solid #e2e8f0; margin:0;">
+                        <h3 style="color: #27AE60; font-size: 14px; margin-top: 0; margin-bottom: 1em; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; font-weight:bold;">
+                            <i class="fas fa-folder mr-2"></i> PRBs Encerrados
+                        </h3>
+                        <ul class="tree">
+                            ${buildTreeHTML(prbsEncerrados)}
+                        </ul>
+                    </section>
+                </div>
+            </div>
+            `;
             return html;
         }
 
