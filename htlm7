@@ -3805,6 +3805,28 @@
             // Destaca PTASKs e INCs no modal caso seja RCA/PRB
             if ((tType === 'RCA' || tkNumber.startsWith('PRB')) && window.PrbGroupsCache && window.PrbGroupsCache[cleanTk]) {
                 let g = window.PrbGroupsCache[cleanTk];
+                
+                // Resumo Superior do RCA/Aging
+                let pAge = g.age !== undefined ? `${g.age} dias` : (g.tickets.length > 0 ? `${Math.max(...g.tickets.map(t=>t.age||0))} dias (estimado)` : 'N/A');
+                let pState = g.state || (g.active_count > 0 ? 'OPEN' : 'PUBLISHED');
+                
+                let rcaHeader = `<div class="grid grid-cols-3 gap-2 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-inner">
+                    <div class="text-center border-r border-slate-200">
+                        <div class="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Status do Problema</div>
+                        <div class="text-xs font-black text-blue-600 uppercase">${pState}</div>
+                    </div>
+                    <div class="text-center border-r border-slate-200">
+                        <div class="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Aging (D. Corridos)</div>
+                        <div class="text-xs font-black text-red-600">${pAge}</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Impacto (Incidentes)</div>
+                        <div class="text-xs font-black text-slate-700">${g.active_count} ativos / ${g.related_count_total} rel.</div>
+                    </div>
+                </div>`;
+                
+                modalDescHtml = rcaHeader + modalDescHtml;
+
                 let ptks = g.tickets.filter(t => t.type === 'PTASK');
                 let incks = g.tickets.filter(t => t.type === 'INC');
                 
@@ -5707,11 +5729,18 @@
 
             // Integrar dados específicos de RCA, se houver problem.xlsx
             if (rcaData && rcaData.length > 0) {
+                let refDateLocal = refDateObj ? new Date(refDateObj) : new Date();
                 rcaData.forEach(r => {
                     let prbId = String(getCol(r, ['Number', 'Problem', 'Número']) || '').trim().toUpperCase();
                     if (!prbId || !prbGroups[prbId]) return;
                     let rcaSt = String(getCol(r, ['RCA Status', 'Status', 'Estado', 'State']) || '').toUpperCase();
                     prbGroups[prbId].state = rcaSt;
+                    
+                    let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                    if (op) {
+                        prbGroups[prbId].opened = op;
+                        prbGroups[prbId].age = Math.floor((refDateLocal - op) / 86400000);
+                    }
                 });
             }
 
@@ -5727,22 +5756,22 @@
 
             html += `
             <div class="grid grid-cols-4 gap-4 mb-6" >
-                <div class="report-card text-center" style="margin-bottom:0; border-top: 3px solid #E74C3C;">
+                <div class="report-card text-center cursor-pointer hover:shadow-md transition border-t-4" style="margin-bottom:0; border-top-color: #E74C3C;" onclick="openDrilldown('PRBs Ativos (Agrupados)', 'all_prbs_rca_open_dyn', 'class')">
                     <div class="text-[11px] font-black text-red-600 mb-1 uppercase">PRBs Ativos</div>
                     <div class="text-3xl font-black" style="color: #E74C3C;">${totalPrbs}</div>
                     <div class="text-[10px] text-slate-500 mt-1">Problemas</div>
                 </div>
-                <div class="report-card text-center" style="margin-bottom:0; border-top: 3px solid #3498DB;">
+                <div class="report-card text-center cursor-pointer hover:shadow-md transition border-t-4" style="margin-bottom:0; border-top-color: #3498DB;" onclick="openDrilldown('Incidentes Vigentes (Referenciados)', 'all_impacted_incs_dyn', 'class')">
                     <div class="text-[11px] font-black text-blue-600 mb-1 uppercase">Tickets Vigentes</div>
                     <div class="text-3xl font-black" style="color: #3498DB;">${totalTicketsComPrb}</div>
                     <div class="text-[10px] text-slate-500 mt-1">Abertos c/ INC</div>
                 </div>
-                <div class="report-card text-center" style="margin-bottom:0; border-top: 3px solid #9B59B6;">
+                <div class="report-card text-center cursor-pointer hover:shadow-md transition border-t-4" style="margin-bottom:0; border-top-color: #9B59B6;" onclick="openDrilldown('Detalhamento de Problemas Ativos', 'all_prbs_rca_open_dyn', 'class')">
                     <div class="text-[11px] font-black text-purple-600 mb-1 uppercase">Média/PRB</div>
                     <div class="text-3xl font-black" style="color: #9B59B6;">${avgTicketsPorPrb}</div>
                     <div class="text-[10px] text-slate-500 mt-1">Tickets</div>
                 </div>
-                <div class="report-card text-center" style="margin-bottom:0; border-top: 3px solid #27AE60;">
+                <div class="report-card text-center cursor-pointer hover:shadow-md transition border-t-4" style="margin-bottom:0; border-top-color: #27AE60;" onclick="openDrilldown('Grupos com Tarefas de Problemas', 'all_ptasks_open_dyn', 'class')">
                     <div class="text-[11px] font-black text-green-600 mb-1 uppercase">Grupos Afetados</div>
                     <div class="text-3xl font-black" style="color: #27AE60;">${new Set(Object.values(prbGroups).flatMap(g => Array.from(g.groups))).size}</div>
                     <div class="text-[10px] text-slate-500 mt-1">Únicos</div>
