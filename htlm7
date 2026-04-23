@@ -5599,18 +5599,24 @@
                         active_count: isAggregateData ? (ticket.vigentes || 0) : 0,  // Use vigentes se disponível
                         vigentes: ticket.vigentes || 0,  // Novo campo para dados agregados
                         groups: new Set(),
-                        priority: ticket.priority || 'N/A'
+                        priority: ticket.priority || 'N/A',
+                        related_count_total: 0
                     };
                 }
                 prbGroups[prbId].tickets.push(ticket);
+                prbGroups[prbId].related_count_total += (ticket.related_count !== undefined ? ticket.related_count : (ticket.related_tickets ? ticket.related_tickets.length : 0));
+                
                 if (!isAggregateData) {
                     prbGroups[prbId].mentions++;
-                    if (ticket.state === 'Open' || ticket.state === 'Aberto' || ticket.state === 'OPEN') {
+                    if (ticket.state === 'Open' || ticket.state === 'Aberto' || ticket.state === 'OPEN' || ticket.state === 'IN PROGRESS') {
                         prbGroups[prbId].active_count++;
                     }
                 }
                 prbGroups[prbId].groups.add(ticket.group || 'N/A');
             });
+
+            // Ordena os problemas pelo número de tickets abertos + incidentes relacionados
+            let sortedPrbs = Object.values(prbGroups).sort((a, b) => (b.active_count + b.related_count_total) - (a.active_count + a.related_count_total));
 
             // KPI Cards
             let totalPrbs = Object.keys(prbGroups).length;
@@ -5664,8 +5670,8 @@
                             let stateStyle = isOpen ? (isInc ? 'background: #FECACA; color: #991B1B;' : 'background: #FEF08A; color: #B45309;') : 'background: #E2E8F0; color: #475569;';
                             let statusBadge = `<span style="${stateStyle} padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase;">${isOpen ? (isInc ? '🔥 ' : '⚠️ ') : ''}${ticket.state}</span>`;
                             
-                            let relatedCount = (ticket.related_tickets && ticket.related_tickets.length) || 0;
-                            let relatedIndicator = relatedCount > 0 ? `<span style="margin-left: 4px; background: #9B59B6; color: white; padding: 1px 4px; border-radius: 3px; font-size: 7px; font-weight: bold;">+${relatedCount}</span>` : '';
+                            let relatedCount = ticket.related_count !== undefined ? ticket.related_count : ((ticket.related_tickets && ticket.related_tickets.length) || 0);
+                            let relatedIndicator = relatedCount > 0 ? `<span style="margin-left: 4px; background: #9B59B6; color: white; padding: 1px 4px; border-radius: 3px; font-size: 7px; font-weight: bold;" title="Incidentes relacionados vinculados">+${relatedCount} rel</span>` : '';
                             
                             ticketsHtml += `
                             <li>
@@ -5697,7 +5703,7 @@
                                 </span>
                                 ${rcaBadge}
                                 <span style="font-weight: normal; font-size: 10px; color: #64748b; margin-left: 8px;">
-                                    (${prbGroup.active_count} vigentes | ${prbGroup.mentions} menções)
+                                    (${prbGroup.active_count} vigentes | ${prbGroup.related_count_total} relacionados | ${prbGroup.mentions} menções)
                                 </span>
                                 ${prbGroup.release !== '—' ? `<span style="background: #FCE8F3; color: #BE185D; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; margin-left:6px;">v${prbGroup.release}</span>` : ''}
                             </summary>
@@ -5775,15 +5781,25 @@
                 } else {
                     // Linha de ticket individual
                     let number = String(row['Number'] || row['Ticket'] || row['RITM'] || '').trim();
-                    let prb = String(row['PRB'] || '').trim().toUpperCase();
+                    let prb = String(row['Problem'] || row['PRB'] || '').trim().toUpperCase();
                     let type = String(row['TicketType'] || row['Type'] || 'REQ').toUpperCase();
                     let state = String(row['State'] || row['Status'] || 'Open').toUpperCase();
                     let group = String(row['Assignment group'] || row['Grupo'] || '—').trim();
                     let priority = String(row['Priority'] || 'N/A').trim();
                     let desc = String(row['Short description'] || row['Description'] || row['Descrição'] || '').trim();
                     let release = String(row['Release_Version'] || row['Versão'] || '—').trim();
-                    let related_str = String(row['Tickets_Relacionados'] || '').trim();
-                    let related_tickets = related_str && related_str !== '—' ? related_str.split(',').map(t => t.trim()) : [];
+                    let related_str = String(row['Related Incidents'] || row['Tickets_Relacionados'] || '').trim();
+                    
+                    let related_tickets = [];
+                    let related_count = 0;
+                    if (related_str && related_str !== '—') {
+                        if (!isNaN(related_str)) {
+                            related_count = parseInt(related_str) || 0;
+                        } else {
+                            related_tickets = related_str.split(',').map(t => t.trim());
+                            related_count = related_tickets.length;
+                        }
+                    }
 
                     // Extração rigorosa (Fallback): se a coluna PRB estiver vazia ou mal formatada, procura via regex no texto
                     if (!prb || !prb.startsWith('PRB')) {
@@ -5810,7 +5826,8 @@
                         description: desc.substring(0, 80) + (desc.length > 80 ? '...' : ''),
                         release: release !== '—' ? release : v_rel_extracted,
                         data_release: d_rel_extracted,
-                        related_tickets: related_tickets
+                        related_tickets: related_tickets,
+                        related_count: related_count
                     });
                 }
             });
@@ -6700,11 +6717,19 @@
                 // Restaurar aba de Tickets Abertos
                 document.getElementById('tab-open').innerHTML = generateOpenTicketsHTML(RawData.incs, rS, rU, slaI, slaR, dateMachine);
 
-                // Prioriza PRBs se existirem, caso contrário usa RCA/PTASK
-                if (RawData.prb && RawData.prb.length > 0) {
-                    let prbProcessed = processPRBDataForDisplay(RawData.prb);
+                // Prioriza PRBs se existirem, caso contrário tenta extrair dos incidentes (Fallback), ou usa RCA/PTASK
+                let prbDataToProcess = (RawData.prb && RawData.prb.length > 0) ? RawData.prb : [];
+                if (prbDataToProcess.length === 0 && RawData.incs && RawData.incs.length > 0) {
+                    prbDataToProcess = RawData.incs.filter(inc => {
+                        let p = String(inc['Problem'] || inc['PRB'] || '').trim().toUpperCase();
+                        return p.startsWith('PRB');
+                    });
+                }
+
+                if (prbDataToProcess.length > 0) {
+                    let prbProcessed = processPRBDataForDisplay(prbDataToProcess);
                     document.getElementById('tab-prb').innerHTML = generatePRBTabImproved(prbProcessed);
-                } else if (RawData.rca.length || RawData.ptask.length) {
+                } else if (RawData.rca && RawData.rca.length || RawData.ptask && RawData.ptask.length) {
                     document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaRCA, slaP, dateMachine);
                 } else {
                     document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK/PRB importado.</h3></div>`;
