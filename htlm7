@@ -1877,17 +1877,17 @@
             class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[10010] hidden-st flex items-center justify-center p-4 transition-opacity opacity-0">
             <div id="ticket-modal-content"
                 class="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col transform transition-all scale-95 overflow-hidden">
-                <div class="px-6 py-4 border-b flex justify-between items-center bg-slate-50">
+                <div class="px-4 py-2 border-b flex justify-between items-center bg-slate-50">
                     <div class="flex items-center gap-3">
                         <div
-                            class="w-12 h-12 rounded-lg bg-[var(--primary-dark)] text-white flex items-center justify-center font-bold text-2xl shadow-sm">
+                            class="w-8 h-8 rounded bg-[var(--primary-dark)] text-white flex items-center justify-center font-bold text-lg shadow-sm">
                             <i class="fas fa-ticket-alt"></i>
                         </div>
                         <div>
                             <h3 id="modal-tk"
-                                class="text-xl font-black text-[var(--primary-dark)] m-0 leading-tight tracking-tight">
+                                class="text-lg font-black text-[var(--primary-dark)] m-0 leading-tight tracking-tight">
                                 INC0000000</h3>
-                            <div class="flex items-center gap-2 mt-1 flex-wrap">
+                            <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                 <span id="modal-state"
                                     class="text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded shadow-sm">STATUS</span>
                                 <span id="modal-reason"
@@ -3801,6 +3801,50 @@
             let modalDescHtml = '';
             if (longDesc) modalDescHtml += `<strong>Detalhes Completos:</strong><br>${longDesc.replace(/\n/g, '<br>')}<br><br>`;
             if (holdReason || defaultInfo) modalDescHtml += `<strong>Comentários / Motivo da Espera:</strong><br>${(holdReason || defaultInfo).replace(/\n/g, '<br>')}`;
+
+            // Destaca PTASKs e INCs no modal caso seja RCA/PRB
+            if ((tType === 'RCA' || tkNumber.startsWith('PRB')) && window.PrbGroupsCache && window.PrbGroupsCache[cleanTk]) {
+                let g = window.PrbGroupsCache[cleanTk];
+                let ptks = g.tickets.filter(t => t.type === 'PTASK');
+                let incks = g.tickets.filter(t => t.type === 'INC');
+                
+                let extraHtml = '';
+                if (ptks.length > 0) {
+                    extraHtml += `<div class="mt-5 border-t border-slate-200 pt-3"><h5 class="text-xs font-black text-slate-500 uppercase mb-3"><i class="fas fa-tasks mr-1 text-blue-500"></i> Problem Tasks (${ptks.length})</h5>`;
+                    ptks.forEach(pt => {
+                        let stColor = pt.isTerminal ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700';
+                        extraHtml += `<div class="mb-2 p-2 rounded border border-slate-200 bg-white shadow-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-xs text-blue-700">🔵 ${pt.number}</span>
+                                <span class="text-[9px] font-bold px-2 py-0.5 rounded ${stColor}">${pt.state}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-600 mb-1.5 leading-tight">${pt.description}</div>
+                            <div class="text-[9px] text-slate-400 font-bold uppercase flex justify-between">
+                                <span>Aging: <span class="text-slate-700 font-black">${pt.age} dias</span></span>
+                                <span>Grupo: ${pt.group}</span>
+                            </div>
+                        </div>`;
+                    });
+                    extraHtml += `</div>`;
+                }
+                
+                if (incks.length > 0) {
+                    extraHtml += `<div class="mt-4 border-t border-slate-200 pt-3"><h5 class="text-xs font-black text-slate-500 uppercase mb-3"><i class="fas fa-fire mr-1 text-red-500"></i> Incidentes Impactados (${incks.length})</h5>`;
+                    incks.forEach(inc => {
+                        let isOpen = inc.state === 'Open' || inc.state === 'OPEN' || inc.state === 'Aberto' || inc.state === 'IN PROGRESS';
+                        let stColor = isOpen ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500';
+                        extraHtml += `<div class="mb-2 p-2 rounded border border-slate-200 bg-white shadow-sm">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-bold text-xs text-red-700">🔴 ${inc.number}</span>
+                                <span class="text-[9px] font-bold px-2 py-0.5 rounded ${stColor}">${inc.state}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-600 mb-0.5 leading-tight">${inc.description}</div>
+                        </div>`;
+                    });
+                    extraHtml += `</div>`;
+                }
+                modalDescHtml += extraHtml;
+            }
 
             document.getElementById('modal-desc').innerHTML = modalDescHtml || 'Sem descrição detalhada fornecida na abertura.';
 
@@ -5775,9 +5819,11 @@
 
             html += `
             <div class="report-card" style="padding: 0;">
-                <div class="report-card-title flex justify-between items-center">
+                <div class="report-card-title flex justify-between items-center border-b border-slate-100">
                     <span><i class="fas fa-sitemap mr-2"></i> HIERARQUIA DE PROBLEMAS E TAREFAS (ÁRVORE)</span>
-                    <button onclick="document.querySelectorAll('#tab-prb details').forEach(d => d.open = !d.open)" class="text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded font-bold transition">Expandir / Recolher Tudo</button>
+                </div>
+                <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-start">
+                    <button onclick="document.querySelectorAll('#tab-prb details').forEach(d => d.open = !d.open)" class="text-[11px] bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 px-4 py-1.5 rounded shadow-sm font-bold transition flex items-center"><i class="fas fa-sort mr-2"></i> Expandir / Recolher Árvores</button>
                 </div>
                 <div style="padding: 15px; background: #f8fafc; display:flex; flex-direction:column; gap:15px;">
                     <section class="panel" style="padding: 1.5em; background: white; border-radius: 8px; border: 1px solid #e2e8f0; margin:0;">
@@ -5810,6 +5856,33 @@
             }
             let allImpactedIncsCount = Object.values(prbGroups).reduce((acc, g) => acc + g.tickets.filter(t=>t.type==='INC').length, 0);
 
+            let rcaOpenBySector = {};
+            Object.values(prbGroups).forEach(p => {
+                let stateL = (p.state||'').toLowerCase();
+                let isRcaOpen = !['published', 'closed'].includes(stateL) && p.active_count > 0;
+                if (isRcaOpen) {
+                    let gps = Array.from(p.groups);
+                    gps.forEach(g => {
+                        if (!rcaOpenBySector[g]) rcaOpenBySector[g] = { count: 0, tks: [] };
+                        rcaOpenBySector[g].count++;
+                        rcaOpenBySector[g].tks.push(p);
+                    });
+                }
+            });
+
+            let sectorRows = Object.entries(rcaOpenBySector).sort((a, b) => b[1].count - a[1].count).map(([sector, data], idx) => {
+                let dKey = `rca_sector_dyn_${idx}`;
+                if (!window.DrilldownVault) window.DrilldownVault = { class: {} };
+                window.DrilldownVault['class'][dKey] = data.tks;
+                return `<tr class="hover:bg-slate-50 cursor-pointer transition border-b border-slate-50" onclick="openDrilldown('RCAs do Setor: ${sector}', '${dKey}', 'class')">
+                    <td class="py-2 text-xs font-bold text-slate-700 uppercase tracking-tight text-left">${sector}</td>
+                    <td class="py-2 text-right">
+                        <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-black">${data.count}</span>
+                    </td>
+                    <td class="py-2 text-right w-8"><i class="fas fa-chevron-right text-slate-300 text-[10px]"></i></td>
+                </tr>`;
+            }).join('');
+
             let generalIndicatorRows = [
                 { label: 'RCAs em Aberto (PRBs)', count: prbsAbertos.length, color: 'orange' },
                 { label: 'PTASKs Abertas (Consolidado)', count: openPtaskCount, color: 'indigo' },
@@ -5824,6 +5897,9 @@
                     <td class="py-2 text-right w-8"><i class="fas fa-chevron-right text-slate-300 text-[10px]"></i></td>
                 </tr>
             `).join('');
+
+            let prbsWithRelease = sortedPrbs.filter(p => p.release !== '—').length;
+            let prbsWithDate = sortedPrbs.filter(p => p.data_release !== '—').length;
 
             html += `
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
@@ -5840,19 +5916,41 @@
                     </div>
                 </div>
 
-                <!-- Resumo Metadados -->
-                <div class="report-card" style="border-top: 3px solid #10b981;">
-                    <div class="report-card-title"><i class="fas fa-microchip mr-2"></i> RESUMO DA EXTRAÇÃO GLOBAL</div>
-                    <div class="p-4 pt-1">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-slate-50 p-3 rounded border border-slate-200 text-center">
-                                <div class="text-[9px] font-black text-slate-400 uppercase">Total Problems</div>
-                                <div class="text-2xl font-black text-slate-700">${sortedPrbs.length}</div>
-                            </div>
-                            <div class="bg-slate-50 p-3 rounded border border-slate-200 text-center">
-                                <div class="text-[9px] font-black text-slate-400 uppercase">Total PTASKs</div>
-                                <div class="text-2xl font-black text-slate-700">${ptaskData ? ptaskData.length : 0}</div>
-                            </div>
+                <!-- Tabela de Indicadores por Setor -->
+                <div class="report-card" style="border-top: 3px solid #f97316;">
+                    <div class="report-card-title flex justify-between items-center">
+                        <span><i class="fas fa-chart-pie mr-2"></i> INDICADORES RCA POR SETOR</span>
+                        <span class="bg-orange-100 text-orange-700 text-[9px] px-2 py-0.5 rounded-full font-bold">${Object.keys(rcaOpenBySector).length} GRUPOS</span>
+                    </div>
+                    <div class="px-4 pb-2 st-dataframe-container" style="max-height: 200px; overflow-y: auto;">
+                        <table class="w-full">
+                            <tbody>${sectorRows || '<tr><td colspan="3" class="p-4 text-center text-xs text-slate-400">Nenhum setor com RCA aberta.</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card de Acurácia Metadata (Regex) -->
+            <div class="report-card mb-6" style="border-top: 3px solid #10b981;">
+                <div class="report-card-title"><i class="fas fa-microchip mr-2"></i> RESUMO DE EXTRAÇÃO DE METADADOS (REGEX)</div>
+                <div class="p-4 pt-1">
+                    <p class="text-[10px] text-slate-500 mb-3 italic">A extração via Regex identificou versão de release em <b>${prbsWithRelease}</b> registros e datas de deploy em <b>${prbsWithDate}</b> registros automáticos.</p>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-slate-50 p-2 rounded border border-slate-200 text-center">
+                            <div class="text-[9px] font-black text-slate-400 uppercase">Acurácia v_Release</div>
+                            <div class="text-xl font-black text-blue-600">${((prbsWithRelease / (sortedPrbs.length || 1)) * 100).toFixed(0)}%</div>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded border border-slate-200 text-center">
+                            <div class="text-[9px] font-black text-slate-400 uppercase">Acurácia d_Deploy</div>
+                            <div class="text-xl font-black text-emerald-600">${((prbsWithDate / (sortedPrbs.length || 1)) * 100).toFixed(0)}%</div>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded border border-slate-200 text-center">
+                            <div class="text-[9px] font-black text-slate-400 uppercase">Total Problems</div>
+                            <div class="text-xl font-black text-slate-700">${sortedPrbs.length}</div>
+                        </div>
+                        <div class="bg-slate-50 p-2 rounded border border-slate-200 text-center">
+                            <div class="text-[9px] font-black text-slate-400 uppercase">Total PTASKs</div>
+                            <div class="text-xl font-black text-slate-700">${ptaskData ? ptaskData.length : 0}</div>
                         </div>
                     </div>
                 </div>
