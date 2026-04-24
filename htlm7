@@ -5657,343 +5657,192 @@
 
 
         function generatePRBTabImproved(prbData, ptaskData, rcaData, refDateObj) {
-            let html = `<div class="report-section-title" style="background-color: #E74C3C;"> <i class="fas fa-shield-alt mr-2"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTAS)</div>`;
+            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-shield-alt mr-2"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTASK)</div>`;
 
             if (!prbData || prbData.length === 0) {
                 return html + `<div class="report-card" style="text-align: center; padding: 40px;"> <p style="color: #94a3b8; font-size: 14px;">Nenhum PRB ativo no momento.</p></div>`;
             }
 
-            // Detectar se dados são agregados (já contêm Tickets_Vigentes) ou individuais
-            let isAggregateData = prbData.some(row => row.vigentes !== undefined);
-
-            // Agrupar por PRB e contar relacionamentos
+            // Agrupar por PRB para os KPI cards
             let prbGroups = {};
-            prbData.forEach(ticket => {
-                let prbId = ticket.prb || 'UNKNOWN';
-                if (!prbGroups[prbId]) {
-                    prbGroups[prbId] = {
-                        prb: prbId,
-                        tickets: [],
-                        release: ticket.release || '—',
-                        data_release: ticket.data_release || '—',
-                        mentions: ticket.vigentes !== undefined ? 0 : 0,
-                        active_count: isAggregateData ? (ticket.vigentes || 0) : 0,
-                        vigentes: ticket.vigentes || 0,
-                        groups: new Set(),
-                        priority: ticket.priority || 'N/A',
-                        related_count_total: 0
-                    };
-                }
-                prbGroups[prbId].tickets.push(ticket);
-                prbGroups[prbId].related_count_total += (ticket.related_count !== undefined ? ticket.related_count : (ticket.related_tickets ? ticket.related_tickets.length : 0));
-                
-                if (!isAggregateData) {
-                    prbGroups[prbId].mentions++;
-                    if (ticket.state === 'Open' || ticket.state === 'Aberto' || ticket.state === 'OPEN' || ticket.state === 'IN PROGRESS') {
-                        prbGroups[prbId].active_count++;
-                    }
-                }
-                prbGroups[prbId].groups.add(ticket.group || 'N/A');
+            prbData.forEach(t => {
+                let pid = t.prb || 'UNKNOWN';
+                if (!prbGroups[pid]) prbGroups[pid] = { count: 0, groups: new Set(), incs: 0 };
+                prbGroups[pid].count++;
+                if (t.group) prbGroups[pid].groups.add(t.group);
+                if (t.type === 'INC') prbGroups[pid].incs++;
             });
 
-            // Integrar PTASKs e RCAs (se disponíveis)
-            if (ptaskData && ptaskData.length > 0) {
-                let refDate = refDateObj ? new Date(refDateObj) : new Date(); 
-                refDate.setHours(23, 59, 59, 999);
-                ptaskData.forEach(r => {
-                    let prbId = String(getCol(r, ['Problem', 'Problema']) || '').trim().toUpperCase();
-                    if (!prbId || !prbId.startsWith('PRB')) return;
-                    
-                    if (!prbGroups[prbId]) {
-                        prbGroups[prbId] = {
-                            prb: prbId, tickets: [], release: '—', data_release: '—', mentions: 0,
-                            active_count: 0, vigentes: 0, groups: new Set(), priority: 'N/A', related_count_total: 0
-                        };
-                    }
-                    
-                    let stOrig = String(getCol(r, ['State', 'Status', 'Estado', 'status']) || '').toUpperCase();
-                    let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                    let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
-                    let age = op ? Math.floor((refDate - op) / 86400000) : 0;
-                    let tk = getCol(r, ['Number', 'Task', 'Número']) || '-';
-                    
-                    prbGroups[prbId].tickets.push({
-                        number: tk, type: 'PTASK', state: stOrig,
-                        group: getCol(r, ['Assignment group', 'Grupo']) || '-',
-                        description: getCol(r, ['Short description', 'Descrição']) || '-',
-                        age: age, related_count: 0, 
-                        isTerminal: ['CLOSED', 'RESOLVED', 'CANCELLED', 'COMPLETED'].some(ts => stOrig.includes(ts))
-                    });
-                });
-            }
-
-            // Integrar dados específicos de RCA, se houver problem.xlsx
-            if (rcaData && rcaData.length > 0) {
-                let refDateLocal = refDateObj ? new Date(refDateObj) : new Date();
-                rcaData.forEach(r => {
-                    let prbId = String(getCol(r, ['Number', 'Problem', 'Número']) || '').trim().toUpperCase();
-                    if (!prbId || !prbGroups[prbId]) return;
-                    let rcaSt = String(getCol(r, ['RCA Status', 'Status', 'Estado', 'State']) || '').toUpperCase();
-                    prbGroups[prbId].state = rcaSt;
-                    
-                    let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                    if (op) {
-                        prbGroups[prbId].opened = op;
-                        prbGroups[prbId].age = Math.floor((refDateLocal - op) / 86400000);
-                    }
-                });
-            }
-
-            // Ordena os problemas pelo número de tickets abertos + incidentes relacionados
-            let sortedPrbs = Object.values(prbGroups).sort((a, b) => (b.active_count + b.related_count_total) - (a.active_count + a.related_count_total));
-
-            window.PrbGroupsCache = prbGroups; // Disponibiliza no escopo global para o modal
-
-            // KPI Cards
             let totalPrbs = Object.keys(prbGroups).length;
-            let totalTicketsComPrb = Object.values(prbGroups).reduce((s, g) => s + g.active_count, 0);
-            let avgTicketsPorPrb = (totalTicketsComPrb / totalPrbs).toFixed(2).replace('.', ',');
+            let totalTickets = prbData.length;
+            let affectedGroups = new Set(prbData.map(t => t.group)).size;
 
+            // KPI Cards Style Erro de Classificação
             html += `
-            <div class="grid grid-cols-4 gap-4 mb-6" >
-                <div class="report-card text-center cursor-pointer hover:shadow-md transition border-t-4" style="margin-bottom:0; border-top-color: #E74C3C;" onclick="openDrilldown('PRBs Ativos (Agrupados)', 'all_prbs_rca_open_dyn', 'class')">
-                    <div class="text-[11px] font-black text-red-600 mb-1 uppercase">PRBs Ativos</div>
-                    <div class="text-3xl font-black" style="color: #E74C3C;">${totalPrbs}</div>
-                    <div class="text-[10px] text-slate-500 mt-1">Problemas</div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="report-card text-center border-t-4 border-red-500 bg-gradient-to-br from-white to-red-50/30 p-4 shadow-sm">
+                    <div class="text-[10px] font-black text-red-600 mb-1 uppercase tracking-widest">Total PRBs</div>
+                    <div class="text-4xl font-black text-slate-800">${totalPrbs}</div>
+                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Problemas Mapeados</div>
                 </div>
-                <div class="report-card text-center cursor-pointer hover:shadow-md transition border-t-4" style="margin-bottom:0; border-top-color: #3498DB;" onclick="openDrilldown('Incidentes Vigentes (Referenciados)', 'all_impacted_incs_dyn', 'class')">
-                    <div class="text-[11px] font-black text-blue-600 mb-1 uppercase">Tickets Vigentes</div>
-                    <div class="text-3xl font-black" style="color: #3498DB;">${totalTicketsComPrb}</div>
-                    <div class="text-[10px] text-slate-500 mt-1">Abertos c/ INC</div>
+                <div class="report-card text-center border-t-4 border-blue-500 bg-gradient-to-br from-white to-blue-50/30 p-4 shadow-sm">
+                    <div class="text-[10px] font-black text-blue-600 mb-1 uppercase tracking-widest">Total Registros</div>
+                    <div class="text-4xl font-black text-slate-800">${totalTickets}</div>
+                    <div class="text-[9px] text-slate-400 mt-2 uppercase">INCs, PTASKs e RCAs</div>
                 </div>
-                <div class="report-card text-center cursor-pointer hover:shadow-md transition border-t-4" style="margin-bottom:0; border-top-color: #9B59B6;" onclick="openDrilldown('Detalhamento de Problemas Ativos', 'all_prbs_rca_open_dyn', 'class')">
-                    <div class="text-[11px] font-black text-purple-600 mb-1 uppercase">Média/PRB</div>
-                    <div class="text-3xl font-black" style="color: #9B59B6;">${avgTicketsPorPrb}</div>
-                    <div class="text-[10px] text-slate-500 mt-1">Tickets</div>
+                <div class="report-card text-center border-t-4 border-emerald-500 bg-gradient-to-br from-white to-emerald-50/30 p-4 shadow-sm">
+                    <div class="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">Grupos Afetados</div>
+                    <div class="text-4xl font-black text-slate-800">${affectedGroups}</div>
+                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Setores Envolvidos</div>
                 </div>
-                <div class="report-card text-center cursor-pointer hover:shadow-md transition border-t-4" style="margin-bottom:0; border-top-color: #27AE60;" onclick="openDrilldown('Grupos com Tarefas de Problemas', 'all_ptasks_open_dyn', 'class')">
-                    <div class="text-[11px] font-black text-green-600 mb-1 uppercase">Grupos Afetados</div>
-                    <div class="text-3xl font-black" style="color: #27AE60;">${new Set(Object.values(prbGroups).flatMap(g => Array.from(g.groups))).size}</div>
-                    <div class="text-[10px] text-slate-500 mt-1">Únicos</div>
+                <div class="report-card text-center border-t-4 border-purple-500 bg-gradient-to-br from-white to-purple-50/30 p-4 shadow-sm">
+                    <div class="text-[10px] font-black text-purple-600 mb-1 uppercase tracking-widest">Média por PRB</div>
+                    <div class="text-4xl font-black text-slate-800">${(totalTickets / (totalPrbs || 1)).toFixed(1).replace('.', ',')}</div>
+                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Tickets por Problema</div>
                 </div>
             </div>
             `;
 
-            // Separate Open and Closed PRBs
-            let prbsAbertos = sortedPrbs.filter(p => p.active_count > 0 || p.state === 'OPEN');
-            let prbsEncerrados = sortedPrbs.filter(p => p.active_count === 0 && p.state !== 'OPEN');
+            // Tabelas Analíticas (Igual Erro de Classificação)
+            let rcaByStatus = {};
+            prbData.forEach(t => {
+                let st = t.rca_status || '—';
+                if (!rcaByStatus[st]) rcaByStatus[st] = { count: 0, tks: [] };
+                rcaByStatus[st].count++;
+                rcaByStatus[st].tks.push(t);
+            });
 
-            let openPtaskCount = 0;
-            let ptaskGroupCount = new Set();
-            let mappedPtasks = [];
-            if (ptaskData) {
-                let pOpen = ptaskData.filter(t => !['CLOSED', 'RESOLVED', 'CANCELLED', 'COMPLETED'].some(s => String(t.State||t.Status||t.status||'').toUpperCase().includes(s)));
-                openPtaskCount = pOpen.length;
-                
-                let refDateLocal = refDateObj ? new Date(refDateObj) : new Date();
-                mappedPtasks = pOpen.map(r => {
-                    let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                    return {
-                        tk: getCol(r, ['Number', 'Task', 'Número']) || '-',
-                        desc: getCol(r, ['Short description', 'Descrição']) || '-',
-                        as: getCol(r, ['Assigned to', 'Analista', 'Assignee']) || '-',
-                        gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
-                        st: String(getCol(r, ['State', 'Status', 'Estado', 'status']) || '').toUpperCase(),
-                        age: op ? Math.floor((refDateLocal - op) / 86400000) : 0,
-                        idle: '-'
-                    };
-                });
-                ptaskData.forEach(t => { if(t['Assignment group'] || t['Grupo']) ptaskGroupCount.add(t['Assignment group'] || t['Grupo']); });
-            }
-
-            let mappedIncs = Object.values(prbGroups).flatMap(g => g.tickets.filter(t=>t.type==='INC').map(t => {
-                return { tk: t.number, desc: t.description, as: '-', gp: t.group, st: t.state, age: t.age, idle: '-' };
-            }));
-            let allImpactedIncsCount = mappedIncs.length;
-
-            let rcaOpenBySector = {};
-            Object.values(prbGroups).forEach(p => {
-                let stateL = (p.state||'').toLowerCase();
-                let isRcaOpen = !['published', 'closed'].includes(stateL) && p.active_count > 0;
-                if (isRcaOpen) {
-                    let gps = Array.from(p.groups);
-                    gps.forEach(g => {
-                        if (!rcaOpenBySector[g]) rcaOpenBySector[g] = { count: 0, tks: [] };
-                        rcaOpenBySector[g].count++;
-                        rcaOpenBySector[g].tks.push({
-                            tk: p.prb,
-                            desc: p.tickets.length > 0 ? (p.tickets.find(t=>t.type==='INC')?.description || 'PRB Agrupador') : 'PRB Agrupador',
-                            as: '-', gp: Array.from(p.groups).join(', '), st: p.state || (p.active_count > 0 ? 'OPEN' : 'PUBLISHED'),
-                            age: p.tickets.length > 0 ? p.tickets[0].age : 0, idle: '-'
-                        });
-                    });
-                }
+            let sectorStats = {};
+            prbData.forEach(t => {
+                let gp = t.group || '—';
+                if (!sectorStats[gp]) sectorStats[gp] = { count: 0, tks: [] };
+                sectorStats[gp].count++;
+                sectorStats[gp].tks.push(t);
             });
 
             if (!window.DrilldownVault) window.DrilldownVault = { class: {} };
+            if (!window.DrilldownVault['class']) window.DrilldownVault['class'] = {};
 
-            let sectorRows = Object.entries(rcaOpenBySector).sort((a, b) => b[1].count - a[1].count).map(([sector, data], idx) => {
-                let dKey = `rca_sector_dyn_${idx}`;
-                window.DrilldownVault['class'][dKey] = data.tks;
-                return `<tr class="hover:bg-slate-50 cursor-pointer transition border-b border-slate-50" onclick="openDrilldown('RCAs do Setor: ${sector}', '${dKey}', 'class')">
-                    <td class="py-2 text-xs font-bold text-slate-700 uppercase tracking-tight text-left">${sector}</td>
-                    <td class="py-2 text-right">
-                        <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-black">${data.count}</span>
-                    </td>
-                    <td class="py-2 text-right w-8"><i class="fas fa-chevron-right text-slate-300 text-[10px]"></i></td>
-                </tr>`;
-            }).join('');
+            const buildAnalyticalTable = (title, dataObj, labelCol, icon) => {
+                let entries = Object.entries(dataObj).sort((a, b) => b[1].count - a[1].count);
+                let rows = entries.slice(0, 10).map(([key, value], idx) => {
+                    let dKey = `prb_ana_${labelCol}_${idx}`;
+                    window.DrilldownVault['class'][dKey] = value.tks;
+                    return `
+                    <tr class="hover:bg-slate-50 cursor-pointer transition border-b border-slate-50" onclick="openDrilldown('${key}', '${dKey}', 'class')">
+                        <td class="py-2 text-[11px] font-bold text-slate-700 uppercase text-left">${key}</td>
+                        <td class="py-2 text-right">
+                            <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-black">${value.count}</span>
+                        </td>
+                        <td class="py-2 text-right w-8"><i class="fas fa-chevron-right text-slate-300 text-[10px]"></i></td>
+                    </tr>`;
+                }).join('');
 
-            // Map prbsAbertos
-            let mappedPrbsAbertos = prbsAbertos.map(p => {
-                return {
-                    tk: p.prb, desc: p.tickets.length > 0 ? (p.tickets.find(t=>t.type==='INC')?.description || 'PRB Agrupador') : 'PRB Agrupador',
-                    as: '-', gp: Array.from(p.groups).join(', '), st: p.state || (p.active_count > 0 ? 'OPEN' : 'PUBLISHED'),
-                    age: p.tickets.length > 0 ? p.tickets[0].age : 0, idle: '-'
-                };
-            });
-
-            window.DrilldownVault['class']['all_prbs_rca_open_dyn'] = mappedPrbsAbertos;
-            window.DrilldownVault['class']['all_ptasks_open_dyn'] = mappedPtasks;
-            window.DrilldownVault['class']['all_impacted_incs_dyn'] = mappedIncs;
-
-            let generalIndicatorRows = [
-                { label: 'RCAs em Aberto (PRBs)', count: prbsAbertos.length, color: 'orange', dKey: 'all_prbs_rca_open_dyn' },
-                { label: 'PTASKs Abertas (Consolidado)', count: openPtaskCount, color: 'indigo', dKey: 'all_ptasks_open_dyn' },
-                { label: 'Impacto Total (Incidentes Únicos)', count: allImpactedIncsCount, color: 'blue', dKey: 'all_impacted_incs_dyn' },
-                { label: 'Setores com Problemas/Tarefas', count: new Set([...Object.values(prbGroups).flatMap(g=>Array.from(g.groups)), ...ptaskGroupCount]).size, color: 'emerald', dKey: 'all_prbs_rca_open_dyn' }
-            ].map(row => `
-                <tr class="hover:bg-slate-50 cursor-pointer transition" onclick="openDrilldown('${row.label}', '${row.dKey}', 'class')">
-                    <td class="py-2 text-xs font-bold text-slate-700 uppercase tracking-tight">${row.label}</td>
-                    <td class="py-2 text-right">
-                        <span class="bg-${row.color}-50 text-${row.color}-600 px-2 py-0.5 rounded text-[10px] font-black">${row.count}</span>
-                    </td>
-                    <td class="py-2 text-right w-8"><i class="fas fa-chevron-right text-slate-300 text-[10px]"></i></td>
-                </tr>
-            `).join('');
+                return `
+                <div class="report-card" style="margin-bottom:0;">
+                    <div class="report-card-title"><i class="${icon} mr-1"></i> ${title}</div>
+                    <div class="st-dataframe-container border-0 max-h-[250px] overflow-y-auto">
+                        <table class="w-full">
+                            <tbody>${rows || '<tr><td colspan="3" class="text-center py-4 text-slate-400">Sem dados.</td></tr>'}</tbody>
+                        </table>
+                    </div>
+                </div>`;
+            };
 
             html += `
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <!-- Tabela de Indicadores Gerais -->
-                <div class="report-card" style="border-top: 3px solid var(--primary-dark);">
-                    <div class="report-card-title flex justify-between items-center">
-                        <span><i class="fas fa-list-ul mr-2"></i> RESUMO GERAL DE INDICADORES</span>
-                        <span class="bg-blue-100 text-blue-700 text-[9px] px-2 py-0.5 rounded-full font-bold">ITSM GLOBAL</span>
-                    </div>
-                    <div class="px-4 pb-2">
-                        <table class="w-full">
-                            <tbody>${generalIndicatorRows}</tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Tabela de Indicadores por Setor -->
-                <div class="report-card" style="border-top: 3px solid #f97316;">
-                    <div class="report-card-title flex justify-between items-center">
-                        <span><i class="fas fa-chart-pie mr-2"></i> INDICADORES RCA POR SETOR</span>
-                        <span class="bg-orange-100 text-orange-700 text-[9px] px-2 py-0.5 rounded-full font-bold">${Object.keys(rcaOpenBySector).length} GRUPOS</span>
-                    </div>
-                    <div class="px-4 pb-2 st-dataframe-container" style="max-height: 200px; overflow-y: auto;">
-                        <table class="w-full">
-                            <tbody>${sectorRows || '<tr><td colspan="3" class="p-4 text-center text-xs text-slate-400">Nenhum setor com RCA aberta.</td></tr>'}</tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                ${buildAnalyticalTable("RCAs por Status", rcaByStatus, "rca_st", "fas fa-info-circle")}
+                ${buildAnalyticalTable("Impacto por Grupo Resolutor", sectorStats, "sector", "fas fa-users")}
             </div>
             `;
 
-            function buildTreeHTML(prbsList) {
-                if (!prbsList || prbsList.length === 0) return `<li style="padding: 1rem; color: #94a3b8; border:none;">Nenhum item encontrado.</li>`;
-                
-                return prbsList.map(prbGroup => {
-                    let hasTickets = prbGroup.tickets && prbGroup.tickets.length > 0;
-                    
-                    let ticketsHtml = '';
-                    if (hasTickets) {
-                        ticketsHtml = `<ul>`;
-                        prbGroup.tickets.forEach(ticket => {
-                            let isInc = ticket.type === 'INC';
-                            let isPtask = ticket.type === 'PTASK';
-                            let ticketTypeIcon = isInc ? '🔴' : (isPtask ? '🔵' : '🔵');
-                            
-                            // Emphasize states
-                            let isOpen = isPtask ? !ticket.isTerminal : (ticket.state === 'Open' || ticket.state === 'Aberto' || ticket.state === 'OPEN' || ticket.state === 'IN PROGRESS');
-                            let stateStyle = isOpen ? (isInc ? 'background: #FECACA; color: #991B1B;' : 'background: #FEF08A; color: #B45309;') : 'background: #E2E8F0; color: #475569;';
-                            let statusBadge = `<span style="${stateStyle} padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase;">${isOpen ? (isInc ? '🔥 ' : '⚠️ ') : ''}${ticket.state}</span>`;
-                            
-                            let relatedCount = ticket.related_count !== undefined ? ticket.related_count : ((ticket.related_tickets && ticket.related_tickets.length) || 0);
-                            let relatedIndicator = relatedCount > 0 ? `<span style="margin-left: 4px; background: #9B59B6; color: white; padding: 1px 4px; border-radius: 3px; font-size: 7px; font-weight: bold;" title="Incidentes relacionados vinculados">+${relatedCount} rel</span>` : '';
-                            
-                            ticketsHtml += `
-                            <li class="cursor-pointer hover:bg-slate-50 transition p-1 rounded" onclick="openTicketDetails('${ticket.number}', true)">
-                                <span style="font-size: 11px; color: #475569; display: flex; align-items: center; gap: 6px;">
-                                    ${ticketTypeIcon} <b>${ticket.number}</b> 
-                                    ${statusBadge}
-                                    ${relatedIndicator}
-                                    <span style="color:#64748b; font-size:10px;">- ${ticket.description || 'Sem descrição'}</span>
-                                </span>
-                            </li>`;
-                        });
-                        ticketsHtml += `</ul>`;
-                    } else {
-                        ticketsHtml = `<ul><li><span style="font-size: 10px; color: #94a3b8;">Nenhum ticket associado</span></li></ul>`;
-                    }
-                    
-                    let badgeColor = prbGroup.active_count > 5 ? '#E74C3C' : (prbGroup.active_count > 0 ? '#F39C12' : '#27AE60');
-                    let rcaStatusStr = prbGroup.state || (prbGroup.active_count > 0 ? 'OPEN' : 'PUBLISHED');
-                    let rcaBadge = (rcaStatusStr !== 'PUBLISHED' && rcaStatusStr !== 'CLOSED')
-                        ? `<span style="background: #FEF08A; color: #B45309; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">⚠️ RCA: ${rcaStatusStr}</span>` 
-                        : `<span style="background: #DCFCE7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">✅ RCA: ${rcaStatusStr}</span>`;
-                    
-                    return `
-                    <li>
-                        <details open>
-                            <summary style="font-weight: bold; color: #334155; font-size: 12px; cursor: pointer;">
-                                <span onclick="openTicketDetails('${prbGroup.prb}', true); event.preventDefault();" class="hover:opacity-80 transition" style="background: ${badgeColor}; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; font-size: 10px; margin-right: 4px;">
-                                    ${prbGroup.prb}
-                                </span>
-                                ${rcaBadge}
-                                <span style="font-weight: normal; font-size: 10px; color: #64748b; margin-left: 8px;">
-                                    (${prbGroup.active_count} vigentes | ${prbGroup.related_count_total} relacionados | ${prbGroup.mentions} menções)
-                                </span>
-                                ${prbGroup.release !== '—' ? `<span style="background: #FCE8F3; color: #BE185D; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; margin-left:6px;">v${prbGroup.release}</span>` : ''}
-                            </summary>
-                            ${ticketsHtml}
-                        </details>
-                    </li>
-                    `;
-                }).join('');
-            }
-
+            // Tabela de Lista Completa (Rigorosa)
             html += `
             <div class="report-card" style="padding: 0;">
-                <div class="report-card-title flex justify-between items-center border-b border-slate-100">
-                    <span><i class="fas fa-sitemap mr-2"></i> HIERARQUIA DE PROBLEMAS E TAREFAS (ÁRVORE)</span>
+                <div class="report-card-title flex justify-between items-center border-b border-slate-100 p-4">
+                    <span><i class="fas fa-list-ul mr-2"></i> LISTA COMPLETA DE PROBLEMAS E TAREFAS (RIGOROSO)</span>
+                    <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-bold uppercase tracking-widest">${prbData.length} REGISTROS</span>
                 </div>
-                <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex justify-start">
-                    <button onclick="document.querySelectorAll('#tab-prb details').forEach(d => d.open = !d.open)" class="text-[11px] bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 px-4 py-1.5 rounded shadow-sm font-bold transition flex items-center"><i class="fas fa-sort mr-2"></i> Expandir / Recolher Árvores</button>
+                
+                <div class="st-dataframe-container stylized-scrollbar" style="max-height: 800px; overflow-x: auto;">
+                    <table class="st-table w-full" style="min-width: 3000px;">
+                        <thead>
+                            <tr>
+                                ${createTh("Ações", "100px")}
+                                ${createTh("Number", "120px")}
+                                ${createTh("Problem", "120px")}
+                                ${createTh("State", "100px")}
+                                ${createTh("Priority", "100px")}
+                                ${createTh("Short description", "400px", "left")}
+                                ${createTh("Configuration item", "180px")}
+                                ${createTh("Assignment group", "180px")}
+                                ${createTh("Assigned to", "150px")}
+                                ${createTh("Caller / Solicitante", "150px")}
+                                ${createTh("VIP", "60px")}
+                                ${createTh("Location", "150px")}
+                                ${createTh("On hold reason", "150px")}
+                                ${createTh("Opened", "140px")}
+                                ${createTh("Resolved / Closed", "140px")}
+                                ${createTh("RCA Status", "120px")}
+                                ${createTh("RCA Due Date", "120px")}
+                                ${createTh("RCA Published Date", "120px")}
+                                ${createTh("RCA Cause Codes", "180px")}
+                                ${createTh("PTO Number", "120px")}
+                                ${createTh("Open Tasks", "100px")}
+                                ${createTh("Related Incidents", "300px", "left")}
+                                ${createTh("Close notes", "400px", "left")}
+                                ${createTh("Additional comments", "400px", "left")}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${prbData.map(t => {
+                                let stColor = t.state === 'OPEN' || t.state === 'IN PROGRESS' ? 'background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;' : 'background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;';
+                                if (['RESOLVED', 'CLOSED', 'PUBLISHED', 'COMPLETED'].some(s => t.state.includes(s))) {
+                                    stColor = 'background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;';
+                                }
+                                
+                                let prioColor = t.priority.includes('1') || t.priority.includes('Critical') ? 'color: #ef4444; font-weight: 900;' : 'color: #475569;';
+
+                                return `
+                                <tr class="ticket-row border-b border-slate-100 hover:bg-slate-50/80 transition-colors" ${buildDataAttrs(t)}>
+                                    <td class="p-2 text-center">
+                                        <button onclick="openTicketDetails('${t.number}')" class="bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold py-1 px-3 rounded shadow-sm transition-all uppercase whitespace-nowrap"><i class="fas fa-search mr-1"></i> Saiba mais</button>
+                                    </td>
+                                    <td class="font-bold text-blue-800">${t.number}</td>
+                                    <td class="font-bold text-slate-700">${t.prb || '—'}</td>
+                                    <td><span style="${stColor} padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase;">${t.state}</span></td>
+                                    <td style="${prioColor}">${t.priority}</td>
+                                    <td class="text-left font-semibold text-slate-700 truncate" title="${t.short_description}">${t.short_description}</td>
+                                    <td><div class="truncate max-w-[170px]" title="${t.ci}">${t.ci}</div></td>
+                                    <td><div class="truncate max-w-[170px]" title="${t.group}">${t.group}</div></td>
+                                    <td class="font-medium">${t.assigned_to}</td>
+                                    <td>${t.caller}</td>
+                                    <td>${String(t.vip).toLowerCase() === 'true' || String(t.vip).toLowerCase() === 'yes' ? '⭐ SIM' : '—'}</td>
+                                    <td>${t.location}</td>
+                                    <td class="text-orange-600 font-bold">${t.hold_reason}</td>
+                                    <td class="text-slate-500">${t.opened}</td>
+                                    <td class="text-slate-500">${t.resolved}</td>
+                                    <td><span class="px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold border border-slate-200 uppercase">${t.rca_status}</span></td>
+                                    <td>${t.rca_due_date}</td>
+                                    <td>${t.rca_pub_date}</td>
+                                    <td><div class="truncate max-w-[170px]" title="${t.rca_cause_codes}">${t.rca_cause_codes}</div></td>
+                                    <td class="font-bold text-indigo-600">${t.pto_number}</td>
+                                    <td class="font-bold">${t.open_tasks}</td>
+                                    <td><div class="truncate max-w-[280px] text-[10px]" title="${t.related_incidents_raw}">${t.related_incidents_raw}</div></td>
+                                    <td><div class="text-expandable text-[10px] text-slate-500" style="-webkit-line-clamp: 2;">${t.close_notes}</div></td>
+                                    <td><div class="text-expandable text-[10px] text-slate-500" style="-webkit-line-clamp: 2;">${t.comments}</div></td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
                 </div>
-                <div style="padding: 15px; background: #f8fafc; display:flex; flex-direction:column; gap:15px;">
-                    <section class="panel" style="padding: 1.5em; background: white; border-radius: 8px; border: 1px solid #e2e8f0; margin:0;">
-                        <h3 style="color: #E74C3C; font-size: 14px; margin-top: 0; margin-bottom: 1em; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; font-weight:bold;">
-                            <i class="fas fa-folder-open mr-2"></i> PRBs Abertos
-                        </h3>
-                        <ul class="tree">
-                            ${buildTreeHTML(prbsAbertos)}
-                        </ul>
-                    </section>
-                    
-                    <section class="panel" style="padding: 1.5em; background: white; border-radius: 8px; border: 1px solid #e2e8f0; margin:0;">
-                        <h3 style="color: #27AE60; font-size: 14px; margin-top: 0; margin-bottom: 1em; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; font-weight:bold;">
-                            <i class="fas fa-folder mr-2"></i> PRBs Encerrados
-                        </h3>
-                        <ul class="tree">
-                            ${buildTreeHTML(prbsEncerrados)}
-                        </ul>
-                    </section>
+                <div class="p-3 bg-slate-50 text-[9px] text-slate-400 text-center italic border-t border-slate-100">
+                    <i class="fas fa-info-circle mr-1"></i> Role para o lado para visualizar todas as colunas. Use a pesquisa global no topo para filtrar esta lista.
                 </div>
             </div>
             `;
+
             return html;
         }
 
@@ -6079,7 +5928,25 @@
                         state: state,
                         group: group,
                         priority: priority,
-                        description: desc.substring(0, 80) + (desc.length > 80 ? '...' : ''),
+                        description: desc,
+                        short_description: desc,
+                        ci: getCol(row, ['Configuration item', 'Item de configuração', 'CMDB CI', 'cmdb_ci']) || '—',
+                        hold_reason: getCol(row, ['On hold reason', 'Motivo da espera', 'on_hold_reason']) || '—',
+                        caller: getCol(row, ['Caller', 'Solicitante', 'caller_id']) || '—',
+                        vip: getCol(row, ['VIP', 'vip']) || '—',
+                        location: getCol(row, ['Location', 'Localidade', 'location']) || '—',
+                        assigned_to: getCol(row, ['Assigned to', 'Analista', 'assigned_to']) || 'Não Atribuído',
+                        comments: comments || '—',
+                        opened: getCol(row, ['Opened', 'Data Abertura', 'opened_at']) || '—',
+                        resolved: getCol(row, ['Resolved', 'Data Fechamento', 'resolved_at', 'Closed']) || '—',
+                        close_notes: getCol(row, ['Close notes', 'Notas de fechamento', 'close_notes']) || '—',
+                        rca_status: getCol(row, ['RCA Status', 'Status RCA', 'u_rca_status']) || '—',
+                        related_incidents_raw: related_str || '—',
+                        rca_due_date: getCol(row, ['RCA Due Date', 'Prazo RCA', 'u_rca_due_date']) || '—',
+                        rca_pub_date: getCol(row, ['RCA Published Date', 'Data Publicação RCA', 'u_rca_published_date']) || '—',
+                        rca_cause_codes: getCol(row, ['RCA Cause Codes', 'Códigos de Causa RCA', 'u_rca_cause_codes']) || '—',
+                        pto_number: getCol(row, ['PTO Number', 'Número PTO', 'u_pto_number']) || '—',
+                        open_tasks: getCol(row, ['Open Tasks', 'Tarefas Abertas', 'u_open_tasks']) || '—',
                         release: release !== '—' ? release : v_rel_extracted,
                         data_release: d_rel_extracted,
                         related_tickets: related_tickets,
