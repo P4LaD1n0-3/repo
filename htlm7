@@ -1335,6 +1335,43 @@
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23FFFFFF' viewBox='0 0 448 512'%3E%3Cpath d='M416 256c0 17.7-14.3 32-32 32L32 288c-17.7 0-32-14.3-32-32s14.3-32 32-32l352 0c17.7 0 32 14.3 32 32z' /%3E%3C/svg%3E");
             background-color: #0ea5e9;
         }
+
+        /* Novos Filtros PRB */
+        .prb-filter-btn {
+            background: white;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .prb-filter-btn:hover {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+        .prb-filter-btn.active {
+            background: #2563eb !important;
+            color: white !important;
+            border-color: #1e40af !important;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+        .tag-aligned {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+            line-height: 1;
+            white-space: nowrap;
+        }
     </style>
 </head>
 
@@ -4479,7 +4516,8 @@
         };
 
         function buildDataAttrs(t) {
-            return `data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req || ''}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-age="${t.age !== undefined ? t.age : (t.d || 0)}" data-op="${t.opStr || t.opS || '-'}" data-info="${t.info || ''}" data-reason="${t.reason || ''}" data-idle="${t.idle !== undefined ? t.idle : '-'}" data-pct="${t.pctSla !== undefined ? t.pctSla : ''}"`;
+            let hasInc = (t.related_incidents_raw && t.related_incidents_raw !== '—' && t.related_incidents_raw !== '') ? 'true' : 'false';
+            return `data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req || ''}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-rca="${t.stRca || ''}" data-has-inc="${hasInc}" data-age="${t.age !== undefined ? t.age : (t.d || 0)}" data-op="${t.opStr || t.opS || '-'}" data-info="${t.info || ''}" data-reason="${t.reason || ''}" data-idle="${t.idle !== undefined ? t.idle : '-'}" data-pct="${t.pctSla !== undefined ? t.pctSla : ''}"`;
         }
 
         function buildTicketObject(r, refDateObj, asg, opOrig, clOrig, stOrig, st, age, typeStr, slaDays) {
@@ -5789,12 +5827,36 @@
             </div>
             `;
 
-            // Tabela de Lista Simplificada (Headers Principais)
+            // Filtros Rápidos (Ação)
+            html += `
+            <div class="flex flex-wrap items-center gap-3 mb-6 bg-slate-50/50 p-4 rounded-xl border border-slate-200">
+                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2 flex items-center gap-2">
+                    <i class="fas fa-filter text-blue-600"></i> Filtros de Ação:
+                </div>
+                <button onclick="filterPrbList('all')" class="prb-filter-btn active" id="btn-prb-all">
+                    <i class="fas fa-th-large"></i> Todos
+                </button>
+                <button onclick="filterPrbList('pending-rca')" class="prb-filter-btn" id="btn-prb-rca">
+                    <i class="fas fa-exclamation-circle text-orange-500"></i> RCA Pendente
+                </button>
+                <button onclick="filterPrbList('impact')" class="prb-filter-btn" id="btn-prb-impact">
+                    <i class="fas fa-link text-red-500"></i> Com Impacto (INC)
+                </button>
+                <button onclick="filterPrbList('open')" class="prb-filter-btn" id="btn-prb-open">
+                    <i class="fas fa-door-open text-emerald-500"></i> Abertos / In Progress
+                </button>
+            </div>
+            `;
+
+            // Tabela de Lista Simplificada
             html += `
             <div class="report-card" style="padding: 0;">
                 <div class="report-card-title flex justify-between items-center border-b border-slate-100 p-4">
                     <span><i class="fas fa-list-ul mr-2"></i> LISTA DE PROBLEMAS E TAREFAS</span>
-                    <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-bold uppercase tracking-widest">${prbData.length} REGISTROS</span>
+                    <div class="flex gap-4">
+                        <span id="prb-visible-count" class="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold uppercase tracking-widest">${prbData.length} EXIBIDOS</span>
+                        <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-bold uppercase tracking-widest">${prbData.length} TOTAL</span>
+                    </div>
                 </div>
                 
                 <div class="st-dataframe-container stylized-scrollbar" style="max-height: 800px; overflow-x: auto;">
@@ -5812,7 +5874,7 @@
                                 ${createTh("RCA Status", "120px")}
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="prb-table-body">
                             ${prbData.map(t => {
                                 let stVal = String(t.st || '').toUpperCase();
                                 let stColor = stVal === 'OPEN' || stVal === 'IN PROGRESS' ? 'background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;' : 'background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;';
@@ -5825,23 +5887,23 @@
                                 return `
                                 <tr class="ticket-row border-b border-slate-100 hover:bg-slate-50/80 transition-colors" ${buildDataAttrs(t)}>
                                     <td class="p-3 text-left">
-                                        <div class="flex flex-col gap-1.5">
-                                            <span class="font-black text-blue-800 text-sm">${t.tk}</span>
+                                        <div class="flex flex-col gap-1.5 items-start">
+                                            <span class="font-black text-blue-800 text-sm leading-none">${t.tk}</span>
                                             <button onclick="openTicketDetails('${t.tk}')" class="bg-blue-600 hover:bg-blue-700 text-white text-[8px] font-black py-1 px-2 rounded shadow-sm transition-all uppercase w-max"><i class="fas fa-search mr-1"></i> Saiba mais</button>
                                         </div>
                                     </td>
-                                    <td class="font-bold text-slate-700">${t.prb || '—'}</td>
-                                    <td><span style="${stColor} padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase;">${t.st}</span></td>
-                                    <td style="${prioColor}">${t.priority}</td>
+                                    <td class="font-bold text-slate-700 text-center">${t.prb || '—'}</td>
+                                    <td class="text-center"><span class="tag-aligned" style="${stColor} padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase;">${t.st}</span></td>
+                                    <td class="text-center" style="${prioColor}">${t.priority}</td>
                                     <td class="bg-blue-50/30 border-x border-blue-100/50 p-2">
                                         <div class="text-[10px] font-black text-blue-700 break-words line-clamp-2" title="${t.related_incidents_raw || '—'}">
                                             <i class="fas fa-link mr-1 opacity-50"></i>${t.related_incidents_raw || '—'}
                                         </div>
                                     </td>
                                     <td class="text-left font-semibold text-slate-700 truncate max-w-[300px]" title="${t.desc}">${t.desc}</td>
-                                    <td class="font-medium">${t.as}</td>
-                                    <td><div class="truncate max-w-[170px]" title="${t.gp}">${t.gp}</div></td>
-                                    <td><span class="px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold border border-slate-200 uppercase">${t.stRca || '—'}</span></td>
+                                    <td class="font-medium text-center">${t.as}</td>
+                                    <td class="text-center"><div class="truncate max-w-[170px] mx-auto" title="${t.gp}">${t.gp}</div></td>
+                                    <td class="text-center"><span class="tag-aligned px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold border border-slate-200 uppercase">${t.stRca || '—'}</span></td>
                                 </tr>
                                 `;
                             }).join('')}
@@ -5849,7 +5911,7 @@
                     </table>
                 </div>
                 <div class="p-3 bg-slate-50 text-[9px] text-slate-400 text-center italic border-t border-slate-100">
-                    <i class="fas fa-info-circle mr-1"></i> Use o botão "Saiba Mais" para ver detalhes completos, CI, RCA e histórico de interações.
+                    <i class="fas fa-info-circle mr-1"></i> Use os filtros acima para isolar tickets por RCA, Impacto ou Status.
                 </div>
             </div>
             `;
@@ -7012,7 +7074,38 @@
             }
         });
 
-        // ==========================================
+        function filterPrbList(type) {
+            const rows = document.querySelectorAll('#prb-table-body tr');
+            const btns = document.querySelectorAll('.prb-filter-btn');
+            
+            btns.forEach(b => b.classList.remove('active'));
+            const btnId = `btn-prb-${type === 'pending-rca' ? 'rca' : type === 'impact' ? 'impact' : type === 'open' ? 'open' : 'all'}`;
+            const targetBtn = document.getElementById(btnId);
+            if (targetBtn) targetBtn.classList.add('active');
+
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const rca = row.getAttribute('data-rca');
+                const st = row.getAttribute('data-st');
+                const hasInc = row.getAttribute('data-has-inc') === 'true';
+                
+                let show = false;
+                if (type === 'all') show = true;
+                else if (type === 'pending-rca') {
+                    show = rca !== 'PUBLISHED' && rca !== 'PUBLISHED/COMPLETED' && rca !== '—' && rca !== '';
+                }
+                else if (type === 'impact') show = hasInc;
+                else if (type === 'open') {
+                    show = st === 'OPEN' || st === 'IN PROGRESS' || st === 'ABERTO' || st === 'EM ANDAMENTO';
+                }
+                
+                row.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+
+            const countEl = document.getElementById('prb-visible-count');
+            if (countEl) countEl.innerText = `${visibleCount} EXIBIDOS`;
+        }
 
 
         function takeScreenshotItem(btn, e) {
