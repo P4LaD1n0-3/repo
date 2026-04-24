@@ -5863,15 +5863,20 @@
             prbData.forEach(t => {
                 let pid = t.prb || '—';
                 if (!groups[pid]) groups[pid] = { main: null, children: [] };
-                // Se o ticket for o próprio PRB (ou um ticket principal dele), ele é o 'main'
-                if (t.tk === pid || t.type === 'PRB') {
-                    groups[pid].main = t;
+                
+                // Priorização do "Main": se for tipo PRB/RCA ou se o número do ticket for igual ao número do problema
+                if (t.type === 'PRB' || t.type === 'RCA' || t.tk === pid) {
+                    if (!groups[pid].main) {
+                        groups[pid].main = t;
+                    } else {
+                        groups[pid].children.push(t);
+                    }
                 } else {
                     groups[pid].children.push(t);
                 }
             });
 
-            // Ordenar grupos (opcional: por número de tickets ou ID)
+            // Ordenar grupos (PRBs mais recentes primeiro)
             let sortedPids = Object.keys(groups).sort((a, b) => b.localeCompare(a));
 
             // Tabela de Lista Simplificada
@@ -5938,7 +5943,16 @@
                                     </tr>`;
                                 };
 
-                                if (g.main) rowsHtml += renderRow(g.main, false);
+                                if (g.main) {
+                                    rowsHtml += renderRow(g.main, false);
+                                } else if (pid !== '—') {
+                                    // Adiciona uma linha de cabeçalho para manter o agrupamento se o PRB principal não estiver na base
+                                    rowsHtml += `
+                                    <tr class="bg-slate-50/20 border-b border-slate-100">
+                                        <td class="p-3 text-center"><span class="font-black text-slate-400 text-sm italic">${pid}</span></td>
+                                        <td colspan="8" class="p-3 text-[10px] text-slate-400 italic font-medium"><i class="fas fa-info-circle mr-1"></i> Cabeçalho de Problema (Registro principal ausente na base)</td>
+                                    </tr>`;
+                                }
                                 g.children.forEach(c => { rowsHtml += renderRow(c, true); });
                                 
                                 return rowsHtml;
@@ -5962,32 +5976,36 @@
             let seenTickets = new Set();
             const refDate = new Date();
 
+            const getCleanType = (num, typeCol) => {
+                let t = String(typeCol || '').toUpperCase();
+                if (t.includes('INCIDENT') || num.startsWith('INC')) return 'INC';
+                if (t.includes('TASK') || num.startsWith('PTASK')) return 'PTASK';
+                if (t.includes('PROBLEM') || num.startsWith('PRB')) return 'PRB';
+                return 'PRB'; // Default
+            };
+
             // 1. Processar PRBs / Incidentes de Causa
             if (prbRawData && prbRawData.length > 0) {
                 prbRawData.forEach(row => {
-                    let number = String(getCol(row, ['Number', 'Ticket', 'Número', 'ID', 'Ticket Number']) || '').trim();
+                    let number = String(getCol(row, ['Number', 'Ticket', 'Número', 'ID', 'Ticket Number']) || '').trim().toUpperCase();
                     let prb = String(getCol(row, ['Problem', 'PRB', 'Problem ID', 'problem_id']) || '').trim().toUpperCase();
-                    let type = String(getCol(row, ['TicketType', 'Type', 'Tipo', 'sys_class_name']) || 'PRB').toUpperCase();
-                    let state = String(getCol(row, ['State', 'Status', 'Estado', 'state']) || 'Open').toUpperCase();
-                    let group = String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim();
-                    let priority = String(getCol(row, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim();
-                    let desc = String(getCol(row, ['Short description', 'Descrição', 'Assunto', 'short_description']) || '').trim();
-                    let stRca = String(getCol(row, ['RCA Status', 'Status RCA', 'u_rca_status']) || '—').trim();
+                    let typeRaw = getCol(row, ['TicketType', 'Type', 'Tipo', 'sys_class_name']);
+                    let type = getCleanType(number, typeRaw);
                     
-                    if (!number || number === '-') number = prb; // Fallback para o ID do problema
+                    if (!number || number === '-') number = prb;
                     if (!number || seenTickets.has(number)) return;
                     seenTickets.add(number);
 
                     processed.push({
                         tk: number,
-                        prb: prb || number,
+                        prb: prb || (type === 'PRB' ? number : '—'),
                         type: type,
-                        st: state,
-                        gp: group,
-                        priority: priority,
-                        desc: desc,
+                        st: String(getCol(row, ['State', 'Status', 'Estado', 'state']) || 'Open').toUpperCase(),
+                        gp: String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim(),
+                        priority: String(getCol(row, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim(),
+                        desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto', 'short_description']) || '').trim(),
                         as: getCol(row, ['Assigned to', 'Analista', 'assigned_to']) || 'Não Atribuído',
-                        stRca: stRca,
+                        stRca: String(getCol(row, ['RCA Status', 'Status RCA', 'u_rca_status']) || '—').trim(),
                         related_incidents_raw: String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'related_incidents']) || '—').trim(),
                         ci: getCol(row, ['Configuration item', 'Item de configuração', 'cmdb_ci']) || '—'
                     });
@@ -5997,7 +6015,7 @@
             // 2. Processar PTASKs (Problem Tasks)
             if (ptaskRawData && ptaskRawData.length > 0) {
                 ptaskRawData.forEach(row => {
-                    let number = String(getCol(row, ['Number', 'Task', 'Número', 'ID']) || '').trim();
+                    let number = String(getCol(row, ['Number', 'Task', 'Número', 'ID']) || '').trim().toUpperCase();
                     let prb = String(getCol(row, ['Problem', 'PRB', 'Problema', 'problem_id']) || '').trim().toUpperCase();
                     
                     if (!number || seenTickets.has(number)) return;
