@@ -1337,33 +1337,6 @@
         }
 
         /* Novos Filtros PRB */
-        .prb-filter-btn {
-            background: white;
-            color: #64748b;
-            border: 1px solid #e2e8f0;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-        .prb-filter-btn:hover {
-            background: #f8fafc;
-            border-color: #cbd5e1;
-            transform: translateY(-1px);
-        }
-        .prb-filter-btn.active {
-            background: #2563eb !important;
-            color: white !important;
-            border-color: #1e40af !important;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-        }
         .tag-aligned {
             display: inline-flex;
             align-items: center;
@@ -5837,26 +5810,6 @@
             </div>
             `;
 
-            // Filtros Rápidos (Ação)
-            html += `
-            <div class="flex flex-wrap items-center gap-3 mb-6 bg-slate-50/50 p-4 rounded-xl border border-slate-200">
-                <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2 flex items-center gap-2">
-                    <i class="fas fa-filter text-blue-600"></i> Filtros de Ação:
-                </div>
-                <button onclick="filterPrbList('all')" class="prb-filter-btn active" id="btn-prb-all">
-                    <i class="fas fa-th-large"></i> Todos
-                </button>
-                <button onclick="filterPrbList('pending-rca')" class="prb-filter-btn" id="btn-prb-rca">
-                    <i class="fas fa-exclamation-circle text-orange-500"></i> RCA Pendente
-                </button>
-                <button onclick="filterPrbList('impact')" class="prb-filter-btn" id="btn-prb-impact">
-                    <i class="fas fa-link text-red-500"></i> Com Impacto (INC)
-                </button>
-                <button onclick="filterPrbList('open')" class="prb-filter-btn" id="btn-prb-open">
-                    <i class="fas fa-door-open text-emerald-500"></i> Abertos / In Progress
-                </button>
-            </div>
-            `;
 
             // Agrupar por PRB para exibição hierárquica
             let groups = {};
@@ -5920,7 +5873,7 @@
                                     let prioColor = (t.priority || '').includes('1') || (t.priority || '').includes('Critical') ? 'color: #ef4444; font-weight: 900;' : 'color: #475569;';
                                     
                                     return `
-                                    <tr class="ticket-row border-b border-slate-100 hover:bg-slate-50/80 transition-colors ${isChild ? 'bg-slate-50/30' : ''}" ${buildDataAttrs(t)}>
+                                    <tr class="ticket-row border-b border-slate-100 hover:bg-slate-50/80 transition-colors ${isChild ? 'bg-slate-50/30' : ''}">
                                         <td class="p-3 text-center">
                                             ${!isChild ? `<span onclick="openTicketDetails('${pid}')" class="ticket-id-clickable font-black text-slate-800 text-sm">${pid}</span>` : `<div class="flex justify-center items-center"><div class="w-4 h-4 border-l-2 border-b-2 border-slate-200 mr-2 -mt-2"></div><span onclick="openTicketDetails('${pid}')" class="ticket-id-clickable text-[9px] text-slate-400 font-bold">${pid}</span></div>`}
                                         </td>
@@ -7128,38 +7081,6 @@
             }
         });
 
-        function filterPrbList(type) {
-            const rows = document.querySelectorAll('#prb-table-body tr');
-            const btns = document.querySelectorAll('.prb-filter-btn');
-            
-            btns.forEach(b => b.classList.remove('active'));
-            const btnId = `btn-prb-${type === 'pending-rca' ? 'rca' : type === 'impact' ? 'impact' : type === 'open' ? 'open' : 'all'}`;
-            const targetBtn = document.getElementById(btnId);
-            if (targetBtn) targetBtn.classList.add('active');
-
-            let visibleCount = 0;
-            rows.forEach(row => {
-                const rca = row.getAttribute('data-rca');
-                const st = row.getAttribute('data-st');
-                const hasInc = row.getAttribute('data-has-inc') === 'true';
-                
-                let show = false;
-                if (type === 'all') show = true;
-                else if (type === 'pending-rca') {
-                    show = rca !== 'PUBLISHED' && rca !== 'PUBLISHED/COMPLETED' && rca !== '—' && rca !== '';
-                }
-                else if (type === 'impact') show = hasInc;
-                else if (type === 'open') {
-                    show = st === 'OPEN' || st === 'IN PROGRESS' || st === 'ABERTO' || st === 'EM ANDAMENTO';
-                }
-                
-                row.style.display = show ? '' : 'none';
-                if (show) visibleCount++;
-            });
-
-            const countEl = document.getElementById('prb-visible-count');
-            if (countEl) countEl.innerText = `${visibleCount} EXIBIDOS`;
-        }
 
 
         function takeScreenshotItem(btn, e) {
