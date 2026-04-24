@@ -3895,11 +3895,40 @@
                         <div class="text-xs font-bold text-slate-700"><i class="fas fa-check-circle text-[9px] mr-1 text-blue-500"></i>${prbTasks}</div>
                     </div>
                 </div>
+                
+                <!-- Informações Técnicas e de Negócio -->
+                <div class="mt-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h5 class="text-[10px] font-black text-slate-500 uppercase mb-3 tracking-widest"><i class="fas fa-info-circle mr-1 text-slate-400"></i> Metadados Técnicos</h5>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase mb-1">Item de Configuração (CI)</div>
+                            <div class="text-xs font-semibold text-slate-700">${getCol(ticketData, ['Configuration item', 'CI', 'Item de configuracao']) || '—'}</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase mb-1">Localidade / Local</div>
+                            <div class="text-xs font-semibold text-slate-700">${getCol(ticketData, ['Location', 'Localidade', 'Local']) || '—'}</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase mb-1">Status VIP</div>
+                            <div class="text-xs font-semibold text-slate-700">${(getCol(ticketData, ['VIP', 'Vip']) || 'No') === 'true' || (getCol(ticketData, ['VIP', 'Vip']) || 'No') === 'Yes' ? '⭐ SIM' : 'Não'}</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase mb-1">Número PTO</div>
+                            <div class="text-xs font-semibold text-indigo-600 font-bold">${getCol(ticketData, ['PTO Number', 'PTO']) || '—'}</div>
+                        </div>
+                        <div class="col-span-2">
+                            <div class="text-[9px] font-bold text-slate-400 uppercase mb-1">Código de Causa RCA</div>
+                            <div class="text-xs font-semibold text-slate-700">${getCol(ticketData, ['RCA Cause Codes', 'Código de Causa']) || '—'}</div>
+                        </div>
+                    </div>
+                </div>
+
                 ${(vRel !== '—' || dRel !== '—') ? `
                 <div class="mt-2 flex gap-2">
                     ${vRel !== '—' ? `<span class="bg-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm"><i class="fas fa-code-branch mr-1"></i>V: ${vRel}</span>` : ''}
                     ${dRel !== '—' ? `<span class="bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-sm"><i class="fas fa-rocket mr-1"></i>${dRel}</span>` : ''}
                 </div>` : ''}`;
+
 
                 // Mapeamento e exibição de Incidentes Relacionados (Fix para PRB)
                 let relCols = ['Related Incidents', 'Incidentes Relacionados', 'Tickets Relacionados', 'Related tickets'];
@@ -4152,7 +4181,7 @@
             accordion.classList.remove('hidden-st');
 
             try {
-                const response = await fetch(`http://localhost:5000/rpa/logs?ticket=${encodeURIComponent(cleanTk)}`);
+                const response = await fetch(`http://localhost:5000/rpa/logs?ticket=${encodeURIComponent(cleanQuery)}`);
                 if (!response.ok) throw new Error('Serviço Offline');
                 
                 const res = await response.json();
@@ -4184,7 +4213,11 @@
                 }
             } catch (e) {
                 console.error("RPA Fetch Error Modal:", e);
-                container.innerHTML = '<div class="text-center py-4 text-red-500 text-[10px] font-bold">Serviço de ponte RPA local não está rodando.</div>';
+                container.innerHTML = `
+                <div class="text-center py-4 bg-red-50 border border-red-100 rounded-lg">
+                    <div class="text-red-500 text-[10px] font-bold mb-1"><i class="fas fa-exclamation-triangle mr-1"></i> Erro de Conexão (RPA Bridge)</div>
+                    <div class="text-[9px] text-red-400 px-4 leading-tight">Certifique-se que o serviço local (Python/Flask) está rodando na porta 5000 e com CORS habilitado.</div>
+                </div>`;
             }
         }
 
@@ -5756,81 +5789,52 @@
             </div>
             `;
 
-            // Tabela de Lista Completa (Rigorosa)
+            // Tabela de Lista Simplificada (Headers Principais)
             html += `
             <div class="report-card" style="padding: 0;">
                 <div class="report-card-title flex justify-between items-center border-b border-slate-100 p-4">
-                    <span><i class="fas fa-list-ul mr-2"></i> LISTA COMPLETA DE PROBLEMAS E TAREFAS (RIGOROSO)</span>
+                    <span><i class="fas fa-list-ul mr-2"></i> LISTA DE PROBLEMAS E TAREFAS</span>
                     <span class="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded-full font-bold uppercase tracking-widest">${prbData.length} REGISTROS</span>
                 </div>
                 
                 <div class="st-dataframe-container stylized-scrollbar" style="max-height: 800px; overflow-x: auto;">
-                    <table class="st-table w-full" style="min-width: 3000px;">
+                    <table class="st-table w-full">
                         <thead>
                             <tr>
                                 ${createTh("Ações", "100px")}
-                                ${createTh("Number", "120px")}
+                                ${createTh("Ticket", "120px")}
                                 ${createTh("Problem", "120px")}
                                 ${createTh("State", "100px")}
                                 ${createTh("Priority", "100px")}
-                                ${createTh("Short description", "400px", "left")}
-                                ${createTh("Configuration item", "180px")}
-                                ${createTh("Assignment group", "180px")}
+                                ${createTh("Short description", "auto", "left")}
                                 ${createTh("Assigned to", "150px")}
-                                ${createTh("Caller / Solicitante", "150px")}
-                                ${createTh("VIP", "60px")}
-                                ${createTh("Location", "150px")}
-                                ${createTh("On hold reason", "150px")}
-                                ${createTh("Opened", "140px")}
-                                ${createTh("Resolved / Closed", "140px")}
+                                ${createTh("Assignment group", "180px")}
                                 ${createTh("RCA Status", "120px")}
-                                ${createTh("RCA Due Date", "120px")}
-                                ${createTh("RCA Published Date", "120px")}
-                                ${createTh("RCA Cause Codes", "180px")}
-                                ${createTh("PTO Number", "120px")}
-                                ${createTh("Open Tasks", "100px")}
-                                ${createTh("Related Incidents", "300px", "left")}
-                                ${createTh("Close notes", "400px", "left")}
-                                ${createTh("Additional comments", "400px", "left")}
                             </tr>
                         </thead>
                         <tbody>
                             ${prbData.map(t => {
-                                let stColor = t.state === 'OPEN' || t.state === 'IN PROGRESS' ? 'background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;' : 'background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;';
-                                if (['RESOLVED', 'CLOSED', 'PUBLISHED', 'COMPLETED'].some(s => t.state.includes(s))) {
+                                let stVal = String(t.st || '').toUpperCase();
+                                let stColor = stVal === 'OPEN' || stVal === 'IN PROGRESS' ? 'background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;' : 'background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;';
+                                if (['RESOLVED', 'CLOSED', 'PUBLISHED', 'COMPLETED'].some(s => stVal.includes(s))) {
                                     stColor = 'background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;';
                                 }
                                 
-                                let prioColor = t.priority.includes('1') || t.priority.includes('Critical') ? 'color: #ef4444; font-weight: 900;' : 'color: #475569;';
+                                let prioColor = (t.priority || '').includes('1') || (t.priority || '').includes('Critical') ? 'color: #ef4444; font-weight: 900;' : 'color: #475569;';
 
                                 return `
                                 <tr class="ticket-row border-b border-slate-100 hover:bg-slate-50/80 transition-colors" ${buildDataAttrs(t)}>
                                     <td class="p-2 text-center">
-                                        <button onclick="openTicketDetails('${t.number}')" class="bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold py-1 px-3 rounded shadow-sm transition-all uppercase whitespace-nowrap"><i class="fas fa-search mr-1"></i> Saiba mais</button>
+                                        <button onclick="openTicketDetails('${t.tk}')" class="bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold py-1 px-3 rounded shadow-sm transition-all uppercase whitespace-nowrap"><i class="fas fa-search mr-1"></i> Saiba mais</button>
                                     </td>
-                                    <td class="font-bold text-blue-800">${t.number}</td>
+                                    <td class="font-bold text-blue-800">${t.tk}</td>
                                     <td class="font-bold text-slate-700">${t.prb || '—'}</td>
-                                    <td><span style="${stColor} padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase;">${t.state}</span></td>
+                                    <td><span style="${stColor} padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase;">${t.st}</span></td>
                                     <td style="${prioColor}">${t.priority}</td>
-                                    <td class="text-left font-semibold text-slate-700 truncate" title="${t.short_description}">${t.short_description}</td>
-                                    <td><div class="truncate max-w-[170px]" title="${t.ci}">${t.ci}</div></td>
-                                    <td><div class="truncate max-w-[170px]" title="${t.group}">${t.group}</div></td>
-                                    <td class="font-medium">${t.assigned_to}</td>
-                                    <td>${t.caller}</td>
-                                    <td>${String(t.vip).toLowerCase() === 'true' || String(t.vip).toLowerCase() === 'yes' ? '⭐ SIM' : '—'}</td>
-                                    <td>${t.location}</td>
-                                    <td class="text-orange-600 font-bold">${t.hold_reason}</td>
-                                    <td class="text-slate-500">${t.opened}</td>
-                                    <td class="text-slate-500">${t.resolved}</td>
-                                    <td><span class="px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold border border-slate-200 uppercase">${t.rca_status}</span></td>
-                                    <td>${t.rca_due_date}</td>
-                                    <td>${t.rca_pub_date}</td>
-                                    <td><div class="truncate max-w-[170px]" title="${t.rca_cause_codes}">${t.rca_cause_codes}</div></td>
-                                    <td class="font-bold text-indigo-600">${t.pto_number}</td>
-                                    <td class="font-bold">${t.open_tasks}</td>
-                                    <td><div class="truncate max-w-[280px] text-[10px]" title="${t.related_incidents_raw}">${t.related_incidents_raw}</div></td>
-                                    <td><div class="text-expandable text-[10px] text-slate-500" style="-webkit-line-clamp: 2;">${t.close_notes}</div></td>
-                                    <td><div class="text-expandable text-[10px] text-slate-500" style="-webkit-line-clamp: 2;">${t.comments}</div></td>
+                                    <td class="text-left font-semibold text-slate-700 truncate" title="${t.desc}">${t.desc}</td>
+                                    <td class="font-medium">${t.as}</td>
+                                    <td><div class="truncate max-w-[170px]" title="${t.gp}">${t.gp}</div></td>
+                                    <td><span class="px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold border border-slate-200 uppercase">${t.stRca || '—'}</span></td>
                                 </tr>
                                 `;
                             }).join('')}
@@ -5838,7 +5842,7 @@
                     </table>
                 </div>
                 <div class="p-3 bg-slate-50 text-[9px] text-slate-400 text-center italic border-t border-slate-100">
-                    <i class="fas fa-info-circle mr-1"></i> Role para o lado para visualizar todas as colunas. Use a pesquisa global no topo para filtrar esta lista.
+                    <i class="fas fa-info-circle mr-1"></i> Use o botão "Saiba Mais" para ver detalhes completos, CI, RCA e histórico de interações.
                 </div>
             </div>
             `;
@@ -6093,16 +6097,20 @@
                     tk: tk,
                     prb: tk,
                     desc: descClean,
+                    req: getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
                     as: asg,
                     gp: gp,
-                    st: stOrig,
-                    stRca: stOrig, // RCA Status
+                    st: stOrig || '—',
+                    stRca: stOrig || '—', 
+                    priority: getCol(r, ['Priority', 'Prioridade']) || 'N/A',
                     age: age,
                     idle: idle,
                     opStr: op.toLocaleDateString('pt-BR'),
                     clStr: clOrig ? clOrig.toLocaleDateString('pt-BR') : '-',
-                    clNote: getCol(r, ['Close notes', 'Notas de fechamento', 'close_notes']) || '-',
+                    info: getCol(r, ['On hold reason', 'Motivo da espera']) || getCol(r, ['Close notes', 'Notas de fechamento']) || '-',
                     ci: getCol(r, ['Configuration item', 'CI', 'Item de configuracao', 'cmdb_ci']) || '-',
+                    location: getCol(r, ['Location', 'Localidade']) || '-',
+                    vip: getCol(r, ['VIP', 'Vip']) || 'No',
                     work_notes: workNotes.substring(0, 100) + (workNotes.length > 100 ? '...' : ''),
                     v_rel: vRel,
                     d_rel: dRel,
@@ -6111,12 +6119,25 @@
                     is_rca_open: isRcaOpen,
                     prb_tasks: getCol(r, ['Problem Tasks', 'Tasks', 'Related Tasks']) || '0',
                     rca_due: getCol(r, ['RCA Due Date', 'Prazo RCA', 'prazo_rca', 'due_date']) || '-',
-                    rca_pub: getCol(r, ['RCA Published Date', 'Data RCA', 'data_publicacao_rca', 'resolved_at']) || '-'
+                    rca_pub: getCol(r, ['RCA Published Date', 'Data RCA', 'data_publicacao_rca', 'resolved_at']) || '-',
+                    rca_cause: getCol(r, ['RCA Cause Codes', 'Código de Causa', 'rca_cause_codes']) || '-',
+                    pto_number: getCol(r, ['PTO Number', 'PTO', 'pto_number']) || '-',
+                    open_tasks: getCol(r, ['Open Tasks', 'Tarefas Abertas', 'open_tasks']) || '0',
+                    related_incidents_raw: relRaw || '-',
+                    close_notes: getCol(r, ['Close notes', 'Notas de fechamento']) || '-',
+                    comments: getCol(r, ['Additional comments', 'Comentários Adicionais']) || '-'
                 };
+                
+                // Calculate SLA % for the hover tooltip (assuming 10 days for PRBs as default)
+                const slaP = parseInt(document.getElementById('sla-rca')?.value) || 10;
+                prbObj.pctSla = ((age / slaP) * 100).toFixed(2).replace('.', ',');
+
                 allPrbs.push(prbObj);
+                if (window.GlobalOpenTickets) window.GlobalOpenTickets.push(prbObj);
 
                 if (isRcaOpen) {
                     if (!rcaOpenBySector[gp]) rcaOpenBySector[gp] = { count: 0, tks: [] };
+                    rcaOpenBySector[gp].count++;
                     rcaOpenBySector[gp].tks.push(prbObj);
                 }
             });
