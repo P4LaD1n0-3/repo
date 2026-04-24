@@ -5702,13 +5702,13 @@
                 let pid = t.prb || 'UNKNOWN';
                 if (!prbGroups[pid]) prbGroups[pid] = { count: 0, groups: new Set(), incs: 0 };
                 prbGroups[pid].count++;
-                if (t.group) prbGroups[pid].groups.add(t.group);
+                if (t.gp) prbGroups[pid].groups.add(t.gp);
                 if (t.type === 'INC') prbGroups[pid].incs++;
             });
 
             let totalPrbs = Object.keys(prbGroups).length;
             let totalTickets = prbData.length;
-            let affectedGroups = new Set(prbData.map(t => t.group)).size;
+            let affectedGroups = new Set(prbData.map(t => t.gp)).size;
 
             // KPI Cards Style Erro de Classificação
             html += `
@@ -5739,7 +5739,7 @@
             // Tabelas Analíticas (Igual Erro de Classificação)
             let rcaByStatus = {};
             prbData.forEach(t => {
-                let st = t.rca_status || '—';
+                let st = t.stRca || '—';
                 if (!rcaByStatus[st]) rcaByStatus[st] = { count: 0, tks: [] };
                 rcaByStatus[st].count++;
                 rcaByStatus[st].tks.push(t);
@@ -5747,7 +5747,7 @@
 
             let sectorStats = {};
             prbData.forEach(t => {
-                let gp = t.group || '—';
+                let gp = t.gp || '—';
                 if (!sectorStats[gp]) sectorStats[gp] = { count: 0, tks: [] };
                 sectorStats[gp].count++;
                 sectorStats[gp].tks.push(t);
@@ -5801,11 +5801,11 @@
                     <table class="st-table w-full">
                         <thead>
                             <tr>
-                                ${createTh("Ações", "100px")}
-                                ${createTh("Ticket", "120px")}
+                                ${createTh("Incident / Ticket", "180px")}
                                 ${createTh("Problem", "120px")}
                                 ${createTh("State", "100px")}
                                 ${createTh("Priority", "100px")}
+                                ${createTh("Related Incidents", "250px", "left")}
                                 ${createTh("Short description", "auto", "left")}
                                 ${createTh("Assigned to", "150px")}
                                 ${createTh("Assignment group", "180px")}
@@ -5824,14 +5824,21 @@
 
                                 return `
                                 <tr class="ticket-row border-b border-slate-100 hover:bg-slate-50/80 transition-colors" ${buildDataAttrs(t)}>
-                                    <td class="p-2 text-center">
-                                        <button onclick="openTicketDetails('${t.tk}')" class="bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold py-1 px-3 rounded shadow-sm transition-all uppercase whitespace-nowrap"><i class="fas fa-search mr-1"></i> Saiba mais</button>
+                                    <td class="p-3 text-left">
+                                        <div class="flex flex-col gap-1.5">
+                                            <span class="font-black text-blue-800 text-sm">${t.tk}</span>
+                                            <button onclick="openTicketDetails('${t.tk}')" class="bg-blue-600 hover:bg-blue-700 text-white text-[8px] font-black py-1 px-2 rounded shadow-sm transition-all uppercase w-max"><i class="fas fa-search mr-1"></i> Saiba mais</button>
+                                        </div>
                                     </td>
-                                    <td class="font-bold text-blue-800">${t.tk}</td>
                                     <td class="font-bold text-slate-700">${t.prb || '—'}</td>
                                     <td><span style="${stColor} padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase;">${t.st}</span></td>
                                     <td style="${prioColor}">${t.priority}</td>
-                                    <td class="text-left font-semibold text-slate-700 truncate" title="${t.desc}">${t.desc}</td>
+                                    <td class="bg-blue-50/30 border-x border-blue-100/50 p-2">
+                                        <div class="text-[10px] font-black text-blue-700 break-words line-clamp-2" title="${t.related_incidents_raw || '—'}">
+                                            <i class="fas fa-link mr-1 opacity-50"></i>${t.related_incidents_raw || '—'}
+                                        </div>
+                                    </td>
+                                    <td class="text-left font-semibold text-slate-700 truncate max-w-[300px]" title="${t.desc}">${t.desc}</td>
                                     <td class="font-medium">${t.as}</td>
                                     <td><div class="truncate max-w-[170px]" title="${t.gp}">${t.gp}</div></td>
                                     <td><span class="px-2 py-0.5 bg-slate-100 rounded text-[9px] font-bold border border-slate-200 uppercase">${t.stRca || '—'}</span></td>
@@ -5852,112 +5859,90 @@
 
 
         // Função para adaptar dados de PRB para o formato do dashboard
-        function processPRBDataForDisplay(prbRawData) {
-            // Adapta os dados de PRB da planilha para o formato esperado por generatePRBTabImproved
-            if (!prbRawData || prbRawData.length === 0) return [];
-
+        function processPRBDataForDisplay(prbRawData, ptaskRawData, rcaRawData) {
             let processed = [];
             let seenTickets = new Set();
+            const refDate = new Date();
 
-            prbRawData.forEach(row => {
-                // Tenta detecitar se é dado agregado (linha de PRB) ou ticket individual
-                let isPRBAggregateRow = (row['Menções'] !== undefined && row['Tickets_abertos'] !== undefined && !row['Number']);
+            // 1. Processar PRBs / Incidentes de Causa
+            if (prbRawData && prbRawData.length > 0) {
+                prbRawData.forEach(row => {
+                    let number = String(getCol(row, ['Number', 'Ticket', 'Número', 'ID', 'Ticket Number']) || '').trim();
+                    let prb = String(getCol(row, ['Problem', 'PRB', 'Problem ID', 'problem_id']) || '').trim().toUpperCase();
+                    let type = String(getCol(row, ['TicketType', 'Type', 'Tipo', 'sys_class_name']) || 'PRB').toUpperCase();
+                    let state = String(getCol(row, ['State', 'Status', 'Estado', 'state']) || 'Open').toUpperCase();
+                    let group = String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim();
+                    let priority = String(getCol(row, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim();
+                    let desc = String(getCol(row, ['Short description', 'Descrição', 'Assunto', 'short_description']) || '').trim();
+                    let stRca = String(getCol(row, ['RCA Status', 'Status RCA', 'u_rca_status']) || '—').trim();
+                    
+                    if (!number || number === '-') number = prb; // Fallback para o ID do problema
+                    if (!number || seenTickets.has(number)) return;
+                    seenTickets.add(number);
 
-                if (isPRBAggregateRow) {
-                    // Linha agregada de PRB (da aba "PRB ABERTOS")
-                    let prb = String(row['PRB'] || '').trim();
-                    let vigentes = parseInt(row['Tickets_Vigentes'] || 0);
-                    let release = String(row['Release_Version'] || '—').trim();
-                    let mentions = parseInt(row['Menções'] || 0);
-                    let top_grupo = String(row['Top grupo'] || '—').trim();
+                    processed.push({
+                        tk: number,
+                        prb: prb || number,
+                        type: type,
+                        st: state,
+                        gp: group,
+                        priority: priority,
+                        desc: desc,
+                        as: getCol(row, ['Assigned to', 'Analista', 'assigned_to']) || 'Não Atribuído',
+                        stRca: stRca,
+                        related_incidents_raw: String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'related_incidents']) || '—').trim(),
+                        ci: getCol(row, ['Configuration item', 'Item de configuração', 'cmdb_ci']) || '—'
+                    });
+                });
+            }
 
+            // 2. Processar PTASKs (Problem Tasks)
+            if (ptaskRawData && ptaskRawData.length > 0) {
+                ptaskRawData.forEach(row => {
+                    let number = String(getCol(row, ['Number', 'Task', 'Número', 'ID']) || '').trim();
+                    let prb = String(getCol(row, ['Problem', 'PRB', 'Problema', 'problem_id']) || '').trim().toUpperCase();
+                    
+                    if (!number || seenTickets.has(number)) return;
+                    seenTickets.add(number);
+
+                    processed.push({
+                        tk: number,
+                        prb: prb || '—',
+                        type: 'PTASK',
+                        st: String(getCol(row, ['State', 'Status', 'Estado', 'state']) || 'Open').toUpperCase(),
+                        gp: String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim(),
+                        priority: String(getCol(row, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim(),
+                        desc: String(getCol(row, ['Short description', 'Descrição', 'short_description']) || '').trim(),
+                        as: getCol(row, ['Assigned to', 'Analista', 'assigned_to']) || 'Não Atribuído',
+                        stRca: '—',
+                        related_incidents_raw: '—',
+                        ci: getCol(row, ['Configuration item', 'Item de configuração', 'cmdb_ci']) || '—'
+                    });
+                });
+            }
+
+            // 3. Processar RCAs (Causa Raiz)
+            if (rcaRawData && rcaRawData.length > 0) {
+                rcaRawData.forEach(row => {
+                    let prb = String(getCol(row, ['Problem', 'Number', 'PRB', 'ID']) || '').trim().toUpperCase();
                     if (!prb || seenTickets.has(prb)) return;
                     seenTickets.add(prb);
 
-                    // Cria entrada para PRB com formato que generatePRBTabImproved entende
                     processed.push({
-                        number: prb,  // Usa PRB como identificador
-                        type: 'PRB',
+                        tk: prb,
                         prb: prb,
-                        state: vigentes > 0 ? 'OPEN' : 'CLOSED',
-                        group: top_grupo,
-                        priority: vigentes > 5 ? 'CRITICAL' : (vigentes > 2 ? 'HIGH' : 'MEDIUM'),
-                        description: `${mentions} mentões | ${vigentes} tickets vigentes`,
-                        release: release,
-                        vigentes: vigentes,
-                        related_tickets: []
+                        type: 'RCA',
+                        st: String(getCol(row, ['State', 'Status', 'Estado', 'state']) || 'Open').toUpperCase(),
+                        gp: String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim(),
+                        priority: String(getCol(row, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim(),
+                        desc: String(getCol(row, ['Short description', 'Descrição', 'short_description']) || '').trim(),
+                        as: getCol(row, ['Assigned to', 'Analista', 'assigned_to']) || 'Não Atribuído',
+                        stRca: String(getCol(row, ['RCA Status', 'Status RCA', 'u_rca_status']) || '—').trim(),
+                        related_incidents_raw: String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'related_incidents']) || '—').trim(),
+                        ci: getCol(row, ['Configuration item', 'Item de configuração', 'cmdb_ci']) || '—'
                     });
-                } else {
-                    // Linha de ticket individual
-                    let number = String(row['Number'] || row['Ticket'] || row['RITM'] || '').trim();
-                    let prb = String(row['Problem'] || row['PRB'] || '').trim().toUpperCase();
-                    let type = String(row['TicketType'] || row['Type'] || 'REQ').toUpperCase();
-                    let state = String(row['State'] || row['Status'] || 'Open').toUpperCase();
-                    let group = String(row['Assignment group'] || row['Grupo'] || '—').trim();
-                    let priority = String(row['Priority'] || 'N/A').trim();
-                    let desc = String(row['Short description'] || row['Description'] || row['Descrição'] || '').trim();
-                    let release = String(row['Release_Version'] || row['Versão'] || '—').trim();
-                    let related_str = String(row['Related Incidents'] || row['Tickets_Relacionados'] || '').trim();
-                    
-                    let related_tickets = [];
-                    let related_count = 0;
-                    if (related_str && related_str !== '—') {
-                        if (!isNaN(related_str)) {
-                            related_count = parseInt(related_str) || 0;
-                        } else {
-                            related_tickets = related_str.split(',').map(t => t.trim());
-                            related_count = related_tickets.length;
-                        }
-                    }
-
-                    // Extração rigorosa (Fallback): se a coluna PRB estiver vazia ou mal formatada, procura via regex no texto
-                    if (!prb || !prb.startsWith('PRB')) {
-                        let comments = String(row['Additional comments'] || row['Comentários Adicionais'] || row['Comments'] || '').toUpperCase();
-                        let subject = String(row['Assunto'] || '').toUpperCase();
-                        let match = (desc.toUpperCase() + " " + comments + " " + subject + " " + related_str.toUpperCase()).match(/PRB[0-9]+/);
-                        if (match) prb = match[0];
-                    }
-
-                    if (!number || !prb || seenTickets.has(number)) return;
-                    seenTickets.add(number);
-
-                    let comments = String(row['Additional comments'] || row['Comentários Adicionais'] || row['Comments'] || '').trim();
-                    let v_rel_extracted = extractFromComments(comments, 'version');
-                    let d_rel_extracted = extractFromComments(comments, 'date');
-
-                    processed.push({
-                        number: number,
-                        type: type,
-                        prb: prb,
-                        state: state,
-                        group: group,
-                        priority: priority,
-                        description: desc,
-                        short_description: desc,
-                        ci: getCol(row, ['Configuration item', 'Item de configuração', 'CMDB CI', 'cmdb_ci']) || '—',
-                        hold_reason: getCol(row, ['On hold reason', 'Motivo da espera', 'on_hold_reason']) || '—',
-                        caller: getCol(row, ['Caller', 'Solicitante', 'caller_id']) || '—',
-                        vip: getCol(row, ['VIP', 'vip']) || '—',
-                        location: getCol(row, ['Location', 'Localidade', 'location']) || '—',
-                        assigned_to: getCol(row, ['Assigned to', 'Analista', 'assigned_to']) || 'Não Atribuído',
-                        comments: comments || '—',
-                        opened: getCol(row, ['Opened', 'Data Abertura', 'opened_at']) || '—',
-                        resolved: getCol(row, ['Resolved', 'Data Fechamento', 'resolved_at', 'Closed']) || '—',
-                        close_notes: getCol(row, ['Close notes', 'Notas de fechamento', 'close_notes']) || '—',
-                        rca_status: getCol(row, ['RCA Status', 'Status RCA', 'u_rca_status']) || '—',
-                        related_incidents_raw: related_str || '—',
-                        rca_due_date: getCol(row, ['RCA Due Date', 'Prazo RCA', 'u_rca_due_date']) || '—',
-                        rca_pub_date: getCol(row, ['RCA Published Date', 'Data Publicação RCA', 'u_rca_published_date']) || '—',
-                        rca_cause_codes: getCol(row, ['RCA Cause Codes', 'Códigos de Causa RCA', 'u_rca_cause_codes']) || '—',
-                        pto_number: getCol(row, ['PTO Number', 'Número PTO', 'u_pto_number']) || '—',
-                        open_tasks: getCol(row, ['Open Tasks', 'Tarefas Abertas', 'u_open_tasks']) || '—',
-                        release: release !== '—' ? release : v_rel_extracted,
-                        data_release: d_rel_extracted,
-                        related_tickets: related_tickets,
-                        related_count: related_count
-                    });
-                }
-            });
+                });
+            }
 
             return processed;
         }
@@ -6870,8 +6855,8 @@
                     });
                 }
 
-                if (prbDataToProcess.length > 0) {
-                    let prbProcessed = processPRBDataForDisplay(prbDataToProcess);
+                if (prbDataToProcess.length > 0 || (RawData.ptask && RawData.ptask.length) || (RawData.rca && RawData.rca.length)) {
+                    let prbProcessed = processPRBDataForDisplay(prbDataToProcess, RawData.ptask, RawData.rca);
                     document.getElementById('tab-prb').innerHTML = generatePRBTabImproved(prbProcessed, RawData.ptask, RawData.rca, dateMachine);
                 } else if (RawData.rca && RawData.rca.length || RawData.ptask && RawData.ptask.length) {
                     document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaRCA, slaP, dateMachine);
