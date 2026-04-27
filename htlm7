@@ -1218,7 +1218,6 @@
                 height: 220px !important;
             }
         }
-
         /* Tree View - Scoped to .tree */
         .tree {
             --border-size: 2px;
@@ -1227,15 +1226,13 @@
             --radius: 8px;
         }
 
-        .tree,
-        .tree ul {
+        .tree, .tree ul {
             padding: 0;
             margin: 0;
             list-style: none;
         }
 
-        .tree li,
-        .tree summary {
+        .tree li, .tree summary {
             line-height: 1.2;
             display: flex;
             flex: 1 1 auto;
@@ -1273,7 +1270,7 @@
             border-width: 0 0 var(--border-size) var(--border-size);
             position: relative;
             top: -0.5em;
-            left: calc(var(--border-size) * -0.91);
+            left: calc( var(--border-size) * -0.91 );
         }
 
         .tree ul li:last-child:before {
@@ -1334,7 +1331,7 @@
             flex: 1 1 auto;
         }
 
-        .tree details[open]>summary::before {
+        .tree details[open] > summary::before {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23FFFFFF' viewBox='0 0 448 512'%3E%3Cpath d='M416 256c0 17.7-14.3 32-32 32L32 288c-17.7 0-32-14.3-32-32s14.3-32 32-32l352 0c17.7 0 32 14.3 32 32z' /%3E%3C/svg%3E");
             background-color: #0ea5e9;
         }
@@ -1348,13 +1345,11 @@
             line-height: 1;
             white-space: nowrap;
         }
-
         .ticket-id-clickable {
             cursor: pointer;
             transition: all 0.2s ease;
             text-decoration: none;
         }
-
         .ticket-id-clickable:hover {
             text-decoration: underline;
             filter: brightness(1.2);
@@ -1478,10 +1473,9 @@
                     <i class="fas fa-cogs"></i>
                 </div>
                 <h3 class="text-lg font-black text-slate-800 mb-1">Configurar Colunas de Relatório</h3>
-                <p class="text-[11px] text-slate-500">Selecione as informações desejadas para exportação do TODO (PDF e
-                    E-mail).</p>
+                <p class="text-[11px] text-slate-500">Selecione as informações desejadas para exportação do TODO (PDF e E-mail).</p>
             </div>
-
+            
             <div id="export-config-body" class="mb-5 text-left">
                 <!-- rendered by JS -->
             </div>
@@ -1490,7 +1484,7 @@
                 <button onclick="closeExportConfigModal()"
                     class="modal-btn modal-btn-cancel flex-1 hover:bg-slate-50">Cancelar</button>
                 <button onclick="saveExportConfigModal()"
-                    class="modal-btn flex-1 bg-emerald-600 border border-emerald-700 text-white font-bold rounded shadow-sm hover:bg-emerald-700">Gravar
+                    class="modal-btn flex-1 bg-emerald-600 border border-emerald-700 text-white font-bold rounded shadow-sm hover:bg-emerald-700">Gravar 
                     Configuração</button>
             </div>
         </div>
@@ -1794,8 +1788,7 @@
                     PRBs</button>
                 <button class="tab-btn" onclick="switchTab('tab-class', this)"><i class="fas fa-exchange-alt mr-1"></i>
                     Erros Classificação</button>
-                <button class="tab-btn" onclick="switchTab('tab-rpa', this)"
-                    style="color: var(--primary-dark); font-weight: 500;"><i class="fas fa-robot mr-1"></i>
+                <button class="tab-btn" onclick="switchTab('tab-rpa', this)" style="color: var(--primary-dark); font-weight: 500;"><i class="fas fa-robot mr-1"></i>
                     Comunicações RPA</button>
                 <button class="tab-btn" onclick="switchTab('tab-todo', this)"
                     style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i
@@ -2013,11 +2006,9 @@
 
                         <!-- ACORDEÃO 1: DETALHES E PRB -->
                         <details class="saas-accordion mb-4" open>
-                            <summary
-                                class="flex justify-between items-center bg-slate-50 p-3 cursor-pointer rounded-t-lg border-b border-slate-200">
+                            <summary class="flex justify-between items-center bg-slate-50 p-3 cursor-pointer rounded-t-lg border-b border-slate-200">
                                 <span class="text-xs font-black text-slate-700 uppercase">
-                                    <i class="fas fa-file-alt mr-2 text-blue-500"></i> Detalhes do Chamado & Informações
-                                    PRB
+                                    <i class="fas fa-file-alt mr-2 text-blue-500"></i> Detalhes do Chamado & Informações PRB
                                 </span>
                             </summary>
                             <div class="acc-content p-4 bg-white">
@@ -2029,8 +2020,7 @@
 
                         <!-- ACORDEÃO 2: HISTÓRICO DE INTERAÇÕES -->
                         <details class="saas-accordion mb-4" open>
-                            <summary
-                                class="flex justify-between items-center bg-slate-50 p-3 cursor-pointer rounded-t-lg border-b border-slate-200">
+                            <summary class="flex justify-between items-center bg-slate-50 p-3 cursor-pointer rounded-t-lg border-b border-slate-200">
                                 <span class="text-xs font-black text-slate-700 uppercase">
                                     <i class="fas fa-comments mr-2 text-blue-500"></i> Histórico de Interações (Thread)
                                 </span>
@@ -2042,17 +2032,14 @@
 
                         <!-- ACORDEÃO 3: COMUNICAÇÕES RPA (MINIMIZADO) -->
                         <details id="modal-rpa-accordion" class="saas-accordion mb-4">
-                            <summary
-                                class="flex justify-between items-center bg-purple-50 p-3 cursor-pointer rounded-t-lg border-b border-purple-100">
+                            <summary class="flex justify-between items-center bg-purple-50 p-3 cursor-pointer rounded-t-lg border-b border-purple-100">
                                 <span class="text-xs font-black text-purple-700 uppercase">
-                                    <i class="fas fa-envelope-open-text mr-2"></i> Comunicações Encontradas
-                                    (RPA/Outlook)
+                                    <i class="fas fa-envelope-open-text mr-2"></i> Comunicações Encontradas (RPA/Outlook)
                                 </span>
                             </summary>
                             <div class="acc-content p-4 bg-white">
                                 <div id="modal-rpa-emails" class="grid grid-cols-1 gap-3">
-                                    <div class="text-center py-4 text-slate-400 text-[10px] italic">Buscando
-                                        comunicações relacionadas...</div>
+                                    <div class="text-center py-4 text-slate-400 text-[10px] italic">Buscando comunicações relacionadas...</div>
                                 </div>
                             </div>
                         </details>
@@ -2568,14 +2555,14 @@
                 let p = cleanDt.split(/[\/\s:T]/);
                 if (p.length >= 3) {
                     if (p[0].length === 4) {
-                        let d = new Date(p[0], p[1] - 1, p[2], p[3] || 0, p[4] || 0, p[5] || 0);
+                        let d = new Date(p[0], p[1] - 1, p[2], p[3]||0, p[4]||0, p[5]||0); 
                         if (!isNaN(d.getTime())) return d;
                     } else if (p[2].length === 4) {
-                        let d = new Date(p[2], p[1] - 1, p[0], p[3] || 0, p[4] || 0, p[5] || 0);
+                        let d = new Date(p[2], p[1] - 1, p[0], p[3]||0, p[4]||0, p[5]||0); 
                         if (!isNaN(d.getTime())) return d;
                     }
                 }
-                let nD = new Date(cleanDt);
+                let nD = new Date(cleanDt); 
                 if (!isNaN(nD.getTime())) return nD;
             }
             return null;
@@ -3112,7 +3099,7 @@
 
         function openExportConfigModal() {
             let possibleHeaders = new Set(Object.keys(ITIL_STANDARD_HEADERS));
-
+            
             if (window.RawData) {
                 if (window.RawData.incs) {
                     window.RawData.incs.forEach(inc => Object.keys(inc).forEach(k => possibleHeaders.add(k)));
@@ -3130,15 +3117,15 @@
                     window.RawData.rca.forEach(rca => Object.keys(rca).forEach(k => possibleHeaders.add(k)));
                 }
             }
-
-            let sortedHeaders = Array.from(possibleHeaders).filter(h => !['Ticket', 'Number', 'Ações / Histórico'].includes(h)).sort((a, b) => {
+            
+            let sortedHeaders = Array.from(possibleHeaders).filter(h => !['Ticket', 'Number', 'Ações / Histórico'].includes(h)).sort((a,b) => {
                 let aIsStd = Object.keys(ITIL_STANDARD_HEADERS).includes(a);
                 let bIsStd = Object.keys(ITIL_STANDARD_HEADERS).includes(b);
                 if (aIsStd && !bIsStd) return -1;
                 if (!aIsStd && bIsStd) return 1;
                 return a.localeCompare(b);
             });
-
+            
             let htmlStr = `
                 <div class="mb-3">
                     <label class="block text-[10px] font-bold text-slate-700 mb-2">Campos Padrão do Sistema</label>
@@ -3157,19 +3144,19 @@
                     </label>
                     <div class="max-h-[150px] overflow-y-auto grid grid-cols-2 gap-2 text-slate-600 p-1 stylized-scrollbar border border-slate-100 rounded">
                         ${sortedHeaders.length ? sortedHeaders.map(h => {
-                let isStd = Object.keys(ITIL_STANDARD_HEADERS).includes(h);
-                let titleCls = isStd ? 'font-bold text-blue-800' : '';
-                return `
+                            let isStd = Object.keys(ITIL_STANDARD_HEADERS).includes(h);
+                            let titleCls = isStd ? 'font-bold text-blue-800' : '';
+                            return `
                             <label class="flex items-center text-[9px] hover:bg-slate-50 p-1.5 rounded transition border border-transparent hover:border-slate-200">
                                 <input type="checkbox" value="${h}" ${dynamicExportConfig.CustomFields.includes(h) ? 'checked' : ''} class="exp-cfg-custom mr-1 form-checkbox text-blue-600 h-3 w-3"> 
                                 <span class="truncate ${titleCls}" title="${h}">${isStd ? '⭐ ' : ''}${h}</span>
                             </label>
                             `;
-            }).join('') : '<div class="text-[9px] col-span-2 text-slate-400 p-2 text-center">Importe Arquivos (CSV) na aba principal para dispor de cabeçalhos dinâmicos.</div>'}
+                        }).join('') : '<div class="text-[9px] col-span-2 text-slate-400 p-2 text-center">Importe Arquivos (CSV) na aba principal para dispor de cabeçalhos dinâmicos.</div>'}
                     </div>
                 </div>
             `;
-
+            
             document.getElementById('export-config-body').innerHTML = htmlStr;
             document.getElementById('export-config-modal').classList.remove('hidden-st');
         }
@@ -3183,14 +3170,14 @@
             dynamicExportConfig.Aging = document.getElementById('exp-cfg-Aging').checked;
             dynamicExportConfig['SLA%'] = document.getElementById('exp-cfg-SLA').checked;
             dynamicExportConfig.Status = document.getElementById('exp-cfg-Status').checked;
-
+            
             let customCheckboxes = document.querySelectorAll('.exp-cfg-custom');
             let selCustom = [];
             customCheckboxes.forEach(cb => {
-                if (cb.checked) selCustom.push(cb.value);
+                if(cb.checked) selCustom.push(cb.value);
             });
             dynamicExportConfig.CustomFields = selCustom;
-
+            
             localStorage.setItem('todoExportConfig', JSON.stringify(dynamicExportConfig));
             closeExportConfigModal();
         }
@@ -3288,7 +3275,7 @@
 
                     let opD = null;
                     let clD = null;
-
+                    
                     if (ticketToUse !== 'Geral') {
                         rec = findTicketRecord(ticketToUse);
                         if (rec) {
@@ -3304,7 +3291,7 @@
                         let parts = t.date.split('/');
                         if (parts.length === 3) opD = new Date(parts[2], parts[1] - 1, parts[0], 12, 0, 0);
                     }
-
+                    
                     if (opD) {
                         age = clD ? Math.floor((clD - opD) / 86400000) : Math.floor((new Date() - opD) / 86400000);
                         if (isNaN(age) || age < 0) age = 0;
@@ -3331,13 +3318,13 @@
                     if (dynamicExportConfig.Aging) rowData.push(`${age} dias`);
                     if (dynamicExportConfig['SLA%']) rowData.push({ content: `${pctSla}%`, val: pctSla });
                     if (dynamicExportConfig.Status) rowData.push(status);
-
+                    
                     dynamicExportConfig.CustomFields.forEach(f => {
                         let searchKeys = ITIL_STANDARD_HEADERS[f] || [f];
                         if (rec) rowData.push(String(getCol(rec, searchKeys) || '-').slice(0, 80));
                         else rowData.push('-');
                     });
-
+                    
                     rowData.push({
                         content: historyLines.join('\n'),
                         strikedItems: t.history.map(h => h.striked),
@@ -3431,13 +3418,13 @@
                                     doc.setDrawColor(148, 163, 184);
                                     doc.rect(x, y - 1.2, 2.4, 2.4, 'D');
                                 }
-
+                                
                                 if (datesInfo && datesInfo[idx]) {
                                     doc.setDrawColor(226, 232, 240);
                                     doc.setFillColor(248, 250, 252);
                                     doc.roundedRect(pillX, y - 1.6, 12, 3.2, 0.5, 0.5, 'FD');
                                     doc.setTextColor(100, 116, 139);
-
+                                    
                                     let oldFSize = doc.internal.getFontSize();
                                     doc.setFontSize(5);
                                     doc.text(datesInfo[idx], pillX + 1, y + 0.6);
@@ -3540,14 +3527,14 @@
                     let comments = '';
                     let age = 0;
                     let pctSla = 0;
-
+                    
                     if (tName !== 'Geral' && tName !== "Atividades Gerais") {
                         rec = findTicketRecord(tName);
                         if (rec) {
                             context = getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '';
                             comments = getCol(rec, ['Additional comments', 'Work notes', 'Comentários']) || '';
                             if (comments.length > 350) comments = comments.substring(0, 350) + "...";
-
+                            
                             let opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
                             let clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
                             if (!opD && t.date) {
@@ -3578,11 +3565,11 @@
                     if (dynamicExportConfig['SLA%']) toExportKeys.push({ label: 'SLA%', val: `${pctSla}%` });
                     if (dynamicExportConfig.Status) toExportKeys.push({ label: 'Status', val: status });
                     dynamicExportConfig.CustomFields.forEach(f => {
-                        let searchKeys = ITIL_STANDARD_HEADERS[f] || [f];
-                        let v = rec ? (getCol(rec, searchKeys) || '-') : '-';
-                        toExportKeys.push({ label: f.toUpperCase(), val: String(v).slice(0, 80) });
+                         let searchKeys = ITIL_STANDARD_HEADERS[f] || [f];
+                         let v = rec ? (getCol(rec, searchKeys) || '-') : '-';
+                         toExportKeys.push({ label: f.toUpperCase(), val: String(v).slice(0, 80) });
                     });
-
+                    
                     if (toExportKeys.length > 0) {
                         dynamicLabelsHtml = `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;">`;
                         toExportKeys.forEach(dk => {
@@ -3749,9 +3736,9 @@
 
                                 <div class="space-y-1">
                                     ${t.history.map((h, idx) => {
-                            let dSplit = h.date ? h.date.split(' ') : ['-', '-'];
-                            let dStr = dSplit[0] && dSplit[1] ? dSplit[0].substring(0, 5) + ' ' + dSplit[1].substring(0, 5) : '';
-                            return `
+                                        let dSplit = h.date ? h.date.split(' ') : ['-', '-'];
+                                        let dStr = dSplit[0] && dSplit[1] ? dSplit[0].substring(0, 5) + ' ' + dSplit[1].substring(0, 5) : '';
+                                        return `
                                         <div class="group flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-white transition cursor-pointer relative" onclick="toggleStrike('${t.id}', ${idx})">
                                             <div class="flex items-center gap-2 flex-1 min-w-0">
                                                 <div class="flex items-center justify-center w-4 h-4 rounded transition ${h.striked ? 'bg-emerald-500 text-white' : 'border-2 border-slate-300 bg-white'} flex-shrink-0">
@@ -3787,20 +3774,32 @@
 
             let cleanTk = String(tkNumber).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '').toUpperCase();
 
-            [RawData.incs, RawData.reqs, RawData.rca, RawData.ptask, RawData.prb].forEach((src, i) => {
-                if (ticketData || !src) return;
-                let f = src.find(r => {
-                    return Object.values(r).some(val => {
-                        if (val == null) return false;
-                        let cleanVal = String(val).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '').toUpperCase();
+            // Busca rigorosa pelo campo Number (ou equivalente) de cada fonte,
+            // na ordem correta para evitar falso-positivo (ex: número de INC aparecendo
+            // em campo de texto de um registro RCA).
+            const sourceDefs = [
+                { src: RawData.incs,   type: 'INC',   numFields: ['Number'] },
+                { src: RawData.reqs,   type: 'REQ',   numFields: ['Number', 'RITM', 'Request Item'] },
+                { src: RawData.ptask,  type: 'PTASK', numFields: ['Number'] },
+                { src: RawData.rca,    type: 'RCA',   numFields: ['Problem', 'Number'] },
+                { src: RawData.prb,    type: 'PRB',   numFields: ['Number', 'Problem'] }
+            ];
+
+            for (let def of sourceDefs) {
+                if (ticketData || !def.src || !def.src.length) continue;
+                let f = def.src.find(r => {
+                    return def.numFields.some(field => {
+                        let v = r[field];
+                        if (v == null) return false;
+                        let cleanVal = String(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s/g, '').toUpperCase();
                         return cleanVal === cleanTk;
                     });
                 });
                 if (f) {
                     ticketData = f;
-                    tType = i === 0 ? 'INC' : i === 1 ? 'REQ' : i === 2 ? 'RCA' : i === 3 ? 'PTASK' : 'PRB';
+                    tType = def.type;
                 }
-            });
+            }
 
             // Se não encontrou no RawData, procura no cache de PRB dinâmico
             if (!ticketData && window.PrbGroupsCache) {
@@ -3842,11 +3841,11 @@
             // Destaca PTASKs e INCs no modal caso seja RCA/PRB
             if ((tType === 'RCA' || tkNumber.startsWith('PRB')) && window.PrbGroupsCache && window.PrbGroupsCache[cleanTk]) {
                 let g = window.PrbGroupsCache[cleanTk];
-
+                
                 // Resumo Superior do RCA/Aging
-                let pAge = g.age !== undefined ? `${g.age} dias` : (g.tickets.length > 0 ? `${Math.max(...g.tickets.map(t => t.age || 0))} dias (estimado)` : 'N/A');
+                let pAge = g.age !== undefined ? `${g.age} dias` : (g.tickets.length > 0 ? `${Math.max(...g.tickets.map(t=>t.age||0))} dias (estimado)` : 'N/A');
                 let pState = g.state || (g.active_count > 0 ? 'OPEN' : 'PUBLISHED');
-
+                
                 let rcaHeader = `<div class="grid grid-cols-3 gap-2 mb-4 bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-inner">
                     <div class="text-center border-r border-slate-200">
                         <div class="text-[9px] font-black text-slate-400 uppercase leading-none mb-1">Status do Problema</div>
@@ -3861,12 +3860,12 @@
                         <div class="text-xs font-black text-slate-700">${g.active_count} ativos / ${g.related_count_total} rel.</div>
                     </div>
                 </div>`;
-
+                
                 modalDescHtml = rcaHeader + modalDescHtml;
 
                 let ptks = g.tickets.filter(t => t.type === 'PTASK');
                 let incks = g.tickets.filter(t => t.type === 'INC');
-
+                
                 let extraHtml = '';
                 if (ptks.length > 0) {
                     extraHtml += `<div class="mt-5 border-t border-slate-200 pt-3"><h5 class="text-xs font-black text-slate-500 uppercase mb-3"><i class="fas fa-tasks mr-1 text-blue-500"></i> Problem Tasks (${ptks.length})</h5>`;
@@ -3886,7 +3885,7 @@
                     });
                     extraHtml += `</div>`;
                 }
-
+                
                 if (incks.length > 0) {
                     extraHtml += `<div class="mt-4 border-t border-slate-200 pt-3"><h5 class="text-xs font-black text-slate-500 uppercase mb-3"><i class="fas fa-fire mr-1 text-red-500"></i> Incidentes Impactados (${incks.length})</h5>`;
                     incks.forEach(inc => {
@@ -3971,7 +3970,7 @@
                 let relCols = ['Related Incidents', 'Incidentes Relacionados', 'Tickets Relacionados', 'Related tickets'];
                 let relRaw = getCol(ticketData, relCols);
                 let relNumbers = relRaw ? relRaw.split(/[,\s;]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC')) : [];
-
+                
                 // Unifica com busca por ID do PRB nos campos dos INCs
                 const tkNorm = tkNumber.trim().toUpperCase();
                 let linkedIncs = [];
@@ -3992,14 +3991,14 @@
                         </div>
                         <div class="p-2 max-h-[150px] overflow-y-auto stylized-scrollbar bg-slate-50/30">
                             ${linkedIncs.map(inc => {
-                        let num = getCol(inc, ['Number', 'Ticket', 'Número']) || '-';
-                        let sub = getCol(inc, ['Short description', 'Descrição']) || '-';
-                        return `
+                                let num = getCol(inc, ['Number', 'Ticket', 'Número']) || '-';
+                                let sub = getCol(inc, ['Short description', 'Descrição']) || '-';
+                                return `
                                 <div class="flex items-start gap-2 p-1.5 border-b border-slate-100 last:border-0 hover:bg-white transition group">
                                     <div class="text-[10px] font-black text-blue-600 group-hover:underline cursor-pointer min-w-[75px]" onclick="openTicketDetails('${num}')">${num}</div>
                                     <div class="text-[9px] text-slate-600 font-medium line-clamp-1" title="${sub}">${sub}</div>
                                 </div>`;
-                    }).join('')}
+                            }).join('')}
                         </div>
                     </div>`;
                 }
@@ -4009,7 +4008,7 @@
             } else if (tkNumber.startsWith('INC')) {
                 let prbRaw = getCol(ticketData, ['Problem', 'PRB', 'Problema', 'problem_id']);
                 let prbVal = (prbRaw && String(prbRaw).trim() !== "" && String(prbRaw).trim() !== "undefined") ? String(prbRaw).trim() : 'N/A';
-
+                
                 if (prbVal !== 'N/A') {
                     let prbExtraHtml = `
                     <div class="mt-4 grid grid-cols-1 gap-2 py-3 border-y border-red-100 bg-red-50/50 rounded-lg p-3">
@@ -4022,15 +4021,18 @@
                 }
             }
 
-            let req = getCol(ticketData, ['Caller', 'Requester', 'Solicitante']) || 'N/A';
-            let asg = getCol(ticketData, ['Assigned to', 'Analista']) || 'Não Atribuído';
+            // Caller/Solicitante: leitura direta do campo 'Caller' (index.xlsx) com fallback
+            let req = ticketData['Caller'] || ticketData['Requester'] || ticketData['Solicitante'] || '';
+            if (!req || req === '') req = getCol(ticketData, ['Caller', 'Requester', 'Solicitante']) || 'N/A';
+            let asg = ticketData['Assigned to'] || getCol(ticketData, ['Assigned to', 'Analista']) || 'Não Atribuído';
+            let gp  = ticketData['Assignment group'] || getCol(ticketData, ['Assignment group', 'Grupo']) || 'N/A';
             document.getElementById('modal-req').innerText = req;
             document.getElementById('modal-asg').innerText = asg;
-            document.getElementById('modal-gp').innerText = getCol(ticketData, ['Assignment group', 'Grupo']) || 'N/A';
+            document.getElementById('modal-gp').innerText = gp;
 
-            // Datas: para index.xlsx usamos 'Opened'/'Resolved'/'Closed'; para problem_rca.xlsx usamos 'Opened'/'Closed'
-            let opD = safeDate(getCol(ticketData, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
-            let clD = safeDate(getCol(ticketData, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
+            // Datas: acesso direto para garantir leitura correta
+            let opD = safeDate(ticketData['Opened'] || ticketData['opened_at'] || ticketData['Created'] || '');
+            let clD = safeDate(ticketData['Resolved'] || ticketData['Closed'] || ticketData['Resolved at'] || '');
             document.getElementById('modal-op').innerText = opD ? opD.toLocaleString('pt-BR') : '-';
             document.getElementById('modal-cl').innerText = clD ? clD.toLocaleString('pt-BR') : 'Aberto';
 
@@ -4131,7 +4133,7 @@
             let prb = getCol(ticketData, ['Problem', 'PRB', 'Problema', 'problem_id']);
             if (ritm && ritm !== 'N/A' && ritm !== '-') searchTerms.push(ritm);
             if (prb && prb !== 'N/A' && prb !== '-') searchTerms.push(prb);
-
+            
             fetchAttachedEmails(searchTerms.join(','));
 
             document.getElementById('ticket-modal-backdrop').classList.remove('hidden-st');
@@ -4175,9 +4177,9 @@
                     <div class="p-3 bg-slate-50/30">
                         <div class="space-y-2 relative">
                             ${t.history.map((h, idx) => {
-                    let dSplit = h.date ? h.date.split(' ') : ['-', '-'];
-                    let dStr = dSplit[0] && dSplit[1] ? dSplit[0].substring(0, 5) + ' ' + dSplit[1].substring(0, 5) : '';
-                    return `
+                                let dSplit = h.date ? h.date.split(' ') : ['-', '-'];
+                                let dStr = dSplit[0] && dSplit[1] ? dSplit[0].substring(0, 5) + ' ' + dSplit[1].substring(0, 5) : '';
+                                return `
                                 <div class="group flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-white transition cursor-pointer relative" onclick="toggleStrike('${t.id}', ${idx})">
                                     <div class="flex items-center gap-3 flex-1 min-w-0">
                                         <div class="todo-check-dot ${h.striked ? 'checked' : ''} flex-shrink-0" style="width: 16px; height: 16px;">
@@ -4203,27 +4205,27 @@
         async function fetchAttachedEmails(searchQuery) {
             const container = document.getElementById('modal-rpa-emails');
             const accordion = document.getElementById('modal-rpa-accordion');
-
+            
             // Limpa e valida os termos de busca (suporta múltiplos separados por vírgula)
             const cleanQuery = searchQuery.split(',').map(s => {
                 let term = s.includes(':') ? s.split(':')[1].trim() : s.trim();
                 return term;
             }).filter(s => s && s !== 'N/A' && s !== '-' && s.length > 3).join(',');
-
+            
             if (!cleanQuery) {
-                container.innerHTML = '<div class="text-center py-6 text-slate-400 text-[10px] font-bold">Nenhum identificador válido para busca de e-mails.</div>';
-                return;
+                 container.innerHTML = '<div class="text-center py-6 text-slate-400 text-[10px] font-bold">Nenhum identificador válido para busca de e-mails.</div>';
+                 return;
             }
-
+            
             container.innerHTML = '<div class="text-center py-4 text-purple-600"><i class="fas fa-circle-notch fa-spin mr-2"></i>Buscando vínculos no Outlook...</div>';
             accordion.classList.remove('hidden-st');
 
             try {
                 const response = await fetch(`http://localhost:5000/rpa/logs?ticket=${encodeURIComponent(cleanQuery)}`);
                 if (!response.ok) throw new Error('Serviço Offline');
-
+                
                 const res = await response.json();
-
+                
                 if (res.status === 'success' && res.data && res.data.length > 0) {
                     container.innerHTML = res.data.map(email => `
                         <div class="bg-purple-50 border border-purple-100 p-3 rounded-lg flex items-center justify-between hover:bg-purple-100 transition-all group">
@@ -4645,7 +4647,7 @@
                         (cl.getDate() === limitDate.getDate() && cl.getMonth() === refMonth && cl.getFullYear() === refYear);
 
                     let cY = cl.getFullYear(); let cM = String(cl.getMonth() + 1).padStart(2, '0'); let cD = String(cl.getDate()).padStart(2, '0');
-
+                    
                     let mcKey = `${cY}-${cM}`;
                     if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
                     trendM[mcKey].r++;
@@ -4666,9 +4668,9 @@
                 } else if (isCanc && cl) {
                     let cPass = isFullMonth ? (cl.getMonth() === refMonth && cl.getFullYear() === refYear) :
                         (cl.getDate() === limitDate.getDate() && cl.getMonth() === refMonth && cl.getFullYear() === refYear);
-
+                    
                     let cY = cl.getFullYear(); let cM = String(cl.getMonth() + 1).padStart(2, '0'); let cD = String(cl.getDate()).padStart(2, '0');
-
+                    
                     let mcKey = `${cY}-${cM}`;
                     if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
                     trendM[mcKey].c++;
@@ -4715,7 +4717,7 @@
                 tks_ab: analistas[k].tks_ab, tks_res: analistas[k].tks_res
             })).sort((a, b) => b.tot - a.tot).slice(0, 10);
 
-            let mKeys = Object.keys(trendM).sort();
+            let mKeys = Object.keys(trendM).sort(); 
             let mb = backlog;
             for (let i = mKeys.length - 1; i >= 0; i--) {
                 let k = mKeys[i];
@@ -4724,10 +4726,10 @@
             }
 
             let dKeys = Object.keys(trendD).sort(); let db = backlog;
-            for (let i = dKeys.length - 1; i >= 0; i--) {
-                let k = dKeys[i];
-                trendD[k].b = db;
-                db -= (trendD[k].a - (trendD[k].r + trendD[k].c));
+            for (let i = dKeys.length - 1; i >= 0; i--) { 
+                let k = dKeys[i]; 
+                trendD[k].b = db; 
+                db -= (trendD[k].a - (trendD[k].r + trendD[k].c)); 
             }
 
             let inSlaTot = 0, outSlaTot = 0;
@@ -4979,16 +4981,16 @@
         window.exportDrilldownPdf = function () {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
-
+            
             const title = window.paginationState.drilldownTitle || "Exportação";
             const isPrbDrill = title.includes("RCA") || title.includes("Problem") || title.includes("PRB") || title.includes("PTASK");
             const isInc = window.paginationState.drilldownIsInc;
-
+            
             const searchInput = document.getElementById('modal-search');
             const term = searchInput ? searchInput.value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() : "";
 
             let allData = window.paginationState.drilldownData || [];
-
+            
             const filteredData = allData.filter(t => {
                 if (!term) return true;
                 const rowText = `${t.tk} ${t.desc} ${t.longDesc} ${t.req} ${t.as} ${t.gp} ${t.st} ${t.opStr} ${t.prb} ${t.info} ${t.reason}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
@@ -4997,7 +4999,7 @@
 
             if (filteredData.length === 0) return alert("Nenhum registro para exportar com este filtro.");
 
-            doc.setFillColor(30, 58, 138);
+            doc.setFillColor(30, 58, 138); 
             doc.rect(0, 0, 297, 30, 'F');
             doc.setTextColor(255, 255, 255);
             doc.setFont("helvetica", "bold");
@@ -5016,7 +5018,7 @@
                 let infoClean = t.info ? t.info.replace(/&quot;/g, '"') : "";
                 let rReas = t.reason ? `(${t.reason})` : "";
                 let descFull = `${t.desc}\n${infoClean} ${rReas}`.trim();
-
+                
                 let row = [];
                 row.push(t.tk || "-");
                 row.push(descFull || "-");
@@ -5670,18 +5672,18 @@
             const refDateInput = document.getElementById('ref-date').value;
             const now = new Date();
             const refDate = new Date(refDateInput + (refDateInput.length === 7 ? '-01' : '') + 'T12:00:00');
-
+            
             // Lógica para divisor de dias (Média Diária)
             let daysDivisor;
             const isCurrentMonth = (now.getFullYear() === refDate.getFullYear() && now.getMonth() === refDate.getMonth());
-
+            
             if (isCurrentMonth) {
                 daysDivisor = now.getDate();
             } else {
                 // Pega o último dia do mês selecionado
                 daysDivisor = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).getDate();
             }
-
+            
             if (daysDivisor < 1) daysDivisor = 1;
 
             const resMes = data.resMes || 0;
@@ -5732,22 +5734,26 @@
             let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-shield-alt mr-2"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTASK)</div>`;
 
             if (!prbData || prbData.length === 0) {
-                return html + `<div class="report-card" style="text-align: center; padding: 40px;"> <p style="color: #94a3b8; font-size: 14px;">Nenhum PRB ativo no momento. Carregue o arquivo <b>problem_rca.xlsx</b> e o <b>index.xlsx</b>.</p></div>`;
+                return html + `<div class="report-card" style="text-align: center; padding: 40px;"><p style="color: #94a3b8; font-size: 14px;">Nenhum PRB ativo no momento. Carregue o arquivo <b>problem_rca.xlsx</b> e o <b>index.xlsx</b>.</p></div>`;
             }
 
             // ---------------------------------------------------------------
-            // AGRUPAMENTO CORRETO: PRB -> [INC filhos, PTASK filhos]
-            // Apenas registros do tipo PRB são "pais"; INC e PTASK são filhos.
+            // AGRUPAMENTO: monta estrutura hierárquica diretamente do prbData
+            // prbData é produzido por processPRBDataForDisplay com tipos corretos:
+            //   type='PRB'   → linha mestre (chave pid = t.tk)
+            //   type='INC'   → filho (chave pid = t.prb)
+            //   type='PTASK' → filho (chave pid = t.prb)
             // ---------------------------------------------------------------
-            let groups = {}; // prbId -> { master: obj|null, incs: [], ptasks: [] }
+            let groups = {}; // pid -> { master, incs:[], ptasks:[] }
 
             prbData.forEach(t => {
                 let pid = (t.type === 'PRB') ? t.tk : t.prb;
-                if (!pid || pid === '—') pid = '__SEM_PRB__';
+                if (!pid || pid === '—' || pid === '') pid = '__SEM_PRB__';
                 if (!groups[pid]) groups[pid] = { master: null, incs: [], ptasks: [] };
 
                 if (t.type === 'PRB') {
-                    groups[pid].master = t;
+                    // Se já existe um master, mantém o primeiro (mais completo)
+                    if (!groups[pid].master) groups[pid].master = t;
                 } else if (t.type === 'INC') {
                     groups[pid].incs.push(t);
                 } else if (t.type === 'PTASK') {
@@ -5755,38 +5761,15 @@
                 }
             });
 
-            // PRBs que estão em ptaskData com Problem field mas não têm master ainda
-            if (ptaskData && ptaskData.length > 0) {
-                ptaskData.forEach(row => {
-                    let num = String(getCol(row, ['Number', 'Task']) || '').trim().toUpperCase();
-                    let prb = String(getCol(row, ['Problem']) || '').trim().toUpperCase();
-                    if (!num || !prb.startsWith('PRB')) return;
-                    if (!groups[prb]) groups[prb] = { master: null, incs: [], ptasks: [] };
-                    if (!groups[prb].ptasks.find(x => x.tk === num)) {
-                        let opD = safeDate(getCol(row, ['Opened']));
-                        let clD = safeDate(getCol(row, ['Closed', 'Resolved']));
-                        let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
-                        groups[prb].ptasks.push({
-                            tk: num, prb: prb, type: 'PTASK',
-                            st: String(getCol(row, ['State', 'Status']) || 'Open').toUpperCase(),
-                            gp: String(getCol(row, ['Assignment group']) || '—').trim(),
-                            as: String(getCol(row, ['Assigned to']) || '—').trim(),
-                            priority: String(getCol(row, ['Priority']) || 'N/A').trim(),
-                            desc: String(getCol(row, ['Short description']) || '—').trim(),
-                            age: aging < 0 ? 0 : aging,
-                            opStr: opD ? opD.toLocaleDateString('pt-BR') : '—'
-                        });
-                    }
-                });
-            }
-
             // ---------------------------------------------------------------
             // KPI Cards
             // ---------------------------------------------------------------
-            let totalPrbs = Object.keys(groups).filter(k => k !== '__SEM_PRB__').length;
-            let totalIncs = prbData.filter(t => t.type === 'INC').length;
-            let totalPtasks = prbData.filter(t => t.type === 'PTASK').length;
-            let affectedGroups = new Set(prbData.filter(t => t.type === 'PRB').map(t => t.gp).filter(g => g && g !== '—')).size;
+            let totalPrbs    = Object.keys(groups).filter(k => k !== '__SEM_PRB__').length;
+            let totalIncs    = prbData.filter(t => t.type === 'INC').length;
+            let totalPtasks  = prbData.filter(t => t.type === 'PTASK').length;
+            let affectedGroups = new Set(
+                prbData.filter(t => t.type === 'PRB' && t.gp && t.gp !== '—').map(t => t.gp)
+            ).size;
 
             html += `
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -5813,13 +5796,13 @@
             </div>`;
 
             // ---------------------------------------------------------------
-            // Tabelas Analíticas (RCA Status | Grupo)
+            // Tabelas Analíticas (RCA Status | Grupo) — apenas PRBs mestres
             // ---------------------------------------------------------------
             if (!window.DrilldownVault) window.DrilldownVault = { class: {} };
             if (!window.DrilldownVault['class']) window.DrilldownVault['class'] = {};
 
-            let rcaByStatus = {};
-            let sectorStats = {};
+            let rcaByStatus  = {};
+            let sectorStats  = {};
             prbData.filter(t => t.type === 'PRB').forEach(t => {
                 let st = t.stRca || '—';
                 if (!rcaByStatus[st]) rcaByStatus[st] = { count: 0, tks: [] };
@@ -5838,9 +5821,12 @@
                     let dKey = `prb_ana_${labelCol}_${idx}`;
                     window.DrilldownVault['class'][dKey] = value.tks;
                     return `
-                    <tr class="hover:bg-slate-50 cursor-pointer transition border-b border-slate-50" onclick="openDrilldown('${key.replace(/'/g, "\\'")}', '${dKey}', 'class')">
+                    <tr class="hover:bg-slate-50 cursor-pointer transition border-b border-slate-50"
+                        onclick="openDrilldown('${key.replace(/'/g, "\\'")}', '${dKey}', 'class')">
                         <td class="py-2 text-[11px] font-bold text-slate-700 text-left pl-2">${key}</td>
-                        <td class="py-2 text-right"><span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-black">${value.count}</span></td>
+                        <td class="py-2 text-right">
+                            <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-black">${value.count}</span>
+                        </td>
                         <td class="py-2 text-right w-8"><i class="fas fa-chevron-right text-slate-300 text-[10px]"></i></td>
                     </tr>`;
                 }).join('');
@@ -5848,48 +5834,54 @@
                 <div class="report-card" style="margin-bottom:0;">
                     <div class="report-card-title"><i class="${icon} mr-1"></i> ${title}</div>
                     <div class="st-dataframe-container border-0 max-h-[230px] overflow-y-auto">
-                        <table class="w-full"><tbody>${rows || '<tr><td colspan="3" class="text-center py-4 text-slate-400 text-xs">Sem dados.</td></tr>'}</tbody></table>
+                        <table class="w-full">
+                            <tbody>${rows || '<tr><td colspan="3" class="text-center py-4 text-slate-400 text-xs">Sem dados.</td></tr>'}</tbody>
+                        </table>
                     </div>
                 </div>`;
             };
 
             html += `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                ${buildAnalyticalTable("PRBs por Status RCA", rcaByStatus, "rca_st", "fas fa-info-circle")}
+                ${buildAnalyticalTable("PRBs por Status RCA",      rcaByStatus, "rca_st", "fas fa-info-circle")}
                 ${buildAnalyticalTable("Impacto por Grupo Resolutor", sectorStats, "sector", "fas fa-users")}
             </div>`;
 
             // ---------------------------------------------------------------
-            // TABELA PRINCIPAL — AGRUPADA HIERARQUICAMENTE
-            // Ordem: PRBs ordenados por número decrescente
-            // Para cada PRB: linha mestre (PRB) + linhas filhas (INCs + PTASKs)
+            // TABELA PRINCIPAL HIERÁRQUICA
             // ---------------------------------------------------------------
             let sortedPids = Object.keys(groups)
                 .filter(k => k !== '__SEM_PRB__')
                 .sort((a, b) => b.localeCompare(a));
 
-            // Também inclui grupo sem PRB no final
-            if (groups['__SEM_PRB__'] && (groups['__SEM_PRB__'].incs.length > 0 || groups['__SEM_PRB__'].ptasks.length > 0)) {
+            if (groups['__SEM_PRB__'] &&
+                (groups['__SEM_PRB__'].incs.length > 0 || groups['__SEM_PRB__'].ptasks.length > 0)) {
                 sortedPids.push('__SEM_PRB__');
             }
 
+            // ── Helpers visuais ──────────────────────────────────────────
             const stBadge = (stVal) => {
                 let v = String(stVal || '').toUpperCase();
-                if (['RESOLVED', 'CLOSED', 'PUBLISHED', 'COMPLETED'].some(s => v.includes(s)))
+                if (['RESOLVED','CLOSED','PUBLISHED','COMPLETED'].some(s => v.includes(s)))
                     return `<span style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${stVal}</span>`;
                 if (v.includes('OPEN') || v.includes('IN PROGRESS') || v.includes('NEW'))
                     return `<span style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${stVal}</span>`;
-                if (v.includes('HOLD') || v.includes('PENDING') || v.includes('AGUARDANDO'))
+                if (v.includes('HOLD') || v.includes('PENDING') || v.includes('AGUARD'))
                     return `<span style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${stVal}</span>`;
                 return `<span style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${stVal || '—'}</span>`;
             };
 
             const prioBadge = (p) => {
                 let v = String(p || '').toUpperCase();
-                if (v.includes('1') || v.includes('CRITICAL')) return `<span class="text-[9px] font-black text-red-600">🔴 ${p}</span>`;
-                if (v.includes('2') || v.includes('HIGH')) return `<span class="text-[9px] font-black text-orange-500">🟠 ${p}</span>`;
-                if (v.includes('3') || v.includes('MEDIUM') || v.includes('MOD')) return `<span class="text-[9px] font-black text-yellow-600">🟡 ${p}</span>`;
-                return `<span class="text-[9px] text-slate-400">${p || 'N/A'}</span>`;
+                if (v.includes('1') || v.includes('CRITICAL'))
+                    return `<span class="text-[9px] font-black text-red-600">🔴 ${p}</span>`;
+                if (v.includes('2') || v.includes('HIGH'))
+                    return `<span class="text-[9px] font-black text-orange-500">🟠 ${p}</span>`;
+                if (v.includes('3') || v.includes('MEDIUM') || v.includes('MOD'))
+                    return `<span class="text-[9px] font-black text-yellow-600">🟡 ${p}</span>`;
+                if (p && p !== 'N/A' && p !== '—')
+                    return `<span class="text-[9px] text-slate-500 font-bold">${p}</span>`;
+                return `<span class="text-[9px] text-slate-300">N/A</span>`;
             };
 
             const agingBadge = (age) => {
@@ -5898,16 +5890,18 @@
                 return `<span style="color:${color};font-weight:800;font-size:10px;">${a}d</span>`;
             };
 
+            // ── Construção das linhas ────────────────────────────────────
             let tableRows = '';
+
             sortedPids.forEach(pid => {
-                let g = groups[pid];
-                let displayPid = pid === '__SEM_PRB__' ? 'SEM PRB' : pid;
-                let master = g.master;
-                let incs = g.incs;
-                let ptasks = g.ptasks;
+                let g           = groups[pid];
+                let displayPid  = pid === '__SEM_PRB__' ? 'SEM PRB' : pid;
+                let master      = g.master;
+                let incs        = g.incs;
+                let ptasks      = g.ptasks;
                 let totalChildren = incs.length + ptasks.length;
 
-                // ----- Linha mestre PRB -----
+                // ── Linha mestre (PRB) ───────────────────────────────────
                 if (master) {
                     let rcaStBadge = master.stRca && master.stRca !== '—'
                         ? `<span style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:800;text-transform:uppercase;">${master.stRca}</span>`
@@ -5938,27 +5932,31 @@
                         </td>
                     </tr>`;
                 } else {
-                    // PRB sem registro mestre no problem_rca.xlsx
+                    // PRB sem registro mestre
                     tableRows += `
                     <tr style="background:#f8fafc;border-bottom:1px dashed #cbd5e1;">
                         <td class="p-3" style="border-left:4px solid #94a3b8;" colspan="10">
                             <div class="flex items-center gap-3">
                                 <span class="font-black text-slate-500 text-sm italic">${displayPid}</span>
-                                <span class="text-[9px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200"><i class="fas fa-exclamation-circle mr-1"></i>Sem registro mestre no problem_rca.xlsx — ${totalChildren} ticket(s) vinculado(s)</span>
+                                <span class="text-[9px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>Sem registro mestre no problem_rca.xlsx — ${totalChildren} ticket(s) vinculado(s)
+                                </span>
                             </div>
                         </td>
                     </tr>`;
                 }
 
-                // ----- Linhas filhas: INCs -----
+                // ── Linhas filhas: INCs ──────────────────────────────────
                 incs.forEach(inc => {
-                    let caller = inc.req || '—';
+                    let caller = inc.req && inc.req !== 'N/A' ? inc.req : '—';
                     tableRows += `
-                    <tr class="hover:bg-red-50/40 transition-colors" style="background:#fff5f5;border-bottom:1px solid #fee2e2;">
+                    <tr class="hover:bg-red-50/40 transition-colors" style="background:#fff8f8;border-bottom:1px solid #fee2e2;">
                         <td class="p-2 pl-8" style="border-left:4px solid #fca5a5;">
                             <div class="flex flex-col gap-0.5">
                                 <span onclick="openTicketDetails('${inc.tk}')" class="ticket-id-clickable font-black text-red-700 text-xs">${inc.tk}</span>
-                                <span class="text-[8px] text-red-400 font-bold uppercase"><i class="fas fa-fire mr-1"></i>INC • Caller: ${caller}</span>
+                                <span class="text-[8px] text-red-400 font-bold uppercase">
+                                    <i class="fas fa-fire mr-1"></i>INC &nbsp;·&nbsp; <i class="fas fa-user mr-1"></i>${caller}
+                                </span>
                             </div>
                         </td>
                         <td class="p-2 text-center">${stBadge(inc.st)}</td>
@@ -5977,14 +5975,16 @@
                     </tr>`;
                 });
 
-                // ----- Linhas filhas: PTASKs -----
+                // ── Linhas filhas: PTASKs ────────────────────────────────
                 ptasks.forEach(pt => {
                     tableRows += `
-                    <tr class="hover:bg-blue-50/40 transition-colors" style="background:#f0f4ff;border-bottom:1px solid #dbeafe;">
-                        <td class="p-2 pl-8" style="border-left:4px solid #93c5fd;">
+                    <tr class="hover:bg-indigo-50/40 transition-colors" style="background:#f5f3ff;border-bottom:1px solid #ddd6fe;">
+                        <td class="p-2 pl-8" style="border-left:4px solid #a5b4fc;">
                             <div class="flex flex-col gap-0.5">
-                                <span onclick="openTicketDetails('${pt.tk}')" class="ticket-id-clickable font-black text-blue-700 text-xs">${pt.tk}</span>
-                                <span class="text-[8px] text-blue-400 font-bold uppercase"><i class="fas fa-tasks mr-1"></i>PTASK</span>
+                                <span onclick="openTicketDetails('${pt.tk}')" class="ticket-id-clickable font-black text-indigo-700 text-xs">${pt.tk}</span>
+                                <span class="text-[8px] text-indigo-400 font-bold uppercase">
+                                    <i class="fas fa-tasks mr-1"></i>PTASK
+                                </span>
                             </div>
                         </td>
                         <td class="p-2 text-center">${stBadge(pt.st)}</td>
@@ -6003,19 +6003,18 @@
                     </tr>`;
                 });
 
-                // Separador visual entre grupos
-                tableRows += `<tr style="height:6px;background:#e2e8f0;"><td colspan="10"></td></tr>`;
+                // Separador visual entre grupos PRB
+                tableRows += `<tr style="height:5px;background:#e2e8f0;"><td colspan="10"></td></tr>`;
             });
 
-            let totalExibidos = prbData.length;
             html += `
             <div class="report-card" style="padding:0;">
                 <div class="report-card-title flex justify-between items-center border-b border-slate-100 p-4">
                     <span><i class="fas fa-sitemap mr-2"></i> LISTA AGRUPADA — PRB › INC › PTASK</span>
-                    <div class="flex gap-3 items-center">
+                    <div class="flex gap-3 items-center flex-wrap">
                         <span class="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold uppercase">${totalPrbs} PRBs</span>
                         <span class="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-bold uppercase">${totalIncs} INCs</span>
-                        <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold uppercase">${totalPtasks} PTASKs</span>
+                        <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full font-bold uppercase">${totalPtasks} PTASKs</span>
                     </div>
                 </div>
                 <div class="st-dataframe-container" style="max-height:900px;overflow-x:auto;">
@@ -6023,7 +6022,7 @@
                         <thead>
                             <tr>
                                 ${createTh("Ticket / PRB", "160px", "left")}
-                                ${createTh("State", "100px")}
+                                ${createTh("State", "105px")}
                                 ${createTh("Priority", "90px")}
                                 ${createTh("Short Description", "auto", "left")}
                                 ${createTh("Assigned to", "140px")}
@@ -6034,15 +6033,17 @@
                                 ${createTh("Filhos", "60px")}
                             </tr>
                         </thead>
-                        <tbody>${tableRows || '<tr><td colspan="10" class="py-8 text-center text-slate-400 text-sm">Nenhum dado encontrado.</td></tr>'}</tbody>
+                        <tbody>
+                            ${tableRows || '<tr><td colspan="10" class="py-8 text-center text-slate-400 text-sm">Nenhum dado encontrado.</td></tr>'}
+                        </tbody>
                     </table>
                 </div>
                 <div class="p-3 bg-slate-50 text-[9px] text-slate-400 text-center italic border-t border-slate-100">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Linha azul escura = PRB mestre (problem_rca.xlsx) &nbsp;|&nbsp;
-                    Linha vermelha = INC (index.xlsx campo Problem) &nbsp;|&nbsp;
-                    Linha azul clara = PTASK &nbsp;|&nbsp;
-                    Aging = Dt Fechamento − Dt Abertura (ou dias corridos se aberto)
+                    🔵 Azul = PRB mestre (problem_rca.xlsx) &nbsp;|&nbsp;
+                    🔴 Vermelho = INC filho (index.xlsx · campo Problem) &nbsp;|&nbsp;
+                    🟣 Índigo = PTASK &nbsp;|&nbsp;
+                    Aging = Dt Fechamento − Dt Abertura (ou dias corridos se em aberto)
                 </div>
             </div>`;
 
@@ -6051,203 +6052,219 @@
 
 
         // Função para adaptar dados de PRB para o formato do dashboard
-        // Cruza: index.xlsx (INCs com campo Problem) + problem_rca.xlsx (PRBs mestres)
+        // Cruza: index.xlsx (RawData.incs – campo Problem) + problem_rca.xlsx (RawData.rca – campos Problem/Number)
         function processPRBDataForDisplay(prbRawData, ptaskRawData, rcaRawData) {
+
             // ---------------------------------------------------------------
-            // ETAPA 1: Construir mapa de PRBs mestres a partir do problem_rca.xlsx
-            // Campos: Problem | Assignment group | Assigned to | Related Incidents |
-            //         RCA Status | RCA Due Date | RCA Published Date | Work notes |
-            //         Number | State | Configuration item | Short description | Opened | Closed
+            // ETAPA 1: Mapa de mestres PRB  ←  problem_rca.xlsx  (RawData.rca)
+            // O campo identificador do PRB neste arquivo pode ser "Problem" ou "Number"
+            // Ambos têm formato PRBxxxxxxx.
             // ---------------------------------------------------------------
-            let prbMasterMap = {}; // prbId -> registro mestre do problem_rca.xlsx
+            let prbMasterMap = {}; // prbId (ex: "PRB0012345") -> linha bruta do problem_rca.xlsx
 
             if (rcaRawData && rcaRawData.length > 0) {
                 rcaRawData.forEach(row => {
-                    // O campo "Problem" do problem_rca é o ID do PRB (ex: PRB0012345)
-                    let prbId = String(getCol(row, ['Problem', 'Number']) || '').trim().toUpperCase();
-                    if (!prbId || !prbId.startsWith('PRB')) return;
-                    if (!prbMasterMap[prbId]) {
-                        prbMasterMap[prbId] = row;
-                    }
+                    // Tenta "Problem" primeiro (coluna específica de vínculo), depois "Number"
+                    let idA = String(row['Problem'] || '').trim().toUpperCase();
+                    let idB = String(row['Number'] || '').trim().toUpperCase();
+                    let prbId = idA.startsWith('PRB') ? idA : (idB.startsWith('PRB') ? idB : '');
+                    if (!prbId) return;
+                    if (!prbMasterMap[prbId]) prbMasterMap[prbId] = row;
                 });
             }
 
             // ---------------------------------------------------------------
-            // ETAPA 2: Construir mapa PRB -> [INCs] a partir do index.xlsx
-            // O campo "Problem" de cada INC aponta para o PRB pai.
+            // ETAPA 2: Mapa PRB -> [linhas INC]  ←  index.xlsx  (RawData.incs)
+            // Critérios de vínculo (em ordem de prioridade):
+            //   a) Campo "Problem" do INC contém PRBxxxxxxx
+            //   b) Campo "Related Incidents" do problem_rca contém o número do INC
+            //   c) Menção textual PRBxxxxxxx em "Additional comments" do INC
             // ---------------------------------------------------------------
-            let prbToIncsMap = {}; // prbId -> [rows de INC do index.xlsx]
+            let prbToIncsMap = {}; // prbId -> Set de linhas brutas de INC (sem duplicata por Number)
+
             const incSource = (window.RawData && window.RawData.incs) ? window.RawData.incs : [];
 
+            // (a) + (c): percorre todos os INCs
             incSource.forEach(inc => {
-                let incNum = String(getCol(inc, ['Number', 'Ticket']) || '').trim().toUpperCase();
+                let incNum = String(inc['Number'] || '').trim().toUpperCase();
                 if (!incNum.startsWith('INC')) return;
 
-                // Campo direto "Problem" do index.xlsx
-                let prbDirect = String(getCol(inc, ['Problem']) || '').trim().toUpperCase();
+                // (a) campo direto Problem
+                let prbDirect = String(inc['Problem'] || '').trim().toUpperCase();
                 if (prbDirect.startsWith('PRB')) {
-                    if (!prbToIncsMap[prbDirect]) prbToIncsMap[prbDirect] = [];
-                    prbToIncsMap[prbDirect].push(inc);
+                    if (!prbToIncsMap[prbDirect]) prbToIncsMap[prbDirect] = new Map();
+                    if (!prbToIncsMap[prbDirect].has(incNum)) prbToIncsMap[prbDirect].set(incNum, inc);
                 }
 
-                // Varredura em "Additional comments" e "Short description" por menções a PRBs
-                let combinedText = String((inc['Additional comments'] || '') + ' ' + (inc['Short description'] || '') + ' ' + (inc['Work notes'] || '')).toUpperCase();
-                let extraPrbs = combinedText.match(/PRB[0-9]+/g) || [];
-                extraPrbs.forEach(p => {
-                    if (!prbToIncsMap[p]) prbToIncsMap[p] = [];
-                    // Evita duplicata
-                    if (!prbToIncsMap[p].find(x => getCol(x, ['Number', 'Ticket']) === incNum)) {
-                        prbToIncsMap[p].push(inc);
-                    }
+                // (c) varredura textual em Additional comments
+                let addComments = String(inc['Additional comments'] || '').toUpperCase();
+                let extraMatches = addComments.match(/PRB[0-9]+/g) || [];
+                extraMatches.forEach(p => {
+                    if (!prbToIncsMap[p]) prbToIncsMap[p] = new Map();
+                    if (!prbToIncsMap[p].has(incNum)) prbToIncsMap[p].set(incNum, inc);
                 });
             });
 
-            // Também mapeia via "Related Incidents" do problem_rca.xlsx
+            // (b) campo "Related Incidents" do problem_rca.xlsx → busca INC em incSource
             Object.entries(prbMasterMap).forEach(([prbId, row]) => {
-                let relRaw = String(getCol(row, ['Related Incidents']) || '');
-                let relNums = relRaw.split(/[,\s;]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC'));
+                let relRaw = String(row['Related Incidents'] || '');
+                let relNums = relRaw.split(/[,\s;|]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC'));
                 relNums.forEach(incNum => {
-                    let incRow = incSource.find(x => String(getCol(x, ['Number', 'Ticket']) || '').trim().toUpperCase() === incNum);
-                    if (incRow) {
-                        if (!prbToIncsMap[prbId]) prbToIncsMap[prbId] = [];
-                        if (!prbToIncsMap[prbId].find(x => getCol(x, ['Number', 'Ticket']) === incNum)) {
-                            prbToIncsMap[prbId].push(incRow);
-                        }
-                    }
+                    let incRow = incSource.find(x => String(x['Number'] || '').trim().toUpperCase() === incNum);
+                    if (!incRow) return;
+                    if (!prbToIncsMap[prbId]) prbToIncsMap[prbId] = new Map();
+                    if (!prbToIncsMap[prbId].has(incNum)) prbToIncsMap[prbId].set(incNum, incRow);
                 });
+            });
+
+            // Converte Maps para arrays
+            let prbToIncsArray = {}; // prbId -> [linhas brutas de INC]
+            Object.entries(prbToIncsMap).forEach(([pid, m]) => {
+                prbToIncsArray[pid] = Array.from(m.values());
             });
 
             // ---------------------------------------------------------------
-            // ETAPA 3: Montar array processado com a estrutura unificada
+            // ETAPA 3: Monta array processado
             // ---------------------------------------------------------------
             let processed = [];
             let seenTickets = new Set();
 
-            // Coletar todos os PRB IDs únicos (de ambas as fontes)
-            let allPrbIds = new Set([
-                ...Object.keys(prbMasterMap),
-                ...Object.keys(prbToIncsMap)
-            ]);
+            // Todos os PRB IDs únicos (mestres + via INCs)
+            let allPrbIds = new Set([...Object.keys(prbMasterMap), ...Object.keys(prbToIncsArray)]);
 
             allPrbIds.forEach(prbId => {
                 if (!prbId || !prbId.startsWith('PRB')) return;
 
-                let masterRow = prbMasterMap[prbId] || null;
-                let linkedIncs = prbToIncsMap[prbId] || [];
+                let masterRow  = prbMasterMap[prbId]     || null;
+                let linkedIncs = prbToIncsArray[prbId]   || [];
 
-                // --- Registro MESTRE do PRB (do problem_rca.xlsx) ---
-                if (masterRow && !seenTickets.has(prbId)) {
+                // ── Linha MESTRE (tipo PRB) ──────────────────────────────
+                if (!seenTickets.has(prbId)) {
                     seenTickets.add(prbId);
-                    let opD = safeDate(getCol(masterRow, ['Opened']));
-                    let clD = safeDate(getCol(masterRow, ['Closed']));
-                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
+
+                    // Datas do problem_rca.xlsx
+                    let opD = masterRow ? safeDate(masterRow['Opened']) : null;
+                    let clD = masterRow ? safeDate(masterRow['Closed']) : null;
+                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
+                              : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
 
-                    // Campos do problem_rca.xlsx
-                    let stRca = String(getCol(masterRow, ['RCA Status']) || '—').trim();
-                    let gpPrb = String(getCol(masterRow, ['Assignment group']) || '—').trim();
-                    let asgPrb = String(getCol(masterRow, ['Assigned to']) || 'Não Atribuído').trim();
-                    let relIncRaw = String(getCol(masterRow, ['Related Incidents']) || '—').trim();
-                    let stateVal = String(getCol(masterRow, ['State']) || 'Open').toUpperCase();
-                    let descVal = String(getCol(masterRow, ['Short description']) || '—').trim();
-                    let ciVal = String(getCol(masterRow, ['Configuration item']) || '—').trim();
-                    let rcaDue = String(getCol(masterRow, ['RCA Due Date']) || '—').trim();
-                    let rcaPub = String(getCol(masterRow, ['RCA Published Date']) || '—').trim();
-                    let prioVal = String(getCol(masterRow, ['Priority']) || 'N/A').trim();
+                    // Priority: problem_rca NÃO tem essa coluna → deriva do INC com maior criticidade
+                    let prioVal = 'N/A';
+                    if (masterRow && masterRow['Priority']) {
+                        prioVal = String(masterRow['Priority']).trim();
+                    } else if (linkedIncs.length > 0) {
+                        // Pega a maior prioridade (menor número) entre os INCs filhos
+                        let prioNums = linkedIncs
+                            .map(inc => parseInt(String(inc['Priority'] || '99').replace(/[^0-9]/g, '')) || 99)
+                            .filter(n => n < 99);
+                        if (prioNums.length > 0) {
+                            let minPrio = Math.min(...prioNums);
+                            // Reconstroi o label a partir do primeiro INC que bate
+                            let refInc = linkedIncs.find(inc => {
+                                let p = String(inc['Priority'] || '');
+                                return p.includes(String(minPrio));
+                            });
+                            prioVal = refInc ? String(refInc['Priority']).trim() : String(minPrio);
+                        }
+                    }
 
                     processed.push({
-                        tk: prbId,
-                        prb: prbId,
-                        type: 'PRB',
-                        st: stateVal,
-                        stRca: stRca,
-                        gp: gpPrb,
-                        as: asgPrb,
-                        priority: prioVal,
-                        desc: descVal,
-                        ci: ciVal,
-                        related_incidents_raw: relIncRaw,
-                        rca_due: rcaDue,
-                        rca_pub: rcaPub,
-                        age: aging,
-                        opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
-                        clStr: clD ? clD.toLocaleDateString('pt-BR') : '—',
-                        inc_count: linkedIncs.length,
-                        // Armazena INCs para uso na tabela agrupada
-                        _linkedIncs: linkedIncs
+                        tk:                   prbId,
+                        prb:                  prbId,
+                        type:                 'PRB',
+                        st:                   masterRow ? String(masterRow['State'] || 'Open').toUpperCase() : 'OPEN',
+                        stRca:                masterRow ? String(masterRow['RCA Status'] || '—').trim() : '—',
+                        gp:                   masterRow ? String(masterRow['Assignment group'] || '—').trim() : '—',
+                        as:                   masterRow ? String(masterRow['Assigned to']    || '—').trim() : '—',
+                        priority:             prioVal,
+                        desc:                 masterRow ? String(masterRow['Short description'] || '—').trim() : '—',
+                        ci:                   masterRow ? String(masterRow['Configuration item'] || '—').trim() : '—',
+                        related_incidents_raw: masterRow ? String(masterRow['Related Incidents'] || '—').trim() : '—',
+                        rca_due:              masterRow ? String(masterRow['RCA Due Date']       || '—').trim() : '—',
+                        rca_pub:              masterRow ? String(masterRow['RCA Published Date'] || '—').trim() : '—',
+                        age:                  aging,
+                        opStr:                opD ? opD.toLocaleDateString('pt-BR') : '—',
+                        clStr:                clD ? clD.toLocaleDateString('pt-BR') : '—',
+                        inc_count:            linkedIncs.length   // usado internamente; exibido na coluna Filhos via groups
                     });
                 }
 
-                // --- INCs filhos vinculados a este PRB ---
+                // ── Linhas FILHAS (tipo INC) ─────────────────────────────
                 linkedIncs.forEach(inc => {
-                    let incNum = String(getCol(inc, ['Number', 'Ticket']) || '').trim().toUpperCase();
+                    let incNum = String(inc['Number'] || '').trim().toUpperCase();
                     if (!incNum || seenTickets.has(incNum)) return;
                     seenTickets.add(incNum);
 
-                    let opD = safeDate(getCol(inc, ['Opened']));
-                    let clD = safeDate(getCol(inc, ['Resolved', 'Closed']));
-                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
+                    let opD   = safeDate(inc['Opened']);
+                    // index.xlsx usa "Resolved" para INCs fechados
+                    let clD   = safeDate(inc['Resolved'] || inc['Closed'] || '');
+                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
+                              : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
 
-                    // Usa campos do problem_rca.xlsx (mestre) se disponível para consistência
-                    let gpInc = masterRow
-                        ? String(getCol(masterRow, ['Assignment group']) || getCol(inc, ['Assignment group']) || '—').trim()
-                        : String(getCol(inc, ['Assignment group']) || '—').trim();
+                    // Grupo: prioriza o do INC (Assignment group do index.xlsx)
+                    let gpInc = String(inc['Assignment group'] || '—').trim();
+
+                    // Caller / Solicitante: campo exato "Caller" do index.xlsx
+                    let caller = String(inc['Caller'] || inc['Requester'] || 'N/A').trim();
+
+                    // Priority: campo exato "Priority" do index.xlsx
+                    let priority = String(inc['Priority'] || 'N/A').trim();
 
                     processed.push({
-                        tk: incNum,
-                        prb: prbId, // CRUCIAL: vincula ao PRB pai corretamente
-                        type: 'INC',
-                        st: String(getCol(inc, ['State', 'Status']) || 'Open').toUpperCase(),
-                        stRca: '—',
-                        gp: gpInc,
-                        as: String(getCol(inc, ['Assigned to']) || '—').trim(),
-                        req: String(getCol(inc, ['Caller', 'Requester']) || 'N/A').trim(),
-                        priority: String(getCol(inc, ['Priority']) || 'N/A').trim(),
-                        desc: String(getCol(inc, ['Short description']) || '—').trim(),
-                        ci: String(getCol(inc, ['Configuration item']) || '—').trim(),
+                        tk:                   incNum,
+                        prb:                  prbId,   // vínculo correto com o pai
+                        type:                 'INC',
+                        st:                   String(inc['State'] || 'Open').toUpperCase(),
+                        stRca:                '—',
+                        gp:                   gpInc,
+                        as:                   String(inc['Assigned to'] || '—').trim(),
+                        req:                  caller,  // para o modal e a sub-linha
+                        priority:             priority,
+                        desc:                 String(inc['Short description'] || '—').trim(),
+                        ci:                   String(inc['Configuration item'] || '—').trim(),
                         related_incidents_raw: '—',
-                        rca_due: '—',
-                        rca_pub: '—',
-                        age: aging,
-                        opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
-                        clStr: clD ? clD.toLocaleDateString('pt-BR') : '—',
-                        // Dados extras para modal
-                        _raw: inc
+                        rca_due:              '—',
+                        rca_pub:              '—',
+                        age:                  aging,
+                        opStr:                opD ? opD.toLocaleDateString('pt-BR') : '—',
+                        clStr:                clD ? clD.toLocaleDateString('pt-BR') : '—'
                     });
                 });
             });
 
-            // --- PTASKs ---
+            // ── PTASKs ──────────────────────────────────────────────────
             if (ptaskRawData && ptaskRawData.length > 0) {
                 ptaskRawData.forEach(row => {
-                    let number = String(getCol(row, ['Number', 'Task']) || '').trim().toUpperCase();
-                    let prb = String(getCol(row, ['Problem']) || '').trim().toUpperCase();
+                    let number = String(row['Number'] || '').trim().toUpperCase();
+                    let prb    = String(row['Problem'] || '').trim().toUpperCase();
                     if (!number || seenTickets.has(number)) return;
                     seenTickets.add(number);
 
-                    let opD = safeDate(getCol(row, ['Opened']));
-                    let clD = safeDate(getCol(row, ['Closed', 'Resolved']));
-                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
+                    let opD   = safeDate(row['Opened']);
+                    let clD   = safeDate(row['Closed'] || row['Resolved'] || '');
+                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
+                              : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
 
                     processed.push({
-                        tk: number,
-                        prb: prb || '—',
-                        type: 'PTASK',
-                        st: String(getCol(row, ['State', 'Status']) || 'Open').toUpperCase(),
-                        stRca: '—',
-                        gp: String(getCol(row, ['Assignment group']) || '—').trim(),
-                        as: String(getCol(row, ['Assigned to']) || 'Não Atribuído').trim(),
-                        priority: String(getCol(row, ['Priority']) || 'N/A').trim(),
-                        desc: String(getCol(row, ['Short description']) || '—').trim(),
-                        ci: String(getCol(row, ['Configuration item']) || '—').trim(),
+                        tk:                   number,
+                        prb:                  prb || '—',
+                        type:                 'PTASK',
+                        st:                   String(row['State'] || 'Open').toUpperCase(),
+                        stRca:                '—',
+                        gp:                   String(row['Assignment group'] || '—').trim(),
+                        as:                   String(row['Assigned to'] || '—').trim(),
+                        priority:             String(row['Priority'] || 'N/A').trim(),
+                        desc:                 String(row['Short description'] || '—').trim(),
+                        ci:                   String(row['Configuration item'] || '—').trim(),
                         related_incidents_raw: '—',
-                        rca_due: '—',
-                        rca_pub: '—',
-                        age: aging,
-                        opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
-                        clStr: clD ? clD.toLocaleDateString('pt-BR') : '—'
+                        rca_due:              '—',
+                        rca_pub:              '—',
+                        age:                  aging,
+                        opStr:                opD ? opD.toLocaleDateString('pt-BR') : '—',
+                        clStr:                clD ? clD.toLocaleDateString('pt-BR') : '—'
                     });
                 });
             }
@@ -6265,15 +6282,15 @@
                 window.RawData.incs.forEach(inc => {
                     let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
                     if (!incNum) return;
-
+                    
                     let incPrbRaw = String(getCol(inc, ['Problem', 'Problema', 'Problem ID', 'problem_id']) || '').toUpperCase();
                     let incShortDesc = String(getCol(inc, ['Short description', 'Descrição', 'Assunto']) || '').toUpperCase();
                     let incNotes = String(getCol(inc, ['Work notes', 'Additional comments', 'Comentários', 'Description']) || '').toUpperCase();
-
+                    
                     let combinedIncText = `${incPrbRaw} ${incShortDesc} ${incNotes}`;
                     // Tenta capturar múltiplos PRBs mencionados (resolve casos como "RITM9889436/PRB0113800")
                     let prbMatches = combinedIncText.match(/PRB[0-9]+/g) || [];
-
+                    
                     let uniquePrbs = [...new Set(prbMatches)];
                     uniquePrbs.forEach(pNum => {
                         if (!globalPrbToIncsMap[pNum]) globalPrbToIncsMap[pNum] = [];
@@ -6394,7 +6411,7 @@
                     as: asg,
                     gp: gp,
                     st: stOrig || '—',
-                    stRca: stOrig || '—',
+                    stRca: stOrig || '—', 
                     priority: getCol(r, ['Priority', 'Prioridade']) || 'N/A',
                     age: age,
                     idle: idle,
@@ -6420,7 +6437,7 @@
                     close_notes: getCol(r, ['Close notes', 'Notas de fechamento']) || '-',
                     comments: getCol(r, ['Additional comments', 'Comentários Adicionais']) || '-'
                 };
-
+                
                 // Calculate SLA % for the hover tooltip (assuming 10 days for PRBs as default)
                 const slaP = parseInt(document.getElementById('sla-rca')?.value) || 10;
                 prbObj.pctSla = ((age / slaP) * 100).toFixed(2).replace('.', ',');
@@ -6461,7 +6478,7 @@
                     as: asg,
                     gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
                     st: stOrig,
-                    stRca: '-',
+                    stRca: '-', 
                     age: age,
                     idle: (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-',
                     opStr: op.toLocaleDateString('pt-BR'),
@@ -6591,16 +6608,16 @@
 
             function buildPRBTreeHTML(prbsList) {
                 if (!prbsList || prbsList.length === 0) return `<li style="padding: 1rem; color: #94a3b8; border:none;">Nenhum item encontrado.</li>`;
-
+                
                 return prbsList.map(prb => {
                     let ptasksForPrb = allPtasks.filter(t => t.tk === prb.tk);
                     let incsForPrb = prb.associated_incs || [];
                     let hasChildren = ptasksForPrb.length > 0 || incsForPrb.length > 0;
-
+                    
                     let childrenHtml = '';
                     if (hasChildren) {
                         childrenHtml = `<ul>`;
-
+                        
                         // Render PTASKs
                         ptasksForPrb.forEach(ptask => {
                             let isOpen = !['CLOSED', 'RESOLVED', 'CANCELLED', 'COMPLETED', 'PUBLISHED'].some(ts => ptask.st.toUpperCase().includes(ts));
@@ -6615,7 +6632,7 @@
                                 </span>
                             </li>`;
                         });
-
+                        
                         // Render INCs
                         incsForPrb.forEach(inc => {
                             let isOpen = inc.st.includes('OPEN') || inc.st.includes('ABERTO') || inc.st.includes('IN PROGRESS') || inc.st.includes('NEW');
@@ -6630,17 +6647,17 @@
                                 </span>
                             </li>`;
                         });
-
+                        
                         childrenHtml += `</ul>`;
                     } else {
                         childrenHtml = `<ul><li><span style="font-size: 10px; color: #94a3b8;">Nenhum ticket associado</span></li></ul>`;
                     }
-
+                    
                     let badgeColor = prb.is_rca_open ? '#E74C3C' : '#27AE60';
-                    let rcaBadge = prb.is_rca_open
-                        ? `<span style="background: #FEF08A; color: #B45309; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">⚠️ RCA: ${prb.stRca}</span>`
+                    let rcaBadge = prb.is_rca_open 
+                        ? `<span style="background: #FEF08A; color: #B45309; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">⚠️ RCA: ${prb.stRca}</span>` 
                         : `<span style="background: #DCFCE7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; margin-left: 6px;">✅ RCA: ${prb.stRca}</span>`;
-
+                    
                     return `
                     <li>
                         <details ${prb.is_rca_open ? 'open' : ''}>
@@ -6699,7 +6716,7 @@
         function generateRPATabHTML() {
             // Estrutura Base com Spinner de Carregamento
             let html = `<div class="report-section-title" style="background-color: #8B5CF6;"><i class="fas fa-robot mr-2"></i> MONITORAMENTO DE COMUNICAÇÕES RPA (PYTHON + SQLITE)</div>`;
-
+            
             html += `
             <div id="rpa-dashboard-container">
                 <div class="flex flex-col items-center justify-center p-10 text-purple-600">
@@ -6729,7 +6746,7 @@
                 console.warn("RPA Bridge offline, global sync skipped.");
             }
         }
-
+        
         // Chamar na inicialização
         initializeRpaGlobalData();
 
@@ -6737,12 +6754,12 @@
             try {
                 const response = await fetch('http://localhost:5000/rpa/logs');
                 if (!response.ok) throw new Error('API do Robô Indisponível (email_bridge.py / status: ' + response.status + ')');
-
+                
                 const responseData = await response.json();
-
+                
                 if (responseData.status === 'error') {
-                    renderRPAError(responseData.message);
-                    return;
+                   renderRPAError(responseData.message);
+                   return;
                 }
 
                 renderRPADashboard(responseData.data || []);
@@ -6797,7 +6814,7 @@
             </div>`;
 
             let rows = realData.map(r => {
-                let stBadge = r.status === 'SUCESSO'
+                let stBadge = r.status === 'SUCESSO' 
                     ? '<span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-black uppercase"><i class="fas fa-check mr-1"></i>' + r.status + '</span>'
                     : '<span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[9px] font-black uppercase"><i class="fas fa-ban mr-1"></i>' + r.status + '</span>';
 
@@ -6813,9 +6830,9 @@
                     <td class="text-slate-400 text-[9px] text-center"><i class="fas fa-cogs mr-1"></i>${r.data_processamento}</td>
                     <td class="text-center">${stBadge}</td>
                     <td class="text-center">
-                        ${r.arquivo_caminho
-                        ? `<button class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded text-[9px] font-bold border border-blue-200" onclick="readRpaEmail('${r.arquivo_caminho.replace(/\\/g, '\\\\')}')" title="Ler E-mail">Ver E-mail</button>`
-                        : '<span class="text-[9px] text-slate-300">N/A</span>'}
+                        ${r.arquivo_caminho 
+                            ? `<button class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-2 py-1 rounded text-[9px] font-bold border border-blue-200" onclick="readRpaEmail('${r.arquivo_caminho.replace(/\\/g, '\\\\')}')" title="Ler E-mail">Ver E-mail</button>` 
+                            : '<span class="text-[9px] text-slate-300">N/A</span>'}
                     </td>
                 </tr>`;
             }).join('');
@@ -7254,7 +7271,7 @@
                             if (t.ticket.startsWith('PTASK')) row = RawData.ptask ? RawData.ptask.find(x => getCol(x, ['Number', 'Task', 'Ticket']) === t.ticket) : null;
                             if (t.ticket.startsWith('RCA')) row = RawData.rca ? RawData.rca.find(x => getCol(x, ['Number', 'Task', 'Ticket']) === t.ticket) : null;
                         }
-
+                        
                         if (row) {
                             let clDate = safeDate(getCol(row, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
                             let stOrig = String(getCol(row, ['State', 'Status', 'Estado', 'RCA Status']) || '').toLowerCase();
@@ -7355,20 +7372,20 @@
         async function readRpaEmail(filepath) {
             const modal = document.getElementById('rpaEmailModal');
             const contentDiv = document.getElementById('rpaEmailContent');
-
+            
             modal.classList.remove('hidden');
             contentDiv.innerHTML = '<div class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-4xl text-purple-600 mb-4"></i><div class="font-bold text-slate-500">Carregando e-mail...</div></div>';
-
+            
             try {
                 // Fetch the actual email content served by Python bridge
                 const response = await fetch('http://localhost:5000/rpa/email?filepath=' + encodeURIComponent(filepath));
                 if (!response.ok) throw new Error('API do Robô Indisponível');
-
+                
                 const responseData = await response.json();
-
+                
                 if (responseData.status === 'error') {
-                    contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle block text-3xl mb-2"></i> ${responseData.message}</div>`;
-                    return;
+                   contentDiv.innerHTML = `<div class="p-10 text-center text-red-500 font-bold"><i class="fas fa-exclamation-triangle block text-3xl mb-2"></i> ${responseData.message}</div>`;
+                   return;
                 }
 
                 // Render in a sandboxed iframe to prevent CSS bleeding
@@ -7395,16 +7412,13 @@
     </script>
 
     <!-- Modal de Visualização de E-mail RPA -->
-    <div id="rpaEmailModal"
-        class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 z-[10060] flex items-center justify-center p-4">
-        <div
-            class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
+    <div id="rpaEmailModal" class="hidden fixed inset-0 bg-slate-900 bg-opacity-75 z-[10060] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] overflow-hidden border border-slate-200">
             <div class="bg-purple-600 px-6 py-4 flex justify-between items-center text-white shrink-0">
                 <div class="font-bold text-lg flex items-center">
                     <i class="fas fa-envelope-open-text mr-3"></i> Visualizador de E-mail RPA
                 </div>
-                <button onclick="closeRpaEmailModal()"
-                    class="text-white hover:text-purple-200 transition bg-transparent hover:bg-purple-500 rounded p-1 w-8 h-8 flex items-center justify-center">
+                <button onclick="closeRpaEmailModal()" class="text-white hover:text-purple-200 transition bg-transparent hover:bg-purple-500 rounded p-1 w-8 h-8 flex items-center justify-center">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -7412,8 +7426,7 @@
                 <!-- Iframe injetado pelo js -->
             </div>
             <div class="p-4 bg-white border-t border-slate-100 flex justify-end shrink-0">
-                <button onclick="closeRpaEmailModal()"
-                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2 rounded font-bold transition">Fechar</button>
+                <button onclick="closeRpaEmailModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2 rounded font-bold transition">Fechar</button>
             </div>
         </div>
     </div>
