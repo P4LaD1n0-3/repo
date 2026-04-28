@@ -1,0 +1,328 @@
+From: =?utf-8?Q?Wesley_Sim=C3=B5es?= <rolim.r@icloud.com>
+Content-Type: multipart/alternative;
+	boundary="Apple-Mail=_616C1CB4-3BA9-466C-AB82-EDB8F8E6B931"
+Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3864.400.21\))
+Subject: =?utf-8?Q?Evolu=C3=A7=C3=A3o_e_Tend=C3=AAncia_de_Chamados__?=
+X-Universally-Unique-Identifier: 5649DE51-9F18-45B3-9968-600864A363DF
+Message-Id: <E8ACF21E-8BC7-47F9-962A-BFDC69FB068E@icloud.com>
+Date: Tue, 28 Apr 2026 17:55:00 -0300
+To: =?utf-8?Q?wesley_rolim_sim=EF=BF=BDes?= <rolim.r@hotmail.com>
+
+
+--Apple-Mail=_616C1CB4-3BA9-466C-AB82-EDB8F8E6B931
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain;
+	charset=utf-8
+
+Crescimento de Incidentes: Observamos um aumento de 716% no volume de =
+Incidentes (24 em Jan para 196 em Abr). A proje=C3=A7=C3=A3o para Maio =
+aponta para 252 incidentes, confirmando uma tend=C3=AAncia de =
+crescimento acelerado.
+
+Converg=C3=AAncia Operacional: A rela=C3=A7=C3=A3o entre Request e =
+Incidente caiu drasticamente. Em janeiro, t=C3=ADnhamos 12,7 REQs para =
+cada incidente; em abril, essa propor=C3=A7=C3=A3o =C3=A9 de apenas 1,7 =
+para 1. A opera=C3=A7=C3=A3o est=C3=A1 migrando de entrega de servi=C3=A7o=
+s para suporte corretivo.
+
+
+
+
+M=C3=AAs	Volume REQ	Crescimento REQ	Volume INC	=
+Crescimento INC
+Janeiro	306	-	24	-
+Fevereiro	266	-13%	70	+191%
+Mar=C3=A7o	352	+32%	136	+94%
+Abril	332	-5,60%	196	+44%
+Maio (Proje=C3=A7=C3=A3o)	355	+7%	252	+28%
+
+
+
+
+M=C3=AAs	REQ Cancelados	INC Cancelados	Total Cancelados (A)	=
+Reclassificados (B)	Propor=C3=A7=C3=A3o (B / A)
+Janeiro	18	2	20	-	-
+Fevereiro	37	5	42	29	69,00%
+Mar=C3=A7o	52	16	68	26	38,20%
+Abril	71	16	87	32	36,70%
+
+M=C3=AAs	Volume REQ	Volume INC	Total Geral	% REQ	=
+% INC	Propor=C3=A7=C3=A3o (INC/REQ)
+Janeiro	306	24	330	92,73%	7,27%	1 INC para cada 12,7REQ
+Fevereiro	266	70	336	79,17%	20,83%	1 INC para cada =
+3,8 REQ
+Mar=C3=A7o	352	136	488	72,13%	27,87%	1 INC para cada =
+2,6 REQ
+Abril	332	196	528	62,88%	37,12%	1 INC para cada 1,7 REQ
+TOTAL	1.256	426	1.682	74,67%	25,33%	M=C3=A9dia: 1 INC / 2,9 =
+REQ
+
+
+
+
+
+--Apple-Mail=_616C1CB4-3BA9-466C-AB82-EDB8F8E6B931
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/html;
+	charset=utf-8
+
+<html aria-label=3D"message body"><head><meta http-equiv=3D"content-type" =
+content=3D"text/html; charset=3Dutf-8"></head><body =
+style=3D"overflow-wrap: break-word; -webkit-nbsp-mode: space; =
+line-break: after-white-space;"><ul data-path-to-node=3D"4"><li><p =
+data-path-to-node=3D"4,0,0"><b data-path-to-node=3D"4,0,0" =
+data-index-in-node=3D"0">Crescimento de Incidentes:</b>&nbsp;Observamos =
+um aumento de&nbsp;<b data-path-to-node=3D"4,0,0" =
+data-index-in-node=3D"60">716%</b>&nbsp;no volume de Incidentes (24 em =
+Jan para 196 em Abr). A proje=C3=A7=C3=A3o para Maio aponta para&nbsp;<b =
+data-path-to-node=3D"4,0,0" data-index-in-node=3D"151">252 =
+incidentes</b>, confirmando uma tend=C3=AAncia de crescimento =
+acelerado.</p></li><li><p data-path-to-node=3D"4,1,0"><b =
+data-path-to-node=3D"4,1,0" data-index-in-node=3D"0">Converg=C3=AAncia =
+Operacional:</b>&nbsp;A rela=C3=A7=C3=A3o entre Request e Incidente caiu =
+drasticamente. Em janeiro, t=C3=ADnhamos 12,7 REQs para cada incidente; =
+em abril, essa propor=C3=A7=C3=A3o =C3=A9 de apenas&nbsp;<b =
+data-path-to-node=3D"4,1,0" data-index-in-node=3D"171">1,7 para 1</b>. A =
+opera=C3=A7=C3=A3o est=C3=A1 migrando de entrega de servi=C3=A7os para =
+suporte =
+corretivo.</p></li></ul><div><br></div><div><br></div><div><br></div><div>=
+<google-sheets-html-origin><table xmlns=3D"http://www.w3.org/1999/xhtml" =
+cellspacing=3D"0" cellpadding=3D"0" dir=3D"ltr" border=3D"1" =
+data-sheets-root=3D"1" data-sheets-baot=3D"1" style=3D"table-layout: =
+fixed; font-size: 10pt; font-family: Arial; width: 0px; border-collapse: =
+collapse; border: medium;"><colgroup><col width=3D"101"><col =
+width=3D"84"><col width=3D"114"><col width=3D"78"><col =
+width=3D"108"></colgroup><tbody><tr style=3D"height: 21px;"><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">M=C3=AAs</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">Volume REQ</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">Crescimento REQ</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">Volume INC</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">Crescimento INC</td></tr><tr =
+style=3D"height: 21px;"><td style=3D"border: 1px solid rgb(204, 204, =
+204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom;">Janeiro</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">306</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom;">-</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: right;">24</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">-</td></tr><tr style=3D"height:=
+ 21px;"><td style=3D"border: 1px solid rgb(204, 204, 204); overflow: =
+hidden; padding: 2px 3px; vertical-align: bottom;">Fevereiro</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">266</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">-13%</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">70</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom;">+191%</td></tr><tr style=3D"height: 21px;"><td style=3D"border: =
+1px solid rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; =
+vertical-align: bottom;">Mar=C3=A7o</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">352</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom;">+32%</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">136</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom;">+94%</td></tr><tr style=3D"height: 21px;"><td style=3D"border: =
+1px solid rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; =
+vertical-align: bottom;">Abril</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">332</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">-5,60%</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">196</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom;">+44%</td></tr><tr style=3D"height: 21px;"><td style=3D"border: =
+1px solid rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; =
+vertical-align: bottom;">Maio (Proje=C3=A7=C3=A3o)</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">355</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom;">+7%</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">252</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom;">+28%</td></tr></tbody></table></google-sheets-html-origin></div><=
+div><br></div><div><br></div><div><br></div><div><br></div><div><google-sh=
+eets-html-origin><table xmlns=3D"http://www.w3.org/1999/xhtml" =
+cellspacing=3D"0" cellpadding=3D"0" dir=3D"ltr" border=3D"1" =
+data-sheets-root=3D"1" data-sheets-baot=3D"1" style=3D"table-layout: =
+fixed; font-size: 10pt; font-family: Arial; width: 0px; border-collapse: =
+collapse; border: medium;"><colgroup><col width=3D"100"><col =
+width=3D"100"><col width=3D"100"><col width=3D"100"><col =
+width=3D"100"><col width=3D"110"></colgroup><tbody><tr style=3D"height: =
+21px;"><td style=3D"border: 1px solid rgb(204, 204, 204); overflow: =
+hidden; padding: 2px 3px; vertical-align: bottom;">M=C3=AAs</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">REQ Cancelados</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">INC Cancelados</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">Total Cancelados (A)</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">Reclassificados (B)</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">Propor=C3=A7=C3=A3o (B / =
+A)</td></tr><tr style=3D"height: 21px;"><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom;">Janeiro</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">18</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">2</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">20</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom;">-</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">-</td></tr><tr style=3D"height:=
+ 21px;"><td style=3D"border: 1px solid rgb(204, 204, 204); overflow: =
+hidden; padding: 2px 3px; vertical-align: bottom;">Fevereiro</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: right;">37</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: right;">5</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: right;">42</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: right;">29</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">69,00%</td></tr><tr style=3D"height: 21px;"><td style=3D"border: =
+1px solid rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; =
+vertical-align: bottom;">Mar=C3=A7o</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">52</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">16</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">68</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">26</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">38,20%</td></tr><tr style=3D"height: =
+21px;"><td style=3D"border: 1px solid rgb(204, 204, 204); overflow: =
+hidden; padding: 2px 3px; vertical-align: bottom;">Abril</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: right;">71</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: right;">16</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: right;">87</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: right;">32</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">36,70%</td></tr></tbody></table></google-sheets-html-origin></div>=
+<div><br></div><div><google-sheets-html-origin><table =
+xmlns=3D"http://www.w3.org/1999/xhtml" cellspacing=3D"0" cellpadding=3D"0"=
+ dir=3D"ltr" border=3D"1" data-sheets-root=3D"1" data-sheets-baot=3D"1" =
+style=3D"table-layout: fixed; font-size: 10pt; font-family: Arial; =
+width: 0px; border-collapse: collapse; border: medium;"><colgroup><col =
+width=3D"100"><col width=3D"100"><col width=3D"100"><col =
+width=3D"100"><col width=3D"100"><col width=3D"100"><col =
+width=3D"166"></colgroup><tbody><tr style=3D"height: 21px;"><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">M=C3=AAs</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">Volume REQ</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">Volume INC</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">Total Geral</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom;">% REQ</td><td style=3D"border: =
+1px solid rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; =
+vertical-align: bottom;">% INC</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom;">Propor=C3=A7=C3=A3o (INC/REQ)</td></tr><tr style=3D"height: =
+21px;"><td style=3D"border: 1px solid rgb(204, 204, 204); overflow: =
+hidden; padding: 2px 3px; vertical-align: bottom;">Janeiro</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">306</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">24</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">330</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">92,73%</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">7,27%</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom;">1 INC para =
+cada 12,7REQ</td></tr><tr style=3D"height: 21px;"><td style=3D"border: =
+1px solid rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; =
+vertical-align: bottom;">Fevereiro</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">266</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">70</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">336</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">79,17%</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">20,83%</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom;">1 INC para cada 3,8 REQ</td></tr><tr style=3D"height: =
+21px;"><td style=3D"border: 1px solid rgb(204, 204, 204); overflow: =
+hidden; padding: 2px 3px; vertical-align: bottom;">Mar=C3=A7o</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">352</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">136</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">488</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">72,13%</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">27,87%</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom;">1 INC para =
+cada 2,6 REQ</td></tr><tr style=3D"height: 21px;"><td style=3D"border: =
+1px solid rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; =
+vertical-align: bottom;">Abril</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">332</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">196</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">528</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">62,88%</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom; text-align: right;">37,12%</td><td style=3D"border: 1px solid =
+rgb(204, 204, 204); overflow: hidden; padding: 2px 3px; vertical-align: =
+bottom;">1 INC para cada 1,7 REQ</td></tr><tr style=3D"height: =
+21px;"><td style=3D"border: 1px solid rgb(204, 204, 204); overflow: =
+hidden; padding: 2px 3px; vertical-align: bottom;">TOTAL</td><td =
+style=3D"border: 1px solid rgb(204, 204, 204); overflow: hidden; =
+padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">1.256</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">426</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">1.682</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">74,67%</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom; text-align: =
+right;">25,33%</td><td style=3D"border: 1px solid rgb(204, 204, 204); =
+overflow: hidden; padding: 2px 3px; vertical-align: bottom;">M=C3=A9dia: =
+1 INC / 2,9 =
+REQ</td></tr></tbody></table><br></google-sheets-html-origin></div><div><g=
+oogle-sheets-html-origin><br></google-sheets-html-origin></div><div><googl=
+e-sheets-html-origin><br></google-sheets-html-origin></div><div><google-sh=
+eets-html-origin><br></google-sheets-html-origin></div></body></html>=
+
+--Apple-Mail=_616C1CB4-3BA9-466C-AB82-EDB8F8E6B931--
