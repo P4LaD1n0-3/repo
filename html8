@@ -1794,6 +1794,8 @@
                     PRBs</button>
                 <button class="tab-btn" onclick="switchTab('tab-class', this)"><i class="fas fa-exchange-alt mr-1"></i>
                     Erros Classificação</button>
+                <button class="tab-btn" onclick="switchTab('tab-sla', this)" style="color:#7f1d1d; font-weight:700;"><i class="fas fa-exclamation-triangle mr-1"></i>
+                    Violações SLA</button>
                 <button class="tab-btn" onclick="switchTab('tab-rpa', this)"
                     style="color: var(--primary-dark); font-weight: 500;"><i class="fas fa-robot mr-1"></i>
                     Comunicações RPA</button>
@@ -1833,6 +1835,7 @@
                     <div id="tab-cons" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-prb" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-class" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-sla" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-rpa" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-search" class="animate-fade hidden-st tab-pane"></div>
 
@@ -2478,7 +2481,7 @@
         window.chartInstances = [];
 
         window.DrilldownVault = {
-            inc: {}, req: {}, uam: {}, cons: {}, class: {}
+            inc: {}, req: {}, uam: {}, cons: {}, class: {}, sla: {}
         };
 
         // Inicializa com o mês atual
@@ -5707,6 +5710,225 @@
             </div>`;
         }
 
+        // ============================================================
+        // VIOLAÇÕES DE SLA — INC + REQ + UAM
+        // ============================================================
+        function generateSLABreachTab(dI, dRS, dRU, slaI, slaR, refDateObj) {
+            if (!window.DrilldownVault['sla']) window.DrilldownVault['sla'] = {};
+
+            const _I  = dI  || { outSla: 0, resMes: 0, outSlaTot: 0, tksOutSlaTot: [], allResolvedTks: [], trendM: {}, trendD: {} };
+            const _RS = dRS || { outSla: 0, resMes: 0, outSlaTot: 0, tksOutSlaTot: [], allResolvedTks: [], trendM: {}, trendD: {} };
+            const _RU = dRU || { outSla: 0, resMes: 0, outSlaTot: 0, tksOutSlaTot: [], allResolvedTks: [], trendM: {}, trendD: {} };
+
+            // ── KPI ─────────────────────────────────────────────────────────────
+            const outMesInc  = _I.outSla  || 0;
+            const outMesReq  = _RS.outSla || 0;
+            const outMesUam  = _RU.outSla || 0;
+            const totalOutMes = outMesInc + outMesReq + outMesUam;
+            const resMesTotal = (_I.resMes || 0) + (_RS.resMes || 0) + (_RU.resMes || 0);
+            const pctOut = resMesTotal > 0 ? ((totalOutMes / resMesTotal) * 100).toFixed(1).replace('.', ',') : '0,0';
+
+            const blOutInc = _I.outSlaTot  || 0;
+            const blOutReq = _RS.outSlaTot || 0;
+            const blOutUam = _RU.outSlaTot || 0;
+            const totalBlOut = blOutInc + blOutReq + blOutUam;
+
+            const pctInc = _I.resMes  > 0 ? ((outMesInc  / _I.resMes)  * 100).toFixed(1).replace('.', ',') : '0,0';
+            const pctReq = _RS.resMes > 0 ? ((outMesReq  / _RS.resMes) * 100).toFixed(1).replace('.', ',') : '0,0';
+            const pctUam = _RU.resMes > 0 ? ((outMesUam  / _RU.resMes) * 100).toFixed(1).replace('.', ',') : '0,0';
+
+            // ── LISTAS DE TICKETS ────────────────────────────────────────────────
+            const mk = t => t;
+            const incOutList = (_I.allResolvedTks  || []).filter(t => (t.age || 0) > slaI).map(t => ({ ...t, tipo: 'INC', isBacklog: false }));
+            const reqOutList = (_RS.allResolvedTks || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'REQ', isBacklog: false }));
+            const uamOutList = (_RU.allResolvedTks || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'UAM', isBacklog: false }));
+            const blIncList  = (_I.tksOutSlaTot    || []).map(t => ({ ...t, tipo: 'INC', isBacklog: true }));
+            const blReqList  = (_RS.tksOutSlaTot   || []).map(t => ({ ...t, tipo: 'REQ', isBacklog: true }));
+            const blUamList  = (_RU.tksOutSlaTot   || []).map(t => ({ ...t, tipo: 'UAM', isBacklog: true }));
+
+            const allBreachTks = [...incOutList, ...reqOutList, ...uamOutList, ...blIncList, ...blReqList, ...blUamList]
+                .sort((a, b) => (b.age || 0) - (a.age || 0));
+
+            window.DrilldownVault['sla']['all']      = allBreachTks;
+            window.DrilldownVault['sla']['inc_all']  = [...incOutList, ...blIncList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['req_all']  = [...reqOutList, ...blReqList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['uam_all']  = [...uamOutList, ...blUamList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['bl_all']   = [...blIncList, ...blReqList, ...blUamList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['res_all']  = [...incOutList, ...reqOutList, ...uamOutList].sort((a, b) => (b.age || 0) - (a.age || 0));
+
+            // ── DADOS DOS GRÁFICOS ───────────────────────────────────────────────
+            // Anual: merge todos os meses das três fontes
+            const allMonthsSet = new Set([
+                ...Object.keys(_I.trendM), ...Object.keys(_RS.trendM), ...Object.keys(_RU.trendM)
+            ]);
+            const sortedMonths = [...allMonthsSet].sort();
+            const monthLabels  = sortedMonths.map(m => {
+                let [y, mo] = m.split('-');
+                return new Date(+y, +mo - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
+            });
+            const mDataInc = sortedMonths.map(m => { let tm = (_I.trendM[m]  || { r: 0, inSla: 0 }); return Math.max(0, (tm.r || 0) - (tm.inSla || 0)); });
+            const mDataReq = sortedMonths.map(m => { let tm = (_RS.trendM[m] || { r: 0, inSla: 0 }); return Math.max(0, (tm.r || 0) - (tm.inSla || 0)); });
+            const mDataUam = sortedMonths.map(m => { let tm = (_RU.trendM[m] || { r: 0, inSla: 0 }); return Math.max(0, (tm.r || 0) - (tm.inSla || 0)); });
+            const mDataTot = sortedMonths.map((_, i) => (mDataInc[i] || 0) + (mDataReq[i] || 0) + (mDataUam[i] || 0));
+
+            // Mensal/diário: dias do mês de referência
+            const allDaysSet = new Set([
+                ...Object.keys(_I.trendD), ...Object.keys(_RS.trendD), ...Object.keys(_RU.trendD)
+            ]);
+            const sortedDays = [...allDaysSet].sort();
+            const dayLabels  = sortedDays.map(d => { let p = d.split('-'); return `${p[2]}/${p[1]}`; });
+            const dDataInc = sortedDays.map(d => ((_I.trendD[d]  || { tks_r: [] }).tks_r || []).filter(t => (t.age || 0) > slaI).length);
+            const dDataReq = sortedDays.map(d => ((_RS.trendD[d] || { tks_r: [] }).tks_r || []).filter(t => (t.age || 0) > slaR).length);
+            const dDataUam = sortedDays.map(d => ((_RU.trendD[d] || { tks_r: [] }).tks_r || []).filter(t => (t.age || 0) > slaR).length);
+            const dDataTot = sortedDays.map((_, i) => (dDataInc[i] || 0) + (dDataReq[i] || 0) + (dDataUam[i] || 0));
+
+            // Armazena para uso nos charts (acesso global via closure)
+            window._slaChartData = { monthLabels, mDataInc, mDataReq, mDataUam, mDataTot, dayLabels, dDataInc, dDataReq, dDataUam, dDataTot };
+
+            // ── TABELA ──────────────────────────────────────────────────────────
+            const rows = allBreachTks.map(t => {
+                const typeCls = t.tipo === 'INC' ? 'bg-red-100 text-red-700' : t.tipo === 'REQ' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
+                const blBadge = t.isBacklog ? `<span class="ml-1 text-[8px] bg-amber-100 text-amber-700 border border-amber-200 px-1 py-0.5 rounded font-black">ABERTO</span>` : '';
+                const ageCls  = (t.age || 0) > 30 ? 'text-red-700' : (t.age || 0) > 14 ? 'text-orange-600' : 'text-amber-600';
+                return `<tr class="ticket-row hover:bg-slate-50 transition" ${buildDataAttrs(t)}>
+                    <td class="font-bold text-center text-[var(--primary-dark)]">
+                        ${t.tk}
+                        <div class="mt-1 flex gap-1 justify-center flex-wrap">
+                            <span class="text-[8px] font-black px-1.5 py-0.5 rounded ${typeCls}">${t.tipo}</span>${blBadge}
+                        </div>
+                        <button onclick="openTicketDetails('${t.tk}')" class="mt-1 w-full text-center bg-blue-50 hover:bg-blue-100 border border-blue-200/50 rounded py-1 text-[9px] uppercase font-bold transition"><i class="fas fa-search mr-1"></i> Detalhes</button>
+                    </td>
+                    <td class="text-left">
+                        <div class="text-xs font-semibold text-slate-800 mb-0.5 line-clamp-2">${t.desc || '-'}</div>
+                        ${t.info && t.info !== '-' ? `<div class="text-[9px] text-amber-600 font-medium truncate max-w-[280px]">${t.info}</div>` : ''}
+                    </td>
+                    <td class="text-center text-[11px]">${t.req || 'N/A'}</td>
+                    <td class="text-center text-[11px]">${t.as || '-'}<br><span class="text-[9px] text-slate-400 block mt-0.5">${t.gp || '-'}</span></td>
+                    <td class="text-center">
+                        <span class="text-[9px] font-bold bg-slate-100 px-2 py-0.5 rounded block mb-1">${t.st || '-'}</span>
+                        <span class="text-[9px] text-slate-400">${t.opStr || '-'}</span>
+                    </td>
+                    <td class="text-right">
+                        <div class="font-black text-base ${ageCls}">${t.age || 0}d</div>
+                        ${(t.idle !== undefined && t.idle !== '-') ? `<div class="text-[9px] font-bold mt-0.5 ${(+t.idle) > 3 ? 'text-red-500' : 'text-green-600'}"><i class="fas fa-user-clock"></i> ${t.idle}d</div>` : ''}
+                    </td>
+                </tr>`;
+            }).join('');
+
+            return `
+            <div class="report-section-title" style="background: linear-gradient(90deg,#7f1d1d,#991b1b);">
+                <i class="fas fa-exclamation-triangle mr-2"></i> VIOLAÇÕES DE SLA — TODOS OS FLUXOS (INC + REQ + UAM)
+                <span class="ml-auto text-[10px] font-bold bg-red-900/50 px-2 py-0.5 rounded">SLA INC: ${slaI}d | SLA REQ/UAM: ${slaR}d</span>
+            </div>
+
+            <!-- ── KPIs Principais ── -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                <div class="report-card text-center border-t-4 border-red-700 bg-gradient-to-br from-white to-red-50/40 p-4 shadow cursor-pointer hover:shadow-md transition"
+                     onclick="openDrilldown('Total Fora SLA — Mês Vigente', 'all', 'sla')">
+                    <div class="text-[9px] font-black text-red-700 uppercase tracking-widest mb-1">Total Fora SLA (Mês)</div>
+                    <div class="text-5xl font-black text-slate-800">${totalOutMes}</div>
+                    <div class="text-xs font-black text-red-500 mt-2">${pctOut}% do volume resolvido</div>
+                    <div class="text-[9px] text-slate-400 mt-1 uppercase">Resolvidos no período</div>
+                </div>
+                <div class="report-card text-center border-t-4 border-red-500 bg-gradient-to-br from-white to-red-50/20 p-4 shadow cursor-pointer hover:shadow-md transition"
+                     onclick="openDrilldown('INC Fora SLA — Mês Vigente', 'inc_all', 'sla')">
+                    <div class="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1">INC Fora SLA</div>
+                    <div class="text-4xl font-black text-slate-800">${outMesInc}</div>
+                    <div class="text-xs font-bold text-red-400 mt-2">${pctInc}% dos INC resolvidos</div>
+                    <div class="text-[9px] text-slate-400 mt-1 uppercase">SLA: ${slaI} dias</div>
+                </div>
+                <div class="report-card text-center border-t-4 border-blue-500 bg-gradient-to-br from-white to-blue-50/20 p-4 shadow cursor-pointer hover:shadow-md transition"
+                     onclick="openDrilldown('REQ Fora SLA — Mês Vigente', 'req_all', 'sla')">
+                    <div class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">REQ Fora SLA</div>
+                    <div class="text-4xl font-black text-slate-800">${outMesReq}</div>
+                    <div class="text-xs font-bold text-blue-400 mt-2">${pctReq}% das REQ resolvidas</div>
+                    <div class="text-[9px] text-slate-400 mt-1 uppercase">SLA: ${slaR} dias</div>
+                </div>
+                <div class="report-card text-center border-t-4 border-purple-500 bg-gradient-to-br from-white to-purple-50/20 p-4 shadow cursor-pointer hover:shadow-md transition"
+                     onclick="openDrilldown('UAM Fora SLA — Mês Vigente', 'uam_all', 'sla')">
+                    <div class="text-[9px] font-black text-purple-500 uppercase tracking-widest mb-1">UAM Fora SLA</div>
+                    <div class="text-4xl font-black text-slate-800">${outMesUam}</div>
+                    <div class="text-xs font-bold text-purple-400 mt-2">${pctUam}% das UAM resolvidas</div>
+                    <div class="text-[9px] text-slate-400 mt-1 uppercase">SLA: ${slaR} dias</div>
+                </div>
+            </div>
+
+            <!-- ── KPIs Backlog ── -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
+                <div class="report-card text-center border-t-4 border-amber-500 bg-gradient-to-br from-white to-amber-50/40 p-4 shadow cursor-pointer hover:shadow-md transition col-span-1"
+                     onclick="openDrilldown('Backlog Atrasado (Todos em Aberto)', 'bl_all', 'sla')">
+                    <div class="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Backlog Fora SLA</div>
+                    <div class="text-4xl font-black text-amber-700">${totalBlOut}</div>
+                    <div class="text-[9px] text-slate-400 mt-2">Tickets abertos e atrasados</div>
+                </div>
+                <div class="report-card col-span-1 md:col-span-3 p-4 bg-slate-50/50 border border-slate-200 shadow-sm">
+                    <div class="text-[9px] font-black text-slate-500 uppercase mb-3">Breakdown Backlog Fora SLA</div>
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="bg-white rounded-lg border border-red-100 p-3">
+                            <div class="text-[9px] font-black text-red-500 uppercase mb-1">INC</div>
+                            <div class="text-3xl font-black text-slate-700">${blOutInc}</div>
+                            <div class="text-[9px] text-slate-400 mt-1">em aberto &gt;${slaI}d</div>
+                        </div>
+                        <div class="bg-white rounded-lg border border-blue-100 p-3">
+                            <div class="text-[9px] font-black text-blue-500 uppercase mb-1">REQ</div>
+                            <div class="text-3xl font-black text-slate-700">${blOutReq}</div>
+                            <div class="text-[9px] text-slate-400 mt-1">em aberto &gt;${slaR}d</div>
+                        </div>
+                        <div class="bg-white rounded-lg border border-purple-100 p-3">
+                            <div class="text-[9px] font-black text-purple-500 uppercase mb-1">UAM</div>
+                            <div class="text-3xl font-black text-slate-700">${blOutUam}</div>
+                            <div class="text-[9px] text-slate-400 mt-1">em aberto &gt;${slaR}d</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Gráficos ── -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
+                <div class="report-card shadow-sm">
+                    <div class="report-card-title" style="color:#7f1d1d;">
+                        <i class="fas fa-chart-bar mr-2"></i> VISÃO ANUAL — Fora de SLA por Mês (INC + REQ + UAM)
+                    </div>
+                    <div style="height:340px; position:relative;">
+                        <canvas id="c-sla-annual"></canvas>
+                    </div>
+                </div>
+                <div class="report-card shadow-sm">
+                    <div class="report-card-title" style="color:#7f1d1d;">
+                        <i class="fas fa-chart-line mr-2"></i> VISÃO MENSAL — Fora de SLA por Dia (Mês Vigente)
+                    </div>
+                    <div style="height:340px; position:relative;">
+                        <canvas id="c-sla-daily"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Tabela Completa ── -->
+            <div class="report-card border-t-4 shadow-sm" style="border-color:#7f1d1d;">
+                <div class="report-card-title" style="color:#7f1d1d;">
+                    <i class="fas fa-list mr-2"></i> LISTA COMPLETA — Tickets Fora de SLA (Mês Vigente)
+                    <span class="ml-auto text-[9px] font-bold text-slate-400 normal-case">${allBreachTks.length} registros | resolvidos acima do prazo + backlog atrasado</span>
+                </div>
+                <div class="st-dataframe-container border-0">
+                    <table class="st-table">
+                        <thead>
+                            <tr>
+                                ${createTh("Ticket / Tipo", "14%")}
+                                ${createTh("Descrição", "auto", "left")}
+                                ${createTh("Solicitante", "12%")}
+                                ${createTh("Analista / Grupo", "14%")}
+                                ${createTh("Status / Abertura", "12%")}
+                                ${createTh("Aging", "9%", "right")}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows || `<tr><td colspan="6" class="text-center py-10 text-slate-400 font-bold"><i class="fas fa-check-circle text-3xl text-emerald-400 block mb-2"></i>Nenhuma violação de SLA no período!</td></tr>`}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        }
+
         function generateConsolidadoHTML(i, r, u) {
             let getTotals = (d, key) => { let s = 0; if (d?.trendM) Object.keys(d.trendM).forEach(k => s += d.trendM[k][key]); return s; };
             let totIn = getTotals(i, 'a') + getTotals(r, 'a') + getTotals(u, 'a');
@@ -7230,7 +7452,7 @@
                 const dateToday = now;
 
                 // Limpa recipientes
-                ['tab-inc', 'tab-req', 'tab-uam', 'tab-cons', 'tab-prb', 'tab-class', 'tab-search', 'tab-open'].forEach(id => {
+                ['tab-inc', 'tab-req', 'tab-uam', 'tab-cons', 'tab-prb', 'tab-class', 'tab-sla', 'tab-search', 'tab-open'].forEach(id => {
                     let el = document.getElementById(id);
                     if (el) el.innerHTML = "";
                 });
@@ -7352,6 +7574,118 @@
                         }
                     });
                 }
+
+                // ── Aba Violações SLA ──────────────────────────────────────────────
+                if (dI || dRS || dRU) {
+                    document.getElementById('tab-sla').innerHTML = generateSLABreachTab(dI, dRS, dRU, slaI, slaR, dateMachine);
+                    requestAnimationFrame(() => {
+                        const sd = window._slaChartData || {};
+
+                        // Gráfico Anual (barras empilhadas por tipo + linha total)
+                        const cnvAnnual = document.getElementById('c-sla-annual');
+                        if (cnvAnnual && (sd.monthLabels || []).length > 0) {
+                            window.chartInstances.push(new Chart(cnvAnnual, {
+                                type: 'bar',
+                                data: {
+                                    labels: sd.monthLabels,
+                                    datasets: [
+                                        {
+                                            type: 'line', label: 'Total Fora SLA',
+                                            data: sd.mDataTot, borderColor: '#7f1d1d', borderWidth: 3,
+                                            fill: false, pointBackgroundColor: '#7f1d1d', pointRadius: 4,
+                                            datalabels: { align: 'top', color: '#7f1d1d', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
+                                        },
+                                        {
+                                            label: 'INC', data: sd.mDataInc,
+                                            backgroundColor: '#ef4444', stack: 'st',
+                                            datalabels: { color: '#fff', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? v : '' }
+                                        },
+                                        {
+                                            label: 'REQ', data: sd.mDataReq,
+                                            backgroundColor: '#3b82f6', stack: 'st',
+                                            datalabels: { color: '#fff', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? v : '' }
+                                        },
+                                        {
+                                            label: 'UAM', data: sd.mDataUam,
+                                            backgroundColor: '#a855f7', stack: 'st',
+                                            datalabels: { color: '#fff', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? v : '' }
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    maintainAspectRatio: false,
+                                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+                                    scales: {
+                                        xAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontSize: 10 } }],
+                                        yAxes: [{ stacked: true, ticks: { beginAtZero: true, fontSize: 10 }, gridLines: { color: '#f1f5f9' } }]
+                                    },
+                                    onClick: function(evt) {
+                                        const el = this.getElementAtEvent(evt)[0];
+                                        if (!el) return;
+                                        const idx = el._index;
+                                        const mKey = (sd.monthLabels || [])[idx] || '';
+                                        const allSlaMonthTks = [...(window.DrilldownVault['sla']['all'] || [])].filter(t => (t.opStr || '').includes(mKey.split(' ')[0]));
+                                        window.DrilldownVault['sla']['_tmp_month'] = allSlaMonthTks.length ? allSlaMonthTks : (window.DrilldownVault['sla']['all'] || []);
+                                        openDrilldown(`Fora SLA — ${mKey}`, '_tmp_month', 'sla');
+                                    }
+                                }
+                            }));
+                        }
+
+                        // Gráfico Mensal/Diário (linhas por tipo)
+                        const cnvDaily = document.getElementById('c-sla-daily');
+                        if (cnvDaily && (sd.dayLabels || []).length > 0) {
+                            window.chartInstances.push(new Chart(cnvDaily, {
+                                type: 'line',
+                                data: {
+                                    labels: sd.dayLabels,
+                                    datasets: [
+                                        {
+                                            label: 'Total', data: sd.dDataTot,
+                                            borderColor: '#7f1d1d', borderWidth: 3, fill: false,
+                                            pointBackgroundColor: '#7f1d1d', pointRadius: 4,
+                                            datalabels: { align: 'top', color: '#7f1d1d', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
+                                        },
+                                        {
+                                            label: 'INC', data: sd.dDataInc,
+                                            borderColor: '#ef4444', borderWidth: 2, fill: false,
+                                            borderDash: [4, 3], pointRadius: 3,
+                                            datalabels: { color: '#ef4444', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                                        },
+                                        {
+                                            label: 'REQ', data: sd.dDataReq,
+                                            borderColor: '#3b82f6', borderWidth: 2, fill: false,
+                                            borderDash: [4, 3], pointRadius: 3,
+                                            datalabels: { color: '#3b82f6', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                                        },
+                                        {
+                                            label: 'UAM', data: sd.dDataUam,
+                                            borderColor: '#a855f7', borderWidth: 2, fill: false,
+                                            borderDash: [4, 3], pointRadius: 3,
+                                            datalabels: { color: '#a855f7', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    maintainAspectRatio: false,
+                                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+                                    scales: {
+                                        xAxes: [{ gridLines: { display: false }, ticks: { fontSize: 9, maxRotation: 45 } }],
+                                        yAxes: [{ ticks: { beginAtZero: true, fontSize: 10 }, gridLines: { color: '#f1f5f9' } }]
+                                    },
+                                    onClick: function(evt) {
+                                        const el = this.getElementAtEvent(evt)[0];
+                                        if (!el) return;
+                                        const dLabel = (sd.dayLabels || [])[el._index] || '';
+                                        window.DrilldownVault['sla']['_tmp_day'] = window.DrilldownVault['sla']['res_all'] || [];
+                                        openDrilldown(`Fora SLA — dia ${dLabel}`, '_tmp_day', 'sla');
+                                    }
+                                }
+                            }));
+                        }
+                    });
+                }
+                // ──────────────────────────────────────────────────────────────────
 
                 // Inject RPA Tab
                 document.getElementById('tab-rpa').innerHTML = generateRPATabHTML();
