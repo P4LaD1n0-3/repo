@@ -5997,6 +5997,19 @@
                 <div class="report-card-title">2. VISÃO MENSAL CONSOLIDADA</div>
                 <div class="chart-full-width"><canvas id="c-m-cons"></canvas></div>
             </div>
+
+            <div class="report-card" style="height:500px;">
+                <div class="report-card-title" style="color:var(--primary-dark);">
+                    <i class="fas fa-chart-area mr-2 text-blue-600"></i>
+                    3. TENDÊNCIAS COMPARATIVAS — INC × REQ × UAM (Visão Anual)
+                </div>
+                <div style="font-size:10px; color:#94a3b8; margin-bottom:8px; line-height:1.5;">
+                    <span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;"><span style="display:inline-block;width:18px;height:3px;background:#1e3a8a;border-radius:2px;"></span> Área preenchida = Abertos</span>
+                    <span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;"><span style="display:inline-block;width:18px;height:2px;background:#22c55e;border-radius:2px;border-top:2px dashed #22c55e;"></span> Linha tracejada = Resolvidos</span>
+                    <span style="color:#0f172a;font-weight:700;">Quando a linha tracejada supera a área → backlog diminuindo ↓ &nbsp;|&nbsp; Quando a área supera a linha → backlog crescendo ↑</span>
+                </div>
+                <div class="chart-full-width" style="height:calc(100% - 70px);"><canvas id="c-trend-cats"></canvas></div>
+            </div>
             `;
         }
 
@@ -7404,6 +7417,164 @@
                 window.chartInstances.push(instance);
             };
             drawC('c-d-cons', cTrendD, true); drawC('c-m-cons', cTrendM, false);
+
+            // ── Gráfico 3: Tendências Comparativas INC × REQ × UAM ──────────────
+            const allTrendMonths = new Set([...Object.keys(i.trendM), ...Object.keys(r.trendM), ...Object.keys(u.trendM)]);
+            const sortedTrendM = [...allTrendMonths].sort();
+            const trendLabels = sortedTrendM.map(k => {
+                let [y, mo] = k.split('-');
+                return new Date(+y, +mo - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
+            });
+            const catGet = (src, key) => sortedTrendM.map(k => src.trendM[k]?.[key] || 0);
+
+            const cnvTrend = document.getElementById('c-trend-cats');
+            if (cnvTrend) {
+                window.chartInstances.push(new Chart(cnvTrend, {
+                    type: 'line',
+                    data: {
+                        labels: trendLabels,
+                        datasets: [
+                            // ── INC ──────────────────────────────────────────────
+                            {
+                                label: 'INC — Abertos',
+                                data: catGet(i, 'a'),
+                                borderColor: 'rgba(30,58,138,1)',
+                                backgroundColor: 'rgba(30,58,138,0.13)',
+                                fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
+                                pointBackgroundColor: 'rgba(30,58,138,1)',
+                                datalabels: {
+                                    align: 'top', color: '#1e3a8a',
+                                    font: { weight: 'bold', size: 10 },
+                                    formatter: v => v > 0 ? v : ''
+                                }
+                            },
+                            {
+                                label: 'INC — Resolvidos',
+                                data: catGet(i, 'r'),
+                                borderColor: 'rgba(34,197,94,0.9)',
+                                backgroundColor: 'rgba(34,197,94,0.04)',
+                                fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5,
+                                borderDash: [7, 4],
+                                pointBackgroundColor: 'rgba(34,197,94,1)',
+                                datalabels: {
+                                    align: 'bottom', color: '#16a34a',
+                                    font: { size: 9 },
+                                    formatter: v => v > 0 ? v : ''
+                                }
+                            },
+                            // ── REQ ──────────────────────────────────────────────
+                            {
+                                label: 'REQ — Abertos',
+                                data: catGet(r, 'a'),
+                                borderColor: 'rgba(37,99,235,1)',
+                                backgroundColor: 'rgba(37,99,235,0.11)',
+                                fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
+                                pointBackgroundColor: 'rgba(37,99,235,1)',
+                                datalabels: {
+                                    align: 'top', color: '#1d4ed8',
+                                    font: { weight: 'bold', size: 10 },
+                                    formatter: v => v > 0 ? v : ''
+                                }
+                            },
+                            {
+                                label: 'REQ — Resolvidos',
+                                data: catGet(r, 'r'),
+                                borderColor: 'rgba(16,185,129,0.9)',
+                                backgroundColor: 'transparent',
+                                fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5,
+                                borderDash: [7, 4],
+                                pointBackgroundColor: 'rgba(16,185,129,1)',
+                                datalabels: {
+                                    align: 'bottom', color: '#059669',
+                                    font: { size: 9 },
+                                    formatter: v => v > 0 ? v : ''
+                                }
+                            },
+                            // ── UAM ──────────────────────────────────────────────
+                            {
+                                label: 'UAM — Abertos',
+                                data: catGet(u, 'a'),
+                                borderColor: 'rgba(124,58,237,1)',
+                                backgroundColor: 'rgba(124,58,237,0.10)',
+                                fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
+                                pointBackgroundColor: 'rgba(124,58,237,1)',
+                                datalabels: {
+                                    align: 'top', color: '#7c3aed',
+                                    font: { weight: 'bold', size: 10 },
+                                    formatter: v => v > 0 ? v : ''
+                                }
+                            },
+                            {
+                                label: 'UAM — Resolvidos',
+                                data: catGet(u, 'r'),
+                                borderColor: 'rgba(192,132,252,0.9)',
+                                backgroundColor: 'transparent',
+                                fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5,
+                                borderDash: [7, 4],
+                                pointBackgroundColor: 'rgba(192,132,252,1)',
+                                datalabels: {
+                                    align: 'bottom', color: '#9333ea',
+                                    font: { size: 9 },
+                                    formatter: v => v > 0 ? v : ''
+                                }
+                            }
+                        ]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 16, usePointStyle: true, fontSize: 11 }
+                        },
+                        elements: { line: { tension: 0.35 } },
+                        scales: {
+                            xAxes: [{
+                                gridLines: { display: false },
+                                ticks: { fontSize: 10, maxRotation: 40 }
+                            }],
+                            yAxes: [{
+                                ticks: { beginAtZero: true, fontSize: 10 },
+                                gridLines: { color: '#f1f5f9', zeroLineColor: '#e2e8f0' }
+                            }]
+                        },
+                        tooltips: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                title: (items) => items[0]?.xLabel || '',
+                                label: (item, data) => {
+                                    const ds = data.datasets[item.datasetIndex];
+                                    return ` ${ds.label}: ${item.yLabel}`;
+                                }
+                            }
+                        },
+                        onClick: function (evt) {
+                            const el = this.getElementAtEvent(evt)[0];
+                            if (!el) return;
+                            const idx    = el._index;
+                            const dsIdx  = el._datasetIndex;
+                            const mKey   = sortedTrendM[idx];
+                            const lbl    = trendLabels[idx];
+                            const srcMap = [
+                                [i, 'a', `INC Abertos — ${lbl}`],
+                                [i, 'r', `INC Resolvidos — ${lbl}`],
+                                [r, 'a', `REQ Abertos — ${lbl}`],
+                                [r, 'r', `REQ Resolvidos — ${lbl}`],
+                                [u, 'a', `UAM Abertos — ${lbl}`],
+                                [u, 'r', `UAM Resolvidos — ${lbl}`]
+                            ];
+                            const entry = srcMap[dsIdx];
+                            if (!entry) return;
+                            const tksKey = entry[1] === 'a' ? 'tks_a' : 'tks_r';
+                            const tks = entry[0].trendM[mKey]?.[tksKey] || [];
+                            if (!tks.length) return;
+                            window.DrilldownVault['cons']['trend_tmp'] = tks;
+                            openDrilldown(entry[2], 'trend_tmp', 'cons');
+                        }
+                    }
+                }));
+            }
+            // ────────────────────────────────────────────────────────────────────
         }
 
         // ==========================================
