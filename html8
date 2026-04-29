@@ -2457,10 +2457,12 @@
             if (nameLower.includes('inc') && cleanJson.length > 0) RawData.incs = cleanJson;
             else if ((nameLower.includes('sc_task') || nameLower.includes('req')) && cleanJson.length > 0) RawData.reqs = cleanJson;
             else if (nameLower.includes('rca') && cleanJson.length > 0) RawData.rca = cleanJson;
-            else if (nameLower.includes('ptask') && cleanJson.length > 0) RawData.ptask = cleanJson;
-            else if (nameLower.includes('prb') && cleanJson.length > 0) RawData.prb = cleanJson;
+            else if ((nameLower.includes('ptask') || (nameLower.includes('problem') && nameLower.includes('task')) || nameLower.includes('stask')) && cleanJson.length > 0) RawData.ptask = cleanJson;
+            else if ((nameLower.includes('prb') || (nameLower.includes('problem') && !nameLower.includes('task'))) && cleanJson.length > 0) RawData.prb = cleanJson;
             else {
-                console.warn(`[DATA] Arquivo '${originalName}' ignorado ou sem dados válidos. Mantendo dados existentes.`);
+                console.warn(`[DATA] Arquivo '${originalName}' não reconhecido. Mantendo dados existentes.`);
+                let warnBadge = `<div class="file-badge" style="background:#fee2e2;border-color:#fca5a5;"><span class="truncate" style="color:#b91c1c;"><i class="fas fa-exclamation-triangle mr-1"></i> ${originalName} (não reconhecido)</span></div>`;
+                document.getElementById('file-status').innerHTML += warnBadge;
                 return;
             }
 
@@ -6430,12 +6432,14 @@
             // ---------------------------------------------------------------
             let prbMasterMap = {}; // prbId (ex: "PRB0012345") -> linha bruta do problem_rca.xlsx
 
+            // Helper: extrai somente "PRBxxxxxxx" de qualquer string (ex: "PRB0001234 - Descrição")
+            const _extractPRBId = (v) => (String(v || '').toUpperCase().match(/PRB[0-9]+/) || [])[0] || '';
+
             // Primeiro carrega de prbRawData (RawData.prb) — RawData.rca tem prioridade e vai sobrescrever se houver
             if (prbRawData && prbRawData.length > 0) {
                 prbRawData.forEach(row => {
-                    let idA = String(getCol(row, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
-                    let idB = String(getCol(row, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
-                    let prbId = idA.startsWith('PRB') ? idA : (idB.startsWith('PRB') ? idB : '');
+                    let prbId = _extractPRBId(getCol(row, ['Number', 'Ticket', 'Número', 'number']))
+                             || _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id']));
                     if (!prbId) return;
                     if (!prbMasterMap[prbId]) prbMasterMap[prbId] = row;
                 });
@@ -6443,10 +6447,9 @@
 
             if (rcaRawData && rcaRawData.length > 0) {
                 rcaRawData.forEach(row => {
-                    // Tenta "Problem" primeiro (coluna específica de vínculo), depois "Number"
-                    let idA = String(getCol(row, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
-                    let idB = String(getCol(row, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
-                    let prbId = idA.startsWith('PRB') ? idA : (idB.startsWith('PRB') ? idB : '');
+                    // Tenta "Number" primeiro (campo nativo do Problem), depois "Problem"
+                    let prbId = _extractPRBId(getCol(row, ['Number', 'Ticket', 'Número', 'number']))
+                             || _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id']));
                     if (!prbId) return;
                     prbMasterMap[prbId] = row; // RCA sempre tem prioridade sobre prb.xlsx
                 });
@@ -6468,9 +6471,9 @@
                 let incNum = String(getCol(inc, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
                 if (!incNum.startsWith('INC')) return;
 
-                // (a) campo direto Problem
-                let prbDirect = String(getCol(inc, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
-                if (prbDirect.startsWith('PRB')) {
+                // (a) campo direto Problem — extrai apenas PRBxxxxxxx (ignora descrição após o número)
+                let prbDirect = _extractPRBId(getCol(inc, ['Problem', 'Problema', 'problem_id']));
+                if (prbDirect) {
                     if (!prbToIncsMap[prbDirect]) prbToIncsMap[prbDirect] = new Map();
                     if (!prbToIncsMap[prbDirect].has(incNum)) prbToIncsMap[prbDirect].set(incNum, inc);
                 }
@@ -6486,8 +6489,9 @@
 
             // (b) campo "Related Incidents" do problem_rca.xlsx → busca INC em incSource
             Object.entries(prbMasterMap).forEach(([prbId, row]) => {
-                let relRaw = String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'Tickets Relacionados', 'Related tickets']) || '');
-                let relNums = relRaw.split(/[,\s;|]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC'));
+                let relRaw = String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'Tickets Relacionados', 'Related tickets', 'related_incidents']) || '');
+                // Extrai todos os INCxxxxxxx mencionados (tolerante a formatos misturados)
+                let relNums = (relRaw.toUpperCase().match(/INC[0-9]+/g) || []);
                 relNums.forEach(incNum => {
                     let incRow = incSource.find(x => String(getCol(x, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase() === incNum);
                     if (!incRow) return;
@@ -6618,8 +6622,9 @@
             // ── PTASKs ──────────────────────────────────────────────────
             if (ptaskRawData && ptaskRawData.length > 0) {
                 ptaskRawData.forEach(row => {
-                    let number = String(getCol(row, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
-                    let prb = String(getCol(row, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
+                    let number = String(getCol(row, ['Number', 'Ticket', 'Número', 'number', 'Task']) || '').trim().toUpperCase();
+                    // extrai apenas PRBxxxxxxx do campo Problem (pode conter "PRB0001234 - Descrição")
+                    let prb = _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id', 'Parent']));
                     if (!number || seenTickets.has(number)) return;
                     seenTickets.add(number);
 
@@ -7530,49 +7535,75 @@
                 };
 
                 const _buildTrendDatasets = (keys) => {
-                    const cg = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
+                    const cg  = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
+                    const tot = (field) => keys.map(k => (i.trendM[k]?.[field]||0) + (r.trendM[k]?.[field]||0) + (u.trendM[k]?.[field]||0));
                     return [
+                        // ── ds[0] INC Abertos ─────────────────────────────────
                         {
                             label: 'INC — Abertos', data: cg(i, 'a'),
                             borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.13)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(30,58,138,1)',
-                            datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
+                            datalabels: { display: false }
                         },
+                        // ── ds[1] INC Resolvidos ──────────────────────────────
                         {
                             label: 'INC — Resolvidos', data: cg(i, 'r'),
-                            borderColor: 'rgba(34,197,94,0.9)', backgroundColor: 'rgba(34,197,94,0.04)',
+                            borderColor: 'rgba(34,197,94,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(34,197,94,1)',
-                            datalabels: { align: 'bottom', color: '#16a34a', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                            datalabels: { display: false }
                         },
+                        // ── ds[2] REQ Abertos ─────────────────────────────────
                         {
                             label: 'REQ — Abertos', data: cg(r, 'a'),
                             borderColor: 'rgba(37,99,235,1)', backgroundColor: 'rgba(37,99,235,0.11)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(37,99,235,1)',
-                            datalabels: { align: 'top', color: '#1d4ed8', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
+                            datalabels: { display: false }
                         },
+                        // ── ds[3] REQ Resolvidos ──────────────────────────────
                         {
                             label: 'REQ — Resolvidos', data: cg(r, 'r'),
                             borderColor: 'rgba(16,185,129,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(16,185,129,1)',
-                            datalabels: { align: 'bottom', color: '#059669', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                            datalabels: { display: false }
                         },
+                        // ── ds[4] UAM Abertos ─────────────────────────────────
                         {
                             label: 'UAM — Abertos', data: cg(u, 'a'),
                             borderColor: 'rgba(124,58,237,1)', backgroundColor: 'rgba(124,58,237,0.10)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(124,58,237,1)',
-                            datalabels: { align: 'top', color: '#7c3aed', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
+                            datalabels: { display: false }
                         },
+                        // ── ds[5] UAM Resolvidos ──────────────────────────────
                         {
                             label: 'UAM — Resolvidos', data: cg(u, 'r'),
                             borderColor: 'rgba(192,132,252,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(192,132,252,1)',
-                            datalabels: { align: 'bottom', color: '#9333ea', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                            datalabels: { display: false }
+                        },
+                        // ── ds[6] TOTAL Abertos ───────────────────────────────
+                        {
+                            label: 'TOTAL — Abertos', data: tot('a'),
+                            borderColor: 'rgba(15,23,42,0.92)', backgroundColor: 'rgba(15,23,42,0.06)',
+                            fill: false, borderWidth: 3.5, tension: 0.35,
+                            pointRadius: 5, pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgba(15,23,42,1)',
+                            datalabels: { align: 'top', color: '#0f172a', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
+                        },
+                        // ── ds[7] TOTAL Resolvidos ────────────────────────────
+                        {
+                            label: 'TOTAL — Resolvidos', data: tot('r'),
+                            borderColor: 'rgba(22,163,74,0.88)', backgroundColor: 'transparent',
+                            fill: false, borderWidth: 3, tension: 0.35,
+                            pointRadius: 5, pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgba(22,163,74,1)',
+                            borderDash: [11, 5],
+                            datalabels: { align: 'bottom', color: '#15803d', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
                         }
                     ];
                 };
@@ -7583,10 +7614,12 @@
                     window._consTrendFullData._activeKeys = keys;
                     chart.data.labels = keys.map(_fmtTrendLbl);
                     const ds = chart.data.datasets;
-                    const cg = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
+                    const cg  = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
+                    const tot = (field) => keys.map(k => (i.trendM[k]?.[field]||0) + (r.trendM[k]?.[field]||0) + (u.trendM[k]?.[field]||0));
                     ds[0].data = cg(i, 'a'); ds[1].data = cg(i, 'r');
                     ds[2].data = cg(r, 'a'); ds[3].data = cg(r, 'r');
                     ds[4].data = cg(u, 'a'); ds[5].data = cg(u, 'r');
+                    ds[6].data = tot('a');   ds[7].data = tot('r');
                     chart.update();
                 };
 
@@ -7622,12 +7655,24 @@
                                 [r, 'a', `REQ Abertos — ${lbl}`],
                                 [r, 'r', `REQ Resolvidos — ${lbl}`],
                                 [u, 'a', `UAM Abertos — ${lbl}`],
-                                [u, 'r', `UAM Resolvidos — ${lbl}`]
+                                [u, 'r', `UAM Resolvidos — ${lbl}`],
+                                [null, 'a', `TOTAL Abertos — ${lbl}`],
+                                [null, 'r', `TOTAL Resolvidos — ${lbl}`]
                             ];
                             const entry = srcMap[dsIdx];
                             if (!entry) return;
                             const tksKey = entry[1] === 'a' ? 'tks_a' : 'tks_r';
-                            const tks = entry[0].trendM[mKey]?.[tksKey] || [];
+                            let tks;
+                            if (entry[0] === null) {
+                                // TOTAL: agrega tickets das 3 fontes
+                                tks = [
+                                    ...(i.trendM[mKey]?.[tksKey] || []),
+                                    ...(r.trendM[mKey]?.[tksKey] || []),
+                                    ...(u.trendM[mKey]?.[tksKey] || [])
+                                ];
+                            } else {
+                                tks = entry[0].trendM[mKey]?.[tksKey] || [];
+                            }
                             if (!tks.length) return;
                             window.DrilldownVault['cons']['trend_tmp'] = tks;
                             openDrilldown(entry[2], 'trend_tmp', 'cons');
