@@ -2454,11 +2454,19 @@
                 return o;
             });
 
-            if (nameLower.includes('inc') && cleanJson.length > 0) RawData.incs = cleanJson;
-            else if ((nameLower.includes('sc_task') || nameLower.includes('req')) && cleanJson.length > 0) RawData.reqs = cleanJson;
-            else if (nameLower.includes('rca') && cleanJson.length > 0) RawData.rca = cleanJson;
-            else if ((nameLower.includes('ptask') || (nameLower.includes('problem') && nameLower.includes('task')) || nameLower.includes('stask')) && cleanJson.length > 0) RawData.ptask = cleanJson;
-            else if ((nameLower.includes('prb') || (nameLower.includes('problem') && !nameLower.includes('task'))) && cleanJson.length > 0) RawData.prb = cleanJson;
+            // Routing priority: most specific patterns first
+            // 1. sc_task → PTASK (problem tasks, NOT service requests)
+            // 2. incident → INC
+            // 3. problem_rca or problem → RCA (PRB master with RCA fields)
+            // 4. ptask/stask → PTASK
+            // 5. req/ritm → REQ (service requests)
+            // 6. prb → PRB
+            if (nameLower.includes('sc_task') && cleanJson.length > 0) RawData.ptask = cleanJson;
+            else if (nameLower.includes('inc') && cleanJson.length > 0) RawData.incs = cleanJson;
+            else if ((nameLower.includes('problem') || nameLower.includes('rca')) && cleanJson.length > 0) RawData.rca = cleanJson;
+            else if ((nameLower.includes('ptask') || nameLower.includes('stask')) && cleanJson.length > 0) RawData.ptask = cleanJson;
+            else if ((nameLower.includes('req') || nameLower.includes('ritm')) && cleanJson.length > 0) RawData.reqs = cleanJson;
+            else if (nameLower.includes('prb') && cleanJson.length > 0) RawData.prb = cleanJson;
             else {
                 console.warn(`[DATA] Arquivo '${originalName}' não reconhecido. Mantendo dados existentes.`);
                 let warnBadge = `<div class="file-badge" style="background:#fee2e2;border-color:#fca5a5;"><span class="truncate" style="color:#b91c1c;"><i class="fas fa-exclamation-triangle mr-1"></i> ${originalName} (não reconhecido)</span></div>`;
@@ -2466,7 +2474,16 @@
                 return;
             }
 
-            let badgeHtml = `<div class="file-badge"><span class="truncate"><i class="fas fa-file-excel mr-1"></i> ${originalName}</span><i class="fas fa-check"></i></div>`;
+            // Determine route target for logging
+            let routeTarget = 'unknown';
+            if (RawData.ptask.length > 0 && RawData.ptask === cleanJson) routeTarget = 'PTASK';
+            else if (RawData.incs.length > 0 && RawData.incs === cleanJson) routeTarget = 'INC';
+            else if (RawData.rca.length > 0 && RawData.rca === cleanJson) routeTarget = 'RCA';
+            else if (RawData.reqs.length > 0 && RawData.reqs === cleanJson) routeTarget = 'REQ';
+            else if (RawData.prb.length > 0 && RawData.prb === cleanJson) routeTarget = 'PRB';
+            console.log(`[DATA] Arquivo '${originalName}' → RawData.${routeTarget.toLowerCase()} (${cleanJson.length} linhas). Colunas: ${cleanJson.length > 0 ? Object.keys(cleanJson[0]).join(', ') : 'N/A'}`);
+
+            let badgeHtml = `<div class="file-badge"><span class="truncate"><i class="fas fa-file-excel mr-1"></i> ${originalName} → ${routeTarget}</span><i class="fas fa-check"></i></div>`;
             if (!document.getElementById('file-status').innerHTML.includes(originalName)) {
                 document.getElementById('file-status').innerHTML += badgeHtml;
                 document.getElementById('btn-clear-files').classList.remove('hidden-st');
@@ -6447,9 +6464,9 @@
 
             if (rcaRawData && rcaRawData.length > 0) {
                 rcaRawData.forEach(row => {
-                    // Tenta "Number" primeiro (campo nativo do Problem), depois "Problem"
-                    let prbId = _extractPRBId(getCol(row, ['Number', 'Ticket', 'Número', 'number']))
-                             || _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id']));
+                    // problem_rca.xlsx: coluna 'Problem' (1ª) contém o PRB ID, 'Number' (col 9) pode ser diferente
+                    let prbId = _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id']))
+                             || _extractPRBId(getCol(row, ['Number', 'Ticket', 'Número', 'number']));
                     if (!prbId) return;
                     prbMasterMap[prbId] = row; // RCA sempre tem prioridade sobre prb.xlsx
                 });
@@ -6623,8 +6640,9 @@
             if (ptaskRawData && ptaskRawData.length > 0) {
                 ptaskRawData.forEach(row => {
                     let number = String(getCol(row, ['Number', 'Ticket', 'Número', 'number', 'Task']) || '').trim().toUpperCase();
-                    // extrai apenas PRBxxxxxxx do campo Problem (pode conter "PRB0001234 - Descrição")
-                    let prb = _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id', 'Parent']));
+                    // extrai PRBxxxxxxx do campo Problem, Request item, ou Parent
+                    // sc_task.xlsx usa 'Request item' para vincular ao pai
+                    let prb = _extractPRBId(getCol(row, ['Problem', 'Request item', 'Problema', 'problem_id', 'Parent']));
                     if (!number || seenTickets.has(number)) return;
                     seenTickets.add(number);
 
@@ -6642,10 +6660,10 @@
                         stRca: '—',
                         gp: String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim(),
                         as: String(getCol(row, ['Assigned to', 'Analista', 'Assignee', 'assigned_to']) || '—').trim(),
-                        req: String(getCol(row, ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim(),
+                        req: String(getCol(row, ['Requester', 'Caller', 'Solicitante', 'Created by']) || 'N/A').trim(),
                         priority: String(getCol(row, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim(),
-                        desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto']) || '—').trim(),
-                        ci: String(getCol(row, ['Configuration item', 'CI', 'Item de configuracao']) || '—').trim(),
+                        desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto', 'Description']) || '—').trim(),
+                        ci: String(getCol(row, ['Configuration item', 'CI', 'Item de configuracao', 'Item']) || '—').trim(),
                         related_incidents_raw: '—',
                         rca_due: '—',
                         rca_pub: '—',
@@ -6654,6 +6672,15 @@
                         clStr: clD ? clD.toLocaleDateString('pt-BR') : '—'
                     });
                 });
+            }
+
+            // Debug logging
+            let prbCount = processed.filter(t => t.type === 'PRB').length;
+            let incCount = processed.filter(t => t.type === 'INC').length;
+            let ptaskCount = processed.filter(t => t.type === 'PTASK').length;
+            console.log(`[PRB] processPRBDataForDisplay: ${prbCount} PRBs, ${incCount} INCs vinculados, ${ptaskCount} PTASKs. Masters no mapa: ${Object.keys(prbMasterMap).length}. INCs fonte: ${incSource.length}. PTASKs fonte: ${ptaskRawData ? ptaskRawData.length : 0}`);
+            if (Object.keys(prbMasterMap).length > 0) {
+                console.log(`[PRB] PRB IDs encontrados: ${Object.keys(prbMasterMap).join(', ')}`);
             }
 
             return processed;
