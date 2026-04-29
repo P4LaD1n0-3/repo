@@ -4540,8 +4540,25 @@
         const C = {
             PRI_D: "#001871", PRI: "#1E3A8A", ACC_D: "#0F172A",
             SUC: "#00C853", DAN: "#D50000", ORG: "#FF8C00",
-            GRY_D: "#334155", GRY_L: "#F8FAFC", INFO: "#0284C7"
+            GRY_D: "#334155", GRY_L: "#F8FAFC", INFO: "#0284C7",
+            // ── rgba chart palette ─────────────────────────────────────────────
+            _A:   'rgba(30,58,138,0.82)',   _Ab: 'rgba(30,58,138,0.11)',
+            _R:   'rgba(5,150,105,0.82)',   _Rb: 'rgba(5,150,105,0.10)',
+            _Cc:  'rgba(220,38,38,0.72)',   _Cb: 'rgba(220,38,38,0.08)',
+            _B:   'rgba(2,132,199,1)',      _Bb: 'rgba(2,132,199,0.08)',
+            _INC: 'rgba(30,58,138,0.82)',   _INCb: 'rgba(30,58,138,0.11)',
+            _REQ: 'rgba(37,99,235,0.82)',   _REQb: 'rgba(37,99,235,0.10)',
+            _UAM: 'rgba(124,58,237,0.82)',  _UAMb: 'rgba(124,58,237,0.09)',
+            _SLA: 'rgba(127,29,29,0.92)',   _SLAb: 'rgba(127,29,29,0.08)'
         };
+        // ── Chart.js global defaults ──────────────────────────────────────────
+        if (typeof Chart !== 'undefined') {
+            Chart.defaults.global.defaultFontFamily = "'Inter','system-ui','sans-serif'";
+            Chart.defaults.global.defaultFontSize   = 11;
+            Chart.defaults.global.defaultFontColor  = '#475569';
+            Chart.defaults.global.animation.duration = 500;
+            Chart.defaults.global.animation.easing  = 'easeInOutQuart';
+        }
 
         function buildDataAttrs(t) {
             let hasInc = (t.related_incidents_raw && t.related_incidents_raw !== '—' && t.related_incidents_raw !== '') ? 'true' : 'false';
@@ -7233,31 +7250,55 @@
         // 7. GRÁFICOS CHART.JS COM FIX Y-AXIS & ONCLICK (DRILLDOWN)
         // ==========================================
         function drawChartsAll(id, d, lblRes) {
-            Chart.defaults.global.defaultFontFamily = "'Inter', 'Calibri', sans-serif";
-            Chart.defaults.global.defaultFontColor = "#475569";
-
             const drawTrend = (canvas, tData, isD) => {
                 let keys = Object.keys(tData).sort();
-                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
+                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''));
 
                 let instance = new Chart(document.getElementById(canvas), {
                     type: 'bar',
                     data: {
                         labels: labels,
                         datasets: [
-                            { type: 'line', label: 'Backlog Acumulado', data: keys.map(k => tData[k].b), borderColor: C.INFO, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: lblRes, data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
+                            {
+                                type: 'line', label: 'Backlog Acumulado',
+                                data: keys.map(k => tData[k].b),
+                                borderColor: C._B, backgroundColor: C._Bb,
+                                fill: true, borderWidth: 2.5, tension: 0.35,
+                                pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: C._B,
+                                yAxisID: 'y1',
+                                datalabels: { align: 'top', color: '#0369a1', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
+                            },
+                            {
+                                type: 'bar', label: 'Abertos',
+                                data: keys.map(k => tData[k].a),
+                                backgroundColor: C._A, borderWidth: 0, barPercentage: 0.72,
+                                yAxisID: 'y1',
+                                datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
+                            },
+                            {
+                                type: 'bar', label: lblRes,
+                                data: keys.map(k => tData[k].r),
+                                backgroundColor: C._R, borderWidth: 0, barPercentage: 0.72,
+                                yAxisID: 'y1', stack: 'st',
+                                datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
+                            },
+                            {
+                                type: 'bar', label: 'Cancelados',
+                                data: keys.map(k => tData[k].c),
+                                backgroundColor: C._Cc, borderWidth: 0, barPercentage: 0.72,
+                                yAxisID: 'y1', stack: 'st',
+                                datalabels: { color: '#fff', font: { size: 9 }, formatter: v => v > 0 ? v : "" }
+                            }
                         ]
                     },
                     options: {
                         maintainAspectRatio: false,
-                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
+                        legend: { position: 'bottom', labels: { padding: 18, usePointStyle: true, fontSize: 11 } },
                         scales: {
-                            xAxes: [{ stacked: true, gridLines: { display: false } }],
-                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true } }]
+                            xAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontSize: 10, fontColor: '#64748b' } }],
+                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' } }]
                         },
+                        tooltips: { mode: 'index', intersect: false },
                         onClick: function (evt, activeElements) {
                             const activePoint = this.getElementAtEvent(evt)[0];
                             if (activePoint) {
@@ -7265,15 +7306,12 @@
                                 let datasetIdx = activePoint._datasetIndex;
                                 let dKey = keys[idx];
                                 let lblDate = labels[idx];
-
                                 let tksToDisplay = [];
                                 let dTitle = "";
-
                                 if (datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Abertos em ${lblDate}`; }
                                 else if (datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Resolvidos em ${lblDate}`; }
                                 else if (datasetIdx === 3) { tksToDisplay = tData[dKey].tks_c; dTitle = `Cancelados em ${lblDate}`; }
                                 else return;
-
                                 window.DrilldownVault[id]['temp'] = tksToDisplay;
                                 openDrilldown(dTitle, 'temp', id);
                             }
@@ -7287,21 +7325,30 @@
 
             let instA = new Chart(document.getElementById(`c-a-${id}`), {
                 type: 'horizontalBar',
-                data: { labels: d.topAnalistas.map(a => a.nome), datasets: [{ label: 'Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C.PRI_D }, { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C.SUC }] },
+                data: {
+                    labels: d.topAnalistas.map(a => a.nome),
+                    datasets: [
+                        { label: 'Backlog/Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C._A, borderWidth: 0, barPercentage: 0.65 },
+                        { label: lblRes,             data: d.topAnalistas.map(a => a.res), backgroundColor: C._R, borderWidth: 0, barPercentage: 0.65 }
+                    ]
+                },
                 options: {
-                    maintainAspectRatio: false, legend: { position: 'bottom', labels: { usePointStyle: true } },
-                    scales: { xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ stacked: true, gridLines: { display: false } }] },
+                    maintainAspectRatio: false,
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16, fontSize: 11 } },
+                    scales: {
+                        xAxes: [{ stacked: true, gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' } }],
+                        yAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontSize: 10, fontColor: '#334155' } }]
+                    },
                     plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                    tooltips: { mode: 'index', intersect: false },
                     onClick: function (evt, activeElements) {
                         const activePoint = this.getElementAtEvent(evt)[0];
                         if (activePoint) {
                             let idx = activePoint._index;
                             let datasetIdx = activePoint._datasetIndex;
                             let analystName = d.topAnalistas[idx].nome;
-
                             let tks = datasetIdx === 0 ? d.topAnalistas[idx].tks_ab : d.topAnalistas[idx].tks_res;
                             let dTitle = datasetIdx === 0 ? `Tickets em Backlog de ${analystName}` : `Tickets Resolvidos por ${analystName}`;
-
                             window.DrilldownVault[id]['temp'] = tks;
                             openDrilldown(dTitle, 'temp', id);
                         }
@@ -7313,11 +7360,15 @@
             let agKeys = Object.keys(d.agingBuckets);
             let instAg = new Chart(document.getElementById(`c-ag-${id}`), {
                 type: 'horizontalBar',
-                data: { labels: agKeys, datasets: [{ data: agKeys.map(k => d.agingBuckets[k].count), backgroundColor: agKeys.map(k => d.agingBuckets[k].color), barPercentage: 0.7, categoryPercentage: 0.8 }] },
+                data: { labels: agKeys, datasets: [{ data: agKeys.map(k => d.agingBuckets[k].count), backgroundColor: agKeys.map(k => d.agingBuckets[k].color), borderWidth: 0, barPercentage: 0.65, categoryPercentage: 0.82 }] },
                 options: {
                     maintainAspectRatio: false, legend: { display: false },
-                    scales: { xAxes: [{ gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }], yAxes: [{ gridLines: { display: false } }] },
-                    plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" } },
+                    scales: {
+                        xAxes: [{ gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' } }],
+                        yAxes: [{ gridLines: { display: false }, ticks: { fontSize: 10, fontColor: '#334155' } }]
+                    },
+                    plugins: { datalabels: { anchor: 'end', align: 'right', color: '#334155', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : "" } },
+                    tooltips: { mode: 'index', intersect: false },
                     onClick: function (evt, activeElements) {
                         if (activeElements.length > 0) {
                             let idx = activeElements[0]._index;
@@ -7332,10 +7383,22 @@
 
             let instP = new Chart(document.getElementById(`c-p-${id}`), {
                 type: 'doughnut',
-                data: { labels: ['SLA Cumprido (No Prazo)', 'SLA Estourado (Fora)'], datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C.SUC, C.DAN], borderWidth: 2, borderColor: '#fff' }] },
+                data: {
+                    labels: ['SLA Cumprido (No Prazo)', 'SLA Estourado (Fora)'],
+                    datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C._R, C._Cc], borderWidth: 3, borderColor: '#fff', hoverBorderWidth: 0 }]
+                },
                 options: {
-                    cutoutPercentage: 65, maintainAspectRatio: false, legend: { position: 'right', labels: { usePointStyle: true, padding: 20 } },
-                    plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 14 }, formatter: (val, ctx) => { let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x); return sum && val > 0 ? ((val / sum) * 100).toFixed(2).replace('.', ',') + '%' : ""; } } },
+                    cutoutPercentage: 70, maintainAspectRatio: false,
+                    legend: { position: 'right', labels: { usePointStyle: true, padding: 16, fontSize: 11, fontColor: '#334155' } },
+                    plugins: {
+                        datalabels: {
+                            color: '#fff', font: { weight: 'bold', size: 13 },
+                            formatter: (val, ctx) => {
+                                let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x);
+                                return sum && val > 0 ? ((val / sum) * 100).toFixed(1).replace('.', ',') + '%' : "";
+                            }
+                        }
+                    },
                     onClick: function (evt, activeElements) {
                         if (activeElements.length > 0) {
                             let idx = activeElements[0]._index;
@@ -7379,25 +7442,53 @@
 
             const drawC = (canvas, tData, isD) => {
                 let keys = Object.keys(tData).sort();
-                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', ''));
+                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''));
 
                 let instance = new Chart(document.getElementById(canvas), {
                     type: 'bar',
                     data: {
-                        labels: labels, datasets: [
-                            { type: 'line', label: 'Backlog Global', data: keys.map(k => tData[k].b), borderColor: C.INFO, fill: false, borderWidth: 3, yAxisID: 'y1', datalabels: { align: 'top', color: '#1e293b', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: 'Abertos', data: keys.map(k => tData[k].a), backgroundColor: C.PRI_D, yAxisID: 'y1', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: 'Resolvidos/Encerrados', data: keys.map(k => tData[k].r), backgroundColor: C.SUC, yAxisID: 'y1', stack: 'st', datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
-                            { type: 'bar', label: 'Cancelados', data: keys.map(k => tData[k].c), backgroundColor: C.DAN, yAxisID: 'y1', stack: 'st', datalabels: { display: false } }
+                        labels: labels,
+                        datasets: [
+                            {
+                                type: 'line', label: 'Backlog Global',
+                                data: keys.map(k => tData[k].b),
+                                borderColor: C._B, backgroundColor: C._Bb,
+                                fill: true, borderWidth: 2.5, tension: 0.35,
+                                pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: C._B,
+                                yAxisID: 'y1',
+                                datalabels: { align: 'top', color: '#0369a1', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
+                            },
+                            {
+                                type: 'bar', label: 'Abertos',
+                                data: keys.map(k => tData[k].a),
+                                backgroundColor: C._A, borderWidth: 0, barPercentage: 0.72,
+                                yAxisID: 'y1',
+                                datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
+                            },
+                            {
+                                type: 'bar', label: 'Resolvidos/Encerrados',
+                                data: keys.map(k => tData[k].r),
+                                backgroundColor: C._R, borderWidth: 0, barPercentage: 0.72,
+                                yAxisID: 'y1', stack: 'st',
+                                datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
+                            },
+                            {
+                                type: 'bar', label: 'Cancelados',
+                                data: keys.map(k => tData[k].c),
+                                backgroundColor: C._Cc, borderWidth: 0, barPercentage: 0.72,
+                                yAxisID: 'y1', stack: 'st',
+                                datalabels: { color: '#fff', font: { size: 9 }, formatter: v => v > 0 ? v : "" }
+                            }
                         ]
                     },
                     options: {
                         maintainAspectRatio: false,
-                        legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } },
+                        legend: { position: 'bottom', labels: { padding: 18, usePointStyle: true, fontSize: 11 } },
                         scales: {
-                            xAxes: [{ stacked: true, gridLines: { display: false } }],
-                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true } }]
+                            xAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontSize: 10, fontColor: '#64748b' } }],
+                            yAxes: [{ id: 'y1', stacked: true, position: 'left', gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' } }]
                         },
+                        tooltips: { mode: 'index', intersect: false },
                         onClick: function (evt, activeElements) {
                             const activePoint = this.getElementAtEvent(evt)[0];
                             if (activePoint) {
@@ -7405,15 +7496,12 @@
                                 let datasetIdx = activePoint._datasetIndex;
                                 let dKey = keys[idx];
                                 let lblDate = labels[idx];
-
                                 let tksToDisplay = [];
                                 let dTitle = "";
-
                                 if (datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Globais Abertos em ${lblDate}`; }
                                 else if (datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Globais Resolvidos em ${lblDate}`; }
                                 else if (datasetIdx === 3) { tksToDisplay = tData[dKey].tks_c; dTitle = `Globais Cancelados em ${lblDate}`; }
                                 else return;
-
                                 window.DrilldownVault['cons']['temp'] = tksToDisplay;
                                 openDrilldown(dTitle, 'temp', 'cons');
                             }
@@ -7745,16 +7833,23 @@
                                     datasets: [{
                                         label: 'Erros de Classificação',
                                         data: keysM.map(k => dClass.m[k].count),
-                                        borderColor: C.DAN,
-                                        fill: false,
-                                        borderWidth: 3,
-                                        datalabels: { align: 'top', font: { weight: 'bold' }, formatter: v => v > 0 ? v : "" }
+                                        borderColor: 'rgba(220,38,38,0.90)',
+                                        backgroundColor: 'rgba(220,38,38,0.08)',
+                                        fill: true, borderWidth: 2.5, tension: 0.35,
+                                        pointRadius: 4, pointHoverRadius: 6,
+                                        pointBackgroundColor: 'rgba(220,38,38,1)',
+                                        datalabels: { align: 'top', color: '#b91c1c', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : "" }
                                     }]
                                 },
                                 options: {
                                     maintainAspectRatio: false,
                                     legend: { display: false },
-                                    scales: { yAxes: [{ ticks: { beginAtZero: true } }] },
+                                    elements: { line: { tension: 0.35 } },
+                                    scales: {
+                                        xAxes: [{ gridLines: { display: false }, ticks: { fontSize: 10, fontColor: '#64748b' } }],
+                                        yAxes: [{ ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' }, gridLines: { color: '#f1f5f9', drawBorder: false } }]
+                                    },
+                                    tooltips: { mode: 'index', intersect: false },
                                     onClick: function (evt, activeElements) {
                                         if (activeElements.length > 0) {
                                             let idx = activeElements[0]._index;
@@ -7785,34 +7880,37 @@
                                     datasets: [
                                         {
                                             type: 'line', label: 'Total Fora SLA',
-                                            data: sd.mDataTot, borderColor: '#7f1d1d', borderWidth: 3,
-                                            fill: false, pointBackgroundColor: '#7f1d1d', pointRadius: 4,
+                                            data: sd.mDataTot,
+                                            borderColor: C._SLA, backgroundColor: C._SLAb,
+                                            fill: true, borderWidth: 2.5, tension: 0.35,
+                                            pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: C._SLA,
                                             datalabels: { align: 'top', color: '#7f1d1d', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                                         },
                                         {
                                             label: 'INC', data: sd.mDataInc,
-                                            backgroundColor: '#ef4444', stack: 'st',
+                                            backgroundColor: C._INC, borderWidth: 0, barPercentage: 0.72, stack: 'st',
                                             datalabels: { color: '#fff', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? v : '' }
                                         },
                                         {
                                             label: 'REQ', data: sd.mDataReq,
-                                            backgroundColor: '#3b82f6', stack: 'st',
+                                            backgroundColor: C._REQ, borderWidth: 0, barPercentage: 0.72, stack: 'st',
                                             datalabels: { color: '#fff', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? v : '' }
                                         },
                                         {
                                             label: 'UAM', data: sd.mDataUam,
-                                            backgroundColor: '#a855f7', stack: 'st',
+                                            backgroundColor: C._UAM, borderWidth: 0, barPercentage: 0.72, stack: 'st',
                                             datalabels: { color: '#fff', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? v : '' }
                                         }
                                     ]
                                 },
                                 options: {
                                     maintainAspectRatio: false,
-                                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+                                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, fontSize: 11 } },
                                     scales: {
-                                        xAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontSize: 10 } }],
-                                        yAxes: [{ stacked: true, ticks: { beginAtZero: true, fontSize: 10 }, gridLines: { color: '#f1f5f9' } }]
+                                        xAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontSize: 10, fontColor: '#64748b' } }],
+                                        yAxes: [{ stacked: true, ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' }, gridLines: { color: '#f1f5f9', drawBorder: false } }]
                                     },
+                                    tooltips: { mode: 'index', intersect: false },
                                     onClick: function(evt) {
                                         const el = this.getElementAtEvent(evt)[0];
                                         if (!el) return;
@@ -7836,37 +7934,46 @@
                                     datasets: [
                                         {
                                             label: 'Total', data: sd.dDataTot,
-                                            borderColor: '#7f1d1d', borderWidth: 3, fill: false,
-                                            pointBackgroundColor: '#7f1d1d', pointRadius: 4,
+                                            borderColor: C._SLA, backgroundColor: C._SLAb,
+                                            fill: true, borderWidth: 2.5, tension: 0.35,
+                                            pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: C._SLA,
                                             datalabels: { align: 'top', color: '#7f1d1d', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                                         },
                                         {
                                             label: 'INC', data: sd.dDataInc,
-                                            borderColor: '#ef4444', borderWidth: 2, fill: false,
-                                            borderDash: [4, 3], pointRadius: 3,
-                                            datalabels: { color: '#ef4444', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                                            borderColor: C._INC, backgroundColor: C._INCb,
+                                            fill: false, borderWidth: 2, tension: 0.35,
+                                            borderDash: [6, 3], pointRadius: 3, pointHoverRadius: 5,
+                                            pointBackgroundColor: C._INC,
+                                            datalabels: { color: '#1e3a8a', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                                         },
                                         {
                                             label: 'REQ', data: sd.dDataReq,
-                                            borderColor: '#3b82f6', borderWidth: 2, fill: false,
-                                            borderDash: [4, 3], pointRadius: 3,
-                                            datalabels: { color: '#3b82f6', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                                            borderColor: C._REQ, backgroundColor: C._REQb,
+                                            fill: false, borderWidth: 2, tension: 0.35,
+                                            borderDash: [6, 3], pointRadius: 3, pointHoverRadius: 5,
+                                            pointBackgroundColor: C._REQ,
+                                            datalabels: { color: '#1d4ed8', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                                         },
                                         {
                                             label: 'UAM', data: sd.dDataUam,
-                                            borderColor: '#a855f7', borderWidth: 2, fill: false,
-                                            borderDash: [4, 3], pointRadius: 3,
-                                            datalabels: { color: '#a855f7', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                                            borderColor: C._UAM, backgroundColor: C._UAMb,
+                                            fill: false, borderWidth: 2, tension: 0.35,
+                                            borderDash: [6, 3], pointRadius: 3, pointHoverRadius: 5,
+                                            pointBackgroundColor: C._UAM,
+                                            datalabels: { color: '#7c3aed', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                                         }
                                     ]
                                 },
                                 options: {
                                     maintainAspectRatio: false,
-                                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+                                    legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, fontSize: 11 } },
+                                    elements: { line: { tension: 0.35 } },
                                     scales: {
-                                        xAxes: [{ gridLines: { display: false }, ticks: { fontSize: 9, maxRotation: 45 } }],
-                                        yAxes: [{ ticks: { beginAtZero: true, fontSize: 10 }, gridLines: { color: '#f1f5f9' } }]
+                                        xAxes: [{ gridLines: { display: false }, ticks: { fontSize: 9, maxRotation: 45, fontColor: '#64748b' } }],
+                                        yAxes: [{ ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' }, gridLines: { color: '#f1f5f9', drawBorder: false } }]
                                     },
+                                    tooltips: { mode: 'index', intersect: false },
                                     onClick: function(evt) {
                                         const el = this.getElementAtEvent(evt)[0];
                                         if (!el) return;
