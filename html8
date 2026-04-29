@@ -5943,72 +5943,78 @@
 
             return `
             <div class="report-section-title" style="background-color: ${C.PRI_D};"><i class="fas fa-globe mr-2"></i> VISÃO ORGANIZACIONAL CONSOLIDADA (INCs + REQs + UAMs)</div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="report-card text-center border-l-4 border-blue-800 clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Backlog de INCs', 'inc_b', 'cons')">
-                    <div class="report-card-title">Backlog INCs</div>
+
+            <!-- ── 4 cards backlog lado a lado ── -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                <div class="report-card text-center border-t-4 border-blue-900 clickable-card p-4" style="margin-bottom:0;" onclick="openDrilldown('Backlog de INCs', 'inc_b', 'cons')">
+                    <div class="text-[10px] font-black text-blue-900 uppercase tracking-widest mb-1">Backlog INCs</div>
                     <div class="text-4xl font-black text-slate-700">${i.backlog || 0}</div>
-                    ${window.isComparisonActive ? `<div class="mt-2 pt-2 border-t border-slate-100 text-[10px] font-bold text-blue-600 uppercase">Hoje: ${window.ComparisonData.inc?.backlog || 0}</div>` : ""}
+                    ${window.isComparisonActive ? `<div class="mt-2 pt-2 border-t border-slate-100 text-[9px] font-bold text-blue-600 uppercase">Hoje: ${window.ComparisonData.inc?.backlog || 0}</div>` : ""}
                 </div>
-                <div class="report-card text-center border-l-4 border-blue-600 clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Backlog de REQs', 'req_b', 'cons')">
-                    <div class="report-card-title">Backlog REQs</div>
+                <div class="report-card text-center border-t-4 border-blue-600 clickable-card p-4" style="margin-bottom:0;" onclick="openDrilldown('Backlog de REQs', 'req_b', 'cons')">
+                    <div class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Backlog REQs</div>
                     <div class="text-4xl font-black text-slate-700">${r.backlog || 0}</div>
-                    ${window.isComparisonActive ? `<div class="mt-2 pt-2 border-t border-slate-100 text-[10px] font-bold text-blue-600 uppercase">Hoje: ${window.ComparisonData.req?.backlog || 0}</div>` : ""}
+                    ${window.isComparisonActive ? `<div class="mt-2 pt-2 border-t border-slate-100 text-[9px] font-bold text-blue-600 uppercase">Hoje: ${window.ComparisonData.req?.backlog || 0}</div>` : ""}
                 </div>
-                <div class="report-card text-center border-l-4 border-blue-400 clickable-card" style="margin-bottom:0;" onclick="openDrilldown('Backlog de UAMs', 'uam_b', 'cons')">
-                    <div class="report-card-title">Backlog UAMs</div>
+                <div class="report-card text-center border-t-4 border-blue-400 clickable-card p-4" style="margin-bottom:0;" onclick="openDrilldown('Backlog de UAMs', 'uam_b', 'cons')">
+                    <div class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Backlog UAMs</div>
                     <div class="text-4xl font-black text-slate-700">${u.backlog || 0}</div>
-                    ${window.isComparisonActive ? `<div class="mt-2 pt-2 border-t border-slate-100 text-[10px] font-bold text-blue-600 uppercase">Hoje: ${window.ComparisonData.uam?.backlog || 0}</div>` : ""}
+                    ${window.isComparisonActive ? `<div class="mt-2 pt-2 border-t border-slate-100 text-[9px] font-bold text-blue-600 uppercase">Hoje: ${window.ComparisonData.uam?.backlog || 0}</div>` : ""}
+                </div>
+                <div class="report-card text-center border-t-4 clickable-card p-4" style="margin-bottom:0;border-color:${C.INFO};background:linear-gradient(135deg,#f0f9ff,#fff);" onclick="openDrilldown('Backlog Global Vigente', 'all_b', 'cons')">
+                    <div class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:${C.INFO};">Backlog Global</div>
+                    <div class="text-4xl font-black" style="color:${C.INFO};">${globalBacklog}</div>
+                    ${comp ? `<div class="mt-2 pt-2 border-t border-slate-100 text-[9px] font-bold text-blue-600 uppercase">Hoje: ${comp.backlog}</div>` : `<div class="text-[9px] text-slate-400 mt-2 uppercase">INC + REQ + UAM</div>`}
                 </div>
             </div>
 
             <!-- NOVOS CARDS DE PRODUTIVIDADE -->
             <div class="report-section-title" style="background-color: #334155; opacity: 0.85; margin-bottom: 15px;"><i class="fas fa-tachometer-alt mr-2"></i> RITMO DE FECHAMENTO (Mês Vigente)</div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-5">
                 ${buildProdCard("INC", i, "#1e3a8a", window.ComparisonData.inc)}
                 ${buildProdCard("REQ", r, "#2563eb", window.ComparisonData.req)}
                 ${buildProdCard("UAM", u, "#60a5fa", window.ComparisonData.uam)}
             </div>
-            
-            <div class="report-card clickable-card" style="text-align:center; background: linear-gradient(to right, #f8fafc, #ffffff);" onclick="openDrilldown('Backlog Global Vigente', 'all_b', 'cons')">
-                <div class="report-card-title" style="color:${C.PRI_D}">BACKLOG GLOBAL CONSOLIDADO</div>
-                <div style="font-size:48px; font-weight:900; color:${C.INFO}; margin:10px 0;">${globalBacklog}</div>
-                ${comp ? `
-                <div class="mb-4 py-2 bg-blue-50 border-y border-blue-100 flex justify-center items-center gap-6">
+
+            <!-- ── Gráfico de Tendências Comparativas (logo após os cards) ── -->
+            <div class="report-card mb-5" style="height:520px;">
+                <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
                     <div>
-                        <span class="block text-[9px] font-black text-slate-400 uppercase tracking-tighter">SITUAÇÃO PRESENTE (HOJE)</span>
-                        <span class="text-2xl font-black text-blue-600">${comp.backlog}</span>
+                        <div class="report-card-title mb-1" style="color:var(--primary-dark);">
+                            <i class="fas fa-chart-area mr-2 text-blue-600"></i>
+                            TENDÊNCIAS COMPARATIVAS — INC × REQ × UAM
+                        </div>
+                        <div style="font-size:10px; color:#94a3b8; line-height:1.6;">
+                            <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:3px;background:#1e3a8a;border-radius:2px;"></span> Área = Abertos</span>
+                            <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dashed #22c55e;"></span> Tracejado = Resolvidos</span>
+                            <span style="color:#0f172a;font-weight:700;">Tracejado acima da área → backlog caindo ↓ &nbsp;|&nbsp; Área acima → backlog subindo ↑</span>
+                        </div>
                     </div>
-                    <div class="w-px h-8 bg-blue-200"></div>
-                    <div>
-                        <span class="block text-[9px] font-black text-slate-400 uppercase tracking-tighter">CONSOLIDADO (MÊS SELECIONADO)</span>
-                        <span class="text-2xl font-black text-slate-700">${globalBacklog}</span>
+                    <!-- Filtros de período -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-[9px] font-black text-slate-400 uppercase mr-1">Período:</span>
+                        <button onclick="filterConsTrend(3,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">3 meses</button>
+                        <button onclick="filterConsTrend(6,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">6 meses</button>
+                        <button onclick="filterConsTrend(12,this)" class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">12 meses</button>
+                        <button onclick="filterConsTrend(0,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 transition">Tudo</button>
+                        <span class="text-slate-300 mx-1">|</span>
+                        <input type="month" id="cons-trend-from" class="text-[10px] border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400" placeholder="De" onchange="filterConsTrendRange()">
+                        <span class="text-[10px] text-slate-400">até</span>
+                        <input type="month" id="cons-trend-to"   class="text-[10px] border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400" placeholder="Até" onchange="filterConsTrendRange()">
+                        <button onclick="clearConsTrendRange()" class="text-[10px] text-slate-400 hover:text-red-500 px-1" title="Limpar datas"><i class="fas fa-times-circle"></i></button>
                     </div>
-                </div>` : `
-                <div class="text-sm text-slate-500 font-bold uppercase tracking-wider">Tickets aguardando atendimento em todos os fluxos</div>`}
+                </div>
+                <div style="height:calc(100% - 80px); position:relative;"><canvas id="c-trend-cats"></canvas></div>
             </div>
-            
+
             <div class="report-card h-[400px]">
                 <div class="report-card-title">1. ACOMPANHAMENTO GLOBAL DIÁRIO (MÊS VIGENTE)</div>
                 <div class="chart-full-width"><canvas id="c-d-cons"></canvas></div>
             </div>
-            
+
             <div class="report-card h-[400px]">
                 <div class="report-card-title">2. VISÃO MENSAL CONSOLIDADA</div>
                 <div class="chart-full-width"><canvas id="c-m-cons"></canvas></div>
-            </div>
-
-            <div class="report-card" style="height:500px;">
-                <div class="report-card-title" style="color:var(--primary-dark);">
-                    <i class="fas fa-chart-area mr-2 text-blue-600"></i>
-                    3. TENDÊNCIAS COMPARATIVAS — INC × REQ × UAM (Visão Anual)
-                </div>
-                <div style="font-size:10px; color:#94a3b8; margin-bottom:8px; line-height:1.5;">
-                    <span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;"><span style="display:inline-block;width:18px;height:3px;background:#1e3a8a;border-radius:2px;"></span> Área preenchida = Abertos</span>
-                    <span style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;"><span style="display:inline-block;width:18px;height:2px;background:#22c55e;border-radius:2px;border-top:2px dashed #22c55e;"></span> Linha tracejada = Resolvidos</span>
-                    <span style="color:#0f172a;font-weight:700;">Quando a linha tracejada supera a área → backlog diminuindo ↓ &nbsp;|&nbsp; Quando a área supera a linha → backlog crescendo ↑</span>
-                </div>
-                <div class="chart-full-width" style="height:calc(100% - 70px);"><canvas id="c-trend-cats"></canvas></div>
             </div>
             `;
         }
@@ -7429,132 +7435,99 @@
 
             const cnvTrend = document.getElementById('c-trend-cats');
             if (cnvTrend) {
-                window.chartInstances.push(new Chart(cnvTrend, {
+                // ── helpers usados tanto no chart inicial quanto nos filtros ────
+                const _fmtTrendLbl = (k) => {
+                    let [y, mo] = k.split('-');
+                    return new Date(+y, +mo - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
+                };
+
+                const _buildTrendDatasets = (keys) => {
+                    const cg = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
+                    return [
+                        {
+                            label: 'INC — Abertos', data: cg(i, 'a'),
+                            borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.13)',
+                            fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgba(30,58,138,1)',
+                            datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
+                        },
+                        {
+                            label: 'INC — Resolvidos', data: cg(i, 'r'),
+                            borderColor: 'rgba(34,197,94,0.9)', backgroundColor: 'rgba(34,197,94,0.04)',
+                            fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
+                            pointBackgroundColor: 'rgba(34,197,94,1)',
+                            datalabels: { align: 'bottom', color: '#16a34a', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                        },
+                        {
+                            label: 'REQ — Abertos', data: cg(r, 'a'),
+                            borderColor: 'rgba(37,99,235,1)', backgroundColor: 'rgba(37,99,235,0.11)',
+                            fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgba(37,99,235,1)',
+                            datalabels: { align: 'top', color: '#1d4ed8', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
+                        },
+                        {
+                            label: 'REQ — Resolvidos', data: cg(r, 'r'),
+                            borderColor: 'rgba(16,185,129,0.9)', backgroundColor: 'transparent',
+                            fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
+                            pointBackgroundColor: 'rgba(16,185,129,1)',
+                            datalabels: { align: 'bottom', color: '#059669', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                        },
+                        {
+                            label: 'UAM — Abertos', data: cg(u, 'a'),
+                            borderColor: 'rgba(124,58,237,1)', backgroundColor: 'rgba(124,58,237,0.10)',
+                            fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgba(124,58,237,1)',
+                            datalabels: { align: 'top', color: '#7c3aed', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
+                        },
+                        {
+                            label: 'UAM — Resolvidos', data: cg(u, 'r'),
+                            borderColor: 'rgba(192,132,252,0.9)', backgroundColor: 'transparent',
+                            fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
+                            pointBackgroundColor: 'rgba(192,132,252,1)',
+                            datalabels: { align: 'bottom', color: '#9333ea', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
+                        }
+                    ];
+                };
+
+                const _applyTrendFilter = (keys) => {
+                    const chart = window._consTrendChart;
+                    if (!chart) return;
+                    window._consTrendFullData._activeKeys = keys;
+                    chart.data.labels = keys.map(_fmtTrendLbl);
+                    const ds = chart.data.datasets;
+                    const cg = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
+                    ds[0].data = cg(i, 'a'); ds[1].data = cg(i, 'r');
+                    ds[2].data = cg(r, 'a'); ds[3].data = cg(r, 'r');
+                    ds[4].data = cg(u, 'a'); ds[5].data = cg(u, 'r');
+                    chart.update();
+                };
+
+                const _chartInst = new Chart(cnvTrend, {
                     type: 'line',
-                    data: {
-                        labels: trendLabels,
-                        datasets: [
-                            // ── INC ──────────────────────────────────────────────
-                            {
-                                label: 'INC — Abertos',
-                                data: catGet(i, 'a'),
-                                borderColor: 'rgba(30,58,138,1)',
-                                backgroundColor: 'rgba(30,58,138,0.13)',
-                                fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
-                                pointBackgroundColor: 'rgba(30,58,138,1)',
-                                datalabels: {
-                                    align: 'top', color: '#1e3a8a',
-                                    font: { weight: 'bold', size: 10 },
-                                    formatter: v => v > 0 ? v : ''
-                                }
-                            },
-                            {
-                                label: 'INC — Resolvidos',
-                                data: catGet(i, 'r'),
-                                borderColor: 'rgba(34,197,94,0.9)',
-                                backgroundColor: 'rgba(34,197,94,0.04)',
-                                fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5,
-                                borderDash: [7, 4],
-                                pointBackgroundColor: 'rgba(34,197,94,1)',
-                                datalabels: {
-                                    align: 'bottom', color: '#16a34a',
-                                    font: { size: 9 },
-                                    formatter: v => v > 0 ? v : ''
-                                }
-                            },
-                            // ── REQ ──────────────────────────────────────────────
-                            {
-                                label: 'REQ — Abertos',
-                                data: catGet(r, 'a'),
-                                borderColor: 'rgba(37,99,235,1)',
-                                backgroundColor: 'rgba(37,99,235,0.11)',
-                                fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
-                                pointBackgroundColor: 'rgba(37,99,235,1)',
-                                datalabels: {
-                                    align: 'top', color: '#1d4ed8',
-                                    font: { weight: 'bold', size: 10 },
-                                    formatter: v => v > 0 ? v : ''
-                                }
-                            },
-                            {
-                                label: 'REQ — Resolvidos',
-                                data: catGet(r, 'r'),
-                                borderColor: 'rgba(16,185,129,0.9)',
-                                backgroundColor: 'transparent',
-                                fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5,
-                                borderDash: [7, 4],
-                                pointBackgroundColor: 'rgba(16,185,129,1)',
-                                datalabels: {
-                                    align: 'bottom', color: '#059669',
-                                    font: { size: 9 },
-                                    formatter: v => v > 0 ? v : ''
-                                }
-                            },
-                            // ── UAM ──────────────────────────────────────────────
-                            {
-                                label: 'UAM — Abertos',
-                                data: catGet(u, 'a'),
-                                borderColor: 'rgba(124,58,237,1)',
-                                backgroundColor: 'rgba(124,58,237,0.10)',
-                                fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
-                                pointBackgroundColor: 'rgba(124,58,237,1)',
-                                datalabels: {
-                                    align: 'top', color: '#7c3aed',
-                                    font: { weight: 'bold', size: 10 },
-                                    formatter: v => v > 0 ? v : ''
-                                }
-                            },
-                            {
-                                label: 'UAM — Resolvidos',
-                                data: catGet(u, 'r'),
-                                borderColor: 'rgba(192,132,252,0.9)',
-                                backgroundColor: 'transparent',
-                                fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5,
-                                borderDash: [7, 4],
-                                pointBackgroundColor: 'rgba(192,132,252,1)',
-                                datalabels: {
-                                    align: 'bottom', color: '#9333ea',
-                                    font: { size: 9 },
-                                    formatter: v => v > 0 ? v : ''
-                                }
-                            }
-                        ]
-                    },
+                    data: { labels: trendLabels, datasets: _buildTrendDatasets(sortedTrendM) },
                     options: {
                         maintainAspectRatio: false,
-                        legend: {
-                            position: 'bottom',
-                            labels: { padding: 16, usePointStyle: true, fontSize: 11 }
-                        },
+                        legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, fontSize: 11 } },
                         elements: { line: { tension: 0.35 } },
                         scales: {
-                            xAxes: [{
-                                gridLines: { display: false },
-                                ticks: { fontSize: 10, maxRotation: 40 }
-                            }],
-                            yAxes: [{
-                                ticks: { beginAtZero: true, fontSize: 10 },
-                                gridLines: { color: '#f1f5f9', zeroLineColor: '#e2e8f0' }
-                            }]
+                            xAxes: [{ gridLines: { display: false }, ticks: { fontSize: 10, maxRotation: 40 } }],
+                            yAxes: [{ ticks: { beginAtZero: true, fontSize: 10 }, gridLines: { color: '#f1f5f9', zeroLineColor: '#e2e8f0' } }]
                         },
                         tooltips: {
-                            mode: 'index',
-                            intersect: false,
+                            mode: 'index', intersect: false,
                             callbacks: {
                                 title: (items) => items[0]?.xLabel || '',
-                                label: (item, data) => {
-                                    const ds = data.datasets[item.datasetIndex];
-                                    return ` ${ds.label}: ${item.yLabel}`;
-                                }
+                                label: (item, data) => ` ${data.datasets[item.datasetIndex].label}: ${item.yLabel}`
                             }
                         },
                         onClick: function (evt) {
                             const el = this.getElementAtEvent(evt)[0];
                             if (!el) return;
-                            const idx    = el._index;
-                            const dsIdx  = el._datasetIndex;
-                            const mKey   = sortedTrendM[idx];
-                            const lbl    = trendLabels[idx];
+                            const idx   = el._index;
+                            const dsIdx = el._datasetIndex;
+                            const activeKeys = window._consTrendFullData?._activeKeys || sortedTrendM;
+                            const mKey = activeKeys[idx];
+                            const lbl  = _fmtTrendLbl(mKey);
                             const srcMap = [
                                 [i, 'a', `INC Abertos — ${lbl}`],
                                 [i, 'r', `INC Resolvidos — ${lbl}`],
@@ -7572,7 +7545,57 @@
                             openDrilldown(entry[2], 'trend_tmp', 'cons');
                         }
                     }
-                }));
+                });
+                window._consTrendChart = _chartInst;
+                window.chartInstances.push(_chartInst);
+
+                // ── guarda dados completos para uso nos filtros ──────────────────
+                window._consTrendFullData = { sortedTrendM, i, r, u, _activeKeys: sortedTrendM.slice() };
+
+                // ── funções de filtro expostas globalmente ───────────────────────
+                window.filterConsTrend = function(n, btn) {
+                    document.querySelectorAll('.cons-trend-btn').forEach(b => {
+                        b.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+                        b.classList.add('bg-white', 'border-slate-300', 'text-slate-600');
+                    });
+                    if (btn) {
+                        btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+                        btn.classList.remove('bg-white', 'border-slate-300', 'text-slate-600');
+                    }
+                    const fromEl = document.getElementById('cons-trend-from');
+                    const toEl   = document.getElementById('cons-trend-to');
+                    if (fromEl) fromEl.value = '';
+                    if (toEl)   toEl.value   = '';
+                    const fd   = window._consTrendFullData;
+                    const keys = n === 0 ? fd.sortedTrendM.slice() : fd.sortedTrendM.slice(-n);
+                    _applyTrendFilter(keys);
+                };
+
+                window.filterConsTrendRange = function() {
+                    const fromEl = document.getElementById('cons-trend-from');
+                    const toEl   = document.getElementById('cons-trend-to');
+                    const fromVal = (fromEl?.value || '').trim();
+                    const toVal   = (toEl?.value   || '').trim();
+                    if (!fromVal && !toVal) return;
+                    document.querySelectorAll('.cons-trend-btn').forEach(b => {
+                        b.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+                        b.classList.add('bg-white', 'border-slate-300', 'text-slate-600');
+                    });
+                    const fd   = window._consTrendFullData;
+                    let keys   = fd.sortedTrendM.slice();
+                    if (fromVal) keys = keys.filter(k => k >= fromVal);
+                    if (toVal)   keys = keys.filter(k => k <= toVal);
+                    if (keys.length) _applyTrendFilter(keys);
+                };
+
+                window.clearConsTrendRange = function() {
+                    const fromEl = document.getElementById('cons-trend-from');
+                    const toEl   = document.getElementById('cons-trend-to');
+                    if (fromEl) fromEl.value = '';
+                    if (toEl)   toEl.value   = '';
+                    const allBtn = document.querySelector('.cons-trend-btn[onclick*="filterConsTrend(0"]');
+                    window.filterConsTrend(0, allBtn);
+                };
             }
             // ────────────────────────────────────────────────────────────────────
         }
