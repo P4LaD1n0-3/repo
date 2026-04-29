@@ -2341,7 +2341,7 @@
                     if (entry.kind !== 'file' || !entry.name.endsWith('.xlsx')) continue;
 
                     let nameLower = entry.name.toLowerCase();
-                    if (nameLower.includes('inc') || nameLower.includes('incident') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('problem') || nameLower.includes('ptask') || nameLower.includes('prb')) {
+                    if (nameLower.includes('inc') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('ptask') || nameLower.includes('prb')) {
                         const file = await entry.getFile();
                         totalFound++;
 
@@ -2454,19 +2454,14 @@
                 return o;
             });
 
-            // Routing priority: most specific patterns first
-            // 1. sc_task → PTASK (problem tasks, NOT service requests)
-            // 2. incident → INC
-            // 3. problem_rca or problem → RCA (PRB master with RCA fields)
-            // 4. ptask/stask → PTASK
-            // 5. req/ritm → REQ (service requests)
-            // 6. prb → PRB
-            if (nameLower.includes('sc_task') && cleanJson.length > 0) RawData.ptask = cleanJson;
-            else if (nameLower.includes('inc') && cleanJson.length > 0) RawData.incs = cleanJson;
-            else if ((nameLower.includes('problem') || nameLower.includes('rca')) && cleanJson.length > 0) RawData.rca = cleanJson;
-            else if ((nameLower.includes('ptask') || nameLower.includes('stask')) && cleanJson.length > 0) RawData.ptask = cleanJson;
-            else if ((nameLower.includes('req') || nameLower.includes('ritm')) && cleanJson.length > 0) RawData.reqs = cleanJson;
-            else if (nameLower.includes('prb') && cleanJson.length > 0) RawData.prb = cleanJson;
+            if (nameLower.includes('inc') && cleanJson.length > 0) RawData.incs = cleanJson;
+            // sc_task.xlsx → tratado como PTASK (tarefas de requisição vinculadas a problemas)
+            else if (nameLower.includes('sc_task') && cleanJson.length > 0) RawData.ptask = cleanJson;
+            else if ((nameLower.includes('req') && !nameLower.includes('sc_task')) && cleanJson.length > 0) RawData.reqs = cleanJson;
+            // problem_rca.xlsx → contém RCA Status, RCA Due Date, RCA Published Date por PRB
+            else if ((nameLower.includes('rca') || (nameLower.includes('problem') && !nameLower.includes('task') && !nameLower.includes('prb'))) && cleanJson.length > 0) RawData.rca = cleanJson;
+            else if ((nameLower.includes('ptask') || (nameLower.includes('problem') && nameLower.includes('task')) || nameLower.includes('stask')) && cleanJson.length > 0) RawData.ptask = cleanJson;
+            else if ((nameLower.includes('prb')) && cleanJson.length > 0) RawData.prb = cleanJson;
             else {
                 console.warn(`[DATA] Arquivo '${originalName}' não reconhecido. Mantendo dados existentes.`);
                 let warnBadge = `<div class="file-badge" style="background:#fee2e2;border-color:#fca5a5;"><span class="truncate" style="color:#b91c1c;"><i class="fas fa-exclamation-triangle mr-1"></i> ${originalName} (não reconhecido)</span></div>`;
@@ -2474,16 +2469,7 @@
                 return;
             }
 
-            // Determine route target for logging
-            let routeTarget = 'unknown';
-            if (RawData.ptask.length > 0 && RawData.ptask === cleanJson) routeTarget = 'PTASK';
-            else if (RawData.incs.length > 0 && RawData.incs === cleanJson) routeTarget = 'INC';
-            else if (RawData.rca.length > 0 && RawData.rca === cleanJson) routeTarget = 'RCA';
-            else if (RawData.reqs.length > 0 && RawData.reqs === cleanJson) routeTarget = 'REQ';
-            else if (RawData.prb.length > 0 && RawData.prb === cleanJson) routeTarget = 'PRB';
-            console.log(`[DATA] Arquivo '${originalName}' → RawData.${routeTarget.toLowerCase()} (${cleanJson.length} linhas). Colunas: ${cleanJson.length > 0 ? Object.keys(cleanJson[0]).join(', ') : 'N/A'}`);
-
-            let badgeHtml = `<div class="file-badge"><span class="truncate"><i class="fas fa-file-excel mr-1"></i> ${originalName} → ${routeTarget}</span><i class="fas fa-check"></i></div>`;
+            let badgeHtml = `<div class="file-badge"><span class="truncate"><i class="fas fa-file-excel mr-1"></i> ${originalName}</span><i class="fas fa-check"></i></div>`;
             if (!document.getElementById('file-status').innerHTML.includes(originalName)) {
                 document.getElementById('file-status').innerHTML += badgeHtml;
                 document.getElementById('btn-clear-files').classList.remove('hidden-st');
@@ -6439,20 +6425,17 @@
 
 
         // Função para adaptar dados de PRB para o formato do dashboard
-        // Cruza: index.xlsx (RawData.incs – campo Problem) + problem_rca.xlsx (RawData.rca – campos Problem/Number)
+        // Cruza: index.xlsx (RawData.incs – campo Problem) + problem_rca.xlsx (RawData.rca – campo Problem=PRB ID)
         function processPRBDataForDisplay(prbRawData, ptaskRawData, rcaRawData) {
 
-            // ---------------------------------------------------------------
-            // ETAPA 1: Mapa de mestres PRB  ←  problem_rca.xlsx  (RawData.rca)
-            // O campo identificador do PRB neste arquivo pode ser "Problem" ou "Number"
-            // Ambos têm formato PRBxxxxxxx.
-            // ---------------------------------------------------------------
-            let prbMasterMap = {}; // prbId (ex: "PRB0012345") -> linha bruta do problem_rca.xlsx
-
-            // Helper: extrai somente "PRBxxxxxxx" de qualquer string (ex: "PRB0001234 - Descrição")
+            // Helper: extrai somente "PRBxxxxxxx" de qualquer string
             const _extractPRBId = (v) => (String(v || '').toUpperCase().match(/PRB[0-9]+/) || [])[0] || '';
 
-            // Primeiro carrega de prbRawData (RawData.prb) — RawData.rca tem prioridade e vai sobrescrever se houver
+            // ── ETAPA 1: Mapa de mestres PRB ──────────────────────────────
+            // problem_rca.xlsx → RawData.rca: chave PRB está na coluna "Problem"
+            // Qualquer arquivo .prb genérico: tenta "Number" primeiro, depois "Problem"
+            let prbMasterMap = {};
+
             if (prbRawData && prbRawData.length > 0) {
                 prbRawData.forEach(row => {
                     let prbId = _extractPRBId(getCol(row, ['Number', 'Ticket', 'Número', 'number']))
@@ -6462,56 +6445,47 @@
                 });
             }
 
+            // rcaRawData (problem_rca.xlsx via RawData.rca): chave PRB = coluna "Problem"
             if (rcaRawData && rcaRawData.length > 0) {
                 rcaRawData.forEach(row => {
-                    // problem_rca.xlsx: coluna 'Problem' (1ª) contém o PRB ID, 'Number' (col 9) pode ser diferente
                     let prbId = _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id']))
                              || _extractPRBId(getCol(row, ['Number', 'Ticket', 'Número', 'number']));
                     if (!prbId) return;
-                    prbMasterMap[prbId] = row; // RCA sempre tem prioridade sobre prb.xlsx
+                    prbMasterMap[prbId] = row; // RCA sempre tem prioridade
                 });
             }
 
-            // ---------------------------------------------------------------
-            // ETAPA 2: Mapa PRB -> [linhas INC]  ←  index.xlsx  (RawData.incs)
-            // Critérios de vínculo (em ordem de prioridade):
-            //   a) Campo "Problem" do INC contém PRBxxxxxxx
-            //   b) Campo "Related Incidents" do problem_rca contém o número do INC
-            //   c) Menção textual PRBxxxxxxx em "Additional comments" do INC
-            // ---------------------------------------------------------------
-            let prbToIncsMap = {}; // prbId -> Set de linhas brutas de INC (sem duplicata por Number)
-
+            // ── ETAPA 2: Mapa PRB → [linhas INC] ─────────────────────────
+            // a) Campo "Problem" do INC contém PRBxxxxxxx
+            // b) Campo "Related Incidents" do problem_rca contém INCxxxxxxx
+            // c) Menção textual de PRBxxxxxxx em Additional comments do INC
+            let prbToIncsMap = {};
             const incSource = (window.RawData && window.RawData.incs) ? window.RawData.incs : [];
 
-            // (a) + (c): percorre todos os INCs — também constrói índice por número
-            const incByNumber = new Map(); // INC number -> row (para lookup O(1))
             incSource.forEach(inc => {
                 let incNum = String(getCol(inc, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
                 if (!incNum.startsWith('INC')) return;
-                incByNumber.set(incNum, inc);
 
-                // (a) campo direto Problem — extrai apenas PRBxxxxxxx (ignora descrição após o número)
+                // (a) campo direto Problem
                 let prbDirect = _extractPRBId(getCol(inc, ['Problem', 'Problema', 'problem_id']));
                 if (prbDirect) {
                     if (!prbToIncsMap[prbDirect]) prbToIncsMap[prbDirect] = new Map();
                     if (!prbToIncsMap[prbDirect].has(incNum)) prbToIncsMap[prbDirect].set(incNum, inc);
                 }
 
-                // (c) varredura textual em Additional comments
+                // (c) varredura textual em Additional comments / Work notes
                 let addComments = String(getCol(inc, ['Additional comments', 'Comentários', 'Work notes', 'Description', 'description']) || '').toUpperCase();
-                let extraMatches = addComments.match(/PRB[0-9]+/g) || [];
-                extraMatches.forEach(p => {
+                (addComments.match(/PRB[0-9]+/g) || []).forEach(p => {
                     if (!prbToIncsMap[p]) prbToIncsMap[p] = new Map();
                     if (!prbToIncsMap[p].has(incNum)) prbToIncsMap[p].set(incNum, inc);
                 });
             });
 
-            // (b) campo "Related Incidents" do problem_rca.xlsx → busca INC via índice O(1)
+            // (b) "Related Incidents" no problem_rca
             Object.entries(prbMasterMap).forEach(([prbId, row]) => {
-                let relRaw = String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'Tickets Relacionados', 'Related tickets', 'related_incidents']) || '');
-                let relNums = (relRaw.toUpperCase().match(/INC[0-9]+/g) || []);
-                relNums.forEach(incNum => {
-                    let incRow = incByNumber.get(incNum);
+                let relRaw = String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'Tickets Relacionados', 'related_incidents']) || '');
+                (relRaw.toUpperCase().match(/INC[0-9]+/g) || []).forEach(incNum => {
+                    let incRow = incSource.find(x => String(getCol(x, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase() === incNum);
                     if (!incRow) return;
                     if (!prbToIncsMap[prbId]) prbToIncsMap[prbId] = new Map();
                     if (!prbToIncsMap[prbId].has(incNum)) prbToIncsMap[prbId].set(incNum, incRow);
@@ -6519,62 +6493,46 @@
             });
 
             // Converte Maps para arrays
-            let prbToIncsArray = {}; // prbId -> [linhas brutas de INC]
-            Object.entries(prbToIncsMap).forEach(([pid, m]) => {
-                prbToIncsArray[pid] = Array.from(m.values());
-            });
+            let prbToIncsArray = {};
+            Object.entries(prbToIncsMap).forEach(([pid, m]) => { prbToIncsArray[pid] = Array.from(m.values()); });
 
-            // ---------------------------------------------------------------
-            // ETAPA 3: Monta array processado
-            // ---------------------------------------------------------------
+            // ── ETAPA 3: Monta array processado ───────────────────────────
             let processed = [];
             let seenTickets = new Set();
-
-            // Todos os PRB IDs únicos (mestres + via INCs)
             let allPrbIds = new Set([...Object.keys(prbMasterMap), ...Object.keys(prbToIncsArray)]);
 
             allPrbIds.forEach(prbId => {
                 if (!prbId || !prbId.startsWith('PRB')) return;
-
                 let masterRow = prbMasterMap[prbId] || null;
                 let linkedIncs = prbToIncsArray[prbId] || [];
 
-                // ── Linha MESTRE (tipo PRB) ──────────────────────────────
+                // ── Linha MESTRE (tipo PRB) ──
                 if (!seenTickets.has(prbId)) {
                     seenTickets.add(prbId);
 
-                    // Datas do problem_rca.xlsx
                     let opD = masterRow ? safeDate(getCol(masterRow, ['Opened', 'Data Abertura', 'Created', 'opened_at'])) : null;
                     let clD = masterRow ? safeDate(getCol(masterRow, ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at'])) : null;
-                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
-                        : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
+                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
 
-                    // Priority: problem_rca NÃO tem essa coluna → deriva do INC com maior criticidade
+                    // Prioridade: problema_rca não tem → deriva do INC filho mais crítico
                     let prioVal = 'N/A';
                     let masterPrio = masterRow ? getCol(masterRow, ['Priority', 'Prioridade', 'priority']) : null;
-                    if (masterRow && masterPrio) {
+                    if (masterRow && masterPrio && String(masterPrio).trim()) {
                         prioVal = String(masterPrio).trim();
                     } else if (linkedIncs.length > 0) {
-                        // Pega a maior prioridade (menor número) entre os INCs filhos
                         let prioNums = linkedIncs
                             .map(inc => parseInt(String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || '99').replace(/[^0-9]/g, '')) || 99)
                             .filter(n => n < 99);
                         if (prioNums.length > 0) {
                             let minPrio = Math.min(...prioNums);
-                            // Reconstroi o label a partir do primeiro INC que bate
-                            let refInc = linkedIncs.find(inc => {
-                                let p = String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || '');
-                                return p.includes(String(minPrio));
-                            });
+                            let refInc = linkedIncs.find(inc => String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || '').includes(String(minPrio)));
                             prioVal = refInc ? String(getCol(refInc, ['Priority', 'Prioridade', 'priority'])).trim() : String(minPrio);
                         }
                     }
 
                     processed.push({
-                        tk: prbId,
-                        prb: prbId,
-                        type: 'PRB',
+                        tk: prbId, prb: prbId, type: 'PRB',
                         st: masterRow ? String(getCol(masterRow, ['State', 'Status', 'Estado', 'status']) || 'Open').toUpperCase() : 'OPEN',
                         stRca: masterRow ? String(getCol(masterRow, ['RCA Status', 'rca_status']) || '—').trim() : '—',
                         gp: masterRow ? String(getCol(masterRow, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim() : '—',
@@ -6589,47 +6547,30 @@
                         opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
                         clStr: clD ? clD.toLocaleDateString('pt-BR') : '—',
                         req: masterRow ? String(getCol(masterRow, ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim() : 'N/A',
-                        inc_count: linkedIncs.length   // usado internamente; exibido na coluna Filhos via groups
+                        inc_count: linkedIncs.length
                     });
                 }
 
-                // ── Linhas FILHAS (tipo INC) ─────────────────────────────
+                // ── Linhas FILHAS (tipo INC) ──
                 linkedIncs.forEach(inc => {
                     let incNum = String(getCol(inc, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
                     if (!incNum || seenTickets.has(incNum)) return;
                     seenTickets.add(incNum);
-
                     let opD = safeDate(getCol(inc, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                    // index.xlsx usa "Resolved" para INCs fechados
                     let clD = safeDate(getCol(inc, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']) || '');
-                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
-                        : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
+                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
-
-                    // Grupo: prioriza o do INC (Assignment group do index.xlsx)
-                    let gpInc = String(getCol(inc, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim();
-
-                    // Caller / Solicitante: campo exato "Caller" do index.xlsx
-                    let caller = String(getCol(inc, ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim();
-
-                    // Priority: campo exato "Priority" do index.xlsx
-                    let priority = String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim();
-
                     processed.push({
-                        tk: incNum,
-                        prb: prbId,   // vínculo correto com o pai
-                        type: 'INC',
+                        tk: incNum, prb: prbId, type: 'INC',
                         st: String(getCol(inc, ['State', 'Status', 'Estado', 'status']) || 'Open').toUpperCase(),
                         stRca: '—',
-                        gp: gpInc,
+                        gp: String(getCol(inc, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim(),
                         as: String(getCol(inc, ['Assigned to', 'Analista', 'Assignee', 'assigned_to']) || '—').trim(),
-                        req: caller,  // para o modal e a sub-linha
-                        priority: priority,
+                        req: String(getCol(inc, ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim(),
+                        priority: String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim(),
                         desc: String(getCol(inc, ['Short description', 'Descrição', 'Assunto']) || '—').trim(),
                         ci: String(getCol(inc, ['Configuration item', 'CI', 'Item de configuracao']) || '—').trim(),
-                        related_incidents_raw: '—',
-                        rca_due: '—',
-                        rca_pub: '—',
+                        related_incidents_raw: '—', rca_due: '—', rca_pub: '—',
                         age: aging,
                         opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
                         clStr: clD ? clD.toLocaleDateString('pt-BR') : '—'
@@ -6637,51 +6578,52 @@
                 });
             });
 
-            // ── PTASKs ──────────────────────────────────────────────────
+            // ── PTASKs ──
+            // problem_ptask.xlsx: "Problem" = PRB pai, "Number" = PTASK ID
+            // sc_task.xlsx (tratado como ptask): "Number" = SCTASK, sem coluna "Problem" → fica sem pai PRB
             if (ptaskRawData && ptaskRawData.length > 0) {
                 ptaskRawData.forEach(row => {
                     let number = String(getCol(row, ['Number', 'Ticket', 'Número', 'number', 'Task']) || '').trim().toUpperCase();
-                    // extrai PRBxxxxxxx do campo Problem, Request item, ou Parent
-                    // sc_task.xlsx usa 'Request item' para vincular ao pai
-                    let prb = _extractPRBId(getCol(row, ['Problem', 'Request item', 'Problema', 'problem_id', 'Parent']));
+                    let prb = _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id', 'Parent']));
                     if (!number || seenTickets.has(number)) return;
                     seenTickets.add(number);
-
                     let opD = safeDate(getCol(row, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                     let clD = safeDate(getCol(row, ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at']) || '');
-                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
-                        : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
+                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
 
+                    // Para sc_task.xlsx (SCTASK): vincula ao PRB via "Request item" se referência a PRB existir
+                    // Tenta extrair PRB de campos de texto (descrição, notas) como fallback
+                    if (!prb) {
+                        let textFields = [
+                            getCol(row, ['Short description', 'Descrição', 'Assunto']),
+                            getCol(row, ['Description', 'description']),
+                            getCol(row, ['Work notes', 'Additional comments'])
+                        ].join(' ');
+                        prb = _extractPRBId(textFields) || '—';
+                    }
+
+                    // Registra o PRB pai no mapa caso não exista ainda (sem masterRow)
+                    if (prb && prb !== '—' && !prbMasterMap[prb]) {
+                        prbMasterMap[prb] = null;
+                    }
+
                     processed.push({
-                        tk: number,
-                        prb: prb || '—',
-                        type: 'PTASK',
+                        tk: number, prb: prb || '—', type: 'PTASK',
                         st: String(getCol(row, ['State', 'Status', 'Estado', 'status']) || 'Open').toUpperCase(),
                         stRca: '—',
                         gp: String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim(),
                         as: String(getCol(row, ['Assigned to', 'Analista', 'Assignee', 'assigned_to']) || '—').trim(),
-                        req: String(getCol(row, ['Requester', 'Caller', 'Solicitante', 'Created by']) || 'N/A').trim(),
+                        req: String(getCol(row, ['Requester', 'Caller', 'Solicitante']) || 'N/A').trim(),
                         priority: String(getCol(row, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim(),
-                        desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto', 'Description']) || '—').trim(),
-                        ci: String(getCol(row, ['Configuration item', 'CI', 'Item de configuracao', 'Item']) || '—').trim(),
-                        related_incidents_raw: '—',
-                        rca_due: '—',
-                        rca_pub: '—',
+                        desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto', 'Item']) || '—').trim(),
+                        ci: String(getCol(row, ['Configuration item', 'CI', 'Item de configuracao']) || '—').trim(),
+                        related_incidents_raw: '—', rca_due: '—', rca_pub: '—',
                         age: aging,
                         opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
                         clStr: clD ? clD.toLocaleDateString('pt-BR') : '—'
                     });
                 });
-            }
-
-            // Debug logging
-            let prbCount = processed.filter(t => t.type === 'PRB').length;
-            let incCount = processed.filter(t => t.type === 'INC').length;
-            let ptaskCount = processed.filter(t => t.type === 'PTASK').length;
-            console.log(`[PRB] processPRBDataForDisplay: ${prbCount} PRBs, ${incCount} INCs vinculados, ${ptaskCount} PTASKs. Masters no mapa: ${Object.keys(prbMasterMap).length}. INCs fonte: ${incSource.length}. PTASKs fonte: ${ptaskRawData ? ptaskRawData.length : 0}`);
-            if (Object.keys(prbMasterMap).length > 0) {
-                console.log(`[PRB] PRB IDs encontrados: ${Object.keys(prbMasterMap).join(', ')}`);
             }
 
             return processed;
@@ -6714,15 +6656,6 @@
                 });
             }
             // ------------------------------------------------------------------
-
-            // Índice de INCs por número para lookups O(1)
-            const incByNum = new Map();
-            if (window.RawData && window.RawData.incs) {
-                window.RawData.incs.forEach(inc => {
-                    let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
-                    if (incNum) incByNum.set(incNum, inc);
-                });
-            }
 
             let allPrbs = [];
             let allPtasks = [];
@@ -6774,13 +6707,11 @@
                 let relRaw = getCol(r, relCols);
                 let relList = relRaw ? relRaw.split(/[,\s;]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC')) : [];
 
-                if (incByNum.size > 0) {
-                    // Busca tickets via Related Incidents usando lookup O(1)
-                    let relSet = new Set(relList);
-                    let explicitIncs = [];
-                    relSet.forEach(incNum => {
-                        let inc = incByNum.get(incNum);
-                        if (inc) explicitIncs.push(inc);
+                if (window.RawData && window.RawData.incs) {
+                    // Busca tickets explicitamente mencionados na coluna do PRB
+                    let explicitIncs = window.RawData.incs.filter(inc => {
+                        let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
+                        return relList.includes(incNum);
                     });
 
                     // Busca tickets do mapeamento global via Regex (Herança / Reuso)
@@ -6790,10 +6721,9 @@
                     let prbIncMatches = combinedText.toUpperCase().match(/INC[0-9]+/g) || [];
                     let prbMentionedIncs = [];
                     if (prbIncMatches.length > 0) {
-                        // Usa lookup O(1) em vez de filter O(n)
-                        prbIncMatches.forEach(incNum => {
-                            let inc = incByNum.get(incNum);
-                            if (inc) prbMentionedIncs.push(inc);
+                        prbMentionedIncs = window.RawData.incs.filter(inc => {
+                            let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
+                            return prbIncMatches.includes(incNum);
                         });
                     }
 
@@ -7777,8 +7707,7 @@
         // 8. ORQUESTRADOR PRINCIPAL (COM INTEGRAÇÃO PRB REFORMULADO)
         // ==========================================
         function processDashboard() {
-            console.log(`[DASHBOARD] processDashboard() chamado. INCs: ${RawData.incs.length}, REQs: ${RawData.reqs.length}, RCA: ${RawData.rca.length}, PTASK: ${RawData.ptask.length}, PRB: ${RawData.prb.length}`);
-            if (!RawData.incs.length && !RawData.reqs.length && !RawData.rca.length && !RawData.ptask.length) return alert("Erro: Carregue as planilhas do ServiceNow na aba lateral primeiro.");
+            if (!RawData.incs.length && !RawData.reqs.length) return alert("Erro: Carregue as planilhas do ServiceNow na aba lateral primeiro.");
 
             let now = new Date();
             document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extração: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
@@ -7885,22 +7814,19 @@
                 // Restaurar aba de Tickets Abertos
                 document.getElementById('tab-open').innerHTML = generateOpenTicketsHTML(RawData.incs, rS, rU, slaI, slaR, dateMachine);
 
-                // Prioriza PRBs se existirem, caso contrário tenta extrair dos incidentes (Fallback), ou usa RCA/PTASK
-                let prbDataToProcess = (RawData.prb && RawData.prb.length > 0) ? RawData.prb : [];
-                if (prbDataToProcess.length === 0 && RawData.incs && RawData.incs.length > 0) {
-                    prbDataToProcess = RawData.incs.filter(inc => {
-                        let p = String(getCol(inc, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
-                        return p.startsWith('PRB');
-                    });
-                }
+                // Prioriza RawData.rca (problem_rca.xlsx) e RawData.ptask (problem_ptask/sc_task.xlsx)
+                // RawData.prb só é preenchido se um arquivo "prb*.xlsx" genérico for carregado
+                let hasRcaData  = RawData.rca   && RawData.rca.length   > 0;
+                let hasPtask    = RawData.ptask  && RawData.ptask.length > 0;
+                let hasIncsWithPrb = RawData.incs && RawData.incs.some(inc =>
+                    String(getCol(inc, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase().startsWith('PRB')
+                );
 
-                if (prbDataToProcess.length > 0 || (RawData.ptask && RawData.ptask.length) || (RawData.rca && RawData.rca.length)) {
-                    let prbProcessed = processPRBDataForDisplay(prbDataToProcess, RawData.ptask, RawData.rca);
+                if (hasRcaData || hasPtask || hasIncsWithPrb || (RawData.prb && RawData.prb.length > 0)) {
+                    let prbProcessed = processPRBDataForDisplay(RawData.prb || [], RawData.ptask || [], RawData.rca || []);
                     document.getElementById('tab-prb').innerHTML = generatePRBTabImproved(prbProcessed, RawData.ptask, RawData.rca, dateMachine);
-                } else if (RawData.rca && RawData.rca.length || RawData.ptask && RawData.ptask.length) {
-                    document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaRCA, slaP, dateMachine);
                 } else {
-                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK/PRB importado.</h3></div>`;
+                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK/PRB importado.<br><small style="color:#94a3b8;font-size:12px;">Carregue: <b>problem_rca.xlsx</b>, <b>problem_ptask.xlsx</b> ou <b>sc_task.xlsx</b></small></h3></div>`;
                 }
 
                 let allCombinedData = [...RawData.incs, ...RawData.reqs];
