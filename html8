@@ -2341,7 +2341,7 @@
                     if (entry.kind !== 'file' || !entry.name.endsWith('.xlsx')) continue;
 
                     let nameLower = entry.name.toLowerCase();
-                    if (nameLower.includes('inc') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('ptask') || nameLower.includes('prb')) {
+                    if (nameLower.includes('inc') || nameLower.includes('incident') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('problem') || nameLower.includes('ptask') || nameLower.includes('prb')) {
                         const file = await entry.getFile();
                         totalFound++;
 
@@ -6483,10 +6483,12 @@
 
             const incSource = (window.RawData && window.RawData.incs) ? window.RawData.incs : [];
 
-            // (a) + (c): percorre todos os INCs
+            // (a) + (c): percorre todos os INCs — também constrói índice por número
+            const incByNumber = new Map(); // INC number -> row (para lookup O(1))
             incSource.forEach(inc => {
                 let incNum = String(getCol(inc, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
                 if (!incNum.startsWith('INC')) return;
+                incByNumber.set(incNum, inc);
 
                 // (a) campo direto Problem — extrai apenas PRBxxxxxxx (ignora descrição após o número)
                 let prbDirect = _extractPRBId(getCol(inc, ['Problem', 'Problema', 'problem_id']));
@@ -6504,13 +6506,12 @@
                 });
             });
 
-            // (b) campo "Related Incidents" do problem_rca.xlsx → busca INC em incSource
+            // (b) campo "Related Incidents" do problem_rca.xlsx → busca INC via índice O(1)
             Object.entries(prbMasterMap).forEach(([prbId, row]) => {
                 let relRaw = String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'Tickets Relacionados', 'Related tickets', 'related_incidents']) || '');
-                // Extrai todos os INCxxxxxxx mencionados (tolerante a formatos misturados)
                 let relNums = (relRaw.toUpperCase().match(/INC[0-9]+/g) || []);
                 relNums.forEach(incNum => {
-                    let incRow = incSource.find(x => String(getCol(x, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase() === incNum);
+                    let incRow = incByNumber.get(incNum);
                     if (!incRow) return;
                     if (!prbToIncsMap[prbId]) prbToIncsMap[prbId] = new Map();
                     if (!prbToIncsMap[prbId].has(incNum)) prbToIncsMap[prbId].set(incNum, incRow);
@@ -6714,6 +6715,15 @@
             }
             // ------------------------------------------------------------------
 
+            // Índice de INCs por número para lookups O(1)
+            const incByNum = new Map();
+            if (window.RawData && window.RawData.incs) {
+                window.RawData.incs.forEach(inc => {
+                    let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
+                    if (incNum) incByNum.set(incNum, inc);
+                });
+            }
+
             let allPrbs = [];
             let allPtasks = [];
             let rcaOpenBySector = {}; // For filtering RCA != Published
@@ -6764,11 +6774,13 @@
                 let relRaw = getCol(r, relCols);
                 let relList = relRaw ? relRaw.split(/[,\s;]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC')) : [];
 
-                if (window.RawData && window.RawData.incs) {
-                    // Busca tickets explicitamente mencionados na coluna do PRB
-                    let explicitIncs = window.RawData.incs.filter(inc => {
-                        let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
-                        return relList.includes(incNum);
+                if (incByNum.size > 0) {
+                    // Busca tickets via Related Incidents usando lookup O(1)
+                    let relSet = new Set(relList);
+                    let explicitIncs = [];
+                    relSet.forEach(incNum => {
+                        let inc = incByNum.get(incNum);
+                        if (inc) explicitIncs.push(inc);
                     });
 
                     // Busca tickets do mapeamento global via Regex (Herança / Reuso)
@@ -6778,9 +6790,10 @@
                     let prbIncMatches = combinedText.toUpperCase().match(/INC[0-9]+/g) || [];
                     let prbMentionedIncs = [];
                     if (prbIncMatches.length > 0) {
-                        prbMentionedIncs = window.RawData.incs.filter(inc => {
-                            let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
-                            return prbIncMatches.includes(incNum);
+                        // Usa lookup O(1) em vez de filter O(n)
+                        prbIncMatches.forEach(incNum => {
+                            let inc = incByNum.get(incNum);
+                            if (inc) prbMentionedIncs.push(inc);
                         });
                     }
 
@@ -7764,7 +7777,8 @@
         // 8. ORQUESTRADOR PRINCIPAL (COM INTEGRAÇÃO PRB REFORMULADO)
         // ==========================================
         function processDashboard() {
-            if (!RawData.incs.length && !RawData.reqs.length) return alert("Erro: Carregue as planilhas do ServiceNow na aba lateral primeiro.");
+            console.log(`[DASHBOARD] processDashboard() chamado. INCs: ${RawData.incs.length}, REQs: ${RawData.reqs.length}, RCA: ${RawData.rca.length}, PTASK: ${RawData.ptask.length}, PRB: ${RawData.prb.length}`);
+            if (!RawData.incs.length && !RawData.reqs.length && !RawData.rca.length && !RawData.ptask.length) return alert("Erro: Carregue as planilhas do ServiceNow na aba lateral primeiro.");
 
             let now = new Date();
             document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extração: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
