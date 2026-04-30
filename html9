@@ -1800,6 +1800,8 @@
                 <button class="tab-btn" onclick="switchTab('tab-rpa', this)"
                     style="color: var(--primary-dark); font-weight: 500;"><i class="fas fa-robot mr-1"></i>
                     Comunicações RPA</button>
+                <button class="tab-btn" onclick="switchTab('tab-analysts', this)"><i class="fas fa-users mr-1"></i>
+                    Analistas</button>
                 <button class="tab-btn" onclick="switchTab('tab-todo', this)"
                     style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i
                         class="fas fa-tasks mr-1"></i> TODO</button>
@@ -1839,6 +1841,7 @@
                     <div id="tab-sla" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-rpa" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-search" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-analysts" class="animate-fade hidden-st tab-pane"></div>
 
                     <div id="tab-todo" class="animate-fade hidden-st tab-pane">
                         <div class="report-section-title" style="background-color: var(--primary-dark);"><i
@@ -8021,6 +8024,294 @@
         }
 
         // ==========================================
+        // 7.5 PERFORMANCE DE ANALISTAS
+        // ==========================================
+        window.AnalystsFullData = [];
+        window.AnalystsFilteredData = [];
+        
+        window.filterAnalysts = function() {
+            const groupF = document.getElementById('analyst-group-filter').value;
+            const userF = document.getElementById('analyst-user-filter').value;
+            window.AnalystsFilteredData = window.AnalystsFullData.filter(tk => {
+                let g = getCol(tk, ['Assignment group', 'Grupo']) || 'Sem Grupo';
+                let u = getCol(tk, ['Assigned to', 'Atribuído a']) || 'Não Atribuído';
+                if (groupF && g !== groupF) return false;
+                if (userF && u !== userF) return false;
+                return true;
+            });
+            drawAnalystsCharts(window.AnalystsFilteredData);
+        };
+        
+        function updateAnalystsDropdowns(tks) {
+            let groups = new Set();
+            let users = new Set();
+            tks.forEach(tk => {
+                 let g = getCol(tk, ['Assignment group', 'Grupo']) || 'Sem Grupo';
+                 let u = getCol(tk, ['Assigned to', 'Atribuído a']) || 'Não Atribuído';
+                 groups.add(g);
+                 users.add(u);
+            });
+            
+            let gHtml = '<option value="">Todos os Grupos</option>';
+            Array.from(groups).sort().forEach(g => gHtml += `<option value="${g}">${g}</option>`);
+            document.getElementById('analyst-group-filter').innerHTML = gHtml;
+            
+            let uHtml = '<option value="">Todos os Analistas</option>';
+            Array.from(users).sort().forEach(u => uHtml += `<option value="${u}">${u}</option>`);
+            document.getElementById('analyst-user-filter').innerHTML = uHtml;
+        }
+
+        function generateAnalystsHTML(tks, dateRef) {
+            window.AnalystsFullData = tks;
+            window.AnalystsFilteredData = tks;
+            
+            setTimeout(() => updateAnalystsDropdowns(tks), 100);
+            
+            return `
+            <div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-users mr-2"></i> PERFORMANCE DE ANALISTAS</div>
+            
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-5 flex flex-col md:flex-row gap-4 md:items-end">
+                <div class="flex-1">
+                    <label class="form-label">Filtrar por Grupo</label>
+                    <select id="analyst-group-filter" class="form-input" onchange="filterAnalysts()"></select>
+                </div>
+                <div class="flex-1">
+                    <label class="form-label">Filtrar por Analista</label>
+                    <select id="analyst-user-filter" class="form-input" onchange="filterAnalysts()"></select>
+                </div>
+            </div>
+
+            <!-- Insights / KPIs -->
+            <div id="analyst-insights" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+            </div>
+            
+            <!-- Graficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+                <div class="report-card mb-0 col-span-1 lg:col-span-2">
+                    <div class="report-card-title mb-1" style="color:var(--primary-dark);">
+                        <i class="fas fa-chart-area mr-2 text-blue-600"></i> TENDÊNCIA COMPARATIVA MENSAL — PRODUTIVIDADE (ABERTOS vs RESOLVIDOS)
+                    </div>
+                    <div style="font-size:10px; color:#94a3b8; line-height:1.6; margin-bottom:10px;">
+                        <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:3px;background:#1e3a8a;border-radius:2px;"></span> Área = Recebidos (Abertos)</span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dashed #22c55e;"></span> Tracejado = Resolvidos</span>
+                    </div>
+                    <div style="height:350px;"><canvas id="chart-analyst-trend-monthly"></canvas></div>
+                </div>
+
+                <div class="report-card mb-0">
+                    <div class="report-card-title"><i class="fas fa-chart-bar mr-2"></i> Tickets Resolvidos por Analista (Top 10)</div>
+                    <div style="height:300px;"><canvas id="chart-analyst-resolved"></canvas></div>
+                </div>
+                <div class="report-card mb-0">
+                    <div class="report-card-title"><i class="fas fa-chart-pie mr-2"></i> Tickets por Status</div>
+                    <div style="height:300px;"><canvas id="chart-analyst-status"></canvas></div>
+                </div>
+                <div class="report-card mb-0 col-span-1 lg:col-span-2">
+                    <div class="report-card-title"><i class="fas fa-chart-line mr-2"></i> Movimentação Diária (Últimos 30 Dias Ativos)</div>
+                    <div style="height:250px;"><canvas id="chart-analyst-trend"></canvas></div>
+                </div>
+            </div>
+            `;
+        }
+
+        function updateAnalystsInsights(tks) {
+            let total = tks.length;
+            let resolved = tks.filter(t => ['Resolved', 'Resolvido', 'Closed', 'Fechado'].includes(getCol(t, ['State', 'Status']))).length;
+            let open = total - resolved;
+            let pct = total ? Math.round((resolved/total)*100) : 0;
+            
+            let backlogHtml = `
+                <div class="report-card text-center border-t-4 border-slate-500 p-4 mb-0">
+                    <div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total de Tickets</div>
+                    <div class="text-3xl font-black text-slate-700">${total}</div>
+                </div>
+                <div class="report-card text-center border-t-4 border-emerald-500 p-4 mb-0">
+                    <div class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Resolvidos</div>
+                    <div class="text-3xl font-black text-slate-700">${resolved}</div>
+                </div>
+                <div class="report-card text-center border-t-4 border-blue-500 p-4 mb-0">
+                    <div class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Abertos</div>
+                    <div class="text-3xl font-black text-slate-700">${open}</div>
+                </div>
+                <div class="report-card text-center border-t-4 border-purple-500 p-4 mb-0">
+                    <div class="text-[10px] font-black text-purple-500 uppercase tracking-widest mb-1">Taxa de Resolução</div>
+                    <div class="text-3xl font-black text-slate-700">${pct}%</div>
+                </div>
+            `;
+            let el = document.getElementById('analyst-insights');
+            if (el) el.innerHTML = backlogHtml;
+        }
+
+        function drawAnalystsCharts(tks) {
+            if (window.analystChartInsts) {
+                 window.analystChartInsts.forEach(c => c.destroy());
+            }
+            window.analystChartInsts = [];
+
+            updateAnalystsInsights(tks);
+
+            let analystCount = {};
+            tks.forEach(tk => {
+                 if (['Resolved', 'Resolvido', 'Closed', 'Fechado'].includes(getCol(tk, ['State', 'Status']))) {
+                      let u = getCol(tk, ['Assigned to', 'Atribuído a']) || 'Não Atribuído';
+                      analystCount[u] = (analystCount[u] || 0) + 1;
+                 }
+            });
+            let sortedAnalysts = Object.entries(analystCount).sort((a,b) => b[1]-a[1]).slice(0, 10);
+            
+            let ctx1 = document.getElementById('chart-analyst-resolved');
+            if (ctx1) {
+                let c1 = new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedAnalysts.map(x => x[0].split(' ')[0]),
+                        datasets: [{
+                            label: 'Resolvidos',
+                            data: sortedAnalysts.map(x => x[1]),
+                            backgroundColor: '#3b82f6',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
+                window.analystChartInsts.push(c1);
+            }
+
+            let statusCount = {};
+            tks.forEach(tk => {
+                 let s = getCol(tk, ['State', 'Status']) || 'Desconhecido';
+                 statusCount[s] = (statusCount[s] || 0) + 1;
+            });
+            let ctx2 = document.getElementById('chart-analyst-status');
+            if (ctx2) {
+                let c2 = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(statusCount),
+                        datasets: [{
+                            data: Object.values(statusCount),
+                            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
+                });
+                window.analystChartInsts.push(c2);
+            }
+
+            let trendD = {};
+            let trendM = {};
+            tks.forEach(tk => {
+                let created = safeDate(getCol(tk, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
+                if (created && !isNaN(created) && created.getTime() !== 0) {
+                     let d = created.toISOString().split('T')[0];
+                     let m = created.getFullYear() + '-' + String(created.getMonth()+1).padStart(2, '0');
+                     if (!trendD[d]) trendD[d] = {c:0, r:0};
+                     if (!trendM[m]) trendM[m] = {c:0, r:0};
+                     trendD[d].c++;
+                     trendM[m].c++;
+                }
+                let st = getCol(tk, ['State', 'Status', 'Estado']);
+                let isResolved = ['Resolved', 'Resolvido', 'Closed', 'Fechado'].includes(st);
+                let resolved = safeDate(getCol(tk, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
+                if (isResolved && resolved && !isNaN(resolved) && resolved.getTime() !== 0) {
+                     let d = resolved.toISOString().split('T')[0];
+                     let m = resolved.getFullYear() + '-' + String(resolved.getMonth()+1).padStart(2, '0');
+                     if (!trendD[d]) trendD[d] = {c:0, r:0};
+                     if (!trendM[m]) trendM[m] = {c:0, r:0};
+                     trendD[d].r++;
+                     trendM[m].r++;
+                }
+            });
+
+            // Gráfico Mensal (Estilo Consolidado)
+            let sortedMonths = Object.keys(trendM).sort();
+            let ctxM = document.getElementById('chart-analyst-trend-monthly');
+            if (ctxM && sortedMonths.length) {
+                let labelsM = sortedMonths.map(k => {
+                    let [y, mo] = k.split('-');
+                    return new Date(+y, +mo - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
+                });
+
+                let cM = new Chart(ctxM, {
+                    type: 'line',
+                    data: {
+                        labels: labelsM,
+                        datasets: [
+                            {
+                                label: 'Recebidos (Abertos)',
+                                data: sortedMonths.map(m => trendM[m].c),
+                                borderColor: 'rgba(30,58,138,1)', 
+                                backgroundColor: 'rgba(30,58,138,0.15)',
+                                fill: true, 
+                                borderWidth: 3, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8,
+                                pointBackgroundColor: 'rgba(30,58,138,1)',
+                                datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
+                            },
+                            {
+                                label: 'Resolvidos',
+                                data: sortedMonths.map(m => trendM[m].r),
+                                borderColor: 'rgba(22,163,74,0.95)', 
+                                backgroundColor: 'rgba(22,163,74,0.06)',
+                                fill: false, 
+                                borderWidth: 3, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                borderDash: [8, 4],
+                                pointBackgroundColor: 'rgba(22,163,74,1)',
+                                datalabels: { align: 'bottom', color: '#15803d', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
+                            }
+                        ]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        legend: { position: 'top', labels: { usePointStyle: true, fontSize: 11 } },
+                        scales: {
+                            xAxes: [{ gridLines: { display: false }, ticks: { fontSize: 10, fontColor: '#64748b' } }],
+                            yAxes: [{ gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' } }]
+                        },
+                        tooltips: { mode: 'index', intersect: false }
+                    }
+                });
+                window.analystChartInsts.push(cM);
+            }
+
+            // Gráfico Diário (Últimos 30 Dias)
+            let sortedDays = Object.keys(trendD).sort().slice(-30);
+            let ctx3 = document.getElementById('chart-analyst-trend');
+            if (ctx3 && sortedDays.length) {
+                let c3 = new Chart(ctx3, {
+                    type: 'line',
+                    data: {
+                        labels: sortedDays.map(d => { let p = d.split('-'); return p[2]+'/'+p[1]; }),
+                        datasets: [
+                            {
+                                label: 'Abertos',
+                                data: sortedDays.map(d => trendD[d].c),
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239,68,68,0.1)',
+                                fill: true,
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Resolvidos',
+                                data: sortedDays.map(d => trendD[d].r),
+                                borderColor: '#10b981',
+                                backgroundColor: 'rgba(16,185,129,0.1)',
+                                fill: true,
+                                tension: 0.3
+                            }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, legend: { position: 'top' } }
+                });
+                window.analystChartInsts.push(c3);
+            }
+        }
+
+        // ==========================================
         // 8. ORQUESTRADOR PRINCIPAL (COM INTEGRAÇÃO PRB REFORMULADO)
         // ==========================================
         function processDashboard() {
@@ -8066,7 +8357,7 @@
                 const dateToday = now;
 
                 // Limpa recipientes
-                ['tab-inc', 'tab-req', 'tab-uam', 'tab-cons', 'tab-prb', 'tab-class', 'tab-sla', 'tab-search', 'tab-open'].forEach(id => {
+                ['tab-inc', 'tab-req', 'tab-uam', 'tab-cons', 'tab-prb', 'tab-class', 'tab-sla', 'tab-search', 'tab-open', 'tab-analysts'].forEach(id => {
                     let el = document.getElementById(id);
                     if (el) el.innerHTML = "";
                 });
@@ -8133,6 +8424,13 @@
 
                 // Restaurar aba de Tickets Abertos
                 document.getElementById('tab-open').innerHTML = generateOpenTicketsHTML(RawData.incs, rS, rU, slaI, slaR, dateMachine);
+
+                // Aba Analistas
+                if (RawData.incs.length || RawData.reqs.length) {
+                    let allTks = [...RawData.incs, ...RawData.reqs];
+                    document.getElementById('tab-analysts').innerHTML = generateAnalystsHTML(allTks, dateMachine);
+                    setTimeout(() => drawAnalystsCharts(allTks), 200);
+                }
 
                 // Prioriza PRBs se existirem, caso contrário tenta extrair dos incidentes (Fallback), ou usa RCA/PTASK
                 let prbDataToProcess = (RawData.prb && RawData.prb.length > 0) ? RawData.prb : [];
