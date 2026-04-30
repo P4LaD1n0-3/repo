@@ -8322,15 +8322,36 @@
             // ── 7. Pivot Table (Analista × Mês) ──
             let pivE = document.getElementById('an-pivot');
             if (pivE) {
-                // Build per-analyst per-month ticket lists
-                let pivotData = {}; // { analyst: { month: [ticket_objects] } }
-                parsed.filter(t => t.isRes).forEach(t => {
-                    let m = t.clM || t.opM;
-                    if (!m) return;
-                    if (!pivotData[t.asg]) pivotData[t.asg] = {};
-                    if (!pivotData[t.asg][m]) pivotData[t.asg][m] = [];
-                    pivotData[t.asg][m].push(t);
+                // Build per-analyst per-month ticket lists using BOTH opM and clM
+                let pivotByOpen = {};   // { analyst: { month: [tickets] } } — grouped by opened month
+                let pivotByClose = {};  // { analyst: { month: [tickets] } } — grouped by resolved month
+
+                parsed.forEach(t => {
+                    // By opened month (ALL tickets)
+                    if (t.opM) {
+                        if (!pivotByOpen[t.asg]) pivotByOpen[t.asg] = {};
+                        if (!pivotByOpen[t.asg][t.opM]) pivotByOpen[t.asg][t.opM] = [];
+                        pivotByOpen[t.asg][t.opM].push(t);
+                    }
+                    // By close month (RESOLVED only)
+                    if (t.isRes) {
+                        let m = t.clM || t.opM;
+                        if (m) {
+                            if (!pivotByClose[t.asg]) pivotByClose[t.asg] = {};
+                            if (!pivotByClose[t.asg][m]) pivotByClose[t.asg][m] = [];
+                            pivotByClose[t.asg][m].push(t);
+                        }
+                    }
                 });
+
+                // Store both for toggle
+                window._pivotByOpen = pivotByOpen;
+                window._pivotByClose = pivotByClose;
+
+                // Determine which view to render
+                let pivotMode = document.getElementById('an-pivot-mode')?.value || 'open';
+                let pivotData = pivotMode === 'close' ? pivotByClose : pivotByOpen;
+                let pivotLabel = pivotMode === 'close' ? 'Resolvidos por Mês de Fechamento' : 'Tickets por Mês de Abertura';
 
                 // Determine month columns: use period filter range if set, else all data months
                 let pFrom = document.getElementById('an-period-from')?.value || '';
@@ -8340,7 +8361,6 @@
 
                 let sortedPM;
                 if (pFrom || pTo) {
-                    // Generate full month range from pFrom to pTo
                     let startM = pFrom || [...allDataMonths].sort()[0] || '';
                     let endM = pTo || [...allDataMonths].sort().pop() || '';
                     if (startM && endM) {
@@ -8369,7 +8389,14 @@
                 // Store for drilldown clicks
                 window._pivotDrillData = pivotData;
 
-                let html = '<table class="compact-table w-full text-[10px]"><thead><tr><th class="text-left px-2 py-1 bg-slate-100 border border-slate-200 font-black text-slate-700 sticky left-0 z-10" style="min-width:140px;">Analista</th>';
+                let html = `<div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-2 py-1"><i class="fas fa-info-circle mr-1"></i> ${pivotLabel} — ${sortedPM.length} meses</span>
+                    <select id="an-pivot-mode" class="form-input text-[10px] py-1 px-2 w-auto font-bold" style="max-width:220px;" onchange="filterAnalystTab()">
+                        <option value="open" ${pivotMode==='open'?'selected':''}>📥 Por Mês de Abertura</option>
+                        <option value="close" ${pivotMode==='close'?'selected':''}>✅ Por Mês de Fechamento</option>
+                    </select>
+                </div>`;
+                html += '<table class="compact-table w-full text-[10px]"><thead><tr><th class="text-left px-2 py-1 bg-slate-100 border border-slate-200 font-black text-slate-700 sticky left-0 z-10" style="min-width:140px;">Analista</th>';
                 sortedPM.forEach(m => html += `<th class="px-2 py-1 bg-slate-100 border border-slate-200 text-center font-bold text-slate-600" style="min-width:60px;">${_fmtM(m)}</th>`);
                 html += '<th class="px-2 py-1 bg-indigo-100 border border-indigo-200 text-center font-black text-indigo-800" style="min-width:60px;">TOTAL</th></tr></thead><tbody>';
                 let colTotals = {};
@@ -8514,7 +8541,7 @@
 
                 // Aba Analistas — Página Dedicada Completa
                 if (RawData.incs.length || RawData.reqs.length) {
-                    let allTks = [...RawData.incs, ...RawData.reqs];
+                    let allTks = [...RawData.incs, ...RawData.reqs, ...(RawData.uam || [])];
                     window.AnalystsFullData = allTks;
                     document.getElementById('tab-analysts').innerHTML = generateAnalystsPageHTML();
                     setTimeout(() => {
