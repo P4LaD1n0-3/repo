@@ -5177,10 +5177,17 @@
         window.filterModalTable = function (val) {
             const term = val.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
             const rows = document.querySelectorAll('#drilldown-main-table tbody tr');
+            let visible = 0;
             rows.forEach(tr => {
                 const text = tr.innerText.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-                tr.style.display = text.includes(term) ? '' : 'none';
+                const show = text.includes(term);
+                tr.style.display = show ? '' : 'none';
+                if (show) visible++;
             });
+            const sub = document.getElementById('drilldown-subtitle');
+            if (sub) {
+                sub.innerText = val ? `${visible} de ${rows.length} registros (filtrado)` : `${rows.length} registros encontrados`;
+            }
         };
 
         window.exportDrilldownPdf = function () {
@@ -5902,12 +5909,18 @@
             const allBreachTks = [...incOutList, ...reqOutList, ...uamOutList, ...blIncList, ...blReqList, ...blUamList]
                 .sort((a, b) => (b.age || 0) - (a.age || 0));
 
-            window.DrilldownVault['sla']['all'] = allBreachTks;
+            // allBreachTks contém todos (mês + backlog) — usado apenas internamente para compatibilidade
+            // DrilldownVault['sla']['all'] → somente violações resolvidas no mês vigente (alinha com KPI "Total Fora SLA Mês")
+            const mesBreachTks = [...incOutList, ...reqOutList, ...uamOutList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['all'] = mesBreachTks;
             window.DrilldownVault['sla']['inc_all'] = [...incOutList, ...blIncList].sort((a, b) => (b.age || 0) - (a.age || 0));
             window.DrilldownVault['sla']['req_all'] = [...reqOutList, ...blReqList].sort((a, b) => (b.age || 0) - (a.age || 0));
             window.DrilldownVault['sla']['uam_all'] = [...uamOutList, ...blUamList].sort((a, b) => (b.age || 0) - (a.age || 0));
             window.DrilldownVault['sla']['bl_all'] = [...blIncList, ...blReqList, ...blUamList].sort((a, b) => (b.age || 0) - (a.age || 0));
-            window.DrilldownVault['sla']['res_all'] = [...incOutList, ...reqOutList, ...uamOutList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['bl_inc'] = blIncList.slice().sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['bl_req'] = blReqList.slice().sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['bl_uam'] = blUamList.slice().sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['res_all'] = mesBreachTks;
 
             // ── DADOS DOS GRÁFICOS ───────────────────────────────────────────────
             // Anual: merge todos os meses das três fontes
@@ -5935,11 +5948,25 @@
             const dDataUam = sortedDays.map(d => ((_RU.trendD[d] || { tks_r: [] }).tks_r || []).filter(t => (t.age || 0) > slaR).length);
             const dDataTot = sortedDays.map((_, i) => (dDataInc[i] || 0) + (dDataReq[i] || 0) + (dDataUam[i] || 0));
 
-            // Armazena para uso nos charts (acesso global via closure)
-            window._slaChartData = { monthLabels, mDataInc, mDataReq, mDataUam, mDataTot, dayLabels, dDataInc, dDataReq, dDataUam, dDataTot };
+            // Pré-computa vault entries por mês e por dia para drilldown correto ao clicar nos gráficos
+            sortedMonths.forEach(mKey => {
+                const mTksInc = ((_I.trendM[mKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaI).map(t => ({ ...t, tipo: 'INC', isBacklog: false }));
+                const mTksReq = ((_RS.trendM[mKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'REQ', isBacklog: false }));
+                const mTksUam = ((_RU.trendM[mKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'UAM', isBacklog: false }));
+                window.DrilldownVault['sla'][`month_${mKey}`] = [...mTksInc, ...mTksReq, ...mTksUam].sort((a, b) => (b.age || 0) - (a.age || 0));
+            });
+            sortedDays.forEach(dKey => {
+                const dTksInc = ((_I.trendD[dKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaI).map(t => ({ ...t, tipo: 'INC', isBacklog: false }));
+                const dTksReq = ((_RS.trendD[dKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'REQ', isBacklog: false }));
+                const dTksUam = ((_RU.trendD[dKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'UAM', isBacklog: false }));
+                window.DrilldownVault['sla'][`day_${dKey}`] = [...dTksInc, ...dTksReq, ...dTksUam].sort((a, b) => (b.age || 0) - (a.age || 0));
+            });
+
+            // Armazena para uso nos charts — inclui sortedMonths/sortedDays para o onClick mapear o índice ao YYYY-MM/YYYY-MM-DD correto
+            window._slaChartData = { sortedMonths, sortedDays, monthLabels, mDataInc, mDataReq, mDataUam, mDataTot, dayLabels, dDataInc, dDataReq, dDataUam, dDataTot };
 
             // ── TABELA ──────────────────────────────────────────────────────────
-            const rows = allBreachTks.map(t => {
+            const rows = mesBreachTks.map(t => {
                 const typeCls = t.tipo === 'INC' ? 'bg-red-100 text-red-700' : t.tipo === 'REQ' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
                 const blBadge = t.isBacklog ? `<span class="ml-1 text-[8px] bg-amber-100 text-amber-700 border border-amber-200 px-1 py-0.5 rounded font-black">ABERTO</span>` : '';
                 const ageCls = (t.age || 0) > 30 ? 'text-red-700' : (t.age || 0) > 14 ? 'text-orange-600' : 'text-amber-600';
@@ -6006,32 +6033,34 @@
                 </div>
             </div>
 
-            <!-- ── KPIs Backlog ── -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
-                <div class="report-card text-center border-t-4 border-amber-500 bg-gradient-to-br from-white to-amber-50/40 p-4 shadow cursor-pointer hover:shadow-md transition col-span-1"
-                     onclick="openDrilldown('Backlog Atrasado (Todos em Aberto)', 'bl_all', 'sla')">
-                    <div class="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Backlog Fora SLA</div>
-                    <div class="text-4xl font-black text-amber-700">${totalBlOut}</div>
-                    <div class="text-[9px] text-slate-400 mt-2">Tickets abertos e atrasados</div>
+            <!-- ── KPI Backlog (card unificado) ── -->
+            <div class="report-card border-t-4 border-amber-500 bg-gradient-to-br from-white to-amber-50/30 p-4 shadow mb-5">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="text-[9px] font-black text-amber-600 uppercase tracking-widest">Backlog Fora SLA — Tickets Abertos Atrasados</div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[9px] text-slate-400">Total:</span>
+                        <span class="text-4xl font-black text-amber-700 cursor-pointer hover:text-amber-900 transition"
+                              onclick="openDrilldown('Backlog Atrasado (Todos em Aberto)', 'bl_all', 'sla')">${totalBlOut}</span>
+                    </div>
                 </div>
-                <div class="report-card col-span-1 md:col-span-3 p-4 bg-slate-50/50 border border-slate-200 shadow-sm">
-                    <div class="text-[9px] font-black text-slate-500 uppercase mb-3">Breakdown Backlog Fora SLA</div>
-                    <div class="grid grid-cols-3 gap-3 text-center">
-                        <div class="bg-white rounded-lg border border-red-100 p-3">
-                            <div class="text-[9px] font-black text-red-500 uppercase mb-1">INC</div>
-                            <div class="text-3xl font-black text-slate-700">${blOutInc}</div>
-                            <div class="text-[9px] text-slate-400 mt-1">em aberto &gt;${slaI}d</div>
-                        </div>
-                        <div class="bg-white rounded-lg border border-blue-100 p-3">
-                            <div class="text-[9px] font-black text-blue-500 uppercase mb-1">REQ</div>
-                            <div class="text-3xl font-black text-slate-700">${blOutReq}</div>
-                            <div class="text-[9px] text-slate-400 mt-1">em aberto &gt;${slaR}d</div>
-                        </div>
-                        <div class="bg-white rounded-lg border border-purple-100 p-3">
-                            <div class="text-[9px] font-black text-purple-500 uppercase mb-1">UAM</div>
-                            <div class="text-3xl font-black text-slate-700">${blOutUam}</div>
-                            <div class="text-[9px] text-slate-400 mt-1">em aberto &gt;${slaR}d</div>
-                        </div>
+                <div class="grid grid-cols-3 gap-3 text-center">
+                    <div class="bg-white rounded-lg border border-red-100 p-3 cursor-pointer hover:bg-red-50 transition"
+                         onclick="openDrilldown('Backlog INC Atrasado', 'bl_inc', 'sla')">
+                        <div class="text-[9px] font-black text-red-500 uppercase mb-1">INC</div>
+                        <div class="text-3xl font-black text-slate-700">${blOutInc}</div>
+                        <div class="text-[9px] text-slate-400 mt-1">em aberto &gt;${slaI}d</div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-blue-100 p-3 cursor-pointer hover:bg-blue-50 transition"
+                         onclick="openDrilldown('Backlog REQ Atrasado', 'bl_req', 'sla')">
+                        <div class="text-[9px] font-black text-blue-500 uppercase mb-1">REQ</div>
+                        <div class="text-3xl font-black text-slate-700">${blOutReq}</div>
+                        <div class="text-[9px] text-slate-400 mt-1">em aberto &gt;${slaR}d</div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-purple-100 p-3 cursor-pointer hover:bg-purple-50 transition"
+                         onclick="openDrilldown('Backlog UAM Atrasado', 'bl_uam', 'sla')">
+                        <div class="text-[9px] font-black text-purple-500 uppercase mb-1">UAM</div>
+                        <div class="text-3xl font-black text-slate-700">${blOutUam}</div>
+                        <div class="text-[9px] text-slate-400 mt-1">em aberto &gt;${slaR}d</div>
                     </div>
                 </div>
             </div>
@@ -6060,7 +6089,7 @@
             <div class="report-card border-t-4 shadow-sm" style="border-color:#7f1d1d;">
                 <div class="report-card-title" style="color:#7f1d1d;">
                     <i class="fas fa-list mr-2"></i> LISTA COMPLETA — Tickets Fora de SLA (Mês Vigente)
-                    <span class="ml-auto text-[9px] font-bold text-slate-400 normal-case">${allBreachTks.length} registros | resolvidos acima do prazo + backlog atrasado</span>
+                    <span class="ml-auto text-[9px] font-bold text-slate-400 normal-case">${mesBreachTks.length} registros | resolvidos acima do prazo no mês vigente</span>
                 </div>
                 <div class="st-dataframe-container border-0">
                     <table class="st-table">
@@ -8174,10 +8203,9 @@
                                         const el = this.getElementAtEvent(evt)[0];
                                         if (!el) return;
                                         const idx = el._index;
-                                        const mKey = (sd.monthLabels || [])[idx] || '';
-                                        const allSlaMonthTks = [...(window.DrilldownVault['sla']['all'] || [])].filter(t => (t.opStr || '').includes(mKey.split(' ')[0]));
-                                        window.DrilldownVault['sla']['_tmp_month'] = allSlaMonthTks.length ? allSlaMonthTks : (window.DrilldownVault['sla']['all'] || []);
-                                        openDrilldown(`Fora SLA — ${mKey}`, '_tmp_month', 'sla');
+                                        const mKey = (sd.sortedMonths || [])[idx] || '';
+                                        const mLabel = (sd.monthLabels || [])[idx] || mKey;
+                                        openDrilldown(`Fora SLA — ${mLabel}`, `month_${mKey}`, 'sla');
                                     }
                                 }
                             }));
@@ -8236,9 +8264,10 @@
                                     onClick: function (evt) {
                                         const el = this.getElementAtEvent(evt)[0];
                                         if (!el) return;
-                                        const dLabel = (sd.dayLabels || [])[el._index] || '';
-                                        window.DrilldownVault['sla']['_tmp_day'] = window.DrilldownVault['sla']['res_all'] || [];
-                                        openDrilldown(`Fora SLA — dia ${dLabel}`, '_tmp_day', 'sla');
+                                        const idx = el._index;
+                                        const dKey = (sd.sortedDays || [])[idx] || '';
+                                        const dLabel = (sd.dayLabels || [])[idx] || dKey;
+                                        openDrilldown(`Fora SLA — dia ${dLabel}`, `day_${dKey}`, 'sla');
                                     }
                                 }
                             }));
