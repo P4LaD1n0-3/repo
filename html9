@@ -7976,8 +7976,26 @@
             let st = getCol(tk, ['State', 'Status', 'Estado']) || '';
             let opD = safeDate(getCol(tk, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
             let clD = safeDate(getCol(tk, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
-            let isRes = ['Resolved','Resolvido','Closed','Fechado'].some(s => st.includes(s));
-            let isCan = ['Cancel','Cancelado'].some(s => st.toLowerCase().includes(s.toLowerCase()));
+            let stL = st.toLowerCase();
+            let isRes = false;
+            let isCan = false;
+            if (clD && !isNaN(clD) && clD.getTime() > 0) {
+                if (stL.includes('cancel') || stL.includes('incomplet') || stL.includes('rejeit') || stL.includes('reject')) {
+                    isCan = true;
+                } else if (stL.includes('resolv') || stL.includes('clos') || stL.includes('fechad') || stL.includes('encerrad') || stL.includes('conclu') || stL.includes('complet')) {
+                    isRes = true;
+                } else {
+                    // Fallback: has close date but unknown status → resolved
+                    isRes = true;
+                }
+            } else {
+                // No close date — check status text only
+                if (stL.includes('resolv') || stL.includes('clos') || stL.includes('fechad') || stL.includes('encerrad') || stL.includes('conclu') || stL.includes('complet')) {
+                    isRes = true;
+                } else if (stL.includes('cancel') || stL.includes('incomplet') || stL.includes('rejeit') || stL.includes('reject')) {
+                    isCan = true;
+                }
+            }
             let age = null;
             if (opD && !isNaN(opD) && opD.getTime() > 0) {
                 age = clD && !isNaN(clD) && clD.getTime() > 0 ? Math.max(0, Math.floor((clD - opD) / 86400000)) : Math.max(0, Math.floor((new Date() - opD) / 86400000));
