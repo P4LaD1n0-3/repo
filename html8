@@ -1794,7 +1794,8 @@
                     PRBs</button>
                 <button class="tab-btn" onclick="switchTab('tab-class', this)"><i class="fas fa-exchange-alt mr-1"></i>
                     Erros Classificação</button>
-                <button class="tab-btn" onclick="switchTab('tab-sla', this)" style="color:#7f1d1d; font-weight:700;"><i class="fas fa-exclamation-triangle mr-1"></i>
+                <button class="tab-btn" onclick="switchTab('tab-sla', this)" style="color:#7f1d1d; font-weight:700;"><i
+                        class="fas fa-exclamation-triangle mr-1"></i>
                     Violações SLA</button>
                 <button class="tab-btn" onclick="switchTab('tab-rpa', this)"
                     style="color: var(--primary-dark); font-weight: 500;"><i class="fas fa-robot mr-1"></i>
@@ -2454,18 +2455,33 @@
                 return o;
             });
 
-            if (nameLower.includes('inc') && cleanJson.length > 0) RawData.incs = cleanJson;
-            // sc_task.xlsx → tratado como PTASK (tarefas de requisição vinculadas a problemas)
-            else if (nameLower.includes('sc_task') && cleanJson.length > 0) RawData.ptask = cleanJson;
-            else if ((nameLower.includes('req') && !nameLower.includes('sc_task')) && cleanJson.length > 0) RawData.reqs = cleanJson;
-            // problem_rca.xlsx → contém RCA Status, RCA Due Date, RCA Published Date por PRB
-            else if ((nameLower.includes('rca') || (nameLower.includes('problem') && !nameLower.includes('task') && !nameLower.includes('prb'))) && cleanJson.length > 0) RawData.rca = cleanJson;
-            else if ((nameLower.includes('ptask') || (nameLower.includes('problem') && nameLower.includes('task')) || nameLower.includes('stask')) && cleanJson.length > 0) RawData.ptask = cleanJson;
-            else if ((nameLower.includes('prb')) && cleanJson.length > 0) RawData.prb = cleanJson;
-            else {
-                console.warn(`[DATA] Arquivo '${originalName}' não reconhecido. Mantendo dados existentes.`);
-                let warnBadge = `<div class="file-badge" style="background:#fee2e2;border-color:#fca5a5;"><span class="truncate" style="color:#b91c1c;"><i class="fas fa-exclamation-triangle mr-1"></i> ${originalName} (não reconhecido)</span></div>`;
-                document.getElementById('file-status').innerHTML += warnBadge;
+            // Detecção por nome de arquivo — ordem importa: mais específico primeiro
+            let assigned = false;
+            if (cleanJson.length > 0) {
+                if (nameLower.includes('ptask')) { RawData.ptask = cleanJson; assigned = true; }
+                else if (nameLower.includes('rca')) { RawData.rca = cleanJson; assigned = true; }
+                else if (nameLower.includes('sc_task') || nameLower.includes('sctask')) { RawData.reqs = cleanJson; assigned = true; }
+                else if (nameLower.includes('inc')) { RawData.incs = cleanJson; assigned = true; }
+                else if (nameLower.includes('prb') || (nameLower.includes('problem') && !nameLower.includes('ptask') && !nameLower.includes('rca'))) { RawData.prb = cleanJson; assigned = true; }
+                else if (nameLower.includes('req')) { RawData.reqs = cleanJson; assigned = true; }
+            }
+
+            // Fallback: detecção automática pelos cabeçalhos das colunas
+            if (!assigned && cleanJson.length > 0) {
+                const cols = Object.keys(cleanJson[0]).map(k => k.toLowerCase());
+                const hasCol = (...names) => names.some(n => cols.some(c => c.includes(n)));
+                if (hasCol('caller', 'priority') && hasCol('incident', 'inc')) { RawData.incs = cleanJson; assigned = true; }
+                else if (hasCol('caller', 'priority') && !RawData.incs.length) { RawData.incs = cleanJson; assigned = true; }
+                else if (hasCol('request item', 'ritm', 'sc_task', 'requester') && !RawData.reqs.length) { RawData.reqs = cleanJson; assigned = true; }
+                else if (hasCol('rca status', 'rca due') && !RawData.rca.length) { RawData.rca = cleanJson; assigned = true; }
+                else if (hasCol('ptask', 'problem task') && !RawData.ptask.length) { RawData.ptask = cleanJson; assigned = true; }
+                else if (hasCol('problem', 'prb') && !RawData.prb.length) { RawData.prb = cleanJson; assigned = true; }
+                else if (!RawData.incs.length) { RawData.incs = cleanJson; assigned = true; }
+                else if (!RawData.reqs.length) { RawData.reqs = cleanJson; assigned = true; }
+            }
+
+            if (!assigned) {
+                console.warn(`[DATA] Arquivo '${originalName}' ignorado ou sem dados válidos. Mantendo dados existentes.`);
                 return;
             }
 
@@ -2530,7 +2546,8 @@
             if (!row) return '';
             for (let k of keys) {
                 if (row[k] !== undefined && row[k] !== null && row[k] !== '') {
-                    return String(row[k]).trim();
+                    let v = String(row[k]).trim();
+                    if (v.toLowerCase() !== 'undefined') return v;
                 }
             }
             return '';
@@ -2551,6 +2568,18 @@
                 });
                 if (f) found = f;
             });
+            // Fallback para PTASKs sint\u00e9ticas: PTASK2000001 \u2192 busca PRB2000001 no RCA
+            if (!found && cleanTk.startsWith('PTASK')) {
+                let prbEquiv = 'PRB' + cleanTk.slice(5);
+                [RawData.rca, RawData.prb].forEach(src => {
+                    if (found || !src) return;
+                    let f = src.find(r => {
+                        let v = String(getCol(r, ['Problem', 'Number', 'Problema', 'problem_id']) || '').trim().toUpperCase();
+                        return v === prbEquiv;
+                    });
+                    if (f) found = f;
+                });
+            }
             return found;
         };
 
@@ -3121,21 +3150,21 @@
         function openExportConfigModal() {
             let possibleHeaders = new Set(Object.keys(ITIL_STANDARD_HEADERS));
 
-            if (window.RawData) {
-                if (window.RawData.incs) {
-                    window.RawData.incs.forEach(inc => Object.keys(inc).forEach(k => possibleHeaders.add(k)));
+            if (RawData) {
+                if (RawData.incs) {
+                    RawData.incs.forEach(inc => Object.keys(inc).forEach(k => possibleHeaders.add(k)));
                 }
-                if (window.RawData.reqs) {
-                    window.RawData.reqs.forEach(req => Object.keys(req).forEach(k => possibleHeaders.add(k)));
+                if (RawData.reqs) {
+                    RawData.reqs.forEach(req => Object.keys(req).forEach(k => possibleHeaders.add(k)));
                 }
-                if (window.RawData.prb) {
-                    window.RawData.prb.forEach(prb => Object.keys(prb).forEach(k => possibleHeaders.add(k)));
+                if (RawData.prb) {
+                    RawData.prb.forEach(prb => Object.keys(prb).forEach(k => possibleHeaders.add(k)));
                 }
-                if (window.RawData.ptask) {
-                    window.RawData.ptask.forEach(pt => Object.keys(pt).forEach(k => possibleHeaders.add(k)));
+                if (RawData.ptask) {
+                    RawData.ptask.forEach(pt => Object.keys(pt).forEach(k => possibleHeaders.add(k)));
                 }
-                if (window.RawData.rca) {
-                    window.RawData.rca.forEach(rca => Object.keys(rca).forEach(k => possibleHeaders.add(k)));
+                if (RawData.rca) {
+                    RawData.rca.forEach(rca => Object.keys(rca).forEach(k => possibleHeaders.add(k)));
                 }
             }
 
@@ -3929,7 +3958,23 @@
             if (tType === 'RCA' || tType === 'PRB') {
                 let rcaDueDate = getCol(ticketData, ['RCA Due Date', 'Prazo RCA', 'Due Date']) || 'N/A';
                 let rcaPubDate = getCol(ticketData, ['RCA Published Date', 'Data do RCA', 'Published Date']) || 'N/A';
-                let prbTasks = getCol(ticketData, ['Problem Tasks', 'Tasks', 'Related Tasks']) || '0';
+                let prbTasks = getCol(ticketData, ['Problem Tasks', 'Tasks', 'Related Tasks']);
+                if (!prbTasks || prbTasks === '0') {
+                    let prbKey = cleanTk;
+                    let ptaskCount = 0;
+                    if (RawData.ptask && RawData.ptask.length > 0) {
+                        ptaskCount = RawData.ptask.filter(pt =>
+                            String(getCol(pt, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase() === prbKey
+                        ).length;
+                    }
+                    if (ptaskCount === 0 && RawData.rca && RawData.rca.length > 0) {
+                        ptaskCount = RawData.rca.filter(r =>
+                            String(getCol(r, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase() === prbKey &&
+                            !!getCol(r, ['State', 'Status', 'Estado', 'status'])
+                        ).length;
+                    }
+                    prbTasks = ptaskCount > 0 ? String(ptaskCount) : '0';
+                }
                 let workNotes = getCol(ticketData, ['Work notes', 'Work Notes', 'Notas de Trabalho']) || '';
 
                 let vRel = extractFromComments(workNotes, 'version');
@@ -4003,8 +4048,8 @@
                 const tkNorm = prbSearchId;
 
                 let linkedIncs = [];
-                if (window.RawData && window.RawData.incs) {
-                    linkedIncs = window.RawData.incs.filter(inc => {
+                if (RawData && RawData.incs) {
+                    linkedIncs = RawData.incs.filter(inc => {
                         let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
                         let incPrbRaw = String(getCol(inc, ['Problem', 'Problema', 'Problem ID', 'problem_id']) || '').trim().toUpperCase();
                         let incShort = String(getCol(inc, ['Short description', 'Descrição']) || '').toUpperCase();
@@ -4051,11 +4096,14 @@
                 }
             }
 
-            // Caller/Solicitante: leitura direta do campo 'Caller' (index.xlsx) com fallback
+            // Caller/Solicitante: leitura direta do campo 'Caller' com fallback e filtro de 'undefined'
             let req = ticketData['Caller'] || ticketData['Requester'] || ticketData['Solicitante'] || '';
-            if (!req || req === '') req = getCol(ticketData, ['Caller', 'Requester', 'Solicitante']) || 'N/A';
+            if (!req || req === '' || req === 'undefined') req = getCol(ticketData, ['Caller', 'Requester', 'Solicitante']) || 'N/A';
+            if (req === 'undefined') req = 'N/A';
             let asg = ticketData['Assigned to'] || getCol(ticketData, ['Assigned to', 'Analista']) || 'Não Atribuído';
+            if (asg === 'undefined') asg = 'Não Atribuído';
             let gp = ticketData['Assignment group'] || getCol(ticketData, ['Assignment group', 'Grupo']) || 'N/A';
+            if (gp === 'undefined') gp = 'N/A';
             document.getElementById('modal-req').innerText = req;
             document.getElementById('modal-asg').innerText = asg;
             document.getElementById('modal-gp').innerText = gp;
@@ -4090,9 +4138,9 @@
             document.getElementById('modal-age').style.color = age > 10 ? '#ef4444' : '#334155';
 
             let idleEl = document.getElementById('modal-idle');
-            if (idle !== '-') {
+            if (idle !== '-' && !isNaN(Number(idle))) {
                 idleEl.innerHTML = `${idle} dias <i class="fas fa-user-clock text-sm ml-1"></i>`;
-                idleEl.style.color = idle > 3 ? '#ef4444' : '#10b981';
+                idleEl.style.color = Number(idle) > 3 ? '#ef4444' : '#10b981';
             } else {
                 idleEl.innerText = 'N/A';
                 idleEl.style.color = '#94a3b8';
@@ -4334,7 +4382,7 @@
         // 3. MOTOR DE OCIOSIDADE E PESQUISA GLOBAL
         // ==========================================
         function getDaysSilent(r, refDateObj, assignedTo, opDateObj) {
-            if (!assignedTo || assignedTo.includes('Não Atribuído') || assignedTo === 'N/A' || assignedTo === '-') return '-';
+            if (!assignedTo || assignedTo === 'undefined' || assignedTo.includes('Não Atribuído') || assignedTo === 'N/A' || assignedTo === '-') return '-';
 
             let maxDate = opDateObj ? new Date(opDateObj) : new Date(0);
             let regex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(/g;
@@ -4496,7 +4544,7 @@
                     <td data-label="AGING" class="text-right">
                         <div class="font-bold text-sm ${t.cl ? 'text-[var(--primary-dark)]' : 'text-orange-500'}">${clS}</div>
                         ${age !== '-' ? `<div class="text-[10px] text-slate-400 mt-1">${age}d de vida</div>` : ''}
-                        ${t.idle !== '-' ? `<div class="text-[10px] font-bold mt-1 ${t.idle > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : ''}
+                        ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div class="text-[10px] font-bold mt-1 ${Number(t.idle) > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : ''}
                     </td>
                 </tr>`;
             }).join('');
@@ -4547,22 +4595,22 @@
             SUC: "#00C853", DAN: "#D50000", ORG: "#FF8C00",
             GRY_D: "#334155", GRY_L: "#F8FAFC", INFO: "#0284C7",
             // ── rgba chart palette ─────────────────────────────────────────────
-            _A:   'rgba(30,58,138,0.82)',   _Ab: 'rgba(30,58,138,0.11)',
-            _R:   'rgba(5,150,105,0.82)',   _Rb: 'rgba(5,150,105,0.10)',
-            _Cc:  'rgba(220,38,38,0.72)',   _Cb: 'rgba(220,38,38,0.08)',
-            _B:   'rgba(2,132,199,1)',      _Bb: 'rgba(2,132,199,0.08)',
-            _INC: 'rgba(30,58,138,0.82)',   _INCb: 'rgba(30,58,138,0.11)',
-            _REQ: 'rgba(37,99,235,0.82)',   _REQb: 'rgba(37,99,235,0.10)',
-            _UAM: 'rgba(124,58,237,0.82)',  _UAMb: 'rgba(124,58,237,0.09)',
-            _SLA: 'rgba(127,29,29,0.92)',   _SLAb: 'rgba(127,29,29,0.08)'
+            _A: 'rgba(30,58,138,0.82)', _Ab: 'rgba(30,58,138,0.11)',
+            _R: 'rgba(5,150,105,0.82)', _Rb: 'rgba(5,150,105,0.10)',
+            _Cc: 'rgba(220,38,38,0.72)', _Cb: 'rgba(220,38,38,0.08)',
+            _B: 'rgba(2,132,199,1)', _Bb: 'rgba(2,132,199,0.08)',
+            _INC: 'rgba(30,58,138,0.82)', _INCb: 'rgba(30,58,138,0.11)',
+            _REQ: 'rgba(37,99,235,0.82)', _REQb: 'rgba(37,99,235,0.10)',
+            _UAM: 'rgba(124,58,237,0.82)', _UAMb: 'rgba(124,58,237,0.09)',
+            _SLA: 'rgba(127,29,29,0.92)', _SLAb: 'rgba(127,29,29,0.08)'
         };
         // ── Chart.js global defaults ──────────────────────────────────────────
         if (typeof Chart !== 'undefined') {
             Chart.defaults.global.defaultFontFamily = "'Inter','system-ui','sans-serif'";
-            Chart.defaults.global.defaultFontSize   = 11;
-            Chart.defaults.global.defaultFontColor  = '#475569';
+            Chart.defaults.global.defaultFontSize = 11;
+            Chart.defaults.global.defaultFontColor = '#475569';
             Chart.defaults.global.animation.duration = 500;
-            Chart.defaults.global.animation.easing  = 'easeInOutQuart';
+            Chart.defaults.global.animation.easing = 'easeInOutQuart';
         }
 
         function buildDataAttrs(t) {
@@ -4955,7 +5003,9 @@
             const end = start + PAGE_SIZE;
             const currentResults = results.slice(start, end);
 
-            const isPrbDrill = title.includes("RCA") || title.includes("Problem") || title.includes("PRB") || title.includes("PTASK");
+            const _firstTk = String(((currentResults[0] || results[0] || {}).tk) || '').toUpperCase();
+            const isPrbDrill = title.includes("RCA") || title.includes("Problem") || title.includes("PRB") || title.includes("PTASK") ||
+                _firstTk.startsWith('PRB') || _firstTk.startsWith('PTASK');
 
             document.getElementById('drilldown-title').innerText = title;
             document.getElementById('drilldown-subtitle').innerText = `${results.length} registros encontrados (Página ${page})`;
@@ -4989,7 +5039,7 @@
                     ${isInc ? `<td data-label="PRB" class="text-center" style="font-weight:${(t.prb && t.prb !== 'N/A') ? 'bold' : 'normal'}; color:${(t.prb && t.prb !== 'N/A') ? 'var(--primary-dark)' : '#94a3b8'}">${t.prb || 'N/A'}</td>` : ''}
                     <td data-label="AGING" class="text-right">
                         <div class="font-bold text-sm ${t.age > (t.slaConfig || 7) ? 'text-red-500' : 'text-slate-700'}">${t.age}d totais</div>
-                        ${t.idle !== '-' ? `<div class="text-[10px] font-bold mt-1 ${t.idle > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div class="text-[10px] text-slate-400 mt-1"><i class="fas fa-user-clock"></i> N/A</div>`}
+                        ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div class="text-[10px] font-bold mt-1 ${Number(t.idle) > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div class="text-[10px] text-slate-400 mt-1"><i class="fas fa-user-clock"></i> N/A</div>`}
                     </td>
                 </tr>`;
             }).join('');
@@ -5060,7 +5110,10 @@
             const doc = new jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
 
             const title = window.paginationState.drilldownTitle || "Exportação";
-            const isPrbDrill = title.includes("RCA") || title.includes("Problem") || title.includes("PRB") || title.includes("PTASK");
+            const _allData = window.paginationState.drilldownData || [];
+            const _pdfFirstTk = String(((_allData[0] || {}).tk) || '').toUpperCase();
+            const isPrbDrill = title.includes("RCA") || title.includes("Problem") || title.includes("PRB") || title.includes("PTASK") ||
+                _pdfFirstTk.startsWith('PRB') || _pdfFirstTk.startsWith('PTASK');
             const isInc = window.paginationState.drilldownIsInc;
 
             const searchInput = document.getElementById('modal-search');
@@ -5398,7 +5451,7 @@
                         <td data-label="Analista">${t.as}</td>
                         <td data-label="AGING" style="text-align: right;">
                             <div style="color:${C.DAN}; font-weight:bold; font-size:13px;">${t.age}d totais</div>
-                            ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                            ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${Number(t.idle) > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
                         </td>
                     </tr>`).join('')}
                 </tbody></table></div>
@@ -5514,7 +5567,7 @@
                                 <td data-label="PRB" style="font-weight:${t.prb !== 'N/A' ? 'bold' : 'normal'}; color:${t.prb !== 'N/A' ? C.PRI_D : C.GRY}">${t.prb}</td>
                                 <td data-label="AGING" style="text-align:right;">
                                     <div style="color:${C.DAN}; font-weight:bold; font-size:13px;">${t.age}d totais</div>
-                                    ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                                    ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${Number(t.idle) > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
                                 </td>
                             </tr>`).join('') : `<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">Nenhum chamado crítico no momento. Parabéns à equipe! 🎉</td></tr>`}
                         </tbody>
@@ -5610,7 +5663,7 @@
                     </td>
                     <td data-label="Dias / Ocioso" style="text-align:right;">
                         <div style="color:var(--danger); font-weight:bold; font-size:14px;">${t.d}d totais</div>
-                        ${t.idle !== '-' ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${t.idle > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
+                        ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${Number(t.idle) > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d ocioso</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
                     </td>
                 </tr>
             `).join('');
@@ -5738,45 +5791,45 @@
         function generateSLABreachTab(dI, dRS, dRU, slaI, slaR, refDateObj) {
             if (!window.DrilldownVault['sla']) window.DrilldownVault['sla'] = {};
 
-            const _I  = dI  || { outSla: 0, resMes: 0, outSlaTot: 0, tksOutSlaTot: [], allResolvedTks: [], trendM: {}, trendD: {} };
+            const _I = dI || { outSla: 0, resMes: 0, outSlaTot: 0, tksOutSlaTot: [], allResolvedTks: [], trendM: {}, trendD: {} };
             const _RS = dRS || { outSla: 0, resMes: 0, outSlaTot: 0, tksOutSlaTot: [], allResolvedTks: [], trendM: {}, trendD: {} };
             const _RU = dRU || { outSla: 0, resMes: 0, outSlaTot: 0, tksOutSlaTot: [], allResolvedTks: [], trendM: {}, trendD: {} };
 
             // ── KPI ─────────────────────────────────────────────────────────────
-            const outMesInc  = _I.outSla  || 0;
-            const outMesReq  = _RS.outSla || 0;
-            const outMesUam  = _RU.outSla || 0;
+            const outMesInc = _I.outSla || 0;
+            const outMesReq = _RS.outSla || 0;
+            const outMesUam = _RU.outSla || 0;
             const totalOutMes = outMesInc + outMesReq + outMesUam;
             const resMesTotal = (_I.resMes || 0) + (_RS.resMes || 0) + (_RU.resMes || 0);
             const pctOut = resMesTotal > 0 ? ((totalOutMes / resMesTotal) * 100).toFixed(1).replace('.', ',') : '0,0';
 
-            const blOutInc = _I.outSlaTot  || 0;
+            const blOutInc = _I.outSlaTot || 0;
             const blOutReq = _RS.outSlaTot || 0;
             const blOutUam = _RU.outSlaTot || 0;
             const totalBlOut = blOutInc + blOutReq + blOutUam;
 
-            const pctInc = _I.resMes  > 0 ? ((outMesInc  / _I.resMes)  * 100).toFixed(1).replace('.', ',') : '0,0';
-            const pctReq = _RS.resMes > 0 ? ((outMesReq  / _RS.resMes) * 100).toFixed(1).replace('.', ',') : '0,0';
-            const pctUam = _RU.resMes > 0 ? ((outMesUam  / _RU.resMes) * 100).toFixed(1).replace('.', ',') : '0,0';
+            const pctInc = _I.resMes > 0 ? ((outMesInc / _I.resMes) * 100).toFixed(1).replace('.', ',') : '0,0';
+            const pctReq = _RS.resMes > 0 ? ((outMesReq / _RS.resMes) * 100).toFixed(1).replace('.', ',') : '0,0';
+            const pctUam = _RU.resMes > 0 ? ((outMesUam / _RU.resMes) * 100).toFixed(1).replace('.', ',') : '0,0';
 
             // ── LISTAS DE TICKETS ────────────────────────────────────────────────
             const mk = t => t;
-            const incOutList = (_I.allResolvedTks  || []).filter(t => (t.age || 0) > slaI).map(t => ({ ...t, tipo: 'INC', isBacklog: false }));
+            const incOutList = (_I.allResolvedTks || []).filter(t => (t.age || 0) > slaI).map(t => ({ ...t, tipo: 'INC', isBacklog: false }));
             const reqOutList = (_RS.allResolvedTks || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'REQ', isBacklog: false }));
             const uamOutList = (_RU.allResolvedTks || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'UAM', isBacklog: false }));
-            const blIncList  = (_I.tksOutSlaTot    || []).map(t => ({ ...t, tipo: 'INC', isBacklog: true }));
-            const blReqList  = (_RS.tksOutSlaTot   || []).map(t => ({ ...t, tipo: 'REQ', isBacklog: true }));
-            const blUamList  = (_RU.tksOutSlaTot   || []).map(t => ({ ...t, tipo: 'UAM', isBacklog: true }));
+            const blIncList = (_I.tksOutSlaTot || []).map(t => ({ ...t, tipo: 'INC', isBacklog: true }));
+            const blReqList = (_RS.tksOutSlaTot || []).map(t => ({ ...t, tipo: 'REQ', isBacklog: true }));
+            const blUamList = (_RU.tksOutSlaTot || []).map(t => ({ ...t, tipo: 'UAM', isBacklog: true }));
 
             const allBreachTks = [...incOutList, ...reqOutList, ...uamOutList, ...blIncList, ...blReqList, ...blUamList]
                 .sort((a, b) => (b.age || 0) - (a.age || 0));
 
-            window.DrilldownVault['sla']['all']      = allBreachTks;
-            window.DrilldownVault['sla']['inc_all']  = [...incOutList, ...blIncList].sort((a, b) => (b.age || 0) - (a.age || 0));
-            window.DrilldownVault['sla']['req_all']  = [...reqOutList, ...blReqList].sort((a, b) => (b.age || 0) - (a.age || 0));
-            window.DrilldownVault['sla']['uam_all']  = [...uamOutList, ...blUamList].sort((a, b) => (b.age || 0) - (a.age || 0));
-            window.DrilldownVault['sla']['bl_all']   = [...blIncList, ...blReqList, ...blUamList].sort((a, b) => (b.age || 0) - (a.age || 0));
-            window.DrilldownVault['sla']['res_all']  = [...incOutList, ...reqOutList, ...uamOutList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['all'] = allBreachTks;
+            window.DrilldownVault['sla']['inc_all'] = [...incOutList, ...blIncList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['req_all'] = [...reqOutList, ...blReqList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['uam_all'] = [...uamOutList, ...blUamList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['bl_all'] = [...blIncList, ...blReqList, ...blUamList].sort((a, b) => (b.age || 0) - (a.age || 0));
+            window.DrilldownVault['sla']['res_all'] = [...incOutList, ...reqOutList, ...uamOutList].sort((a, b) => (b.age || 0) - (a.age || 0));
 
             // ── DADOS DOS GRÁFICOS ───────────────────────────────────────────────
             // Anual: merge todos os meses das três fontes
@@ -5784,11 +5837,11 @@
                 ...Object.keys(_I.trendM), ...Object.keys(_RS.trendM), ...Object.keys(_RU.trendM)
             ]);
             const sortedMonths = [...allMonthsSet].sort();
-            const monthLabels  = sortedMonths.map(m => {
+            const monthLabels = sortedMonths.map(m => {
                 let [y, mo] = m.split('-');
                 return new Date(+y, +mo - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
             });
-            const mDataInc = sortedMonths.map(m => { let tm = (_I.trendM[m]  || { r: 0, inSla: 0 }); return Math.max(0, (tm.r || 0) - (tm.inSla || 0)); });
+            const mDataInc = sortedMonths.map(m => { let tm = (_I.trendM[m] || { r: 0, inSla: 0 }); return Math.max(0, (tm.r || 0) - (tm.inSla || 0)); });
             const mDataReq = sortedMonths.map(m => { let tm = (_RS.trendM[m] || { r: 0, inSla: 0 }); return Math.max(0, (tm.r || 0) - (tm.inSla || 0)); });
             const mDataUam = sortedMonths.map(m => { let tm = (_RU.trendM[m] || { r: 0, inSla: 0 }); return Math.max(0, (tm.r || 0) - (tm.inSla || 0)); });
             const mDataTot = sortedMonths.map((_, i) => (mDataInc[i] || 0) + (mDataReq[i] || 0) + (mDataUam[i] || 0));
@@ -5798,8 +5851,8 @@
                 ...Object.keys(_I.trendD), ...Object.keys(_RS.trendD), ...Object.keys(_RU.trendD)
             ]);
             const sortedDays = [...allDaysSet].sort();
-            const dayLabels  = sortedDays.map(d => { let p = d.split('-'); return `${p[2]}/${p[1]}`; });
-            const dDataInc = sortedDays.map(d => ((_I.trendD[d]  || { tks_r: [] }).tks_r || []).filter(t => (t.age || 0) > slaI).length);
+            const dayLabels = sortedDays.map(d => { let p = d.split('-'); return `${p[2]}/${p[1]}`; });
+            const dDataInc = sortedDays.map(d => ((_I.trendD[d] || { tks_r: [] }).tks_r || []).filter(t => (t.age || 0) > slaI).length);
             const dDataReq = sortedDays.map(d => ((_RS.trendD[d] || { tks_r: [] }).tks_r || []).filter(t => (t.age || 0) > slaR).length);
             const dDataUam = sortedDays.map(d => ((_RU.trendD[d] || { tks_r: [] }).tks_r || []).filter(t => (t.age || 0) > slaR).length);
             const dDataTot = sortedDays.map((_, i) => (dDataInc[i] || 0) + (dDataReq[i] || 0) + (dDataUam[i] || 0));
@@ -5811,7 +5864,7 @@
             const rows = allBreachTks.map(t => {
                 const typeCls = t.tipo === 'INC' ? 'bg-red-100 text-red-700' : t.tipo === 'REQ' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
                 const blBadge = t.isBacklog ? `<span class="ml-1 text-[8px] bg-amber-100 text-amber-700 border border-amber-200 px-1 py-0.5 rounded font-black">ABERTO</span>` : '';
-                const ageCls  = (t.age || 0) > 30 ? 'text-red-700' : (t.age || 0) > 14 ? 'text-orange-600' : 'text-amber-600';
+                const ageCls = (t.age || 0) > 30 ? 'text-red-700' : (t.age || 0) > 14 ? 'text-orange-600' : 'text-amber-600';
                 return `<tr class="ticket-row hover:bg-slate-50 transition" ${buildDataAttrs(t)}>
                     <td class="font-bold text-center text-[var(--primary-dark)]">
                         ${t.tk}
@@ -6225,7 +6278,14 @@
             // ---------------------------------------------------------------
             let sortedPids = Object.keys(groups)
                 .filter(k => k !== '__SEM_PRB__')
-                .sort((a, b) => b.localeCompare(a));
+                .sort((a, b) => {
+                    let aIncs = (groups[a].incs || []).length;
+                    let bIncs = (groups[b].incs || []).length;
+                    if (bIncs !== aIncs) return bIncs - aIncs;
+                    let aTotal = aIncs + (groups[a].ptasks || []).length;
+                    let bTotal = bIncs + (groups[b].ptasks || []).length;
+                    return bTotal - aTotal || b.localeCompare(a);
+                });
 
             if (groups['__SEM_PRB__'] &&
                 (groups['__SEM_PRB__'].incs.length > 0 || groups['__SEM_PRB__'].ptasks.length > 0)) {
@@ -6266,6 +6326,11 @@
             // ── Construção das linhas ────────────────────────────────────
             let tableRows = '';
 
+            const _maxIncForBadge = sortedPids.length > 0
+                ? Math.max(...sortedPids.map(p => (groups[p].incs || []).length))
+                : 0;
+            let _topBadgeCount = 0;
+
             sortedPids.forEach(pid => {
                 let g = groups[pid];
                 let displayPid = pid === '__SEM_PRB__' ? 'SEM PRB' : pid;
@@ -6273,18 +6338,28 @@
                 let incs = g.incs;
                 let ptasks = g.ptasks;
                 let totalChildren = incs.length + ptasks.length;
+                let incCount = incs.length;
+                let isTopImpact = incCount > 0 && incCount === _maxIncForBadge && _topBadgeCount < 3;
+                if (isTopImpact) _topBadgeCount++;
 
                 // ── Linha mestre (PRB) ───────────────────────────────────
                 if (master) {
                     let rcaStBadge = master.stRca && master.stRca !== '—'
                         ? `<span style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:800;text-transform:uppercase;">${master.stRca}</span>`
                         : '<span style="color:#94a3b8;font-size:9px;">—</span>';
+                    let impactBorder = isTopImpact ? 'border-left:4px solid #dc2626;' : 'border-left:4px solid #1d4ed8;';
+                    let impactBg = isTopImpact ? 'background:#fff1f2;border-bottom:2px solid #fecaca;' : 'background:#f0f9ff;border-bottom:2px solid #bfdbfe;';
+                    let impactBadgeHtml = isTopImpact
+                        ? `<span style="margin-left:6px;padding:1px 6px;background:#dc2626;color:#fff;font-size:8px;font-weight:900;border-radius:99px;">🔥 MAIS IMPACTO</span>`
+                        : '';
 
                     tableRows += `
-                    <tr style="background:#f0f9ff;border-bottom:2px solid #bfdbfe;">
-                        <td class="p-3" style="border-left:4px solid #1d4ed8;">
+                    <tr style="${impactBg}">
+                        <td class="p-3" style="${impactBorder}">
                             <div class="flex flex-col gap-0.5">
-                                <span onclick="openTicketDetails('${pid}')" class="ticket-id-clickable font-black text-blue-800 text-sm">${displayPid}</span>
+                                <div class="flex items-center flex-wrap gap-1">
+                                    <span onclick="openTicketDetails('${pid}')" class="ticket-id-clickable font-black text-blue-800 text-sm">${displayPid}</span>${impactBadgeHtml}
+                                </div>
                                 <span class="text-[8px] text-slate-400 font-bold uppercase"><i class="fas fa-bug mr-1"></i>PROBLEM</span>
                             </div>
                         </td>
@@ -6425,66 +6500,74 @@
 
 
         // Função para adaptar dados de PRB para o formato do dashboard
-        // Cruza: index.xlsx (RawData.incs – campo Problem) + problem_rca.xlsx (RawData.rca – campo Problem=PRB ID)
+        // Cruza: index.xlsx (RawData.incs – campo Problem) + problem_rca.xlsx (RawData.rca – campos Problem/Number)
         function processPRBDataForDisplay(prbRawData, ptaskRawData, rcaRawData) {
 
-            // Helper: extrai somente "PRBxxxxxxx" de qualquer string
-            const _extractPRBId = (v) => (String(v || '').toUpperCase().match(/PRB[0-9]+/) || [])[0] || '';
+            // ---------------------------------------------------------------
+            // ETAPA 1: Mapa de mestres PRB  ←  problem_rca.xlsx  (RawData.rca)
+            // O campo identificador do PRB neste arquivo pode ser "Problem" ou "Number"
+            // Ambos têm formato PRBxxxxxxx.
+            // ---------------------------------------------------------------
+            let prbMasterMap = {}; // prbId (ex: "PRB0012345") -> linha bruta do problem_rca.xlsx
 
-            // ── ETAPA 1: Mapa de mestres PRB ──────────────────────────────
-            // problem_rca.xlsx → RawData.rca: chave PRB está na coluna "Problem"
-            // Qualquer arquivo .prb genérico: tenta "Number" primeiro, depois "Problem"
-            let prbMasterMap = {};
-
+            // Primeiro carrega de prbRawData (RawData.prb) — RawData.rca tem prioridade e vai sobrescrever se houver
+            // Apenas aceita como master PRB linhas cujo próprio Number começa com 'PRB' (exclui INCs que referenciam PRBs)
             if (prbRawData && prbRawData.length > 0) {
                 prbRawData.forEach(row => {
-                    let prbId = _extractPRBId(getCol(row, ['Number', 'Ticket', 'Número', 'number']))
-                             || _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id']));
-                    if (!prbId) return;
-                    if (!prbMasterMap[prbId]) prbMasterMap[prbId] = row;
+                    let idA = String(getCol(row, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
+                    if (!idA.startsWith('PRB')) return; // Ignora linhas INC/REQ/TASK que referenciam PRBs
+                    if (!prbMasterMap[idA]) prbMasterMap[idA] = row;
                 });
             }
 
-            // rcaRawData (problem_rca.xlsx via RawData.rca): chave PRB = coluna "Problem"
             if (rcaRawData && rcaRawData.length > 0) {
                 rcaRawData.forEach(row => {
-                    let prbId = _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id']))
-                             || _extractPRBId(getCol(row, ['Number', 'Ticket', 'Número', 'number']));
+                    // Tenta "Problem" primeiro (coluna específica de vínculo), depois "Number"
+                    let idA = String(getCol(row, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
+                    let idB = String(getCol(row, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
+                    let prbId = idA.startsWith('PRB') ? idA : (idB.startsWith('PRB') ? idB : '');
                     if (!prbId) return;
-                    prbMasterMap[prbId] = row; // RCA sempre tem prioridade
+                    prbMasterMap[prbId] = row; // RCA sempre tem prioridade sobre prb.xlsx
                 });
             }
 
-            // ── ETAPA 2: Mapa PRB → [linhas INC] ─────────────────────────
-            // a) Campo "Problem" do INC contém PRBxxxxxxx
-            // b) Campo "Related Incidents" do problem_rca contém INCxxxxxxx
-            // c) Menção textual de PRBxxxxxxx em Additional comments do INC
-            let prbToIncsMap = {};
-            const incSource = (window.RawData && window.RawData.incs) ? window.RawData.incs : [];
+            // ---------------------------------------------------------------
+            // ETAPA 2: Mapa PRB -> [linhas INC]  ←  index.xlsx  (RawData.incs)
+            // Critérios de vínculo (em ordem de prioridade):
+            //   a) Campo "Problem" do INC contém PRBxxxxxxx
+            //   b) Campo "Related Incidents" do problem_rca contém o número do INC
+            //   c) Menção textual PRBxxxxxxx em "Additional comments" do INC
+            // ---------------------------------------------------------------
+            let prbToIncsMap = {}; // prbId -> Set de linhas brutas de INC (sem duplicata por Number)
 
+            const incSource = (RawData && RawData.incs) ? RawData.incs : [];
+
+            // (a) + (c): percorre todos os INCs
             incSource.forEach(inc => {
                 let incNum = String(getCol(inc, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
                 if (!incNum.startsWith('INC')) return;
 
                 // (a) campo direto Problem
-                let prbDirect = _extractPRBId(getCol(inc, ['Problem', 'Problema', 'problem_id']));
-                if (prbDirect) {
+                let prbDirect = String(getCol(inc, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
+                if (prbDirect.startsWith('PRB')) {
                     if (!prbToIncsMap[prbDirect]) prbToIncsMap[prbDirect] = new Map();
                     if (!prbToIncsMap[prbDirect].has(incNum)) prbToIncsMap[prbDirect].set(incNum, inc);
                 }
 
-                // (c) varredura textual em Additional comments / Work notes
+                // (c) varredura textual em Additional comments
                 let addComments = String(getCol(inc, ['Additional comments', 'Comentários', 'Work notes', 'Description', 'description']) || '').toUpperCase();
-                (addComments.match(/PRB[0-9]+/g) || []).forEach(p => {
+                let extraMatches = addComments.match(/PRB[0-9]+/g) || [];
+                extraMatches.forEach(p => {
                     if (!prbToIncsMap[p]) prbToIncsMap[p] = new Map();
                     if (!prbToIncsMap[p].has(incNum)) prbToIncsMap[p].set(incNum, inc);
                 });
             });
 
-            // (b) "Related Incidents" no problem_rca
+            // (b) campo "Related Incidents" do problem_rca.xlsx → busca INC em incSource
             Object.entries(prbMasterMap).forEach(([prbId, row]) => {
-                let relRaw = String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'Tickets Relacionados', 'related_incidents']) || '');
-                (relRaw.toUpperCase().match(/INC[0-9]+/g) || []).forEach(incNum => {
+                let relRaw = String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'Tickets Relacionados', 'Related tickets']) || '');
+                let relNums = relRaw.split(/[,\s;|]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC'));
+                relNums.forEach(incNum => {
                     let incRow = incSource.find(x => String(getCol(x, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase() === incNum);
                     if (!incRow) return;
                     if (!prbToIncsMap[prbId]) prbToIncsMap[prbId] = new Map();
@@ -6493,46 +6576,62 @@
             });
 
             // Converte Maps para arrays
-            let prbToIncsArray = {};
-            Object.entries(prbToIncsMap).forEach(([pid, m]) => { prbToIncsArray[pid] = Array.from(m.values()); });
+            let prbToIncsArray = {}; // prbId -> [linhas brutas de INC]
+            Object.entries(prbToIncsMap).forEach(([pid, m]) => {
+                prbToIncsArray[pid] = Array.from(m.values());
+            });
 
-            // ── ETAPA 3: Monta array processado ───────────────────────────
+            // ---------------------------------------------------------------
+            // ETAPA 3: Monta array processado
+            // ---------------------------------------------------------------
             let processed = [];
             let seenTickets = new Set();
+
+            // Todos os PRB IDs únicos (mestres + via INCs)
             let allPrbIds = new Set([...Object.keys(prbMasterMap), ...Object.keys(prbToIncsArray)]);
 
             allPrbIds.forEach(prbId => {
                 if (!prbId || !prbId.startsWith('PRB')) return;
+
                 let masterRow = prbMasterMap[prbId] || null;
                 let linkedIncs = prbToIncsArray[prbId] || [];
 
-                // ── Linha MESTRE (tipo PRB) ──
+                // ── Linha MESTRE (tipo PRB) ──────────────────────────────
                 if (!seenTickets.has(prbId)) {
                     seenTickets.add(prbId);
 
+                    // Datas do problem_rca.xlsx
                     let opD = masterRow ? safeDate(getCol(masterRow, ['Opened', 'Data Abertura', 'Created', 'opened_at'])) : null;
                     let clD = masterRow ? safeDate(getCol(masterRow, ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at'])) : null;
-                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
+                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
+                        : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
 
-                    // Prioridade: problema_rca não tem → deriva do INC filho mais crítico
+                    // Priority: problem_rca NÃO tem essa coluna → deriva do INC com maior criticidade
                     let prioVal = 'N/A';
                     let masterPrio = masterRow ? getCol(masterRow, ['Priority', 'Prioridade', 'priority']) : null;
-                    if (masterRow && masterPrio && String(masterPrio).trim()) {
+                    if (masterRow && masterPrio) {
                         prioVal = String(masterPrio).trim();
                     } else if (linkedIncs.length > 0) {
+                        // Pega a maior prioridade (menor número) entre os INCs filhos
                         let prioNums = linkedIncs
                             .map(inc => parseInt(String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || '99').replace(/[^0-9]/g, '')) || 99)
                             .filter(n => n < 99);
                         if (prioNums.length > 0) {
                             let minPrio = Math.min(...prioNums);
-                            let refInc = linkedIncs.find(inc => String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || '').includes(String(minPrio)));
+                            // Reconstroi o label a partir do primeiro INC que bate
+                            let refInc = linkedIncs.find(inc => {
+                                let p = String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || '');
+                                return p.includes(String(minPrio));
+                            });
                             prioVal = refInc ? String(getCol(refInc, ['Priority', 'Prioridade', 'priority'])).trim() : String(minPrio);
                         }
                     }
 
                     processed.push({
-                        tk: prbId, prb: prbId, type: 'PRB',
+                        tk: prbId,
+                        prb: prbId,
+                        type: 'PRB',
                         st: masterRow ? String(getCol(masterRow, ['State', 'Status', 'Estado', 'status']) || 'Open').toUpperCase() : 'OPEN',
                         stRca: masterRow ? String(getCol(masterRow, ['RCA Status', 'rca_status']) || '—').trim() : '—',
                         gp: masterRow ? String(getCol(masterRow, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim() : '—',
@@ -6547,30 +6646,47 @@
                         opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
                         clStr: clD ? clD.toLocaleDateString('pt-BR') : '—',
                         req: masterRow ? String(getCol(masterRow, ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim() : 'N/A',
-                        inc_count: linkedIncs.length
+                        inc_count: linkedIncs.length   // usado internamente; exibido na coluna Filhos via groups
                     });
                 }
 
-                // ── Linhas FILHAS (tipo INC) ──
+                // ── Linhas FILHAS (tipo INC) ─────────────────────────────
                 linkedIncs.forEach(inc => {
                     let incNum = String(getCol(inc, ['Number', 'Ticket', 'Número', 'number']) || '').trim().toUpperCase();
                     if (!incNum || seenTickets.has(incNum)) return;
                     seenTickets.add(incNum);
+
                     let opD = safeDate(getCol(inc, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                    // index.xlsx usa "Resolved" para INCs fechados
                     let clD = safeDate(getCol(inc, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']) || '');
-                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
+                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
+                        : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
+
+                    // Grupo: prioriza o do INC (Assignment group do index.xlsx)
+                    let gpInc = String(getCol(inc, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim();
+
+                    // Caller / Solicitante: campo exato "Caller" do index.xlsx
+                    let caller = String(getCol(inc, ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim();
+
+                    // Priority: campo exato "Priority" do index.xlsx
+                    let priority = String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim();
+
                     processed.push({
-                        tk: incNum, prb: prbId, type: 'INC',
+                        tk: incNum,
+                        prb: prbId,   // vínculo correto com o pai
+                        type: 'INC',
                         st: String(getCol(inc, ['State', 'Status', 'Estado', 'status']) || 'Open').toUpperCase(),
                         stRca: '—',
-                        gp: String(getCol(inc, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim(),
+                        gp: gpInc,
                         as: String(getCol(inc, ['Assigned to', 'Analista', 'Assignee', 'assigned_to']) || '—').trim(),
-                        req: String(getCol(inc, ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim(),
-                        priority: String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim(),
+                        req: caller,  // para o modal e a sub-linha
+                        priority: priority,
                         desc: String(getCol(inc, ['Short description', 'Descrição', 'Assunto']) || '—').trim(),
                         ci: String(getCol(inc, ['Configuration item', 'CI', 'Item de configuracao']) || '—').trim(),
-                        related_incidents_raw: '—', rca_due: '—', rca_pub: '—',
+                        related_incidents_raw: '—',
+                        rca_due: '—',
+                        rca_pub: '—',
                         age: aging,
                         opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
                         clStr: clD ? clD.toLocaleDateString('pt-BR') : '—'
@@ -6578,47 +6694,78 @@
                 });
             });
 
-            // ── PTASKs ──
-            // problem_ptask.xlsx: "Problem" = PRB pai, "Number" = PTASK ID
-            // sc_task.xlsx (tratado como ptask): "Number" = SCTASK, sem coluna "Problem" → fica sem pai PRB
+            // ── PTASKs ──────────────────────────────────────────────────
+            let _ptasksAdded = 0;
             if (ptaskRawData && ptaskRawData.length > 0) {
-                ptaskRawData.forEach(row => {
-                    let number = String(getCol(row, ['Number', 'Ticket', 'Número', 'number', 'Task']) || '').trim().toUpperCase();
-                    let prb = _extractPRBId(getCol(row, ['Problem', 'Problema', 'problem_id', 'Parent']));
+                ptaskRawData.forEach((row, _ptIdx) => {
+                    let number = String(getCol(row, ['Number', 'Ticket', 'Número', 'number', 'Task Number', 'PTASK', 'task_number']) || '').trim().toUpperCase();
+                    let prb = String(getCol(row, ['Problem', 'Problema', 'problem_id', 'PRB', 'Parent']) || '').trim().toUpperCase();
+                    if (!number && prb.startsWith('PRB')) number = 'PTASK_' + prb + '_' + (_ptIdx + 1);
                     if (!number || seenTickets.has(number)) return;
                     seenTickets.add(number);
+                    _ptasksAdded++;
+
                     let opD = safeDate(getCol(row, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                     let clD = safeDate(getCol(row, ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at']) || '');
-                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000) : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
+                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
+                        : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
 
-                    // Para sc_task.xlsx (SCTASK): vincula ao PRB via "Request item" se referência a PRB existir
-                    // Tenta extrair PRB de campos de texto (descrição, notas) como fallback
-                    if (!prb) {
-                        let textFields = [
-                            getCol(row, ['Short description', 'Descrição', 'Assunto']),
-                            getCol(row, ['Description', 'description']),
-                            getCol(row, ['Work notes', 'Additional comments'])
-                        ].join(' ');
-                        prb = _extractPRBId(textFields) || '—';
-                    }
-
-                    // Registra o PRB pai no mapa caso não exista ainda (sem masterRow)
-                    if (prb && prb !== '—' && !prbMasterMap[prb]) {
-                        prbMasterMap[prb] = null;
-                    }
-
                     processed.push({
-                        tk: number, prb: prb || '—', type: 'PTASK',
+                        tk: number,
+                        prb: prb || '—',
+                        type: 'PTASK',
                         st: String(getCol(row, ['State', 'Status', 'Estado', 'status']) || 'Open').toUpperCase(),
                         stRca: '—',
                         gp: String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim(),
                         as: String(getCol(row, ['Assigned to', 'Analista', 'Assignee', 'assigned_to']) || '—').trim(),
-                        req: String(getCol(row, ['Requester', 'Caller', 'Solicitante']) || 'N/A').trim(),
+                        req: String(getCol(row, ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim(),
                         priority: String(getCol(row, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim(),
-                        desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto', 'Item']) || '—').trim(),
+                        desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto']) || '—').trim(),
                         ci: String(getCol(row, ['Configuration item', 'CI', 'Item de configuracao']) || '—').trim(),
-                        related_incidents_raw: '—', rca_due: '—', rca_pub: '—',
+                        related_incidents_raw: '—',
+                        rca_due: '—',
+                        rca_pub: '—',
+                        age: aging,
+                        opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
+                        clStr: clD ? clD.toLocaleDateString('pt-BR') : '—'
+                    });
+                });
+            }
+
+            // ── Fallback: extrai PTASKs embutidos nas linhas de rcaRawData quando não há arquivo ptask separado ──
+            // Cada linha de problem_rca.xlsx que contém colunas de tarefa (State, Opened, Configuration item)
+            // é tratada como 1 PTASK vinculada ao seu PRB pai.
+            // Também dispara quando ptaskRawData existia mas nenhuma PTASK foi efetivamente adicionada.
+            if ((_ptasksAdded === 0) && rcaRawData && rcaRawData.length > 0) {
+                rcaRawData.forEach(row => {
+                    let prbId = String(getCol(row, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
+                    if (!prbId.startsWith('PRB')) return;
+                    let taskState = getCol(row, ['State', 'Status', 'Estado', 'status']);
+                    if (!taskState) return;
+                    let synthNum = 'PTASK' + prbId.replace('PRB', '');
+                    if (seenTickets.has(synthNum)) return;
+                    seenTickets.add(synthNum);
+                    let opD = safeDate(getCol(row, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                    let clD = safeDate(getCol(row, ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at']));
+                    let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
+                        : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
+                    if (aging < 0) aging = 0;
+                    processed.push({
+                        tk: synthNum,
+                        prb: prbId,
+                        type: 'PTASK',
+                        st: String(taskState).toUpperCase(),
+                        stRca: '—',
+                        gp: String(getCol(row, ['Assignment group.1', 'Assignment group', 'Grupo', 'assignment_group']) || '—').trim(),
+                        as: String(getCol(row, ['Assigned to.1', 'Assigned to', 'Analista']) || '—').trim(),
+                        req: 'N/A',
+                        priority: String(getCol(row, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim(),
+                        desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto']) || '—').trim(),
+                        ci: String(getCol(row, ['Configuration item', 'CI', 'Item de configuracao']) || '—').trim(),
+                        related_incidents_raw: '—',
+                        rca_due: '—',
+                        rca_pub: '—',
                         age: aging,
                         opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
                         clStr: clD ? clD.toLocaleDateString('pt-BR') : '—'
@@ -6635,8 +6782,8 @@
             // --- NOVO: Rastreamento Robusto de PRB -> INCs (Herança / Reuso) ---
             // Analisa todas as INCs em busca de PRBs mencionados em qualquer campo de texto
             let globalPrbToIncsMap = {};
-            if (window.RawData && window.RawData.incs) {
-                window.RawData.incs.forEach(inc => {
+            if (RawData && RawData.incs) {
+                RawData.incs.forEach(inc => {
                     let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
                     if (!incNum) return;
 
@@ -6707,9 +6854,9 @@
                 let relRaw = getCol(r, relCols);
                 let relList = relRaw ? relRaw.split(/[,\s;]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC')) : [];
 
-                if (window.RawData && window.RawData.incs) {
+                if (RawData && RawData.incs) {
                     // Busca tickets explicitamente mencionados na coluna do PRB
-                    let explicitIncs = window.RawData.incs.filter(inc => {
+                    let explicitIncs = RawData.incs.filter(inc => {
                         let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
                         return relList.includes(incNum);
                     });
@@ -6721,7 +6868,7 @@
                     let prbIncMatches = combinedText.toUpperCase().match(/INC[0-9]+/g) || [];
                     let prbMentionedIncs = [];
                     if (prbIncMatches.length > 0) {
-                        prbMentionedIncs = window.RawData.incs.filter(inc => {
+                        prbMentionedIncs = RawData.incs.filter(inc => {
                             let incNum = (getCol(inc, ['Number', 'Ticket', 'Número']) || '').trim().toUpperCase();
                             return prbIncMatches.includes(incNum);
                         });
@@ -7304,7 +7451,7 @@
                     labels: d.topAnalistas.map(a => a.nome),
                     datasets: [
                         { label: 'Backlog/Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C._A, borderWidth: 0, barPercentage: 0.65 },
-                        { label: lblRes,             data: d.topAnalistas.map(a => a.res), backgroundColor: C._R, borderWidth: 0, barPercentage: 0.65 }
+                        { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C._R, borderWidth: 0, barPercentage: 0.65 }
                     ]
                 },
                 options: {
@@ -7389,6 +7536,10 @@
         }
 
         function drawConsolidadoCharts(i, r, u) {
+            const _e = { trendD: {}, trendM: {} };
+            i = (i && i.trendD) ? i : _e;
+            r = (r && r.trendD) ? r : _e;
+            u = (u && u.trendD) ? u : _e;
             let cTrendD = {}; let dKeys = new Set([...Object.keys(i.trendD), ...Object.keys(r.trendD), ...Object.keys(u.trendD)]);
             dKeys.forEach(k => {
                 cTrendD[k] = {
@@ -7505,75 +7656,67 @@
                 };
 
                 const _buildTrendDatasets = (keys) => {
-                    const cg  = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
-                    const tot = (field) => keys.map(k => (i.trendM[k]?.[field]||0) + (r.trendM[k]?.[field]||0) + (u.trendM[k]?.[field]||0));
+                    const cg = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
+
+                    const totA = keys.map(k => (i.trendM[k]?.a || 0) + (r.trendM[k]?.a || 0) + (u.trendM[k]?.a || 0));
+                    const totR = keys.map(k => (i.trendM[k]?.r || 0) + (r.trendM[k]?.r || 0) + (u.trendM[k]?.r || 0));
+
                     return [
-                        // ── ds[0] INC Abertos ─────────────────────────────────
+                        {
+                            label: 'TODOS — Abertos', data: totA,
+                            borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.15)',
+                            fill: true, borderWidth: 3, pointRadius: 5, pointHoverRadius: 8,
+                            pointBackgroundColor: 'rgba(30,58,138,1)',
+                            datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
+                        },
+                        {
+                            label: 'TODOS — Encerrados', data: totR,
+                            borderColor: 'rgba(22,163,74,0.95)', backgroundColor: 'rgba(22,163,74,0.06)',
+                            fill: false, borderWidth: 3, pointRadius: 5, pointHoverRadius: 8, borderDash: [8, 4],
+                            pointBackgroundColor: 'rgba(22,163,74,1)',
+                            datalabels: { align: 'bottom', color: '#15803d', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
+                        },
                         {
                             label: 'INC — Abertos', data: cg(i, 'a'),
                             borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.13)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(30,58,138,1)',
-                            datalabels: { display: false }
+                            datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
-                        // ── ds[1] INC Resolvidos ──────────────────────────────
                         {
                             label: 'INC — Resolvidos', data: cg(i, 'r'),
-                            borderColor: 'rgba(34,197,94,0.9)', backgroundColor: 'transparent',
+                            borderColor: 'rgba(34,197,94,0.9)', backgroundColor: 'rgba(34,197,94,0.04)',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(34,197,94,1)',
-                            datalabels: { display: false }
+                            datalabels: { align: 'bottom', color: '#16a34a', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                         },
-                        // ── ds[2] REQ Abertos ─────────────────────────────────
                         {
                             label: 'REQ — Abertos', data: cg(r, 'a'),
                             borderColor: 'rgba(37,99,235,1)', backgroundColor: 'rgba(37,99,235,0.11)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(37,99,235,1)',
-                            datalabels: { display: false }
+                            datalabels: { align: 'top', color: '#1d4ed8', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
-                        // ── ds[3] REQ Resolvidos ──────────────────────────────
                         {
                             label: 'REQ — Resolvidos', data: cg(r, 'r'),
                             borderColor: 'rgba(16,185,129,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(16,185,129,1)',
-                            datalabels: { display: false }
+                            datalabels: { align: 'bottom', color: '#059669', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                         },
-                        // ── ds[4] UAM Abertos ─────────────────────────────────
                         {
                             label: 'UAM — Abertos', data: cg(u, 'a'),
                             borderColor: 'rgba(124,58,237,1)', backgroundColor: 'rgba(124,58,237,0.10)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(124,58,237,1)',
-                            datalabels: { display: false }
+                            datalabels: { align: 'top', color: '#7c3aed', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
-                        // ── ds[5] UAM Resolvidos ──────────────────────────────
                         {
                             label: 'UAM — Resolvidos', data: cg(u, 'r'),
                             borderColor: 'rgba(192,132,252,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(192,132,252,1)',
-                            datalabels: { display: false }
-                        },
-                        // ── ds[6] TOTAL Abertos ───────────────────────────────
-                        {
-                            label: 'TOTAL — Abertos', data: tot('a'),
-                            borderColor: 'rgba(15,23,42,0.92)', backgroundColor: 'rgba(15,23,42,0.06)',
-                            fill: false, borderWidth: 3.5, tension: 0.35,
-                            pointRadius: 5, pointHoverRadius: 8,
-                            pointBackgroundColor: 'rgba(15,23,42,1)',
-                            datalabels: { align: 'top', color: '#0f172a', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
-                        },
-                        // ── ds[7] TOTAL Resolvidos ────────────────────────────
-                        {
-                            label: 'TOTAL — Resolvidos', data: tot('r'),
-                            borderColor: 'rgba(22,163,74,0.88)', backgroundColor: 'transparent',
-                            fill: false, borderWidth: 3, tension: 0.35,
-                            pointRadius: 5, pointHoverRadius: 8,
-                            pointBackgroundColor: 'rgba(22,163,74,1)',
-                            borderDash: [11, 5],
-                            datalabels: { align: 'bottom', color: '#15803d', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
+                            datalabels: { align: 'bottom', color: '#9333ea', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                         }
                     ];
                 };
@@ -7583,15 +7726,11 @@
                     if (!chart) return;
                     window._consTrendFullData._activeKeys = keys;
                     chart.data.labels = keys.map(_fmtTrendLbl);
-                    const ds = chart.data.datasets;
-                    const cg  = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
-                    const tot = (field) => keys.map(k => (i.trendM[k]?.[field]||0) + (r.trendM[k]?.[field]||0) + (u.trendM[k]?.[field]||0));
-                    ds[0].data = cg(i, 'a'); ds[1].data = cg(i, 'r');
-                    ds[2].data = cg(r, 'a'); ds[3].data = cg(r, 'r');
-                    ds[4].data = cg(u, 'a'); ds[5].data = cg(u, 'r');
-                    ds[6].data = tot('a');   ds[7].data = tot('r');
+                    chart.data.datasets = _buildTrendDatasets(keys);
                     chart.update();
                 };
+
+
 
                 const _chartInst = new Chart(cnvTrend, {
                     type: 'line',
@@ -7614,38 +7753,39 @@
                         onClick: function (evt) {
                             const el = this.getElementAtEvent(evt)[0];
                             if (!el) return;
-                            const idx   = el._index;
+                            const idx = el._index;
                             const dsIdx = el._datasetIndex;
                             const activeKeys = window._consTrendFullData?._activeKeys || sortedTrendM;
                             const mKey = activeKeys[idx];
-                            const lbl  = _fmtTrendLbl(mKey);
+                            const lbl = _fmtTrendLbl(mKey);
+                            let tks = [], dTitle = '';
                             const srcMap = [
+                                [null, 'a', `TODOS Abertos — ${lbl}`],
+                                [null, 'r', `TODOS Encerrados — ${lbl}`],
                                 [i, 'a', `INC Abertos — ${lbl}`],
                                 [i, 'r', `INC Resolvidos — ${lbl}`],
                                 [r, 'a', `REQ Abertos — ${lbl}`],
                                 [r, 'r', `REQ Resolvidos — ${lbl}`],
                                 [u, 'a', `UAM Abertos — ${lbl}`],
-                                [u, 'r', `UAM Resolvidos — ${lbl}`],
-                                [null, 'a', `TOTAL Abertos — ${lbl}`],
-                                [null, 'r', `TOTAL Resolvidos — ${lbl}`]
+                                [u, 'r', `UAM Resolvidos — ${lbl}`]
                             ];
                             const entry = srcMap[dsIdx];
                             if (!entry) return;
-                            const tksKey = entry[1] === 'a' ? 'tks_a' : 'tks_r';
-                            let tks;
+                            
                             if (entry[0] === null) {
-                                // TOTAL: agrega tickets das 3 fontes
+                                const tksKey = entry[1] === 'a' ? 'tks_a' : 'tks_r';
                                 tks = [
                                     ...(i.trendM[mKey]?.[tksKey] || []),
                                     ...(r.trendM[mKey]?.[tksKey] || []),
                                     ...(u.trendM[mKey]?.[tksKey] || [])
                                 ];
                             } else {
-                                tks = entry[0].trendM[mKey]?.[tksKey] || [];
+                                tks = entry[0].trendM[mKey]?.[entry[1] === 'a' ? 'tks_a' : 'tks_r'] || [];
                             }
+                            dTitle = entry[2];
                             if (!tks.length) return;
                             window.DrilldownVault['cons']['trend_tmp'] = tks;
-                            openDrilldown(entry[2], 'trend_tmp', 'cons');
+                            openDrilldown(dTitle, 'trend_tmp', 'cons');
                         }
                     }
                 });
@@ -7655,8 +7795,11 @@
                 // ── guarda dados completos para uso nos filtros ──────────────────
                 window._consTrendFullData = { sortedTrendM, i, r, u, _activeKeys: sortedTrendM.slice() };
 
+                // ── expõe _applyTrendFilter globalmente para o botão TOTAL ─────
+                window._applyConsTrendFilter = _applyTrendFilter;
+
                 // ── funções de filtro expostas globalmente ───────────────────────
-                window.filterConsTrend = function(n, btn) {
+                window.filterConsTrend = function (n, btn) {
                     document.querySelectorAll('.cons-trend-btn').forEach(b => {
                         b.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
                         b.classList.add('bg-white', 'border-slate-300', 'text-slate-600');
@@ -7666,39 +7809,40 @@
                         btn.classList.remove('bg-white', 'border-slate-300', 'text-slate-600');
                     }
                     const fromEl = document.getElementById('cons-trend-from');
-                    const toEl   = document.getElementById('cons-trend-to');
+                    const toEl = document.getElementById('cons-trend-to');
                     if (fromEl) fromEl.value = '';
-                    if (toEl)   toEl.value   = '';
-                    const fd   = window._consTrendFullData;
+                    if (toEl) toEl.value = '';
+                    const fd = window._consTrendFullData;
                     const keys = n === 0 ? fd.sortedTrendM.slice() : fd.sortedTrendM.slice(-n);
                     _applyTrendFilter(keys);
                 };
 
-                window.filterConsTrendRange = function() {
+                window.filterConsTrendRange = function () {
                     const fromEl = document.getElementById('cons-trend-from');
-                    const toEl   = document.getElementById('cons-trend-to');
+                    const toEl = document.getElementById('cons-trend-to');
                     const fromVal = (fromEl?.value || '').trim();
-                    const toVal   = (toEl?.value   || '').trim();
+                    const toVal = (toEl?.value || '').trim();
                     if (!fromVal && !toVal) return;
                     document.querySelectorAll('.cons-trend-btn').forEach(b => {
                         b.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
                         b.classList.add('bg-white', 'border-slate-300', 'text-slate-600');
                     });
-                    const fd   = window._consTrendFullData;
-                    let keys   = fd.sortedTrendM.slice();
+                    const fd = window._consTrendFullData;
+                    let keys = fd.sortedTrendM.slice();
                     if (fromVal) keys = keys.filter(k => k >= fromVal);
-                    if (toVal)   keys = keys.filter(k => k <= toVal);
+                    if (toVal) keys = keys.filter(k => k <= toVal);
                     if (keys.length) _applyTrendFilter(keys);
                 };
 
-                window.clearConsTrendRange = function() {
+                window.clearConsTrendRange = function () {
                     const fromEl = document.getElementById('cons-trend-from');
-                    const toEl   = document.getElementById('cons-trend-to');
+                    const toEl = document.getElementById('cons-trend-to');
                     if (fromEl) fromEl.value = '';
-                    if (toEl)   toEl.value   = '';
+                    if (toEl) toEl.value = '';
                     const allBtn = document.querySelector('.cons-trend-btn[onclick*="filterConsTrend(0"]');
                     window.filterConsTrend(0, allBtn);
                 };
+
             }
             // ────────────────────────────────────────────────────────────────────
         }
@@ -7770,7 +7914,10 @@
                 // Processamento de REQs e UAMs
                 let rS = [], rU = [];
                 if (RawData.reqs.length) {
-                    const isUam = r => String(r['Assignment group'] || r['Grupo'] || '').toLowerCase().includes('access');
+                    const isUam = r => {
+                        const accessKw = v => { let s = String(v || '').toLowerCase(); return s.includes('access') || s.includes('acesso') || s.includes('uam'); };
+                        return accessKw(r['Assignment group']) || accessKw(r['Grupo']) || accessKw(r['Item']) || accessKw(r['item']) || accessKw(r['Tags']) || accessKw(r['tags']) || accessKw(r['Categoria']) || accessKw(r['Short description']);
+                    };
                     rS = RawData.reqs.filter(r => !isUam(r));
                     rU = RawData.reqs.filter(r => isUam(r));
 
@@ -7814,19 +7961,22 @@
                 // Restaurar aba de Tickets Abertos
                 document.getElementById('tab-open').innerHTML = generateOpenTicketsHTML(RawData.incs, rS, rU, slaI, slaR, dateMachine);
 
-                // Prioriza RawData.rca (problem_rca.xlsx) e RawData.ptask (problem_ptask/sc_task.xlsx)
-                // RawData.prb só é preenchido se um arquivo "prb*.xlsx" genérico for carregado
-                let hasRcaData  = RawData.rca   && RawData.rca.length   > 0;
-                let hasPtask    = RawData.ptask  && RawData.ptask.length > 0;
-                let hasIncsWithPrb = RawData.incs && RawData.incs.some(inc =>
-                    String(getCol(inc, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase().startsWith('PRB')
-                );
+                // Prioriza PRBs se existirem, caso contrário tenta extrair dos incidentes (Fallback), ou usa RCA/PTASK
+                let prbDataToProcess = (RawData.prb && RawData.prb.length > 0) ? RawData.prb : [];
+                if (prbDataToProcess.length === 0 && RawData.incs && RawData.incs.length > 0) {
+                    prbDataToProcess = RawData.incs.filter(inc => {
+                        let p = String(getCol(inc, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
+                        return p.startsWith('PRB');
+                    });
+                }
 
-                if (hasRcaData || hasPtask || hasIncsWithPrb || (RawData.prb && RawData.prb.length > 0)) {
-                    let prbProcessed = processPRBDataForDisplay(RawData.prb || [], RawData.ptask || [], RawData.rca || []);
+                if (prbDataToProcess.length > 0 || (RawData.ptask && RawData.ptask.length) || (RawData.rca && RawData.rca.length)) {
+                    let prbProcessed = processPRBDataForDisplay(prbDataToProcess, RawData.ptask, RawData.rca);
                     document.getElementById('tab-prb').innerHTML = generatePRBTabImproved(prbProcessed, RawData.ptask, RawData.rca, dateMachine);
+                } else if (RawData.rca && RawData.rca.length || RawData.ptask && RawData.ptask.length) {
+                    document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaRCA, slaP, dateMachine);
                 } else {
-                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK/PRB importado.<br><small style="color:#94a3b8;font-size:12px;">Carregue: <b>problem_rca.xlsx</b>, <b>problem_ptask.xlsx</b> ou <b>sc_task.xlsx</b></small></h3></div>`;
+                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK/PRB importado.</h3></div>`;
                 }
 
                 let allCombinedData = [...RawData.incs, ...RawData.reqs];
@@ -7923,7 +8073,7 @@
                                         yAxes: [{ stacked: true, ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' }, gridLines: { color: '#f1f5f9', drawBorder: false } }]
                                     },
                                     tooltips: { mode: 'index', intersect: false },
-                                    onClick: function(evt) {
+                                    onClick: function (evt) {
                                         const el = this.getElementAtEvent(evt)[0];
                                         if (!el) return;
                                         const idx = el._index;
@@ -7986,7 +8136,7 @@
                                         yAxes: [{ ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' }, gridLines: { color: '#f1f5f9', drawBorder: false } }]
                                     },
                                     tooltips: { mode: 'index', intersect: false },
-                                    onClick: function(evt) {
+                                    onClick: function (evt) {
                                         const el = this.getElementAtEvent(evt)[0];
                                         if (!el) return;
                                         const dLabel = (sd.dayLabels || [])[el._index] || '';
@@ -8019,7 +8169,7 @@
                     if (dI) drawChartsAll('inc', dI, 'Resolvidos');
                     if (dRS) drawChartsAll('req', dRS, 'Encerrados');
                     if (dRU) drawChartsAll('uam', dRU, 'Encerrados');
-                    if (dI && dRS && dRU) drawConsolidadoCharts(dI, dRS, dRU);
+                    if (dI || dRS || dRU) drawConsolidadoCharts(dI, dRS, dRU);
 
                     tabs.forEach(c => {
                         c.style.display = '';
