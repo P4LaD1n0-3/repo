@@ -6177,20 +6177,30 @@
                             <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:3px;background:#1e3a8a;border-radius:2px;"></span> Área = Abertos</span>
                             <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dashed #22c55e;"></span> Tracejado = Resolvidos</span>
                             <span style="color:#0f172a;font-weight:700;">Tracejado acima da área → backlog caindo ↓ &nbsp;|&nbsp; Área acima → backlog subindo ↑</span>
+                            <div class="mt-1 flex items-center text-[9px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100 w-fit">
+                                <i class="fas fa-info-circle mr-1"></i> Tickets de REQ "Cancelados/Incompletos" foram removidos da contagem de abertos.
+                            </div>
                         </div>
                     </div>
-                    <!-- Filtros de período -->
-                    <div class="flex flex-wrap items-center gap-2">
-                        <span class="text-[9px] font-black text-slate-400 uppercase mr-1">Período:</span>
-                        <button onclick="filterConsTrend(3,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">3 meses</button>
-                        <button onclick="filterConsTrend(6,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">6 meses</button>
-                        <button onclick="filterConsTrend(12,this)" class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">12 meses</button>
-                        <button onclick="filterConsTrend(0,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 transition">Tudo</button>
-                        <span class="text-slate-300 mx-1">|</span>
-                        <input type="month" id="cons-trend-from" class="text-[10px] border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400" placeholder="De" onchange="filterConsTrendRange()">
-                        <span class="text-[10px] text-slate-400">até</span>
-                        <input type="month" id="cons-trend-to"   class="text-[10px] border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400" placeholder="Até" onchange="filterConsTrendRange()">
-                        <button onclick="clearConsTrendRange()" class="text-[10px] text-slate-400 hover:text-red-500 px-1" title="Limpar datas"><i class="fas fa-times-circle"></i></button>
+                    <!-- Filtros de período e analista -->
+                    <div class="flex flex-col items-end gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-[9px] font-black text-slate-400 uppercase mr-1">Filtro Analista (Excluir):</span>
+                            <input type="text" id="cons-trend-analyst-filter" class="text-[10px] border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400 w-[150px]" placeholder="Nome separado por vírgula" onkeyup="if(event.key === 'Enter') refreshConsTrend()">
+                            <button onclick="refreshConsTrend()" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded transition" title="Aplicar filtro"><i class="fas fa-filter"></i></button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-[9px] font-black text-slate-400 uppercase mr-1">Período:</span>
+                            <button onclick="filterConsTrend(3,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">3 meses</button>
+                            <button onclick="filterConsTrend(6,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">6 meses</button>
+                            <button onclick="filterConsTrend(12,this)" class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">12 meses</button>
+                            <button onclick="filterConsTrend(0,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 transition">Tudo</button>
+                            <span class="text-slate-300 mx-1">|</span>
+                            <input type="month" id="cons-trend-from" class="text-[10px] border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400" placeholder="De" onchange="filterConsTrendRange()">
+                            <span class="text-[10px] text-slate-400">até</span>
+                            <input type="month" id="cons-trend-to"   class="text-[10px] border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400" placeholder="Até" onchange="filterConsTrendRange()">
+                            <button onclick="clearConsTrendRange()" class="text-[10px] text-slate-400 hover:text-red-500 px-1" title="Limpar datas"><i class="fas fa-times-circle"></i></button>
+                        </div>
                     </div>
                 </div>
                 <div style="height:calc(100% - 80px); position:relative;"><canvas id="c-trend-cats"></canvas></div>
@@ -7770,10 +7780,31 @@
                 };
 
                 const _buildTrendDatasets = (keys) => {
-                    const cg = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
+                    const getCount = (src, field, key, excludeIncompleteReqs = false) => {
+                        let tks = src.trendM[key]?.[`tks_${field}`] || [];
+                        let excludedStr = document.getElementById('cons-trend-analyst-filter')?.value || '';
+                        let excluded = excludedStr.split(',').map(s => s.trim().toLowerCase()).filter(s => s);
+                        
+                        return tks.filter(t => {
+                            if (excluded.length > 0) {
+                                let asg = (t.asg || '').toLowerCase();
+                                if (excluded.some(ea => asg.includes(ea))) return false;
+                            }
+                            
+                            if (excludeIncompleteReqs && field === 'a') {
+                                let st = (t.st || '').toLowerCase();
+                                if (st.includes('cancel') || st.includes('incomplet') || st.includes('rejeit') || st.includes('reject')) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        }).length;
+                    };
 
-                    const totA = keys.map(k => (i.trendM[k]?.a || 0) + (r.trendM[k]?.a || 0) + (u.trendM[k]?.a || 0));
-                    const totR = keys.map(k => (i.trendM[k]?.r || 0) + (r.trendM[k]?.r || 0) + (u.trendM[k]?.r || 0));
+                    const cg = (src, field, excludeReqs) => keys.map(k => getCount(src, field, k, excludeReqs));
+
+                    const totA = keys.map(k => getCount(i, 'a', k, false) + getCount(r, 'a', k, true) + getCount(u, 'a', k, true));
+                    const totR = keys.map(k => getCount(i, 'r', k, false) + getCount(r, 'r', k, false) + getCount(u, 'r', k, false));
 
                     return [
                         {
@@ -7791,42 +7822,42 @@
                             datalabels: { align: 'bottom', color: '#15803d', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'INC — Abertos', data: cg(i, 'a'),
+                            label: 'INC — Abertos', data: cg(i, 'a', false),
                             borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.13)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(30,58,138,1)',
                             datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'INC — Resolvidos', data: cg(i, 'r'),
+                            label: 'INC — Resolvidos', data: cg(i, 'r', false),
                             borderColor: 'rgba(34,197,94,0.9)', backgroundColor: 'rgba(34,197,94,0.04)',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(34,197,94,1)',
                             datalabels: { align: 'bottom', color: '#16a34a', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'REQ — Abertos', data: cg(r, 'a'),
+                            label: 'REQ — Abertos', data: cg(r, 'a', true),
                             borderColor: 'rgba(37,99,235,1)', backgroundColor: 'rgba(37,99,235,0.11)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(37,99,235,1)',
                             datalabels: { align: 'top', color: '#1d4ed8', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'REQ — Resolvidos', data: cg(r, 'r'),
+                            label: 'REQ — Resolvidos', data: cg(r, 'r', false),
                             borderColor: 'rgba(16,185,129,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(16,185,129,1)',
                             datalabels: { align: 'bottom', color: '#059669', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'UAM — Abertos', data: cg(u, 'a'),
+                            label: 'UAM — Abertos', data: cg(u, 'a', true),
                             borderColor: 'rgba(124,58,237,1)', backgroundColor: 'rgba(124,58,237,0.10)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(124,58,237,1)',
                             datalabels: { align: 'top', color: '#7c3aed', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'UAM — Resolvidos', data: cg(u, 'r'),
+                            label: 'UAM — Resolvidos', data: cg(u, 'r', false),
                             borderColor: 'rgba(192,132,252,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(192,132,252,1)',
@@ -7896,6 +7927,27 @@
                             } else {
                                 tks = entry[0].trendM[mKey]?.[entry[1] === 'a' ? 'tks_a' : 'tks_r'] || [];
                             }
+                            
+                            // Aplicar os mesmos filtros visuais do gráfico aos dados do drilldown
+                            let excludedStr = document.getElementById('cons-trend-analyst-filter')?.value || '';
+                            let excluded = excludedStr.split(',').map(s => s.trim().toLowerCase()).filter(s => s);
+                            
+                            tks = tks.filter(t => {
+                                if (excluded.length > 0) {
+                                    let asg = (t.asg || '').toLowerCase();
+                                    if (excluded.some(ea => asg.includes(ea))) return false;
+                                }
+                                
+                                let isAbertos = (entry[1] === 'a');
+                                if (isAbertos && t.type === 'REQ') {
+                                    let st = (t.st || '').toLowerCase();
+                                    if (st.includes('cancel') || st.includes('incomplet') || st.includes('rejeit') || st.includes('reject')) {
+                                        return false;
+                                    }
+                                }
+                                return true;
+                            });
+
                             dTitle = entry[2];
                             if (!tks.length) return;
                             window.DrilldownVault['cons']['trend_tmp'] = tks;
@@ -7946,6 +7998,13 @@
                     if (fromVal) keys = keys.filter(k => k >= fromVal);
                     if (toVal) keys = keys.filter(k => k <= toVal);
                     if (keys.length) _applyTrendFilter(keys);
+                };
+
+                window.refreshConsTrend = function() {
+                    const fd = window._consTrendFullData;
+                    if (fd && fd._activeKeys) {
+                        _applyTrendFilter(fd._activeKeys);
+                    }
                 };
 
                 window.clearConsTrendRange = function () {
