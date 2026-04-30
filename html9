@@ -5948,18 +5948,25 @@
             const dDataUam = sortedDays.map(d => ((_RU.trendD[d] || { tks_r: [] }).tks_r || []).filter(t => (t.age || 0) > slaR).length);
             const dDataTot = sortedDays.map((_, i) => (dDataInc[i] || 0) + (dDataReq[i] || 0) + (dDataUam[i] || 0));
 
-            // Pré-computa vault entries por mês e por dia para drilldown correto ao clicar nos gráficos
+            // Pré-computa vault entries por mês (total e por tipo) para drilldown correto ao clicar nos gráficos
             sortedMonths.forEach(mKey => {
                 const mTksInc = ((_I.trendM[mKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaI).map(t => ({ ...t, tipo: 'INC', isBacklog: false }));
                 const mTksReq = ((_RS.trendM[mKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'REQ', isBacklog: false }));
                 const mTksUam = ((_RU.trendM[mKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'UAM', isBacklog: false }));
-                window.DrilldownVault['sla'][`month_${mKey}`] = [...mTksInc, ...mTksReq, ...mTksUam].sort((a, b) => (b.age || 0) - (a.age || 0));
+                window.DrilldownVault['sla'][`month_${mKey}`]     = [...mTksInc, ...mTksReq, ...mTksUam].sort((a, b) => (b.age || 0) - (a.age || 0));
+                window.DrilldownVault['sla'][`month_${mKey}_INC`] = mTksInc.slice().sort((a, b) => (b.age || 0) - (a.age || 0));
+                window.DrilldownVault['sla'][`month_${mKey}_REQ`] = mTksReq.slice().sort((a, b) => (b.age || 0) - (a.age || 0));
+                window.DrilldownVault['sla'][`month_${mKey}_UAM`] = mTksUam.slice().sort((a, b) => (b.age || 0) - (a.age || 0));
             });
+            // Pré-computa vault entries por dia (total e por tipo)
             sortedDays.forEach(dKey => {
                 const dTksInc = ((_I.trendD[dKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaI).map(t => ({ ...t, tipo: 'INC', isBacklog: false }));
                 const dTksReq = ((_RS.trendD[dKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'REQ', isBacklog: false }));
                 const dTksUam = ((_RU.trendD[dKey] || {}).tks_r || []).filter(t => (t.age || 0) > slaR).map(t => ({ ...t, tipo: 'UAM', isBacklog: false }));
-                window.DrilldownVault['sla'][`day_${dKey}`] = [...dTksInc, ...dTksReq, ...dTksUam].sort((a, b) => (b.age || 0) - (a.age || 0));
+                window.DrilldownVault['sla'][`day_${dKey}`]     = [...dTksInc, ...dTksReq, ...dTksUam].sort((a, b) => (b.age || 0) - (a.age || 0));
+                window.DrilldownVault['sla'][`day_${dKey}_INC`] = dTksInc.slice().sort((a, b) => (b.age || 0) - (a.age || 0));
+                window.DrilldownVault['sla'][`day_${dKey}_REQ`] = dTksReq.slice().sort((a, b) => (b.age || 0) - (a.age || 0));
+                window.DrilldownVault['sla'][`day_${dKey}_UAM`] = dTksUam.slice().sort((a, b) => (b.age || 0) - (a.age || 0));
             });
 
             // Armazena para uso nos charts — inclui sortedMonths/sortedDays para o onClick mapear o índice ao YYYY-MM/YYYY-MM-DD correto
@@ -8203,9 +8210,23 @@
                                         const el = this.getElementAtEvent(evt)[0];
                                         if (!el) return;
                                         const idx = el._index;
+                                        const datasetIdx = el._datasetIndex;
                                         const mKey = (sd.sortedMonths || [])[idx] || '';
-                                        const mLabel = (sd.monthLabels || [])[idx] || mKey;
-                                        openDrilldown(`Fora SLA — ${mLabel}`, `month_${mKey}`, 'sla');
+                                        let mLabel = (sd.monthLabels || [])[idx] || mKey;
+                                        let vaultKey = `month_${mKey}`;
+
+                                        if (datasetIdx === 1) {
+                                            vaultKey += '_INC';
+                                            mLabel += ' (INC)';
+                                        } else if (datasetIdx === 2) {
+                                            vaultKey += '_REQ';
+                                            mLabel += ' (REQ)';
+                                        } else if (datasetIdx === 3) {
+                                            vaultKey += '_UAM';
+                                            mLabel += ' (UAM)';
+                                        }
+
+                                        openDrilldown(`Fora SLA — ${mLabel}`, vaultKey, 'sla');
                                     }
                                 }
                             }));
@@ -8265,9 +8286,23 @@
                                         const el = this.getElementAtEvent(evt)[0];
                                         if (!el) return;
                                         const idx = el._index;
+                                        const datasetIdx = el._datasetIndex;
                                         const dKey = (sd.sortedDays || [])[idx] || '';
-                                        const dLabel = (sd.dayLabels || [])[idx] || dKey;
-                                        openDrilldown(`Fora SLA — dia ${dLabel}`, `day_${dKey}`, 'sla');
+                                        let dLabel = (sd.dayLabels || [])[idx] || dKey;
+                                        let vaultKey = `day_${dKey}`;
+
+                                        if (datasetIdx === 1) {
+                                            vaultKey += '_INC';
+                                            dLabel += ' (INC)';
+                                        } else if (datasetIdx === 2) {
+                                            vaultKey += '_REQ';
+                                            dLabel += ' (REQ)';
+                                        } else if (datasetIdx === 3) {
+                                            vaultKey += '_UAM';
+                                            dLabel += ' (UAM)';
+                                        }
+
+                                        openDrilldown(`Fora SLA — dia ${dLabel}`, vaultKey, 'sla');
                                     }
                                 }
                             }));
