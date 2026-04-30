@@ -1800,7 +1800,7 @@
                 <button class="tab-btn" onclick="switchTab('tab-rpa', this)"
                     style="color: var(--primary-dark); font-weight: 500;"><i class="fas fa-robot mr-1"></i>
                     Comunicações RPA</button>
-                <button class="tab-btn" onclick="switchTab('tab-analysts', this)" style="color:#4c1d95; font-weight:700;"><i class="fas fa-user-chart mr-1"></i>
+                <button class="tab-btn" onclick="switchTab('tab-analysts', this)" style="color:#4c1d95; font-weight:700;"><i class="fas fa-user-tie mr-1"></i>
                     Analistas</button>
                 <button class="tab-btn" onclick="switchTab('tab-todo', this)"
                     style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i
@@ -5101,6 +5101,7 @@
                 <tr class="ticket-row hover:bg-slate-50 transition" style="border-bottom: 1px solid #f1f5f9;" ${buildDataAttrs(t)}>
                     <td data-label="Ticket" class="font-bold text-[var(--primary-dark)] text-center">
                         ${t.tk}
+                        ${t._typeBadge ? `<div class="mt-1">${t._typeBadge}</div>` : (t.tipo ? `<div class="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded inline-block text-slate-500 mt-1">${t.tipo}</div>` : '')}
                         <button onclick="openTicketDetails('${t.tk}')" class="mt-1 w-full text-center bg-blue-50 border border-blue-200/50 hover:bg-blue-100 rounded py-1 text-[9px] uppercase font-bold transition shadow-sm"><i class="fas fa-search mr-1"></i> Detalhes</button>
                     </td>
                     <td data-label="Assunto / Info" class="text-left w-[350px] max-w-[350px]">
@@ -7989,7 +7990,9 @@
             let clM = clD && !isNaN(clD) && clD.getTime() > 0 ? clD.getFullYear() + '-' + String(clD.getMonth()+1).padStart(2,'0') : null;
             let tkId = getCol(tk, ['Number', 'Número']) || '';
             let desc = getCol(tk, ['Short description', 'Breve descrição', 'Assunto']) || '';
-            return { asg, gp, st, opD, clD, isRes, isCan, age, mttrH, opM, clM, tkId, desc, raw: tk };
+            let tkUp = tkId.toUpperCase();
+            let ticketType = tkUp.startsWith('INC') ? 'INC' : tkUp.startsWith('RITM') || tkUp.startsWith('REQ') || tkUp.startsWith('SCTASK') ? 'REQ' : tkUp.startsWith('UAM') ? 'UAM' : 'TICKET';
+            return { asg, gp, st, opD, clD, isRes, isCan, age, mttrH, opM, clM, tkId, desc, ticketType, raw: tk };
         }
 
         function _fmtM(k) { let [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleString('pt-BR',{month:'short',year:'2-digit'}).toUpperCase().replace('.',''); }
@@ -8045,6 +8048,43 @@
         }
 
         function generateAnalystsPageHTML() {
+            // Drilldown helpers for pivot
+            window._pivotMapTk = function(t) {
+                let typeBg = t.ticketType === 'INC' ? '#ef4444' : t.ticketType === 'REQ' ? '#3b82f6' : t.ticketType === 'UAM' ? '#8b5cf6' : '#64748b';
+                return {
+                    tk: t.tkId, 
+                    desc: t.desc, 
+                    st: t.st, 
+                    as: t.asg, 
+                    asg: t.asg,
+                    gp: t.gp,
+                    req: '-',
+                    opStr: t.opD ? t.opD.toLocaleDateString('pt-BR') : '-',
+                    age: t.age !== null ? t.age : 0,
+                    idle: '-',
+                    tipo: t.ticketType,
+                    _typeBadge: `<span style="background:${typeBg};color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;">${t.ticketType}</span>`
+                };
+            };
+
+            window.openPivotDrilldown = function(analyst, month) {
+                let tks = (window._pivotDrillData || {})[analyst]?.[month] || [];
+                if (!tks.length) return;
+                let dTks = tks.map(window._pivotMapTk);
+                window.DrilldownVault['analysts'] = window.DrilldownVault['analysts'] || {};
+                window.DrilldownVault['analysts']['pivot_tmp'] = dTks;
+                openDrilldown(`${analyst} — ${_fmtM(month)} (${dTks.length} resolvidos)`, 'pivot_tmp', 'analysts');
+            };
+            window.openPivotDrilldownAll = function(analyst) {
+                let months = (window._pivotDrillData || {})[analyst] || {};
+                let all = [];
+                Object.values(months).forEach(arr => all.push(...arr));
+                if (!all.length) return;
+                let dTks = all.map(window._pivotMapTk);
+                window.DrilldownVault['analysts'] = window.DrilldownVault['analysts'] || {};
+                window.DrilldownVault['analysts']['pivot_tmp'] = dTks;
+                openDrilldown(`${analyst} — TOTAL (${dTks.length} resolvidos)`, 'pivot_tmp', 'analysts');
+            };
             return `
             <div class="report-section-title" style="background:linear-gradient(135deg,#1e1b4b,#312e81);"><i class="fas fa-users-cog mr-2"></i> PERFORMANCE INDIVIDUAL DE ANALISTAS — VISÃO COMPLETA</div>
             <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-5">
@@ -8130,6 +8170,23 @@
                 <div class="report-card text-center border-t-4 border-rose-400 p-4 mb-0"><div class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">Cancelados</div><div class="text-3xl font-black text-slate-700">${canceled}</div></div>
                 <div class="report-card text-center border-t-4 p-4 mb-0" style="border-color:${netflow>=0?'#10b981':'#ef4444'};"><div class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:${netflow>=0?'#10b981':'#ef4444'};">Netflow Global</div><div class="text-3xl font-black" style="color:${netflow>=0?'#10b981':'#ef4444'};">${netflow>=0?'+':''}${netflow}</div></div>`;
 
+            // ── Build drilldown indexes ──
+            window._anDrillIdx = { byMonth:{}, byMonthRes:{}, byAnalyst:{}, byStatus:{}, byAgingBucket:{}, byDay:{}, byDayRes:{} };
+            parsed.forEach(t => {
+                if (t.opM) { if (!window._anDrillIdx.byMonth[t.opM]) window._anDrillIdx.byMonth[t.opM] = []; window._anDrillIdx.byMonth[t.opM].push(t); }
+                if (t.isRes && t.clM) { if (!window._anDrillIdx.byMonthRes[t.clM]) window._anDrillIdx.byMonthRes[t.clM] = []; window._anDrillIdx.byMonthRes[t.clM].push(t); }
+                if (t.isRes) { if (!window._anDrillIdx.byAnalyst[t.asg]) window._anDrillIdx.byAnalyst[t.asg] = []; window._anDrillIdx.byAnalyst[t.asg].push(t); }
+                if (!window._anDrillIdx.byStatus[t.st]) window._anDrillIdx.byStatus[t.st] = []; window._anDrillIdx.byStatus[t.st].push(t);
+            });
+
+            let _anDrill = function(title, tks) {
+                if (!tks || !tks.length) return;
+                let dTks = tks.map(window._pivotMapTk);
+                window.DrilldownVault['analysts'] = window.DrilldownVault['analysts'] || {};
+                window.DrilldownVault['analysts']['chart_tmp'] = dTks;
+                openDrilldown(title, 'chart_tmp', 'analysts');
+            };
+
             // ── 1. Trend Mensal (Self-Comparison) ──
             let tM = {};
             parsed.forEach(t => { if(t.opM){if(!tM[t.opM])tM[t.opM]={a:0,r:0};tM[t.opM].a++;} if(t.isRes&&t.clM){if(!tM[t.clM])tM[t.clM]={a:0,r:0};tM[t.clM].r++;} });
@@ -8139,7 +8196,17 @@
                 let c = new Chart(cTrend, { type:'line', data:{ labels:sM.map(_fmtM), datasets:[
                     { label:'Recebidos (Abertos)', data:sM.map(k=>tM[k].a), borderColor:'rgba(30,58,138,1)', backgroundColor:'rgba(30,58,138,0.15)', fill:true, borderWidth:3, pointRadius:5, pointHoverRadius:8, pointBackgroundColor:'rgba(30,58,138,1)', datalabels:{align:'top',color:'#1e3a8a',font:{weight:'bold',size:11},formatter:v=>v>0?v:''} },
                     { label:'Resolvidos', data:sM.map(k=>tM[k].r), borderColor:'rgba(22,163,74,0.95)', backgroundColor:'rgba(22,163,74,0.06)', fill:false, borderWidth:3, pointRadius:5, pointHoverRadius:8, borderDash:[8,4], pointBackgroundColor:'rgba(22,163,74,1)', datalabels:{align:'bottom',color:'#15803d',font:{weight:'bold',size:11},formatter:v=>v>0?v:''} }
-                ]}, options:{ responsive:true, maintainAspectRatio:false, legend:{position:'top',labels:{usePointStyle:true,fontSize:11}}, scales:{ xAxes:[{gridLines:{display:false},ticks:{fontSize:10,fontColor:'#64748b'}}], yAxes:[{gridLines:{color:'#f1f5f9',drawBorder:false},ticks:{beginAtZero:true,fontSize:10,fontColor:'#64748b'}}] }, tooltips:{mode:'index',intersect:false} } });
+                ]}, options:{ responsive:true, maintainAspectRatio:false, legend:{position:'top',labels:{usePointStyle:true,fontSize:11}}, scales:{ xAxes:[{gridLines:{display:false},ticks:{fontSize:10,fontColor:'#64748b'}}], yAxes:[{gridLines:{color:'#f1f5f9',drawBorder:false},ticks:{beginAtZero:true,fontSize:10,fontColor:'#64748b'}}] }, tooltips:{mode:'index',intersect:false},
+                    onClick: function(evt) {
+                        let el = this.getElementAtEvent(evt)[0];
+                        if (!el) return;
+                        let mKey = sM[el._index];
+                        let dsIdx = el._datasetIndex;
+                        let src = dsIdx === 0 ? window._anDrillIdx.byMonth : window._anDrillIdx.byMonthRes;
+                        let label = dsIdx === 0 ? 'Abertos' : 'Resolvidos';
+                        _anDrill(`${label} — ${_fmtM(mKey)}`, src[mKey] || []);
+                    }
+                } });
                 window._anCharts.push(c);
             }
 
@@ -8147,18 +8214,34 @@
             let aC = {};
             parsed.filter(t=>t.isRes).forEach(t=>{ aC[t.asg]=(aC[t.asg]||0)+1; });
             let sA = Object.entries(aC).sort((a,b)=>b[1]-a[1]).slice(0,10);
+            let sANames = sA.map(x => x[0]);
             let cBar = document.getElementById('an-c-bar');
             if (cBar && sA.length) {
-                let c = new Chart(cBar, { type:'horizontalBar', data:{ labels:sA.map(x=>{ let p=x[0].split(' '); return p.length>1?p[0]+' '+p[1][0]+'.':p[0]; }), datasets:[{data:sA.map(x=>x[1]), backgroundColor:['#1e3a8a','#2563eb','#3b82f6','#60a5fa','#93c5fd','#7c3aed','#a78bfa','#c4b5fd','#6366f1','#818cf8'], borderRadius:3}] }, options:{ responsive:true, maintainAspectRatio:false, legend:{display:false}, scales:{ xAxes:[{gridLines:{color:'#f1f5f9'},ticks:{beginAtZero:true,fontSize:10}}], yAxes:[{gridLines:{display:false},ticks:{fontSize:10}}] } } });
+                let c = new Chart(cBar, { type:'horizontalBar', data:{ labels:sA.map(x=>{ let p=x[0].split(' '); return p.length>1?p[0]+' '+p[1][0]+'.':p[0]; }), datasets:[{data:sA.map(x=>x[1]), backgroundColor:['#1e3a8a','#2563eb','#3b82f6','#60a5fa','#93c5fd','#7c3aed','#a78bfa','#c4b5fd','#6366f1','#818cf8'], borderRadius:3, datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 } }}] }, options:{ responsive:true, maintainAspectRatio:false, legend:{display:false}, scales:{ xAxes:[{gridLines:{color:'#f1f5f9'},ticks:{beginAtZero:true,fontSize:10}}], yAxes:[{gridLines:{display:false},ticks:{fontSize:10}}] },
+                    onClick: function(evt) {
+                        let el = this.getElementAtEvent(evt)[0];
+                        if (!el) return;
+                        let name = sANames[el._index];
+                        _anDrill(`Resolvidos por ${name}`, window._anDrillIdx.byAnalyst[name] || []);
+                    }
+                } });
                 window._anCharts.push(c);
             }
 
             // ── 3. Doughnut: Status ──
             let sC = {};
             parsed.forEach(t=>{ sC[t.st]=(sC[t.st]||0)+1; });
+            let statusKeys = Object.keys(sC);
             let cSt = document.getElementById('an-c-status');
             if (cSt) {
-                let c = new Chart(cSt, { type:'doughnut', data:{ labels:Object.keys(sC), datasets:[{data:Object.values(sC), backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#64748b','#ec4899','#14b8a6','#f97316','#6366f1']}] }, options:{ responsive:true, maintainAspectRatio:false, legend:{position:'right',labels:{boxWidth:12,font:{size:10}}} } });
+                let c = new Chart(cSt, { type:'doughnut', data:{ labels:statusKeys, datasets:[{data:Object.values(sC), backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#64748b','#ec4899','#14b8a6','#f97316','#6366f1'], datalabels: { color: '#ffffff', font: { weight: 'bold', size: 11 } }}] }, options:{ responsive:true, maintainAspectRatio:false, legend:{position:'right',labels:{boxWidth:12,font:{size:10}}},
+                    onClick: function(evt) {
+                        let el = this.getElementAtEvent(evt)[0];
+                        if (!el) return;
+                        let stName = statusKeys[el._index];
+                        _anDrill(`Status: ${stName}`, window._anDrillIdx.byStatus[stName] || []);
+                    }
+                } });
                 window._anCharts.push(c);
             }
 
@@ -8168,29 +8251,52 @@
                 let nfData = sM.map(k => tM[k].r - tM[k].a);
                 let bgC = nfData.map(v => v >= 0 ? 'rgba(16,185,129,0.8)' : 'rgba(239,68,68,0.8)');
                 let c = new Chart(cNf, { type:'bar', data:{ labels:sM.map(_fmtM), datasets:[
-                    { label:'Abertos', data:sM.map(k=>tM[k].a), backgroundColor:'rgba(30,58,138,0.7)', stack:'s1' },
-                    { label:'Resolvidos', data:sM.map(k=>tM[k].r), backgroundColor:'rgba(16,185,129,0.7)', stack:'s1' },
+                    { label:'Abertos', data:sM.map(k=>tM[k].a), backgroundColor:'rgba(30,58,138,0.7)', stack:'s1', datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' } },
+                    { label:'Resolvidos', data:sM.map(k=>tM[k].r), backgroundColor:'rgba(16,185,129,0.7)', stack:'s1', datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' } },
                     { type:'line', label:'Netflow (Res−Abrt)', data:nfData, borderColor:'#ef4444', backgroundColor:'transparent', borderWidth:2.5, pointRadius:4, pointBackgroundColor:bgC, fill:false, borderDash:[6,3], yAxisID:'y2', datalabels:{align:'top',color:'#ef4444',font:{weight:'bold',size:10},formatter:v=>v>0?'+'+v:v} }
-                ]}, options:{ responsive:true, maintainAspectRatio:false, legend:{position:'top',labels:{usePointStyle:true,fontSize:10}}, scales:{ xAxes:[{stacked:false,gridLines:{display:false},ticks:{fontSize:10}}], yAxes:[{id:'y1',position:'left',stacked:false,gridLines:{color:'#f1f5f9'},ticks:{beginAtZero:true,fontSize:10}},{id:'y2',position:'right',gridLines:{display:false},ticks:{fontSize:10,fontColor:'#ef4444'}}] }, tooltips:{mode:'index',intersect:false} } });
+                ]}, options:{ responsive:true, maintainAspectRatio:false, legend:{position:'top',labels:{usePointStyle:true,fontSize:10}}, scales:{ xAxes:[{stacked:false,gridLines:{display:false},ticks:{fontSize:10}}], yAxes:[{id:'y1',position:'left',stacked:false,gridLines:{color:'#f1f5f9'},ticks:{beginAtZero:true,fontSize:10}},{id:'y2',position:'right',gridLines:{display:false},ticks:{fontSize:10,fontColor:'#ef4444'}}] }, tooltips:{mode:'index',intersect:false},
+                    onClick: function(evt) {
+                        let el = this.getElementAtEvent(evt)[0];
+                        if (!el) return;
+                        let mKey = sM[el._index];
+                        let dsIdx = el._datasetIndex;
+                        if (dsIdx === 0) { _anDrill(`Abertos — ${_fmtM(mKey)}`, window._anDrillIdx.byMonth[mKey] || []); }
+                        else if (dsIdx === 1) { _anDrill(`Resolvidos — ${_fmtM(mKey)}`, window._anDrillIdx.byMonthRes[mKey] || []); }
+                        else { let all = [...(window._anDrillIdx.byMonth[mKey]||[]), ...(window._anDrillIdx.byMonthRes[mKey]||[])]; _anDrill(`Netflow — ${_fmtM(mKey)}`, all); }
+                    }
+                } });
                 window._anCharts.push(c);
             }
 
             // ── 5. Aging Chart ──
-            let buckets = {'0-1d':0,'2-3d':0,'4-7d':0,'8-14d':0,'15-30d':0,'31-60d':0,'60d+':0};
+            let bucketDefs = [['0-1d',0,1],['2-3d',2,3],['4-7d',4,7],['8-14d',8,14],['15-30d',15,30],['31-60d',31,60],['60d+',61,99999]];
+            let buckets = {}; let bucketTks = {};
+            bucketDefs.forEach(([label]) => { buckets[label] = 0; bucketTks[label] = []; });
             parsed.filter(t=>!t.isRes&&!t.isCan&&t.age!==null).forEach(t=>{
-                let a=t.age; if(a<=1)buckets['0-1d']++; else if(a<=3)buckets['2-3d']++; else if(a<=7)buckets['4-7d']++; else if(a<=14)buckets['8-14d']++; else if(a<=30)buckets['15-30d']++; else if(a<=60)buckets['31-60d']++; else buckets['60d+']++;
+                for (let [label, min, max] of bucketDefs) {
+                    if (t.age >= min && t.age <= max) { buckets[label]++; bucketTks[label].push(t); break; }
+                }
             });
+            window._anDrillIdx.byAgingBucket = bucketTks;
+            let agingLabels = Object.keys(buckets);
             let cAg = document.getElementById('an-c-aging');
             if (cAg) {
-                let c = new Chart(cAg, { type:'horizontalBar', data:{ labels:Object.keys(buckets), datasets:[{data:Object.values(buckets), backgroundColor:['#10b981','#34d399','#fbbf24','#f59e0b','#f97316','#ef4444','#991b1b'], borderRadius:3}] }, options:{ responsive:true, maintainAspectRatio:false, legend:{display:false}, scales:{ xAxes:[{gridLines:{color:'#f1f5f9'},ticks:{beginAtZero:true,fontSize:10}}], yAxes:[{gridLines:{display:false},ticks:{fontSize:11,fontStyle:'bold'}}] } } });
+                let c = new Chart(cAg, { type:'horizontalBar', data:{ labels:agingLabels, datasets:[{data:Object.values(buckets), backgroundColor:['#10b981','#34d399','#fbbf24','#f59e0b','#f97316','#ef4444','#991b1b'], borderRadius:3, datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }}] }, options:{ responsive:true, maintainAspectRatio:false, legend:{display:false}, scales:{ xAxes:[{gridLines:{color:'#f1f5f9'},ticks:{beginAtZero:true,fontSize:10}}], yAxes:[{gridLines:{display:false},ticks:{fontSize:11,fontStyle:'bold'}}] },
+                    onClick: function(evt) {
+                        let el = this.getElementAtEvent(evt)[0];
+                        if (!el) return;
+                        let bLabel = agingLabels[el._index];
+                        _anDrill(`Aging: ${bLabel}`, window._anDrillIdx.byAgingBucket[bLabel] || []);
+                    }
+                } });
                 window._anCharts.push(c);
             }
 
             // ── 6. Daily (últimos 30 dias) ──
             let tD = {};
             parsed.forEach(t=>{
-                if(t.opD&&!isNaN(t.opD)&&t.opD.getTime()>0){let d=t.opD.toISOString().split('T')[0]; if(!tD[d])tD[d]={a:0,r:0}; tD[d].a++;}
-                if(t.isRes&&t.clD&&!isNaN(t.clD)&&t.clD.getTime()>0){let d=t.clD.toISOString().split('T')[0]; if(!tD[d])tD[d]={a:0,r:0}; tD[d].r++;}
+                if(t.opD&&!isNaN(t.opD)&&t.opD.getTime()>0){let d=t.opD.toISOString().split('T')[0]; if(!tD[d])tD[d]={a:0,r:0,aTks:[],rTks:[]}; tD[d].a++; tD[d].aTks.push(t);}
+                if(t.isRes&&t.clD&&!isNaN(t.clD)&&t.clD.getTime()>0){let d=t.clD.toISOString().split('T')[0]; if(!tD[d])tD[d]={a:0,r:0,aTks:[],rTks:[]}; tD[d].r++; tD[d].rTks.push(t);}
             });
             let sD = Object.keys(tD).sort().slice(-30);
             let cDy = document.getElementById('an-c-daily');
@@ -8198,19 +8304,70 @@
                 let c = new Chart(cDy, { type:'line', data:{ labels:sD.map(d=>{let p=d.split('-');return p[2]+'/'+p[1];}), datasets:[
                     { label:'Abertos', data:sD.map(d=>tD[d].a), borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,0.1)', fill:true, tension:0.3 },
                     { label:'Resolvidos', data:sD.map(d=>tD[d].r), borderColor:'#10b981', backgroundColor:'rgba(16,185,129,0.1)', fill:true, tension:0.3 }
-                ]}, options:{ responsive:true, maintainAspectRatio:false, legend:{position:'top'}, scales:{ xAxes:[{gridLines:{display:false},ticks:{fontSize:9}}], yAxes:[{gridLines:{color:'#f1f5f9'},ticks:{beginAtZero:true,fontSize:10}}] } } });
+                ]}, options:{ responsive:true, maintainAspectRatio:false, legend:{position:'top'}, scales:{ xAxes:[{gridLines:{display:false},ticks:{fontSize:9}}], yAxes:[{gridLines:{color:'#f1f5f9'},ticks:{beginAtZero:true,fontSize:10}}] },
+                    onClick: function(evt) {
+                        let el = this.getElementAtEvent(evt)[0];
+                        if (!el) return;
+                        let dKey = sD[el._index];
+                        let dsIdx = el._datasetIndex;
+                        let tks = dsIdx === 0 ? (tD[dKey]?.aTks || []) : (tD[dKey]?.rTks || []);
+                        let label = dsIdx === 0 ? 'Abertos' : 'Resolvidos';
+                        let fmtD = dKey.split('-').reverse().join('/');
+                        _anDrill(`${label} — ${fmtD}`, tks);
+                    }
+                } });
                 window._anCharts.push(c);
             }
 
             // ── 7. Pivot Table (Analista × Mês) ──
             let pivE = document.getElementById('an-pivot');
             if (pivE) {
-                let analysts = {};
-                parsed.filter(t=>t.isRes).forEach(t=>{ if(!analysts[t.asg])analysts[t.asg]={}; let m=t.clM||t.opM; if(m){analysts[t.asg][m]=(analysts[t.asg][m]||0)+1;} });
-                let allMonths = new Set();
-                Object.values(analysts).forEach(mo=>Object.keys(mo).forEach(m=>allMonths.add(m)));
-                let sortedPM = [...allMonths].sort();
-                let sortedPA = Object.entries(analysts).sort((a,b)=>{ let tA=Object.values(a[1]).reduce((x,y)=>x+y,0); let tB=Object.values(b[1]).reduce((x,y)=>x+y,0); return tB-tA; });
+                // Build per-analyst per-month ticket lists
+                let pivotData = {}; // { analyst: { month: [ticket_objects] } }
+                parsed.filter(t => t.isRes).forEach(t => {
+                    let m = t.clM || t.opM;
+                    if (!m) return;
+                    if (!pivotData[t.asg]) pivotData[t.asg] = {};
+                    if (!pivotData[t.asg][m]) pivotData[t.asg][m] = [];
+                    pivotData[t.asg][m].push(t);
+                });
+
+                // Determine month columns: use period filter range if set, else all data months
+                let pFrom = document.getElementById('an-period-from')?.value || '';
+                let pTo = document.getElementById('an-period-to')?.value || '';
+                let allDataMonths = new Set();
+                Object.values(pivotData).forEach(mo => Object.keys(mo).forEach(m => allDataMonths.add(m)));
+
+                let sortedPM;
+                if (pFrom || pTo) {
+                    // Generate full month range from pFrom to pTo
+                    let startM = pFrom || [...allDataMonths].sort()[0] || '';
+                    let endM = pTo || [...allDataMonths].sort().pop() || '';
+                    if (startM && endM) {
+                        sortedPM = [];
+                        let [sy, sm] = startM.split('-').map(Number);
+                        let [ey, em] = endM.split('-').map(Number);
+                        let cur = new Date(sy, sm - 1, 1);
+                        let end = new Date(ey, em - 1, 1);
+                        while (cur <= end) {
+                            sortedPM.push(cur.getFullYear() + '-' + String(cur.getMonth() + 1).padStart(2, '0'));
+                            cur.setMonth(cur.getMonth() + 1);
+                        }
+                    } else {
+                        sortedPM = [...allDataMonths].sort();
+                    }
+                } else {
+                    sortedPM = [...allDataMonths].sort();
+                }
+
+                let sortedPA = Object.entries(pivotData).sort((a, b) => {
+                    let tA = Object.values(a[1]).reduce((x, y) => x + y.length, 0);
+                    let tB = Object.values(b[1]).reduce((x, y) => x + y.length, 0);
+                    return tB - tA;
+                });
+
+                // Store for drilldown clicks
+                window._pivotDrillData = pivotData;
 
                 let html = '<table class="compact-table w-full text-[10px]"><thead><tr><th class="text-left px-2 py-1 bg-slate-100 border border-slate-200 font-black text-slate-700 sticky left-0 z-10" style="min-width:140px;">Analista</th>';
                 sortedPM.forEach(m => html += `<th class="px-2 py-1 bg-slate-100 border border-slate-200 text-center font-bold text-slate-600" style="min-width:60px;">${_fmtM(m)}</th>`);
@@ -8220,16 +8377,23 @@
                     let rowTotal = 0;
                     html += `<tr class="hover:bg-slate-50"><td class="text-left px-2 py-1 border border-slate-200 font-semibold text-slate-700 sticky left-0 bg-white z-10">${an}</td>`;
                     sortedPM.forEach(m => {
-                        let v = months[m] || 0; rowTotal += v; colTotals[m] = (colTotals[m]||0) + v;
+                        let tks = months[m] || [];
+                        let v = tks.length;
+                        rowTotal += v;
+                        colTotals[m] = (colTotals[m] || 0) + v;
                         let bg = v === 0 ? '' : v <= 5 ? 'background:#ecfdf5;' : v <= 15 ? 'background:#fef3c7;' : 'background:#fee2e2;font-weight:bold;';
-                        html += `<td class="text-center px-2 py-1 border border-slate-200" style="${bg}">${v || '-'}</td>`;
+                        if (v > 0) {
+                            html += `<td class="text-center px-2 py-1 border border-slate-200 cursor-pointer hover:bg-indigo-100 transition" style="${bg}" onclick="openPivotDrilldown('${an.replace(/'/g,"\\'")}','${m}')">${v}</td>`;
+                        } else {
+                            html += `<td class="text-center px-2 py-1 border border-slate-200 text-slate-300" style="${bg}">-</td>`;
+                        }
                     });
-                    colTotals['_T'] = (colTotals['_T']||0) + rowTotal;
-                    html += `<td class="text-center px-2 py-1 border border-indigo-200 font-black text-indigo-800 bg-indigo-50">${rowTotal}</td></tr>`;
+                    colTotals['_T'] = (colTotals['_T'] || 0) + rowTotal;
+                    html += `<td class="text-center px-2 py-1 border border-indigo-200 font-black text-indigo-800 bg-indigo-50 cursor-pointer hover:bg-indigo-200 transition" onclick="openPivotDrilldownAll('${an.replace(/'/g,"\\'")}')">${rowTotal}</td></tr>`;
                 });
                 html += '<tr class="bg-slate-800 text-white"><td class="text-left px-2 py-1 border font-black sticky left-0 bg-slate-800 z-10">TOTAL</td>';
-                sortedPM.forEach(m => html += `<td class="text-center px-2 py-1 border font-bold">${colTotals[m]||0}</td>`);
-                html += `<td class="text-center px-2 py-1 border font-black bg-indigo-900">${colTotals['_T']||0}</td></tr></tbody></table>`;
+                sortedPM.forEach(m => html += `<td class="text-center px-2 py-1 border font-bold">${colTotals[m] || 0}</td>`);
+                html += `<td class="text-center px-2 py-1 border font-black bg-indigo-900">${colTotals['_T'] || 0}</td></tr></tbody></table>`;
                 pivE.innerHTML = html;
             }
         }
