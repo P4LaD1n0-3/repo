@@ -4581,6 +4581,46 @@
                 });
             });
 
+            // Adiciona PRBs sintéticos gerados e processados (caso não tenham sido encontrados nos arquivos brutos)
+            if (window.GlobalPRBProcessed) {
+                window.GlobalPRBProcessed.forEach(t => {
+                    if (t.type === 'PRB') {
+                        let searchString = removeAccents([t.tk, t.desc, t.as, t.gp, t.st].join(" ").toUpperCase());
+                        if (searchString.includes(term)) {
+                            // Verifica se já não foi inserido pelas leituras dos arquivos brutos
+                            if (!results.some(res => res.tk === t.tk)) {
+                                // Criação das datas a partir das strings geradas
+                                let opD = null, clD = null;
+                                if (t.opStr && t.opStr !== '—' && t.opStr !== '-') {
+                                    let pts = t.opStr.split('/');
+                                    if (pts.length === 3) opD = new Date(pts[2], pts[1] - 1, pts[0], 12, 0, 0);
+                                }
+                                if (t.clStr && t.clStr !== '—' && t.clStr !== '-') {
+                                    let pts = t.clStr.split('/');
+                                    if (pts.length === 3) clD = new Date(pts[2], pts[1] - 1, pts[0], 12, 0, 0);
+                                }
+                                
+                                results.push({
+                                    type: 'PRB',
+                                    tk: t.tk,
+                                    desc: t.desc,
+                                    longDesc: `PRB processado e unificado. Status RCA: ${t.stRca || '-'}. Prioridade: ${t.priority || '-'}`,
+                                    req: t.req,
+                                    asg: t.as,
+                                    gp: t.gp,
+                                    st: t.st,
+                                    reason: '',
+                                    info: '',
+                                    op: opD,
+                                    cl: clD,
+                                    idle: t.idle || '-'
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+
             results.sort((a, b) => {
                 if (!a.op) return 1;
                 if (!b.op) return -1;
@@ -8732,6 +8772,7 @@
 
                 if (prbDataToProcess.length > 0 || (RawData.ptask && RawData.ptask.length) || (RawData.rca && RawData.rca.length)) {
                     let prbProcessed = processPRBDataForDisplay(prbDataToProcess, RawData.ptask, RawData.rca);
+                    window.GlobalPRBProcessed = prbProcessed;
 
                     // Popula PrbGroupsCache para que openTicketDetails possa exibir PTASKs/INCs no modal
                     window.PrbGroupsCache = {};
