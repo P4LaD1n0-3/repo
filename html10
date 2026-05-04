@@ -4553,23 +4553,23 @@
                 src.d.forEach(r => {
                     let rowString = removeAccents(Object.values(r).join(" ").toUpperCase());
                     if (rowString.includes(term)) {
-                        let asg = getCol(r, ['Assigned to', 'Analista']) || 'Não Atribuído';
-                        let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                        let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                        let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee', 'assigned_to', 'Atribuído a']) || 'Não Atribuído';
+                        let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at', 'Aberto', 'Criado']));
+                        let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at', 'Resolvido', 'Fechado']));
 
-                        let tk = src.n === 'REQ' || src.n === 'UAM' ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket', 'Problem', 'Task']) || '-');
-                        let stOrig = String(getCol(r, ['State', 'Status', 'RCA Status']) || '').toUpperCase();
+                        let tk = src.n === 'REQ' || src.n === 'UAM' ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket', 'Problem', 'Task', 'Problema', 'problem_id']) || '-');
+                        let stOrig = String(getCol(r, ['State', 'Status', 'Estado', 'status', 'RCA Status', 'rca_status', 'RCA status', 'Rca status', 'Status RCA', 'status_rca', 'Status do RCA', 'Problem Status', 'problem_status']) || '').toUpperCase();
                         let reasonOrig = String(getCol(r, ['Reason', 'reason', 'Motivo']) || '').toUpperCase();
                         let holdReason = String(getCol(r, ['On hold reason', 'Motivo da espera']) || '');
 
                         results.push({
                             type: src.n,
                             tk: tk,
-                            desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '-').replace(/"/g, '&quot;'),
-                            longDesc: String(getCol(r, ['Description', 'Descrição Completa']) || '-').replace(/"/g, '&quot;'),
+                            desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição', 'Assunto', 'description', 'Breve descrição', 'Item']) || '-').replace(/"/g, '&quot;'),
+                            longDesc: String(getCol(r, ['Description', 'Descrição Completa', 'Additional details']) || '-').replace(/"/g, '&quot;'),
                             req: getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
                             asg: asg,
-                            gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
+                            gp: getCol(r, ['Assignment group', 'Grupo', 'Group', 'assignment_group', 'Grupo de atribuição']) || '-',
                             st: stOrig,
                             reason: reasonOrig,
                             info: holdReason,
