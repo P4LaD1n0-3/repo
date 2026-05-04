@@ -6364,24 +6364,32 @@
                 prbData.filter(t => t.type === 'PRB' && t.gp && t.gp !== '—').map(t => t.gp)
             ).size;
 
+            if (!window.DrilldownVault) window.DrilldownVault = { class: {} };
+            if (!window.DrilldownVault['class']) window.DrilldownVault['class'] = {};
+
+            window.DrilldownVault['class']['kpi_prbs'] = prbData.filter(t => t.type === 'PRB');
+            window.DrilldownVault['class']['kpi_incs'] = prbData.filter(t => t.type === 'INC');
+            window.DrilldownVault['class']['kpi_ptasks'] = prbData.filter(t => t.type === 'PTASK');
+            window.DrilldownVault['class']['kpi_groups'] = prbData.filter(t => t.type === 'PRB' && t.gp && t.gp !== '—');
+
             html += `
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="report-card text-center border-t-4 border-red-500 bg-gradient-to-br from-white to-red-50/30 p-4 shadow-sm">
+                <div class="report-card text-center border-t-4 border-red-500 bg-gradient-to-br from-white to-red-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Problemas Mapeados', 'kpi_prbs', 'class')">
                     <div class="text-[10px] font-black text-red-600 mb-1 uppercase tracking-widest">Total PRBs</div>
                     <div class="text-4xl font-black text-slate-800">${totalPrbs}</div>
                     <div class="text-[9px] text-slate-400 mt-2 uppercase">Problemas Mapeados</div>
                 </div>
-                <div class="report-card text-center border-t-4 border-orange-500 bg-gradient-to-br from-white to-orange-50/30 p-4 shadow-sm">
+                <div class="report-card text-center border-t-4 border-orange-500 bg-gradient-to-br from-white to-orange-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Incidentes Vinculados', 'kpi_incs', 'class')">
                     <div class="text-[10px] font-black text-orange-600 mb-1 uppercase tracking-widest">INCs Vinculados</div>
                     <div class="text-4xl font-black text-slate-800">${totalIncs}</div>
                     <div class="text-[9px] text-slate-400 mt-2 uppercase">Incidentes por Causa</div>
                 </div>
-                <div class="report-card text-center border-t-4 border-blue-500 bg-gradient-to-br from-white to-blue-50/30 p-4 shadow-sm">
+                <div class="report-card text-center border-t-4 border-blue-500 bg-gradient-to-br from-white to-blue-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Tarefas Vinculadas (PTASK)', 'kpi_ptasks', 'class')">
                     <div class="text-[10px] font-black text-blue-600 mb-1 uppercase tracking-widest">PTASKs</div>
                     <div class="text-4xl font-black text-slate-800">${totalPtasks}</div>
                     <div class="text-[9px] text-slate-400 mt-2 uppercase">Tarefas Vinculadas</div>
                 </div>
-                <div class="report-card text-center border-t-4 border-emerald-500 bg-gradient-to-br from-white to-emerald-50/30 p-4 shadow-sm">
+                <div class="report-card text-center border-t-4 border-emerald-500 bg-gradient-to-br from-white to-emerald-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Problemas por Grupos Afetados', 'kpi_groups', 'class')">
                     <div class="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">Grupos Afetados</div>
                     <div class="text-4xl font-black text-slate-800">${affectedGroups}</div>
                     <div class="text-[9px] text-slate-400 mt-2 uppercase">Setores Resolutores</div>
@@ -6769,9 +6777,17 @@
                 if (!seenTickets.has(prbId)) {
                     seenTickets.add(prbId);
 
-                    // Datas do problem_rca.xlsx
-                    let opD = masterRow ? safeDate(getCol(masterRow, ['Opened', 'Data Abertura', 'Created', 'opened_at'])) : null;
-                    let clD = masterRow ? safeDate(getCol(masterRow, ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at'])) : null;
+                    // Datas do problem_rca.xlsx (com fallback para os INCs filhos)
+                    let opD = masterRow ? safeDate(getCol(masterRow, ['Opened', 'Data Abertura', 'Created', 'opened_at', 'Aberto', 'Criado'])) : null;
+                    let clD = masterRow ? safeDate(getCol(masterRow, ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at', 'Resolvido', 'Fechado'])) : null;
+
+                    if (!opD && linkedIncs.length > 0) {
+                        opD = safeDate(getCol(linkedIncs[0], ['Opened', 'Data Abertura', 'Created', 'opened_at', 'Aberto', 'Criado']));
+                    }
+                    if (!clD && linkedIncs.length > 0) {
+                        clD = safeDate(getCol(linkedIncs[0], ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at', 'Resolvido', 'Fechado']));
+                    }
+
                     let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
                         : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
@@ -6797,16 +6813,34 @@
                         }
                     }
 
+                    let gpVal = masterRow ? String(getCol(masterRow, ['Assignment group', 'Grupo', 'Group', 'assignment_group', 'Grupo de atribuição']) || '').trim() : '';
+                    if ((!gpVal || gpVal === '—' || gpVal === '') && linkedIncs.length > 0) {
+                        gpVal = String(getCol(linkedIncs[0], ['Assignment group', 'Grupo', 'Group', 'assignment_group', 'Grupo de atribuição']) || '—').trim();
+                    }
+                    if (!gpVal || gpVal === '') gpVal = '—';
+
+                    let asVal = masterRow ? String(getCol(masterRow, ['Assigned to', 'Analista', 'Assignee', 'assigned_to', 'Atribuído a']) || '').trim() : '';
+                    if ((!asVal || asVal === '—' || asVal === '') && linkedIncs.length > 0) {
+                        asVal = String(getCol(linkedIncs[0], ['Assigned to', 'Analista', 'Assignee', 'assigned_to', 'Atribuído a']) || '—').trim();
+                    }
+                    if (!asVal || asVal === '') asVal = '—';
+
+                    let descVal = masterRow ? String(getCol(masterRow, ['Short description', 'Descrição', 'Assunto', 'description', 'Breve descrição']) || '').trim() : '';
+                    if ((!descVal || descVal === '—' || descVal === '') && linkedIncs.length > 0) {
+                        descVal = String(getCol(linkedIncs[0], ['Short description', 'Descrição', 'Assunto', 'description', 'Breve descrição']) || '—').trim();
+                    }
+                    if (!descVal || descVal === '') descVal = '—';
+
                     processed.push({
                         tk: prbId,
                         prb: prbId,
                         type: 'PRB',
                         st: masterRow ? String(getCol(masterRow, ['State', 'Status', 'Estado', 'status']) || 'Open').toUpperCase() : 'OPEN',
                         stRca: masterRow ? String(getCol(masterRow, ['RCA Status', 'rca_status', 'RCA status', 'Rca status', 'Status RCA', 'status_rca', 'Status do RCA', 'Problem Status', 'problem_status']) || '').trim() : '',
-                        gp: masterRow ? String(getCol(masterRow, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim() : '—',
-                        as: masterRow ? String(getCol(masterRow, ['Assigned to', 'Analista', 'Assignee', 'assigned_to']) || '—').trim() : '—',
+                        gp: gpVal,
+                        as: asVal,
                         priority: prioVal,
-                        desc: masterRow ? String(getCol(masterRow, ['Short description', 'Descrição', 'Assunto']) || '—').trim() : '—',
+                        desc: descVal,
                         ci: masterRow ? String(getCol(masterRow, ['Configuration item', 'CI', 'Item de configuracao']) || '—').trim() : '—',
                         related_incidents_raw: masterRow ? String(getCol(masterRow, ['Related Incidents', 'Incidentes Relacionados']) || '—').trim() : '—',
                         rca_due: masterRow ? String(getCol(masterRow, ['RCA Due Date', 'Prazo RCA']) || '—').trim() : '—',
