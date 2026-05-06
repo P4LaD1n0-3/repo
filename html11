@@ -3244,7 +3244,7 @@
             'Estado do Ticket': ['State', 'Status', 'RCA Status', 'Estado'],
             'Prioridade': ['Priority', 'Prioridade', 'priority'],
             'Data de Abertura': ['Opened', 'opened_at', 'Data Abertura', 'Created'],
-            'Data de Fechamento': ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento'],
+            'Data de Fechamento': ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento'],
             'Catálogo / RITM': ['Request item', 'Request Item', 'RITM', 'Item de solicitação'],
             'Categoria': ['Category', 'Categoria', 'category'],
             'Subcategoria': ['Subcategory', 'Subcategoria', 'subcategory'],
@@ -3435,7 +3435,7 @@
                         if (rec) {
                             context = getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '-';
                             opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
-                            clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
+                            clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
                             let isInc = (ticketToUse.toUpperCase().startsWith('INC'));
                             slaConfig = isInc ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
                         }
@@ -3690,7 +3690,7 @@
                             if (comments.length > 350) comments = comments.substring(0, 350) + "...";
 
                             let opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
-                            let clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
+                            let clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
                             if (!opD && t.date) {
                                 let parts = t.date.split('/');
                                 if (parts.length === 3) opD = new Date(parts[2], parts[1] - 1, parts[0], 12, 0, 0);
@@ -4239,7 +4239,7 @@
 
             // Datas: acesso direto para garantir leitura correta
             let opD = safeDate(getCol(ticketData, ['Opened', 'opened_at', 'Created', 'Data Abertura', 'Aberto', 'Criado']));
-            let clD = safeDate(getCol(ticketData, ['Resolved', 'Closed', 'Resolved at', 'Resolvido', 'Fechado', 'closed_at', 'resolved_at']));
+            let clD = safeDate(getCol(ticketData, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
             
             // Fallback para datas ausentes em PRBs reais/exportados (procura no cache que herdou datas filhas processadas)
             if (window.PrbGroupsCache && window.PrbGroupsCache[cleanTk]) {
@@ -4595,7 +4595,7 @@
                     if (rowString.includes(term)) {
                         let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee', 'assigned_to', 'Atribuído a']) || 'Não Atribuído';
                         let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at', 'Aberto', 'Criado']));
-                        let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at', 'Resolvido', 'Fechado']));
+                        let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
 
                         let tk = src.n === 'REQ' || src.n === 'UAM' ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket', 'Problem', 'Task', 'Problema', 'problem_id']) || '-');
                         let stOrig = String(getCol(r, ['State', 'Status', 'Estado', 'status', 'RCA Status', 'rca_status', 'RCA status', 'Rca status', 'Status RCA', 'status_rca', 'Status do RCA', 'Problem Status', 'problem_status']) || '').toUpperCase();
@@ -4827,8 +4827,8 @@
                 st: (clOrig ? stOrig : st).toUpperCase(),
                 reason: reasonVal,
                 age: age,
-                opStr: opOrig ? opOrig.toLocaleDateString('pt-BR') : '-',
-                clStr: clOrig ? clOrig.toLocaleDateString('pt-BR') : 'Open',
+                opStr: opOrig ? opOrig.toLocaleDateString('pt-BR') : '—',
+                clStr: clOrig ? clOrig.toLocaleDateString('pt-BR') : '—',
                 idle: (!clOrig || clOrig > refDateObj) ? getDaysSilent(r, refDateObj, asg, opOrig) : '-',
                 info: infoFinal,
                 prb: prbVal,
@@ -4876,7 +4876,7 @@
                 let opOrig = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!opOrig || opOrig.getTime() > limitTime) return;
 
-                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
                 let stOrig = String(getCol(r, ['State', 'Status', 'Estado']) || '').toLowerCase();
                 let cl = clOrig; let st = stOrig;
 
@@ -5051,7 +5051,7 @@
                 let isAnyCanc = stOrig.includes('cancel') || stOrig.includes('incomplet') || stOrig.includes('rejeit') || stOrig.includes('reject');
                 if (isAnyCanc) {
                     let opAll = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                    let clAll = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                    let clAll = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
                     if (opAll && clAll && opAll.getTime() <= refDateObj.getTime() && clAll.getTime() <= refDateObj.getTime()) {
                         let isCurrMonth = clAll.getMonth() === refDateObj.getMonth() && clAll.getFullYear() === refDateObj.getFullYear();
                         if (isCurrMonth) {
@@ -5076,7 +5076,7 @@
                 // Captura Classificações Incorretas: qualquer tipo (INC ou REQ) com status de encerramento anormal
                 if (reason.includes('INCORRECT CLASSIFICATION') && (stOrig.includes('incomplet') || stOrig.includes('cancel') || stOrig.includes('rejeit') || stOrig.includes('reject'))) {
                     let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                    let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                    let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
                     if (!op) return;
                     if (op.getTime() > refDateObj.getTime()) return;
 
@@ -5128,7 +5128,7 @@
 
                     let tObj = {
                         tk: tk, req: reqName, as: asg, gp: gpName, l: linkedTicket || '⚠️ Erro / Não Vinculado',
-                        rea: reason, st: stOrig.toUpperCase(), d: daysInt, age: daysInt, idle: idle, opStr: op.toLocaleDateString('pt-BR'), opS: op.toLocaleDateString('pt-BR'), clStr: cl ? cl.toLocaleDateString('pt-BR') : 'Open',
+                        rea: reason, st: stOrig.toUpperCase(), d: daysInt, age: daysInt, idle: idle, opStr: op.toLocaleDateString('pt-BR'), opS: op.toLocaleDateString('pt-BR'), clStr: cl ? cl.toLocaleDateString('pt-BR') : '—',
                         desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição']) || '-').replace(/"/g, '&quot;'),
                         info: closeNotes.replace(/"/g, '&quot;') || 'Nenhuma nota de fechamento registrada.',
                         reason: reason,
@@ -5218,8 +5218,8 @@
                     <td data-label="Status" data-filter="${t.st}" class="text-center">
                         <span style="background:${stBg}; color:${stColor}; border:1px solid ${stColor}40;" class="px-2 py-0.5 rounded text-[9px] font-bold inline-block">${t.st}</span>
                     </td>
-                    <td data-label="Opened" class="text-center text-slate-500 text-[11px]"><i class="far fa-calendar-alt mr-1"></i>${t.opStr || '-'}</td>
-                    <td data-label="Closed" class="text-center text-slate-500 text-[11px]"><i class="far fa-calendar-alt mr-1"></i>${t.clStr || 'Open'}</td>
+                    <td data-label="Opened" class="text-center text-slate-500 text-[11px]">${t.opStr || '—'}</td>
+                    <td data-label="Closed" class="text-center text-slate-500 text-[11px]">${t.clStr === 'Open' ? '—' : (t.clStr || '—')}</td>
                     ${isInc ? `<td data-label="PRB" class="text-center" style="font-weight:${(t.prb && t.prb !== 'N/A') ? 'bold' : 'normal'}; color:${(t.prb && t.prb !== 'N/A') ? 'var(--primary-dark)' : '#94a3b8'}">${t.prb || 'N/A'}</td>` : ''}
                     <td data-label="AGING" class="text-right">
                         <div class="font-bold text-sm ${t.age > (t.slaConfig || 7) ? 'text-red-500' : 'text-slate-700'}">${t.age}d total</div>
@@ -5349,7 +5349,7 @@
                 row.push(t.gp || "-");
                 row.push(t.st || "-");
                 row.push(t.opStr || "-");
-                row.push(t.clStr || "Open");
+                row.push(t.clStr === 'Open' ? '—' : (t.clStr || "—"));
                 if (isInc) row.push(t.prb || "N/A");
                 row.push(`${t.age}d`);
                 return row;
@@ -5377,7 +5377,7 @@
             function processRow(r, type, slaConfig) {
                 let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!op || op.getTime() > refDateObj.getTime()) return;
-                let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
                 if (cl && cl.getTime() <= refDateObj.getTime()) return;
                 let age = Math.floor((refDateObj - op) / 86400000);
                 if (age < 0) age = 0;
@@ -5401,7 +5401,7 @@
                 let pctSlaNum = ((age / slaConfig) * 100);
                 let pctSla = pctSlaNum.toFixed(2).replace('.', ',');
                 let stSla = age > slaConfig ? "Breached" : "On Time";
-                openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: op.toLocaleDateString('en-US'), clStr: cl ? cl.toLocaleDateString('en-US') : 'Open', age, pctSla, pctSlaNum, stSla, slaConfig, idle, info: infoFinal, prb: prbVal });
+                openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: op.toLocaleDateString('pt-BR'), clStr: cl ? cl.toLocaleDateString('pt-BR') : '—', age, pctSla, pctSlaNum, stSla, slaConfig, idle, info: infoFinal, prb: prbVal });
             }
             incs.forEach(r => processRow(r, 'INC', slaI));
             reqs.forEach(r => processRow(r, 'REQ', slaR));
@@ -5491,8 +5491,8 @@
                         <td data-label="PRB" class="text-center">
                             ${t.type === 'INC' ? (t.prb !== 'N/A' && t.prb !== '' && t.prb !== 'undefined' ? `<span class="bg-red-50 text-red-700 font-bold px-2 py-0.5 rounded border border-red-200 text-[10px]"><i class="fas fa-bug mr-1"></i>${t.prb}</span>` : '<span class="text-slate-300 text-[10px]">N/A</span>') : '<span class="text-slate-300 text-[10px]">-</span>'}
                         </td>
-                        <td data-label="Opened" class="text-center"><i class="far fa-calendar-alt text-slate-400 mr-1"></i>${t.opStr}</td>
-                        <td data-label="Closed" class="text-center"><i class="far fa-calendar-alt text-slate-400 mr-1"></i>${t.clStr || 'Open'}</td>
+                        <td data-label="Opened" class="text-center">${t.opStr || '—'}</td>
+                        <td data-label="Closed" class="text-center">${t.clStr === 'Open' ? '—' : (t.clStr || '—')}</td>
                         <td data-label="Aging (days)" class="text-center font-bold text-base ${t.age > t.slaConfig ? 'text-red-600' : 'text-slate-700'}">${t.age}</td>
                         <td data-label="% SLA" class="text-center" style="width: 100px;">
                             <div class="w-full bg-slate-200 rounded-full h-4 relative shadow-inner mx-auto min-w-[70px] overflow-hidden border border-slate-300/50">
@@ -6642,7 +6642,7 @@
                         <td class="p-2 text-center text-[10px] text-slate-600">${inc.as || '—'}</td>
                         <td class="p-2 text-center text-[10px] text-slate-500"><div class="truncate max-w-[150px] mx-auto" title="${inc.gp}">${inc.gp || '—'}</div></td>
                         <td class="p-2 text-center text-[10px] text-slate-500">${inc.opStr || '—'}</td>
-                        <td class="p-2 text-center text-[10px] text-slate-500">${inc.clStr || 'Open'}</td>
+                        <td class="p-2 text-center text-[10px] text-slate-500">${inc.clStr === 'Open' ? '—' : (inc.clStr || '—')}</td>
                         <td class="p-2 text-center">${agingBadge(inc.age)}</td>
                     </tr>`;
                 });
@@ -6662,7 +6662,7 @@
                         <td class="p-2 text-center text-[10px] text-slate-600">${pt.as || '—'}</td>
                         <td class="p-2 text-center text-[10px] text-slate-500"><div class="truncate max-w-[150px] mx-auto" title="${pt.gp}">${pt.gp || '—'}</div></td>
                         <td class="p-2 text-center text-[10px] text-slate-500">${pt.opStr || '—'}</td>
-                        <td class="p-2 text-center text-[10px] text-slate-500">${pt.clStr || 'Open'}</td>
+                        <td class="p-2 text-center text-[10px] text-slate-500">${pt.clStr === 'Open' ? '—' : (pt.clStr || '—')}</td>
                         <td class="p-2 text-center">${agingBadge(pt.age)}</td>
                     </tr>`;
                 });
@@ -6956,7 +6956,7 @@
 
                     let opD = safeDate(getCol(inc, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                     // index.xlsx usa "Resolved" para INCs fechados
-                    let clD = safeDate(getCol(inc, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']) || '');
+                    let clD = safeDate(getCol(inc, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']) || '');
                     let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
                         : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
@@ -7111,7 +7111,7 @@
                 let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!op || op.getTime() > refTime) return;
 
-                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
                 let stOrig = String(getCol(r, ['State', 'Status', 'Estado', 'status']) || '').toUpperCase();
                 let rcaStOrig = String(getCol(r, ['RCA Status', 'rca_status', 'RCA status', 'Rca status', 'Status RCA', 'status_rca', 'Status do RCA', 'Problem Status', 'problem_status']) || '').toUpperCase();
                 let st = stOrig.toLowerCase();
@@ -7259,7 +7259,7 @@
                 let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!op || op.getTime() > refTime) return;
 
-                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
                 let stOrig = String(getCol(r, ['State', 'Status', 'Estado', 'status']) || '').toUpperCase();
 
                 // Filtro para PTASKs abertas: Excluir estados terminais
@@ -8223,7 +8223,7 @@
             let gp = getCol(tk, ['Assignment group', 'Grupo']) || 'Sem Grupo';
             let st = getCol(tk, ['State', 'Status', 'Estado']) || '';
             let opD = safeDate(getCol(tk, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
-            let clD = safeDate(getCol(tk, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento']));
+            let clD = safeDate(getCol(tk, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
             let stL = st.toLowerCase();
             let isRes = false;
             let isCan = false;
@@ -9121,7 +9121,7 @@
                         }
 
                         if (row) {
-                            let clDate = safeDate(getCol(row, ['Resolved', 'Closed', 'Data Fechamento', 'Resolved at']));
+                            let clDate = safeDate(getCol(row, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
                             let stOrig = String(getCol(row, ['State', 'Status', 'Estado', 'RCA Status']) || '').toLowerCase();
                             if (clDate || stOrig.includes('cancel') || stOrig.includes('resolv') || stOrig.includes('clos') || stOrig.includes('complet')) {
                                 toDeleteIds.add(t.id);
