@@ -1794,7 +1794,7 @@
                     PRBs</button>
                 <button class="tab-btn" onclick="switchTab('tab-class', this)"><i class="fas fa-exchange-alt mr-1"></i>
                     Classification Errors</button>
-                <button class="tab-btn" onclick="switchTab('tab-sla', this)" style="color:#7f1d1d; font-weight:700;"><i
+                <button class="tab-btn" onclick="switchTab('tab-sla', this)" style="color:var(--primary-dark); font-weight:700;"><i
                         class="fas fa-exclamation-triangle mr-1"></i>
                     SLA Violations</button>
                 <button class="tab-btn" onclick="switchTab('tab-rpa', this)"
@@ -2337,7 +2337,7 @@
                     const req = await window.syncContext.dirHandle.requestPermission({ mode: 'read' });
                     if (req !== 'granted') {
                         showAlertModal("Permission Required", "The browser blocked access to the folder. Please click Refresh again and grant access.");
-                        throw new Error("Permissão negada");
+                        throw new Error("Permission denied");
                     }
                 }
 
@@ -2356,7 +2356,7 @@
                         // Verifica se o arquivo é mais recente que o último processado
                         const cachedStamp = window.syncContext.cacheStamps[nameLower];
                         if (!cachedStamp || file.lastModified > cachedStamp) {
-                            console.log(`[SYNC] Arquivo atualizado encontrado: ${entry.name} (modified: ${new Date(file.lastModified).toLocaleString('pt-BR')})`);
+                            console.log(`[SYNC] Arquivo atualizado encontrado: ${entry.name} (modified: ${new Date(file.lastModified).toLocaleString('en-US')})`);
                             filesToProcess.push({ file: file, name: nameLower, originalName: entry.name });
                             window.syncContext.cacheStamps[nameLower] = file.lastModified;
                         } else {
@@ -2390,7 +2390,7 @@
                 } else {
                     msg.className = "text-[10px] font-bold text-white bg-slate-500 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
                     msg.innerHTML = '<i class="fas fa-info-circle mr-1"></i> All up to date — no new changes';
-                    console.log("[SYNC] Nenhum arquivo mais recente encontrado.");
+                    console.log("[SYNC] No newer file found.");
                     setTimeout(() => {
                         msg.className = "text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded shadow-sm inline-block mt-1";
                         msg.innerHTML = '<i class="fas fa-clock mr-1"></i> Data is current';
@@ -2556,10 +2556,10 @@
             let expandedKeys = [...keys];
             let kStr = keys.join('|').toLowerCase();
             if (kStr.includes('opened') || kStr.includes('data abertura')) {
-                expandedKeys = [...new Set([...expandedKeys, 'Opened', 'opened_at', 'Created', 'Data Abertura', 'Aberto', 'Criado'])];
+                expandedKeys = [...new Set([...expandedKeys, 'Opened', 'opened_at', 'Created', 'Data Abertura', 'Open', 'Criado'])];
             }
             if (kStr.includes('closed') || kStr.includes('resolved') || kStr.includes('data fechamento')) {
-                expandedKeys = [...new Set([...expandedKeys, 'Resolved', 'Closed', 'Resolved at', 'Resolvido', 'Fechado', 'closed_at', 'resolved_at', 'Data Fechamento'])];
+                expandedKeys = [...new Set([...expandedKeys, 'Resolved', 'Closed', 'Resolved at', 'Resolved At', 'Closed At', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento', 'Data de resolução', 'Data de encerramento'])];
             }
 
             for (let k of expandedKeys) {
@@ -2996,7 +2996,7 @@
                             <span style="white-space: nowrap;">${label}</span> 
                             <div class="flex items-center gap-1 flex-shrink-0">
                                 <i class="fas fa-sort opacity-30 text-[10px]"></i> 
-                                <i class="fas fa-filter text-slate-400 hover:text-white opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-white/20" onclick="openFilter(event, this)" title="Filtrar Coluna"></i>
+                                <i class="fas fa-filter text-slate-400 hover:text-white opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-white/20" onclick="openFilter(event, this)" title="Filter Coluna"></i>
                             </div>
                         </div>
                     </th>`;
@@ -3141,14 +3141,14 @@
             selectedTks.forEach(tk => {
                 let existing = tk ? todoList.find(t => t.ticket === tk && t.analyst === analyst) : null;
                 if (existing) {
-                    existing.history.push({ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false });
+                    existing.history.push({ text: desc, date: new Date().toLocaleString('en-US'), striked: false });
                 } else {
                     todoList.push({
                         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
                         analyst: analyst,
                         ticket: tk,
-                        date: new Date().toLocaleDateString('pt-BR'),
-                        history: [{ text: desc, date: new Date().toLocaleString('pt-BR'), striked: false }]
+                        date: new Date().toLocaleDateString('en-US'),
+                        history: [{ text: desc, date: new Date().toLocaleString('en-US'), striked: false }]
                     });
                 }
             });
@@ -3198,7 +3198,7 @@
 
             const todo = todoList.find(t => t.id === id);
             if (todo) {
-                todo.history.push({ date: new Date().toLocaleString('pt-BR'), text: text, striked: false });
+                todo.history.push({ date: new Date().toLocaleString('en-US'), text: text, striked: false });
                 saveTodos();
                 input.value = '';
             }
@@ -3244,7 +3244,7 @@
             'Estado do Ticket': ['State', 'Status', 'RCA Status', 'Estado'],
             'Prioridade': ['Priority', 'Prioridade', 'priority'],
             'Data de Abertura': ['Opened', 'opened_at', 'Data Abertura', 'Created'],
-            'Data de Fechamento': ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento'],
+            'Data de Fechamento': ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento'],
             'Catálogo / RITM': ['Request item', 'Request Item', 'RITM', 'Item de solicitação'],
             'Categoria': ['Category', 'Categoria', 'category'],
             'Subcategoria': ['Subcategory', 'Subcategoria', 'subcategory'],
@@ -3352,8 +3352,8 @@
 
             const { jsPDF } = window.jspdf;
             const doc = jsPDF({ orientation: 'l', unit: 'mm', format: 'a4' });
-            const today = new Date().toLocaleDateString('pt-BR');
-            const now = new Date().toLocaleString('pt-BR');
+            const today = new Date().toLocaleDateString('en-US');
+            const now = new Date().toLocaleString('en-US');
 
             // --- CONFIGURAÇÃO VISUAL --- 
             const primaryColor = [30, 58, 138]; // #1E3A8A
@@ -3435,7 +3435,7 @@
                         if (rec) {
                             context = getCol(rec, ['Short description', 'Descrição Curta', 'Descrição', 'Item']) || '-';
                             opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
-                            clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+                            clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                             let isInc = (ticketToUse.toUpperCase().startsWith('INC'));
                             slaConfig = isInc ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
                         }
@@ -3628,7 +3628,7 @@
             logContent.innerHTML = '';
 
             const addLog = (msg, isError = false) => {
-                let d = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+                let d = new Date().toLocaleTimeString('en-US', { hour12: false });
                 let colorClass = isError ? "text-red-500 font-bold" : "text-green-400";
                 logContent.innerHTML += `<div class="mb-1 ${colorClass}">[${d}] ${msg}</div>`;
                 logContent.scrollTop = logContent.scrollHeight;
@@ -3690,7 +3690,7 @@
                             if (comments.length > 350) comments = comments.substring(0, 350) + "...";
 
                             let opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
-                            let clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+                            let clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                             if (!opD && t.date) {
                                 let parts = t.date.split('/');
                                 if (parts.length === 3) opD = new Date(parts[2], parts[1] - 1, parts[0], 12, 0, 0);
@@ -3861,7 +3861,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[9px] font-black">${tks.length} ACTIVE</span>
-                            <button onclick="event.stopPropagation(); clearAnalystTodos('${analyst}')" title="Limpar Tarefas do Analista" class="text-rose-400 hover:text-rose-600 transition text-sm ml-1 bg-white px-1.5 py-0.5 rounded shadow-sm border border-rose-100"><i class="fas fa-trash-alt"></i></button>
+                            <button onclick="event.stopPropagation(); clearAnalystTodos('${analyst}')" title="Clear Analyst Tasks" class="text-rose-400 hover:text-rose-600 transition text-sm ml-1 bg-white px-1.5 py-0.5 rounded shadow-sm border border-rose-100"><i class="fas fa-trash-alt"></i></button>
                         </div>
                     </div>
                     <div class="p-3 pt-0 ${isOpen ? '' : 'hidden'} animate-fade border-t border-slate-100 bg-white">
@@ -3961,8 +3961,8 @@
                         'Problem': pGroup.prb,
                         'Short description': 'PRB Extraído Dinamicamente',
                         'State': pGroup.state || (pGroup.active_count > 0 ? 'OPEN' : 'PUBLISHED'),
-                        'Description': `Problema detectado via incidentes.\n\nMenções: ${pGroup.mentions}\nTickets Abertos: ${pGroup.active_count}\nIncidentes Relacionados: ${pGroup.related_count_total}\nVersão (RCA): ${pGroup.release}\n\nPTASKs e INCs contidos nesta árvore de problemas podem ser vistos na aba PRB.`,
-                        'Additional comments': 'Este PRB foi gerado pelas referências nos incidentes.',
+                        'Description': `Problem detected via incidents.\n\nMentions: ${pGroup.mentions}\nOpen Tickets: ${pGroup.active_count}\nRelated Incidents: ${pGroup.related_count_total}\nVersion (RCA): ${pGroup.release}\n\nPTASKs and INCs contained in this problem tree can be seen on the PRB tab.`,
+                        'Additional comments': 'This PRB was generated by incident references.',
                         'Opened': pGroup.opStr !== '—' ? pGroup.opStr : undefined,
                         'Closed': pGroup.clStr !== '—' ? pGroup.clStr : undefined,
                         'age': pGroup.age
@@ -4093,7 +4093,7 @@
                 modalDescHtml += extraHtml;
             }
 
-            document.getElementById('modal-desc').innerHTML = modalDescHtml || 'Sem descrição detalhada fornecida na abertura.';
+            document.getElementById('modal-desc').innerHTML = modalDescHtml || 'No detailed description provided upon opening.';
 
             // Especialização para RCA (Problem) ou PRB
             if (tType === 'RCA' || tType === 'PRB') {
@@ -4238,8 +4238,8 @@
             document.getElementById('modal-gp').innerText = gp;
 
             // Datas: acesso direto para garantir leitura correta
-            let opD = safeDate(getCol(ticketData, ['Opened', 'opened_at', 'Created', 'Data Abertura', 'Aberto', 'Criado']));
-            let clD = safeDate(getCol(ticketData, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+            let opD = safeDate(getCol(ticketData, ['Opened', 'opened_at', 'Created', 'Data Abertura', 'Open', 'Criado']));
+            let clD = safeDate(getCol(ticketData, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
             
             // Fallback para datas ausentes em PRBs reais/exportados (procura no cache que herdou datas filhas processadas)
             if (window.PrbGroupsCache && window.PrbGroupsCache[cleanTk]) {
@@ -4248,7 +4248,7 @@
                 if (!clD && pGroup.clStr && pGroup.clStr !== '—') clD = safeDate(pGroup.clStr);
             }
 
-            document.getElementById('modal-op').innerText = opD ? opD.toLocaleString('pt-BR') : '-';
+            document.getElementById('modal-op').innerText = opD ? opD.toLocaleString('en-US') : '-';
             document.getElementById('modal-cl').innerText = clD ? clD.toLocaleString('en-US') : 'Open';
 
             document.getElementById('modal-state').className = `text-[10px] uppercase font-bold text-white px-2 py-0.5 rounded shadow-sm ${bC}`;
@@ -4489,14 +4489,14 @@
 
             let ext = todoList.find(t => t.ticket === tk && t.analyst === asg);
             if (ext) {
-                ext.history.push({ text: txt, date: new Date().toLocaleString('pt-BR'), striked: false });
+                ext.history.push({ text: txt, date: new Date().toLocaleString('en-US'), striked: false });
             } else {
                 todoList.push({
                     id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                     analyst: asg,
                     ticket: tk,
-                    date: new Date().toLocaleDateString('pt-BR'),
-                    history: [{ text: txt, date: new Date().toLocaleString('pt-BR'), striked: false }]
+                    date: new Date().toLocaleDateString('en-US'),
+                    history: [{ text: txt, date: new Date().toLocaleString('en-US'), striked: false }]
                 });
             }
 
@@ -4512,7 +4512,7 @@
             let set = new Set();
             [RawData.incs, RawData.reqs].forEach(s => s.forEach(r => {
                 let a = getCol(r, ['Assigned to', 'Analista']);
-                if (a && a !== '-' && a !== 'N/A' && !a.includes('Não Atribuído')) set.add(a);
+                if (a && a !== '-' && a !== 'N/A' && !a.includes('Unassigned')) set.add(a);
             }));
 
             select.innerHTML = '<option value="">Select an analyst...</option>' + Array.from(set).sort().map(a => `<option value="${a}">${a}</option>`).join('');
@@ -4523,7 +4523,7 @@
         // 3. MOTOR DE OCIOSIDADE E PESQUISA GLOBAL
         // ==========================================
         function getDaysSilent(r, refDateObj, assignedTo, opDateObj) {
-            if (!assignedTo || assignedTo === 'undefined' || assignedTo.includes('Não Atribuído') || assignedTo === 'N/A' || assignedTo === '-') return '-';
+            if (!assignedTo || assignedTo === 'undefined' || assignedTo.includes('Unassigned') || assignedTo === 'N/A' || assignedTo === '-') return '-';
 
             let maxDate = opDateObj ? new Date(opDateObj) : new Date(0);
             let regex = /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(/g;
@@ -4568,7 +4568,7 @@
             const term = removeAccents(inputVal.toUpperCase());
 
             if (term.length === 0) {
-                // Se a pesquisa estiver vazia, volta para a última aba ativa ou Tickets Abertos
+                // Se a pesquisa estiver vazia, volta para a última aba ativa ou Tickets Open
                 const searchTab = document.getElementById('tab-search');
                 if (searchTab && !searchTab.classList.contains('hidden-st')) {
                     let act = document.querySelector('.tab-btn.active');
@@ -4593,9 +4593,9 @@
                 src.d.forEach(r => {
                     let rowString = removeAccents(Object.values(r).join(" ").toUpperCase());
                     if (rowString.includes(term)) {
-                        let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee', 'assigned_to', 'Atribuído a']) || 'Não Atribuído';
-                        let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at', 'Aberto', 'Criado']));
-                        let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+                        let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee', 'assigned_to', 'Atribuído a']) || 'Unassigned';
+                        let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at', 'Open', 'Criado']));
+                        let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
 
                         let tk = src.n === 'REQ' || src.n === 'UAM' ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket', 'Problem', 'Task', 'Problema', 'problem_id']) || '-');
                         let stOrig = String(getCol(r, ['State', 'Status', 'Estado', 'status', 'RCA Status', 'rca_status', 'RCA status', 'Rca status', 'Status RCA', 'status_rca', 'Status do RCA', 'Problem Status', 'problem_status']) || '').toUpperCase();
@@ -4693,8 +4693,8 @@
             }
 
             let rows = currentResults.map(t => {
-                let opS = t.op ? t.op.toLocaleDateString('pt-BR') : '-';
-                let clS = t.cl ? t.cl.toLocaleDateString('pt-BR') : 'Aberto';
+                let opS = t.op ? t.op.toLocaleDateString('en-US') : '-';
+                let clS = t.cl ? t.cl.toLocaleDateString('en-US') : 'Open';
                 let age = (t.op && t.cl) ? Math.floor((t.cl - t.op) / 86400000) : (t.op ? Math.floor((new Date() - t.op) / 86400000) : '-');
                 if (age < 0) age = 0;
 
@@ -4827,8 +4827,8 @@
                 st: (clOrig ? stOrig : st).toUpperCase(),
                 reason: reasonVal,
                 age: age,
-                opStr: opOrig ? opOrig.toLocaleDateString('pt-BR') : '—',
-                clStr: clOrig ? clOrig.toLocaleDateString('pt-BR') : '—',
+                opStr: opOrig ? opOrig.toLocaleDateString('en-US') : '—',
+                clStr: clOrig ? clOrig.toLocaleDateString('en-US') : '—',
                 idle: (!clOrig || clOrig > refDateObj) ? getDaysSilent(r, refDateObj, asg, opOrig) : '-',
                 info: infoFinal,
                 prb: prbVal,
@@ -4876,7 +4876,7 @@
                 let opOrig = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!opOrig || opOrig.getTime() > limitTime) return;
 
-                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                 let stOrig = String(getCol(r, ['State', 'Status', 'Estado']) || '').toLowerCase();
                 let cl = clOrig; let st = stOrig;
 
@@ -4907,7 +4907,7 @@
                 let mKey = `${oY}-${oM}`;
                 if (!trendM[mKey]) trendM[mKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
 
-                let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
+                let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Unassigned';
                 let tObj = buildTicketObject(r, limitDate, asg, opOrig, clOrig, stOrig, st, age, type, slaDays);
 
                 trendM[mKey].a++;
@@ -5051,7 +5051,7 @@
                 let isAnyCanc = stOrig.includes('cancel') || stOrig.includes('incomplet') || stOrig.includes('rejeit') || stOrig.includes('reject');
                 if (isAnyCanc) {
                     let opAll = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                    let clAll = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+                    let clAll = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                     if (opAll && clAll && opAll.getTime() <= refDateObj.getTime() && clAll.getTime() <= refDateObj.getTime()) {
                         let isCurrMonth = clAll.getMonth() === refDateObj.getMonth() && clAll.getFullYear() === refDateObj.getFullYear();
                         if (isCurrMonth) {
@@ -5064,7 +5064,7 @@
                                 req: getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
                                 info: String(getCol(r, ['Close notes', 'Close Notes', 'On hold reason', 'Additional comments', 'Comentários']) || '-').replace(/"/g, '&quot;'),
                                 age: tinyAge, d: tinyAge, idle: '-',
-                                opStr: opAll.toLocaleDateString('pt-BR')
+                                opStr: opAll.toLocaleDateString('en-US')
                             };
                             if (isInc) { res.allCancelados.inc.count++; res.allCancelados.inc.tks.push(tinyObj); }
                             else { res.allCancelados.req.count++; res.allCancelados.req.tks.push(tinyObj); }
@@ -5076,7 +5076,7 @@
                 // Captura Classificações Incorretas: qualquer tipo (INC ou REQ) com status de encerramento anormal
                 if (reason.includes('INCORRECT CLASSIFICATION') && (stOrig.includes('incomplet') || stOrig.includes('cancel') || stOrig.includes('rejeit') || stOrig.includes('reject'))) {
                     let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                    let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+                    let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                     if (!op) return;
                     if (op.getTime() > refDateObj.getTime()) return;
 
@@ -5101,7 +5101,7 @@
                     res.days += rawDays;
                     if (daysInt > res.max) res.max = daysInt;
 
-                    // Mês Vigente para os cards: Baseado na data de FECHAMENTO (Performance)
+                    // Current Month para os cards: Baseado na data de FECHAMENTO (Performance)
                     // Se não tiver data de fechamento, usa a data de abertura como fallback
                     let dateToCompare = cl || op;
                     let isCurrentMonth = (dateToCompare.getMonth() === refDateObj.getMonth() &&
@@ -5116,7 +5116,7 @@
                     }
 
                     let mStrKey = dateToCompare.getFullYear() + '-' + String(dateToCompare.getMonth() + 1).padStart(2, '0');
-                    let mStrLabel = dateToCompare.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
+                    let mStrLabel = dateToCompare.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase().replace('.', '');
                     if (!res.m[mStrKey]) res.m[mStrKey] = { count: 0, tks: [], label: mStrLabel };
                     res.m[mStrKey].count++;
 
@@ -5128,9 +5128,9 @@
 
                     let tObj = {
                         tk: tk, req: reqName, as: asg, gp: gpName, l: linkedTicket || '⚠️ Erro / Não Vinculado',
-                        rea: reason, st: stOrig.toUpperCase(), d: daysInt, age: daysInt, idle: idle, opStr: op.toLocaleDateString('pt-BR'), opS: op.toLocaleDateString('pt-BR'), clStr: cl ? cl.toLocaleDateString('pt-BR') : '—',
+                        rea: reason, st: stOrig.toUpperCase(), d: daysInt, age: daysInt, idle: idle, opStr: op.toLocaleDateString('en-US'), opS: op.toLocaleDateString('en-US'), clStr: cl ? cl.toLocaleDateString('en-US') : '—',
                         desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição']) || '-').replace(/"/g, '&quot;'),
-                        info: closeNotes.replace(/"/g, '&quot;') || 'Nenhuma nota de fechamento registrada.',
+                        info: closeNotes.replace(/"/g, '&quot;') || 'No closure notes recorded.',
                         reason: reason,
                         isMonth: isCurrentMonth,
                         direction: isInc ? 'INC→REQ' : 'REQ→INC'
@@ -5377,17 +5377,17 @@
             function processRow(r, type, slaConfig) {
                 let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!op || op.getTime() > refDateObj.getTime()) return;
-                let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+                let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                 if (cl && cl.getTime() <= refDateObj.getTime()) return;
                 let age = Math.floor((refDateObj - op) / 86400000);
                 if (age < 0) age = 0;
                 let tk = (type === 'REQ' || type === 'UAM') ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket']) || '-');
-                let desc = String(getCol(r, ['Short description', 'Descrição Curta', 'Item']) || 'Sem assunto').replace(/"/g, '&quot;');
+                let desc = String(getCol(r, ['Short description', 'Descrição Curta', 'Item']) || 'No subject').replace(/"/g, '&quot;');
                 let longDesc = String(getCol(r, ['Description', 'description', 'Descrição Completa', 'Descrição', 'Additional details', 'additional_details']) || '').replace(/"/g, '&quot;');
                 let reasonVal = String(getCol(r, ['Reason', 'reason', 'REASON', 'Motivo']) || '').toUpperCase();
                 let req = getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A';
-                let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Não Atribuído';
-                let gp = getCol(r, ['Assignment group', 'Grupo']) || 'Sem Grupo';
+                let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Unassigned';
+                let gp = getCol(r, ['Assignment group', 'Grupo']) || 'No Group';
                 let st = getCol(r, ['State', 'Status', 'Estado']) || 'Open';
 
                 let holdReason = getCol(r, ['On hold reason', 'Motivo da espera', 'on_hold_reason']);
@@ -5401,7 +5401,7 @@
                 let pctSlaNum = ((age / slaConfig) * 100);
                 let pctSla = pctSlaNum.toFixed(2).replace('.', ',');
                 let stSla = age > slaConfig ? "Breached" : "On Time";
-                openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: op.toLocaleDateString('pt-BR'), clStr: cl ? cl.toLocaleDateString('pt-BR') : '—', age, pctSla, pctSlaNum, stSla, slaConfig, idle, info: infoFinal, prb: prbVal });
+                openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: op.toLocaleDateString('en-US'), clStr: cl ? cl.toLocaleDateString('en-US') : '—', age, pctSla, pctSlaNum, stSla, slaConfig, idle, info: infoFinal, prb: prbVal });
             }
             incs.forEach(r => processRow(r, 'INC', slaI));
             reqs.forEach(r => processRow(r, 'REQ', slaR));
@@ -5965,7 +5965,7 @@
                 
                 <!-- Cards de Resumo (50% Meio a Meio) -->
                 <div class="grid grid-cols-2 gap-4 h-[380px]">
-                    <div class="report-card text-center border-t-4 border-red-500 justify-center clickable-card bg-gradient-to-br from-white to-red-50/30 p-6 transition-all hover:shadow-md" style="margin-bottom:0;" onclick="openDrilldown('Total Incorretos (Mês)', 'all_tks_month', 'class')">
+                    <div class="report-card text-center border-t-4 border-red-500 justify-center clickable-card bg-gradient-to-br from-white to-red-50/30 p-6 transition-all hover:shadow-md" style="margin-bottom:0;" onclick="openDrilldown('Total Incorrect (Month)', 'all_tks_month', 'class')">
                         <div class="text-xs font-black text-red-600 mb-3 uppercase tracking-widest">Incorrect Tickets (Month)</div>
                         <div class="text-6xl font-black text-slate-800">${d.monthTotal}</div>
                         <div class="text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-tighter">Volume detected in current period</div>
@@ -6052,7 +6052,7 @@
                 .sort((a, b) => (b.age || 0) - (a.age || 0));
 
             // allBreachTks contém todos (mês + backlog) — usado apenas internamente para compatibilidade
-            // DrilldownVault['sla']['all'] → somente violações resolvidas no mês vigente (alinha com KPI "Total Fora SLA Mês")
+            // DrilldownVault['sla']['all'] → somente violações resolvidas no mês vigente (alinha com KPI "Total SLA Breached Month")
             const mesBreachTks = [...incOutList, ...reqOutList, ...uamOutList].sort((a, b) => (b.age || 0) - (a.age || 0));
             window.DrilldownVault['sla']['all'] = mesBreachTks;
             window.DrilldownVault['sla']['inc_all'] = [...incOutList, ...blIncList].sort((a, b) => (b.age || 0) - (a.age || 0));
@@ -6117,7 +6117,7 @@
             // ── TABELA ──────────────────────────────────────────────────────────
             const rows = mesBreachTks.map(t => {
                 const typeCls = t.tipo === 'INC' ? 'bg-red-100 text-red-700' : t.tipo === 'REQ' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
-                const blBadge = t.isBacklog ? `<span class="ml-1 text-[8px] bg-amber-100 text-amber-700 border border-amber-200 px-1 py-0.5 rounded font-black">ABERTO</span>` : '';
+                const blBadge = t.isBacklog ? `<span class="ml-1 text-[8px] bg-amber-100 text-amber-700 border border-amber-200 px-1 py-0.5 rounded font-black">OPEN</span>` : '';
                 const ageCls = (t.age || 0) > 30 ? 'text-red-700' : (t.age || 0) > 14 ? 'text-orange-600' : 'text-amber-600';
                 return `<tr class="ticket-row hover:bg-slate-50 transition" ${buildDataAttrs(t)}>
                     <td class="font-bold text-center text-[var(--primary-dark)]">
@@ -6410,10 +6410,10 @@
 
 
         function generatePRBTabImproved(prbData, ptaskData, rcaData, refDateObj) {
-            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-shield-alt mr-2"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTASK)</div>`;
+            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-shield-alt mr-2"></i> UNIFIED PROBLEM AND TASK MANAGEMENT (PRB / PTASK)</div>`;
 
             if (!prbData || prbData.length === 0) {
-                return html + `<div class="report-card" style="text-align: center; padding: 40px;"><p style="color: #94a3b8; font-size: 14px;">Nenhum PRB ativo no momento. Carregue o arquivo <b>problem_rca.xlsx</b> e o <b>index.xlsx</b>.</p></div>`;
+                return html + `<div class="report-card" style="text-align: center; padding: 40px;"><p style="color: #94a3b8; font-size: 14px;">No active PRB at the moment. Please load the file <b>problem_rca.xlsx</b> e o <b>index.xlsx</b>.</p></div>`;
             }
 
             // ---------------------------------------------------------------
@@ -6460,25 +6460,25 @@
 
             html += `
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="report-card text-center border-t-4 border-red-500 bg-gradient-to-br from-white to-red-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Problemas Mapeados', 'kpi_prbs', 'class')">
+                <div class="report-card text-center border-t-4 border-red-500 bg-gradient-to-br from-white to-red-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Mapped Problems', 'kpi_prbs', 'class')">
                     <div class="text-[10px] font-black text-red-600 mb-1 uppercase tracking-widest">Total PRBs</div>
                     <div class="text-4xl font-black text-slate-800">${totalPrbs}</div>
-                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Problemas Mapeados</div>
+                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Mapped Problems</div>
                 </div>
-                <div class="report-card text-center border-t-4 border-orange-500 bg-gradient-to-br from-white to-orange-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Incidentes Vinculados', 'kpi_incs', 'class')">
-                    <div class="text-[10px] font-black text-orange-600 mb-1 uppercase tracking-widest">INCs Vinculados</div>
+                <div class="report-card text-center border-t-4 border-orange-500 bg-gradient-to-br from-white to-orange-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Linked Incidents', 'kpi_incs', 'class')">
+                    <div class="text-[10px] font-black text-orange-600 mb-1 uppercase tracking-widest">Linked INCs</div>
                     <div class="text-4xl font-black text-slate-800">${totalIncs}</div>
-                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Incidentes por Causa</div>
+                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Incidents by Root Cause</div>
                 </div>
-                <div class="report-card text-center border-t-4 border-blue-500 bg-gradient-to-br from-white to-blue-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Tarefas Vinculadas (PTASK)', 'kpi_ptasks', 'class')">
+                <div class="report-card text-center border-t-4 border-blue-500 bg-gradient-to-br from-white to-blue-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Linked Tasks (PTASK)', 'kpi_ptasks', 'class')">
                     <div class="text-[10px] font-black text-blue-600 mb-1 uppercase tracking-widest">PTASKs</div>
                     <div class="text-4xl font-black text-slate-800">${totalPtasks}</div>
-                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Tarefas Vinculadas</div>
+                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Linked Tasks</div>
                 </div>
-                <div class="report-card text-center border-t-4 border-emerald-500 bg-gradient-to-br from-white to-emerald-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Problemas por Grupos Afetados', 'kpi_groups', 'class')">
-                    <div class="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">Grupos Afetados</div>
+                <div class="report-card text-center border-t-4 border-emerald-500 bg-gradient-to-br from-white to-emerald-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all" onclick="openDrilldown('Problems by Affected Groups', 'kpi_groups', 'class')">
+                    <div class="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">Affected Groups</div>
                     <div class="text-4xl font-black text-slate-800">${affectedGroups}</div>
-                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Setores Resolutores</div>
+                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Resolver Sectors</div>
                 </div>
             </div>`;
 
@@ -6687,14 +6687,14 @@
                                 <span class="text-slate-300">|</span>
                                 <span title="Aging"><i class="far fa-clock text-slate-400 mr-1"></i>${ageBd}</span>
                             </div>
-                            <span class="bg-[var(--primary-dark)] text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm flex-shrink-0">${totalChildren} vinculados</span>
+                            <span class="bg-[var(--primary-dark)] text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm flex-shrink-0">${totalChildren} linked</span>
                         </div>
                     </div>`;
                 } else {
                     summaryHtml = `
                     <div class="flex justify-between w-full pr-4 items-center">
-                        <span class="flex items-center text-slate-500 font-black italic text-[11px]"><i class="fas fa-exclamation-circle mr-2 opacity-70"></i> ${displayPid} (Sem mestre)</span>
-                        <span class="bg-[var(--primary-dark)] text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">${totalChildren} vinculados</span>
+                        <span class="flex items-center text-slate-500 font-black italic text-[11px]"><i class="fas fa-exclamation-circle mr-2 opacity-70"></i> ${displayPid} (No master)</span>
+                        <span class="bg-[var(--primary-dark)] text-white px-2 py-0.5 rounded text-[10px] font-bold shadow-sm">${totalChildren} linked</span>
                     </div>`;
                 }
 
@@ -6720,7 +6720,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${childrenRows || '<tr><td colspan="8" class="py-4 text-center text-slate-400 text-xs">Sem tickets vinculados.</td></tr>'}
+                                    ${childrenRows || '<tr><td colspan="8" class="py-4 text-center text-slate-400 text-xs">No linked tickets.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
@@ -6732,7 +6732,7 @@
             <div class="flex flex-col lg:flex-row justify-between items-center mb-4 bg-white p-3 rounded-lg shadow-sm border border-slate-200 gap-3">
                 <div class="flex items-center gap-2 w-full lg:w-auto flex-1 max-w-sm bg-slate-50 border border-slate-200 px-3 py-2 rounded-full focus-within:border-blue-500 focus-within:bg-white transition-all shadow-inner">
                     <i class="fas fa-search text-slate-400 text-sm"></i>
-                    <input type="text" placeholder="Filtrar PRBs (número, assunto, analista)..." class="w-full bg-transparent outline-none text-[11px] font-inter text-slate-700" onkeyup="filterPRBAccordions(this.value)">
+                    <input type="text" placeholder="Filter PRBs (número, assunto, analista)..." class="w-full bg-transparent outline-none text-[11px] font-inter text-slate-700" onkeyup="filterPRBAccordions(this.value)">
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2 justify-center py-1">
@@ -6745,20 +6745,20 @@
                 </div>
 
                 <div class="flex items-center gap-3 w-full lg:w-auto justify-end">
-                    <button id="btn-toggle-prb-accordions" onclick="toggleAllPRBAccordions()" class="bg-[var(--primary-dark)] text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-md hover:bg-blue-900 transition flex items-center justify-center gap-2"><i class="fas fa-compress-alt"></i> Recolher Todos</button>
+                    <button id="btn-toggle-prb-accordions" onclick="toggleAllPRBAccordions()" class="bg-[var(--primary-dark)] text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-md hover:bg-blue-900 transition flex items-center justify-center gap-2"><i class="fas fa-compress-alt"></i> Collapse All</button>
                 </div>
             </div>
             
             <div id="prb-accordions-container">
-                ${prbAccordions || '<div class="report-card text-center py-8 text-slate-400 text-sm">Nenhum dado encontrado.</div>'}
+                ${prbAccordions || '<div class="report-card text-center py-8 text-slate-400 text-sm">No data found.</div>'}
             </div>
             
             <div class="p-3 bg-slate-50 text-[9px] text-slate-400 text-center italic mt-4 rounded border border-slate-100">
                 <i class="fas fa-info-circle mr-1"></i>
-                🔵 Azul = PRB mestre (problem_rca.xlsx) &nbsp;|&nbsp;
-                🔴 Vermelho = INC filho (index.xlsx · campo Problem) &nbsp;|&nbsp;
-                🟣 Índigo = PTASK &nbsp;|&nbsp;
-                Aging = Dt Fechamento − Dt Abertura (ou dias corridos se em aberto)
+                🔵 Blue = Master PRB (problem_rca.xlsx) &nbsp;|&nbsp;
+                🔴 Red = Child INC (index.xlsx · campo Problem) &nbsp;|&nbsp;
+                🟣 Indigo = PTASK &nbsp;|&nbsp;
+                Aging = Closed Date − Opened Date (or calendar days if open)
             </div>`;
 
             return html;
@@ -6867,14 +6867,14 @@
                     seenTickets.add(prbId);
 
                     // Datas do problem_rca.xlsx (com fallback para os INCs filhos)
-                    let opD = masterRow ? safeDate(getCol(masterRow, ['Opened', 'Data Abertura', 'Created', 'opened_at', 'Aberto', 'Criado'])) : null;
-                    let clD = masterRow ? safeDate(getCol(masterRow, ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at', 'Resolvido', 'Fechado'])) : null;
+                    let opD = masterRow ? safeDate(getCol(masterRow, ['Opened', 'Data Abertura', 'Created', 'opened_at', 'Open', 'Criado'])) : null;
+                    let clD = masterRow ? safeDate(getCol(masterRow, ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at', 'Resolved', 'Closed'])) : null;
 
                     if (!opD && linkedIncs.length > 0) {
-                        opD = safeDate(getCol(linkedIncs[0], ['Opened', 'Data Abertura', 'Created', 'opened_at', 'Aberto', 'Criado']));
+                        opD = safeDate(getCol(linkedIncs[0], ['Opened', 'Data Abertura', 'Created', 'opened_at', 'Open', 'Criado']));
                     }
                     if (!clD && linkedIncs.length > 0) {
-                        clD = safeDate(getCol(linkedIncs[0], ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at', 'Resolvido', 'Fechado']));
+                        clD = safeDate(getCol(linkedIncs[0], ['Closed', 'Data Fechamento', 'Resolved', 'Resolved at', 'Resolved', 'Closed']));
                     }
 
                     let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
@@ -6941,8 +6941,8 @@
                         rca_due: masterRow ? String(getCol(masterRow, ['RCA Due Date', 'Prazo RCA']) || '—').trim() : '—',
                         rca_pub: masterRow ? String(getCol(masterRow, ['RCA Published Date', 'Data RCA']) || '—').trim() : '—',
                         age: aging,
-                        opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
-                        clStr: clD ? clD.toLocaleDateString('pt-BR') : '—',
+                        opStr: opD ? opD.toLocaleDateString('en-US') : '—',
+                        clStr: clD ? clD.toLocaleDateString('en-US') : '—',
                         req: reqVal,
                         inc_count: linkedIncs.length   // usado internamente; exibido na coluna Filhos via groups
                     });
@@ -6956,7 +6956,7 @@
 
                     let opD = safeDate(getCol(inc, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                     // index.xlsx usa "Resolved" para INCs fechados
-                    let clD = safeDate(getCol(inc, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']) || '');
+                    let clD = safeDate(getCol(inc, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']) || '');
                     let aging = (opD && clD) ? Math.floor((clD - opD) / 86400000)
                         : (opD ? Math.floor((new Date() - opD) / 86400000) : 0);
                     if (aging < 0) aging = 0;
@@ -6986,8 +6986,8 @@
                         rca_due: '—',
                         rca_pub: '—',
                         age: aging,
-                        opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
-                        clStr: clD ? clD.toLocaleDateString('pt-BR') : '—'
+                        opStr: opD ? opD.toLocaleDateString('en-US') : '—',
+                        clStr: clD ? clD.toLocaleDateString('en-US') : '—'
                     });
                 });
             });
@@ -7025,8 +7025,8 @@
                         rca_due: '—',
                         rca_pub: '—',
                         age: aging,
-                        opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
-                        clStr: clD ? clD.toLocaleDateString('pt-BR') : '—'
+                        opStr: opD ? opD.toLocaleDateString('en-US') : '—',
+                        clStr: clD ? clD.toLocaleDateString('en-US') : '—'
                     });
                 });
             }
@@ -7065,8 +7065,8 @@
                         rca_due: '—',
                         rca_pub: '—',
                         age: aging,
-                        opStr: opD ? opD.toLocaleDateString('pt-BR') : '—',
-                        clStr: clD ? clD.toLocaleDateString('pt-BR') : '—'
+                        opStr: opD ? opD.toLocaleDateString('en-US') : '—',
+                        clStr: clD ? clD.toLocaleDateString('en-US') : '—'
                     });
                 });
             }
@@ -7111,7 +7111,7 @@
                 let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!op || op.getTime() > refTime) return;
 
-                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                 let stOrig = String(getCol(r, ['State', 'Status', 'Estado', 'status']) || '').toUpperCase();
                 let rcaStOrig = String(getCol(r, ['RCA Status', 'rca_status', 'RCA status', 'Rca status', 'Status RCA', 'status_rca', 'Status do RCA', 'Problem Status', 'problem_status']) || '').toUpperCase();
                 let st = stOrig.toLowerCase();
@@ -7195,7 +7195,7 @@
                             as: getCol(inc, ['Assigned to', 'Analista', 'Assignee']) || '-',
                             gp: getCol(inc, ['Assignment group', 'Grupo']) || '-',
                             st: String(getCol(inc, ['State', 'Status', 'Estado']) || '').toUpperCase(),
-                            opStr: iOp ? iOp.toLocaleDateString('pt-BR') : '-',
+                            opStr: iOp ? iOp.toLocaleDateString('en-US') : '-',
                             age: iAge,
                             type: 'INC',
                             pctSlaNum: pctNum,
@@ -7218,8 +7218,8 @@
                     priority: getCol(r, ['Priority', 'Prioridade']) || 'N/A',
                     age: age,
                     idle: idle,
-                    opStr: op.toLocaleDateString('pt-BR'),
-                    clStr: clOrig ? clOrig.toLocaleDateString('pt-BR') : '-',
+                    opStr: op.toLocaleDateString('en-US'),
+                    clStr: clOrig ? clOrig.toLocaleDateString('en-US') : '-',
                     info: getCol(r, ['On hold reason', 'Motivo da espera']) || getCol(r, ['Close notes', 'Notas de fechamento']) || '-',
                     ci: getCol(r, ['Configuration item', 'CI', 'Item de configuracao', 'cmdb_ci']) || '-',
                     location: getCol(r, ['Location', 'Localidade']) || '-',
@@ -7259,7 +7259,7 @@
                 let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                 if (!op || op.getTime() > refTime) return;
 
-                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                 let stOrig = String(getCol(r, ['State', 'Status', 'Estado', 'status']) || '').toUpperCase();
 
                 // Filtro para PTASKs abertas: Excluir estados terminais
@@ -7284,8 +7284,8 @@
                     stRca: '',
                     age: age,
                     idle: (!clOrig || clOrig.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-',
-                    opStr: op.toLocaleDateString('pt-BR'),
-                    clStr: clOrig ? clOrig.toLocaleDateString('pt-BR') : '-',
+                    opStr: op.toLocaleDateString('en-US'),
+                    clStr: clOrig ? clOrig.toLocaleDateString('en-US') : '-',
                     clNote: getCol(r, ['Close notes', 'Notas de fechamento']) || '-',
                     ci: getCol(r, ['Configuration item', 'CI', 'Item de configuração']) || '-',
                     work_notes: (getCol(r, ['Work notes', 'Work Notes']) || '-').substring(0, 100),
@@ -7331,11 +7331,11 @@
                 </tr>`;
             }).join('');
 
-            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-bullseye mr-2"></i> GESTÃO UNIFICADA DE PROBLEMAS E TAREFAS (PRB / PTAS)</div>`;
+            let html = `<div class="report-section-title" style="background-color: var(--primary-dark);"><i class="fas fa-bullseye mr-2"></i> UNIFIED PROBLEM AND TASK MANAGEMENT (PRB / PTASK)</div>`;
 
             // Novo Estilo: Tabelas ao invés de Cards
             const generalIndicatorRows = [
-                { label: 'RCAs em Aberto (Não Published)', count: openRcaCount, key: 'all_prbs_rca_open', color: 'orange' },
+                { label: 'Open RCAs (Not Published)', count: openRcaCount, key: 'all_prbs_rca_open', color: 'orange' },
                 { label: 'PTASKs Abertas (Consolidado)', count: openPtaskCount, key: 'all_ptasks_open', color: 'indigo' },
                 { label: 'Impacto Total (Incidentes Únicos)', count: allImpactedIncs.length, key: 'all_impacted_incs', color: 'blue' },
                 { label: 'Setores com Processo de RCA', count: Object.keys(rcaOpenBySector).length, key: 'all_prbs_rca_open', color: 'emerald' }
@@ -7354,7 +7354,7 @@
                 <!-- Tabela de Indicadores Gerais -->
                 <div class="report-card" style="border-top: 3px solid var(--primary-dark);">
                     <div class="report-card-title flex justify-between items-center">
-                        <span><i class="fas fa-list-ul mr-2"></i> RESUMO GERAL DE INDICADORES</span>
+                        <span><i class="fas fa-list-ul mr-2"></i> GENERAL INDICATORS SUMMARY</span>
                         <span class="bg-blue-100 text-blue-700 text-[9px] px-2 py-0.5 rounded-full font-bold">ITSM GLOBAL</span>
                     </div>
                     <div class="px-4 pb-2">
@@ -7372,7 +7372,7 @@
                     </div>
                     <div class="px-4 pb-2 st-dataframe-container" style="max-height: 200px; overflow-y: auto;">
                         <table class="w-full">
-                            <tbody>${sectorRows || '<tr><td colspan="3" class="p-4 text-center text-xs text-slate-400">Nenhum setor com RCA aberta.</td></tr>'}</tbody>
+                            <tbody>${sectorRows || '<tr><td colspan="3" class="p-4 text-center text-xs text-slate-400">No sector with open RCA.</td></tr>'}</tbody>
                         </table>
                     </div>
                 </div>
@@ -7380,9 +7380,9 @@
 
             <!-- Card de Acurácia Metadata (Regex) -->
             <div class="report-card mb-6" style="border-top: 3px solid #10b981;">
-                <div class="report-card-title"><i class="fas fa-microchip mr-2"></i> RESUMO DE EXTRAÇÃO DE METADADOS (REGEX)</div>
+                <div class="report-card-title"><i class="fas fa-microchip mr-2"></i> METADATA EXTRACTION SUMMARY (REGEX)</div>
                 <div class="p-4 pt-1">
-                    <p class="text-[10px] text-slate-500 mb-3 italic">A extração via Regex identificou versão de release em <b>${allPrbs.filter(p => p.v_rel !== '—').length}</b> registros e datas de deploy em <b>${allPrbs.filter(p => p.d_rel !== '—').length}</b> registros automáticos.</p>
+                    <p class="text-[10px] text-slate-500 mb-3 italic">Regex extraction identified release version in <b>${allPrbs.filter(p => p.v_rel !== '—').length}</b> records and deploy dates in <b>${allPrbs.filter(p => p.d_rel !== '—').length}</b> records automatically.</p>
                     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="bg-slate-50 p-2 rounded border border-slate-200 text-center">
                             <div class="text-[9px] font-black text-slate-400 uppercase">Acurácia v_Release</div>
@@ -7406,7 +7406,7 @@
 
 
             function buildPRBAccordionHTML(prbsList, sectionId) {
-                if (!prbsList || prbsList.length === 0) return `<div class="p-6 text-center text-slate-400 text-xs italic">Nenhum PRB encontrado nesta seção.</div>`;
+                if (!prbsList || prbsList.length === 0) return `<div class="p-6 text-center text-slate-400 text-xs italic">No PRB found in this section.</div>`;
 
                 return prbsList.map((prb, idx) => {
                     let ptasksForPrb = allPtasks.filter(t => t.tk === prb.tk);
@@ -7474,17 +7474,17 @@
                         <table class="w-full text-[10px]">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200">
-                                    <th class="py-1.5 px-3 text-left text-[9px] font-black text-slate-500 uppercase" style="width:55px;">Tipo</th>
+                                    <th class="py-1.5 px-3 text-left text-[9px] font-black text-slate-500 uppercase" style="width:55px;">Type</th>
                                     <th class="py-1.5 px-3 text-left text-[9px] font-black text-slate-500 uppercase" style="width:110px;">Ticket</th>
-                                    <th class="py-1.5 px-3 text-left text-[9px] font-black text-slate-500 uppercase">Descrição</th>
+                                    <th class="py-1.5 px-3 text-left text-[9px] font-black text-slate-500 uppercase">Description</th>
                                     <th class="py-1.5 px-3 text-center text-[9px] font-black text-slate-500 uppercase" style="width:100px;">Status</th>
-                                    <th class="py-1.5 px-3 text-left text-[9px] font-black text-slate-500 uppercase" style="width:110px;">Analista</th>
-                                    <th class="py-1.5 px-3 text-left text-[9px] font-black text-slate-500 uppercase" style="width:80px;">Abertura</th>
+                                    <th class="py-1.5 px-3 text-left text-[9px] font-black text-slate-500 uppercase" style="width:110px;">Analyst</th>
+                                    <th class="py-1.5 px-3 text-left text-[9px] font-black text-slate-500 uppercase" style="width:80px;">Opened</th>
                                     <th class="py-1.5 px-3 text-center text-[9px] font-black text-slate-500 uppercase" style="width:55px;">Aging</th>
                                 </tr>
                             </thead>
                             <tbody>${childRows}</tbody>
-                        </table>` : `<div class="p-4 text-center text-slate-400 text-[10px] italic"><i class="fas fa-info-circle mr-1"></i> Nenhum ticket filho (INC/PTASK) vinculado a este PRB.</div>`;
+                        </table>` : `<div class="p-4 text-center text-slate-400 text-[10px] italic"><i class="fas fa-info-circle mr-1"></i> No child tickets (INC/PTASK) linked to this PRB.</div>`;
 
                     return `
                     <div class="prb-accordion-item mb-2 border border-slate-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-prb="${prb.tk}">
@@ -7503,7 +7503,7 @@
                             ${rcaSt ? `<span style="background:${rcaBg};color:${rcaFg};padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;">RCA: ${rcaSt}</span>` : `<span style="background:transparent;color:transparent;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;"></span>`}
 
                             <!-- INCs count -->
-                            <span style="background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;" title="Incidentes vinculados">
+                            <span style="background:#fee2e2;color:#991b1b;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;" title="Incidentes linked">
                                 <i class="fas fa-link" style="font-size:7px;margin-right:2px;"></i>${incsForPrb.length} INC${incsForPrb.length !== 1 ? 's' : ''}
                             </span>
 
@@ -7549,29 +7549,29 @@
                     </div>
                 </div>
                 <div style="padding: 15px; background: #f8fafc; display:flex; flex-direction:column; gap:15px;">
-                    <!-- PRBs Abertos -->
+                    <!-- PRBs Open -->
                     <section style="padding: 0; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
                         <div style="padding: 12px 16px; border-bottom: 2px solid #ef4444; background: linear-gradient(to right, #fef2f2, #ffffff); border-radius: 8px 8px 0 0;">
                             <h3 style="color: #991b1b; font-size: 12px; margin: 0; font-weight: 800;">
                                 <i class="fas fa-exclamation-triangle mr-2"></i> PRBs com RCA Pendente
-                                <span style="background:#fee2e2;color:#991b1b;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:800;margin-left:8px;">${prbsAbertos.length}</span>
+                                <span style="background:#fee2e2;color:#991b1b;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:800;margin-left:8px;">${prbsOpen.length}</span>
                             </h3>
                         </div>
                         <div style="padding: 12px;">
-                            ${buildPRBAccordionHTML(prbsAbertos, 'prb-open')}
+                            ${buildPRBAccordionHTML(prbsOpen, 'prb-open')}
                         </div>
                     </section>
 
-                    <!-- PRBs Encerrados -->
+                    <!-- PRBs Closed -->
                     <section style="padding: 0; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
                         <div style="padding: 12px 16px; border-bottom: 2px solid #10b981; background: linear-gradient(to right, #ecfdf5, #ffffff); border-radius: 8px 8px 0 0;">
                             <h3 style="color: #166534; font-size: 12px; margin: 0; font-weight: 800;">
-                                <i class="fas fa-check-circle mr-2"></i> PRBs Encerrados (RCA Published)
-                                <span style="background:#dcfce7;color:#166534;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:800;margin-left:8px;">${prbsEncerrados.length}</span>
+                                <i class="fas fa-check-circle mr-2"></i> PRBs Closed (RCA Published)
+                                <span style="background:#dcfce7;color:#166534;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:800;margin-left:8px;">${prbsClosed.length}</span>
                             </h3>
                         </div>
                         <div style="padding: 12px;">
-                            ${buildPRBAccordionHTML(prbsEncerrados, 'prb-closed')}
+                            ${buildPRBAccordionHTML(prbsClosed, 'prb-closed')}
                         </div>
                     </section>
                 </div>
@@ -7645,7 +7645,7 @@
                 container.innerHTML = `
                 <div class="report-card text-center border-l-4 border-red-500 p-8">
                     <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-                    <h2 class="text-lg font-bold text-slate-700">Erro na Integração Python/RPA</h2>
+                    <h2 class="text-lg font-bold text-slate-700">Python/RPA Integration Error</h2>
                     <p class="text-sm text-slate-500 mt-2">${mensagem}</p>
                     <button class="mt-4 px-4 py-2 bg-red-50 text-red-600 rounded font-bold border border-red-200 hover:bg-red-100 transition shadow-sm" onclick="fetchRPALogs()">
                         <i class="fas fa-sync-alt mr-2"></i>Tentar Reconectar
@@ -7658,7 +7658,7 @@
             const container = document.getElementById('rpa-dashboard-container');
             if (!container) return;
 
-            let vinculadosCount = realData.filter(d => d.status === 'SUCESSO').length;
+            let linkedCount = realData.filter(d => d.status === 'SUCESSO').length;
             let dbFileStatus = realData.length > 0 ? 'Sincronizado' : 'Vazio / Aguardando';
 
             let html = `
@@ -7670,8 +7670,8 @@
                 </div>
                 <div class="report-card text-center border-l-4 border-emerald-500" style="margin-bottom:0;">
                     <div class="report-card-title"><i class="fas fa-link text-emerald-600 mr-1"></i> Vínculos (INC/PRB)</div>
-                    <div class="text-4xl font-black text-slate-700">${vinculadosCount}</div>
-                    <div class="text-[10px] text-slate-400 mt-2">Sucesso na extração</div>
+                    <div class="text-4xl font-black text-slate-700">${linkedCount}</div>
+                    <div class="text-[10px] text-slate-400 mt-2">Extraction successful</div>
                 </div>
                 <div class="report-card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:center;">
                     <div class="text-[10px] font-bold text-slate-500 mb-2">Status do Robô Python (API HTML Bridge)</div>
@@ -7726,7 +7726,7 @@
                             ${createTh("Resultado", "10%")}
                             ${createTh("Ações", "5%", "center")}
                         </tr></thead>
-                        <tbody>${rows || '<tr><td colspan="7" class="p-10 text-center font-bold text-slate-400">Nenhum registro encontrado no Banco de Dados.</td></tr>'}</tbody>
+                        <tbody>${rows || '<tr><td colspan="7" class="p-10 text-center font-bold text-slate-400">No records found in the Database.</td></tr>'}</tbody>
                     </table>
                 </div>
             </div>`;
@@ -7740,7 +7740,7 @@
         function drawChartsAll(id, d, lblRes) {
             const drawTrend = (canvas, tData, isD) => {
                 let keys = Object.keys(tData).sort();
-                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''));
+                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''));
 
                 let instance = new Chart(document.getElementById(canvas), {
                     type: 'bar',
@@ -7757,7 +7757,7 @@
                                 datalabels: { align: 'top', color: '#0369a1', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
                             },
                             {
-                                type: 'bar', label: 'Abertos',
+                                type: 'bar', label: 'Open',
                                 data: keys.map(k => tData[k].a),
                                 backgroundColor: C._A, borderWidth: 0, barPercentage: 0.72,
                                 yAxisID: 'y1',
@@ -7796,8 +7796,8 @@
                                 let lblDate = labels[idx];
                                 let tksToDisplay = [];
                                 let dTitle = "";
-                                if (datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Abertos em ${lblDate}`; }
-                                else if (datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Resolvidos em ${lblDate}`; }
+                                if (datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Open em ${lblDate}`; }
+                                else if (datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Resolved em ${lblDate}`; }
                                 else if (datasetIdx === 3) { tksToDisplay = tData[dKey].tks_c; dTitle = `Cancelados em ${lblDate}`; }
                                 else return;
                                 window.DrilldownVault[id]['temp'] = tksToDisplay;
@@ -7816,7 +7816,7 @@
                 data: {
                     labels: d.topAnalistas.map(a => a.nome),
                     datasets: [
-                        { label: 'Backlog/Abertos', data: d.topAnalistas.map(a => a.ab), backgroundColor: C._A, borderWidth: 0, barPercentage: 0.65 },
+                        { label: 'Backlog/Open', data: d.topAnalistas.map(a => a.ab), backgroundColor: C._A, borderWidth: 0, barPercentage: 0.65 },
                         { label: lblRes, data: d.topAnalistas.map(a => a.res), backgroundColor: C._R, borderWidth: 0, barPercentage: 0.65 }
                     ]
                 },
@@ -7836,7 +7836,7 @@
                             let datasetIdx = activePoint._datasetIndex;
                             let analystName = d.topAnalistas[idx].nome;
                             let tks = datasetIdx === 0 ? d.topAnalistas[idx].tks_ab : d.topAnalistas[idx].tks_res;
-                            let dTitle = datasetIdx === 0 ? `Tickets em Backlog de ${analystName}` : `Tickets Resolvidos por ${analystName}`;
+                            let dTitle = datasetIdx === 0 ? `Tickets em Backlog de ${analystName}` : `Tickets Resolved por ${analystName}`;
                             window.DrilldownVault[id]['temp'] = tks;
                             openDrilldown(dTitle, 'temp', id);
                         }
@@ -7872,7 +7872,7 @@
             let instP = new Chart(document.getElementById(`c-p-${id}`), {
                 type: 'doughnut',
                 data: {
-                    labels: ['SLA Cumprido (No Prazo)', 'SLA Estourado (Fora)'],
+                    labels: ['SLA Cumprido (On Time)', 'SLA Estourado (Fora)'],
                     datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C._R, C._Cc], borderWidth: 3, borderColor: '#fff', hoverBorderWidth: 0 }]
                 },
                 options: {
@@ -7891,7 +7891,7 @@
                         if (activeElements.length > 0) {
                             let idx = activeElements[0]._index;
                             let tks = idx === 0 ? d.tksInSlaTot : d.tksOutSlaTot;
-                            let dTitle = idx === 0 ? `Tickets No Prazo SLA` : `Tickets Com SLA Estourado`;
+                            let dTitle = idx === 0 ? `Tickets On Time SLA` : `Tickets Com SLA Estourado`;
                             window.DrilldownVault[id]['temp'] = tks;
                             openDrilldown(dTitle, 'temp', id);
                         }
@@ -7934,7 +7934,7 @@
 
             const drawC = (canvas, tData, isD) => {
                 let keys = Object.keys(tData).sort();
-                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''));
+                let labels = keys.map(k => isD ? `${k.split('-')[2]}/${k.split('-')[1]}` : new Date(k.split('-')[0], k.split('-')[1] - 1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''));
 
                 let instance = new Chart(document.getElementById(canvas), {
                     type: 'bar',
@@ -7951,14 +7951,14 @@
                                 datalabels: { align: 'top', color: '#0369a1', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
                             },
                             {
-                                type: 'bar', label: 'Abertos',
+                                type: 'bar', label: 'Open',
                                 data: keys.map(k => tData[k].a),
                                 backgroundColor: C._A, borderWidth: 0, barPercentage: 0.72,
                                 yAxisID: 'y1',
                                 datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
                             },
                             {
-                                type: 'bar', label: 'Resolvidos/Encerrados',
+                                type: 'bar', label: 'Resolved/Closed',
                                 data: keys.map(k => tData[k].r),
                                 backgroundColor: C._R, borderWidth: 0, barPercentage: 0.72,
                                 yAxisID: 'y1', stack: 'st',
@@ -7990,8 +7990,8 @@
                                 let lblDate = labels[idx];
                                 let tksToDisplay = [];
                                 let dTitle = "";
-                                if (datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Globais Abertos em ${lblDate}`; }
-                                else if (datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Globais Resolvidos em ${lblDate}`; }
+                                if (datasetIdx === 1) { tksToDisplay = tData[dKey].tks_a; dTitle = `Globais Open em ${lblDate}`; }
+                                else if (datasetIdx === 2) { tksToDisplay = tData[dKey].tks_r; dTitle = `Globais Resolved em ${lblDate}`; }
                                 else if (datasetIdx === 3) { tksToDisplay = tData[dKey].tks_c; dTitle = `Globais Cancelados em ${lblDate}`; }
                                 else return;
                                 window.DrilldownVault['cons']['temp'] = tksToDisplay;
@@ -8009,7 +8009,7 @@
             const sortedTrendM = [...allTrendMonths].sort();
             const trendLabels = sortedTrendM.map(k => {
                 let [y, mo] = k.split('-');
-                return new Date(+y, +mo - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
+                return new Date(+y, +mo - 1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
             });
             const catGet = (src, key) => sortedTrendM.map(k => src.trendM[k]?.[key] || 0);
 
@@ -8018,7 +8018,7 @@
                 // ── helpers usados tanto no chart inicial quanto nos filtros ────
                 const _fmtTrendLbl = (k) => {
                     let [y, mo] = k.split('-');
-                    return new Date(+y, +mo - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
+                    return new Date(+y, +mo - 1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', '');
                 };
 
                 const _buildTrendDatasets = (keys) => {
@@ -8029,56 +8029,56 @@
 
                     return [
                         {
-                            label: 'TODOS — Abertos', data: totA,
+                            label: 'TODOS — Open', data: totA,
                             borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.15)',
                             fill: true, borderWidth: 3, pointRadius: 5, pointHoverRadius: 8,
                             pointBackgroundColor: 'rgba(30,58,138,1)',
                             datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'TODOS — Encerrados', data: totR,
+                            label: 'TODOS — Closed', data: totR,
                             borderColor: 'rgba(22,163,74,0.95)', backgroundColor: 'rgba(22,163,74,0.06)',
                             fill: false, borderWidth: 3, pointRadius: 5, pointHoverRadius: 8, borderDash: [8, 4],
                             pointBackgroundColor: 'rgba(22,163,74,1)',
                             datalabels: { align: 'bottom', color: '#15803d', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'INC — Abertos', data: cg(i, 'a'),
+                            label: 'INC — Open', data: cg(i, 'a'),
                             borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.13)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(30,58,138,1)',
                             datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'INC — Resolvidos', data: cg(i, 'r'),
+                            label: 'INC — Resolved', data: cg(i, 'r'),
                             borderColor: 'rgba(34,197,94,0.9)', backgroundColor: 'rgba(34,197,94,0.04)',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(34,197,94,1)',
                             datalabels: { align: 'bottom', color: '#16a34a', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'REQ — Abertos', data: cg(r, 'a'),
+                            label: 'REQ — Open', data: cg(r, 'a'),
                             borderColor: 'rgba(37,99,235,1)', backgroundColor: 'rgba(37,99,235,0.11)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(37,99,235,1)',
                             datalabels: { align: 'top', color: '#1d4ed8', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'REQ — Resolvidos', data: cg(r, 'r'),
+                            label: 'REQ — Resolved', data: cg(r, 'r'),
                             borderColor: 'rgba(16,185,129,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(16,185,129,1)',
                             datalabels: { align: 'bottom', color: '#059669', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'UAM — Abertos', data: cg(u, 'a'),
+                            label: 'UAM — Open', data: cg(u, 'a'),
                             borderColor: 'rgba(124,58,237,1)', backgroundColor: 'rgba(124,58,237,0.10)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(124,58,237,1)',
                             datalabels: { align: 'top', color: '#7c3aed', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'UAM — Resolvidos', data: cg(u, 'r'),
+                            label: 'UAM — Resolved', data: cg(u, 'r'),
                             borderColor: 'rgba(192,132,252,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(192,132,252,1)',
@@ -8126,14 +8126,14 @@
                             const lbl = _fmtTrendLbl(mKey);
                             let tks = [], dTitle = '';
                             const srcMap = [
-                                [null, 'a', `TODOS Abertos — ${lbl}`],
-                                [null, 'r', `TODOS Encerrados — ${lbl}`],
-                                [i, 'a', `INC Abertos — ${lbl}`],
-                                [i, 'r', `INC Resolvidos — ${lbl}`],
-                                [r, 'a', `REQ Abertos — ${lbl}`],
-                                [r, 'r', `REQ Resolvidos — ${lbl}`],
-                                [u, 'a', `UAM Abertos — ${lbl}`],
-                                [u, 'r', `UAM Resolvidos — ${lbl}`]
+                                [null, 'a', `TODOS Open — ${lbl}`],
+                                [null, 'r', `TODOS Closed — ${lbl}`],
+                                [i, 'a', `INC Open — ${lbl}`],
+                                [i, 'r', `INC Resolved — ${lbl}`],
+                                [r, 'a', `REQ Open — ${lbl}`],
+                                [r, 'r', `REQ Resolved — ${lbl}`],
+                                [u, 'a', `UAM Open — ${lbl}`],
+                                [u, 'r', `UAM Resolved — ${lbl}`]
                             ];
                             const entry = srcMap[dsIdx];
                             if (!entry) return;
@@ -8219,11 +8219,11 @@
         window.AnalystsFullData = [];
 
         function _ap(tk) {
-            let asg = getCol(tk, ['Assigned to', 'Atribuído a']) || 'Não Atribuído';
-            let gp = getCol(tk, ['Assignment group', 'Grupo']) || 'Sem Grupo';
+            let asg = getCol(tk, ['Assigned to', 'Atribuído a']) || 'Unassigned';
+            let gp = getCol(tk, ['Assignment group', 'Grupo']) || 'No Group';
             let st = getCol(tk, ['State', 'Status', 'Estado']) || '';
             let opD = safeDate(getCol(tk, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
-            let clD = safeDate(getCol(tk, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+            let clD = safeDate(getCol(tk, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
             let stL = st.toLowerCase();
             let isRes = false;
             let isCan = false;
@@ -8261,7 +8261,7 @@
             return { asg, gp, st, opD, clD, isRes, isCan, age, mttrH, opM, clM, tkId, desc, ticketType, raw: tk };
         }
 
-        function _fmtM(k) { let [y, m] = k.split('-'); return new Date(+y, +m - 1, 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''); }
+        function _fmtM(k) { let [y, m] = k.split('-'); return new Date(+y, +m - 1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''); }
 
         window.filterAnalystTab = function () {
             let gF = document.getElementById('an-filter-group')?.value || '';
@@ -8287,7 +8287,7 @@
                     let fL = pFrom ? _fmtM(pFrom) : 'Início';
                     let tL = pTo ? _fmtM(pTo) : 'Agora';
                     let uL = uF || 'Todos os Analistas';
-                    label.textContent = `Extração: ${uL} — Período: ${fL} até ${tL} — ${parsed.length} tickets no intervalo`;
+                    label.textContent = `Extraction: ${uL} — Period: ${fL} to ${tL} — ${parsed.length} tickets in range`;
                     badge.classList.remove('hidden-st');
                 } else {
                     badge.classList.add('hidden-st');
@@ -8309,8 +8309,8 @@
             parsed.forEach(t => { gs.add(t.gp); us.add(t.asg); });
             let gEl = document.getElementById('an-filter-group');
             let uEl = document.getElementById('an-filter-user');
-            if (gEl) { gEl.innerHTML = '<option value="">Todos os Grupos</option>' + Array.from(gs).sort().map(g => `<option value="${g}">${g}</option>`).join(''); }
-            if (uEl) { uEl.innerHTML = '<option value="">Todos os Analistas</option>' + Array.from(us).sort().map(u => `<option value="${u}">${u}</option>`).join(''); }
+            if (gEl) { gEl.innerHTML = '<option value="">All Groups</option>' + Array.from(gs).sort().map(g => `<option value="${g}">${g}</option>`).join(''); }
+            if (uEl) { uEl.innerHTML = '<option value="">All Analysts</option>' + Array.from(us).sort().map(u => `<option value="${u}">${u}</option>`).join(''); }
         }
 
         function generateAnalystsPageHTML() {
@@ -8325,7 +8325,7 @@
                     asg: t.asg,
                     gp: t.gp,
                     req: '-',
-                    opStr: t.opD ? t.opD.toLocaleDateString('pt-BR') : '-',
+                    opStr: t.opD ? t.opD.toLocaleDateString('en-US') : '-',
                     age: t.age !== null ? t.age : 0,
                     idle: '-',
                     tipo: t.ticketType,
@@ -8360,11 +8360,11 @@
                 </div>
                 <div class="flex flex-col md:flex-row gap-4 md:items-end mt-4 pt-4 border-t border-slate-100">
                     <div class="flex-1">
-                        <label class="form-label"><i class="fas fa-calendar-alt mr-1"></i> Período — De (mês)</label>
+                        <label class="form-label"><i class="fas fa-calendar-alt mr-1"></i> Period — From (month)</label>
                         <input type="month" id="an-period-from" class="form-input" onchange="filterAnalystTab()">
                     </div>
                     <div class="flex-1">
-                        <label class="form-label"><i class="fas fa-calendar-alt mr-1"></i> Período — Até (mês)</label>
+                        <label class="form-label"><i class="fas fa-calendar-alt mr-1"></i> Period — Until (month)</label>
                         <input type="month" id="an-period-to" class="form-input" onchange="filterAnalystTab()">
                     </div>
                     <div class="flex gap-2">
@@ -8377,10 +8377,10 @@
             <div id="an-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5"></div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
                 <div class="report-card mb-0 col-span-1 lg:col-span-2" style="height:420px;">
-                    <div class="report-card-title mb-1" style="color:#312e81;"><i class="fas fa-chart-area mr-2 text-indigo-600"></i> TENDÊNCIA MENSAL — ABERTOS vs RESOLVIDOS (Self-Comparison)</div>
+                    <div class="report-card-title mb-1" style="color:#312e81;"><i class="fas fa-chart-area mr-2 text-indigo-600"></i> MONTHLY TREND — OPENED vs RESOLVED (Self-Comparison)</div>
                     <div style="font-size:10px;color:#94a3b8;line-height:1.6;margin-bottom:8px;">
                         <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:3px;background:#1e3a8a;border-radius:2px;"></span> Área = Recebidos</span>
-                        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dashed #22c55e;"></span> Tracejado = Resolvidos</span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dashed #22c55e;"></span> Tracejado = Resolved</span>
                     </div>
                     <div style="height:calc(100% - 60px);"><canvas id="an-c-trend"></canvas></div>
                 </div>
@@ -8393,7 +8393,7 @@
                     <div style="height:calc(100% - 30px);"><canvas id="an-c-status"></canvas></div>
                 </div>
                 <div class="report-card mb-0 col-span-1 lg:col-span-2" style="height:380px;">
-                    <div class="report-card-title" style="color:#312e81;"><i class="fas fa-exchange-alt mr-2 text-indigo-600"></i> NETFLOW MENSAL — Saldo (Abertos − Resolvidos)</div>
+                    <div class="report-card-title" style="color:#312e81;"><i class="fas fa-exchange-alt mr-2 text-indigo-600"></i> MONTHLY NETFLOW — Balance (Opened − Resolved)</div>
                     <div style="height:calc(100% - 30px);"><canvas id="an-c-netflow"></canvas></div>
                 </div>
                 <div class="report-card mb-0" style="height:380px;">
@@ -8401,12 +8401,12 @@
                     <div style="height:calc(100% - 30px);"><canvas id="an-c-aging"></canvas></div>
                 </div>
                 <div class="report-card mb-0" style="height:380px;">
-                    <div class="report-card-title"><i class="fas fa-chart-line mr-2"></i> Movimentação Diária (Últimos 30 Dias)</div>
+                    <div class="report-card-title"><i class="fas fa-chart-line mr-2"></i> Daily Movement (Last 30 Days)</div>
                     <div style="height:calc(100% - 30px);"><canvas id="an-c-daily"></canvas></div>
                 </div>
             </div>
             <div class="report-card mb-5">
-                <div class="report-card-title" style="color:#312e81;"><i class="fas fa-table mr-2"></i> PIVOT TABLE — Analista × Mês (Resolvidos)</div>
+                <div class="report-card-title" style="color:#312e81;"><i class="fas fa-table mr-2"></i> PIVOT TABLE — Analyst × Month (Resolved)</div>
                 <div id="an-pivot" class="overflow-x-auto stylized-scrollbar"></div>
             </div>`;
         }
@@ -8428,11 +8428,11 @@
             let kE = document.getElementById('an-kpis');
             if (kE) kE.innerHTML = `
                 <div class="report-card text-center border-t-4 border-slate-500 p-4 mb-0"><div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Tickets</div><div class="text-3xl font-black text-slate-700">${total}</div></div>
-                <div class="report-card text-center border-t-4 border-emerald-500 p-4 mb-0"><div class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Resolvidos</div><div class="text-3xl font-black text-slate-700">${resolved}</div></div>
+                <div class="report-card text-center border-t-4 border-emerald-500 p-4 mb-0"><div class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Resolved</div><div class="text-3xl font-black text-slate-700">${resolved}</div></div>
                 <div class="report-card text-center border-t-4 border-blue-500 p-4 mb-0"><div class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Backlog Ativo</div><div class="text-3xl font-black text-slate-700">${open}</div></div>
                 <div class="report-card text-center border-t-4 border-purple-500 p-4 mb-0"><div class="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1">Taxa Resolução</div><div class="text-3xl font-black text-slate-700">${pctRes}%</div></div>
                 <div class="report-card text-center border-t-4 border-amber-500 p-4 mb-0"><div class="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">MTTR Médio</div><div class="text-2xl font-black text-slate-700">${avgMttr.toFixed(1)}h</div></div>
-                <div class="report-card text-center border-t-4 border-red-500 p-4 mb-0"><div class="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Aging Médio (Abertos)</div><div class="text-2xl font-black text-slate-700">${avgAge.toFixed(1)}d</div></div>
+                <div class="report-card text-center border-t-4 border-red-500 p-4 mb-0"><div class="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Average Aging (Open)</div><div class="text-2xl font-black text-slate-700">${avgAge.toFixed(1)}d</div></div>
                 <div class="report-card text-center border-t-4 border-rose-400 p-4 mb-0"><div class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">Cancelados</div><div class="text-3xl font-black text-slate-700">${canceled}</div></div>
                 <div class="report-card text-center border-t-4 p-4 mb-0" style="border-color:${netflow >= 0 ? '#10b981' : '#ef4444'};"><div class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:${netflow >= 0 ? '#10b981' : '#ef4444'};">Netflow Global</div><div class="text-3xl font-black" style="color:${netflow >= 0 ? '#10b981' : '#ef4444'};">${netflow >= 0 ? '+' : ''}${netflow}</div></div>`;
 
@@ -8462,8 +8462,8 @@
                 let c = new Chart(cTrend, {
                     type: 'line', data: {
                         labels: sM.map(_fmtM), datasets: [
-                            { label: 'Recebidos (Abertos)', data: sM.map(k => tM[k].a), borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.15)', fill: true, borderWidth: 3, pointRadius: 5, pointHoverRadius: 8, pointBackgroundColor: 'rgba(30,58,138,1)', datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' } },
-                            { label: 'Resolvidos', data: sM.map(k => tM[k].r), borderColor: 'rgba(22,163,74,0.95)', backgroundColor: 'rgba(22,163,74,0.06)', fill: false, borderWidth: 3, pointRadius: 5, pointHoverRadius: 8, borderDash: [8, 4], pointBackgroundColor: 'rgba(22,163,74,1)', datalabels: { align: 'bottom', color: '#15803d', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' } }
+                            { label: 'Recebidos (Open)', data: sM.map(k => tM[k].a), borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.15)', fill: true, borderWidth: 3, pointRadius: 5, pointHoverRadius: 8, pointBackgroundColor: 'rgba(30,58,138,1)', datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' } },
+                            { label: 'Resolved', data: sM.map(k => tM[k].r), borderColor: 'rgba(22,163,74,0.95)', backgroundColor: 'rgba(22,163,74,0.06)', fill: false, borderWidth: 3, pointRadius: 5, pointHoverRadius: 8, borderDash: [8, 4], pointBackgroundColor: 'rgba(22,163,74,1)', datalabels: { align: 'bottom', color: '#15803d', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' } }
                         ]
                     }, options: {
                         responsive: true, maintainAspectRatio: false, legend: { position: 'top', labels: { usePointStyle: true, fontSize: 11 } }, scales: { xAxes: [{ gridLines: { display: false }, ticks: { fontSize: 10, fontColor: '#64748b' } }], yAxes: [{ gridLines: { color: '#f1f5f9', drawBorder: false }, ticks: { beginAtZero: true, fontSize: 10, fontColor: '#64748b' } }] }, tooltips: { mode: 'index', intersect: false },
@@ -8473,7 +8473,7 @@
                             let mKey = sM[el._index];
                             let dsIdx = el._datasetIndex;
                             let src = dsIdx === 0 ? window._anDrillIdx.byMonth : window._anDrillIdx.byMonthRes;
-                            let label = dsIdx === 0 ? 'Abertos' : 'Resolvidos';
+                            let label = dsIdx === 0 ? 'Open' : 'Resolved';
                             _anDrill(`${label} — ${_fmtM(mKey)}`, src[mKey] || []);
                         }
                     }
@@ -8495,7 +8495,7 @@
                             let el = this.getElementAtEvent(evt)[0];
                             if (!el) return;
                             let name = sANames[el._index];
-                            _anDrill(`Resolvidos por ${name}`, window._anDrillIdx.byAnalyst[name] || []);
+                            _anDrill(`Resolved por ${name}`, window._anDrillIdx.byAnalyst[name] || []);
                         }
                     }
                 });
@@ -8530,8 +8530,8 @@
                 let c = new Chart(cNf, {
                     type: 'bar', data: {
                         labels: sM.map(_fmtM), datasets: [
-                            { label: 'Abertos', data: sM.map(k => tM[k].a), backgroundColor: 'rgba(30,58,138,0.7)', stack: 's1', datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' } },
-                            { label: 'Resolvidos', data: sM.map(k => tM[k].r), backgroundColor: 'rgba(16,185,129,0.7)', stack: 's1', datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' } },
+                            { label: 'Open', data: sM.map(k => tM[k].a), backgroundColor: 'rgba(30,58,138,0.7)', stack: 's1', datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' } },
+                            { label: 'Resolved', data: sM.map(k => tM[k].r), backgroundColor: 'rgba(16,185,129,0.7)', stack: 's1', datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' } },
                             { type: 'line', label: 'Netflow (Res−Abrt)', data: nfData, borderColor: '#ef4444', backgroundColor: 'transparent', borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: bgC, fill: false, borderDash: [6, 3], yAxisID: 'y2', datalabels: { align: 'top', color: '#ef4444', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? '+' + v : v } }
                         ]
                     }, options: {
@@ -8541,8 +8541,8 @@
                             if (!el) return;
                             let mKey = sM[el._index];
                             let dsIdx = el._datasetIndex;
-                            if (dsIdx === 0) { _anDrill(`Abertos — ${_fmtM(mKey)}`, window._anDrillIdx.byMonth[mKey] || []); }
-                            else if (dsIdx === 1) { _anDrill(`Resolvidos — ${_fmtM(mKey)}`, window._anDrillIdx.byMonthRes[mKey] || []); }
+                            if (dsIdx === 0) { _anDrill(`Open — ${_fmtM(mKey)}`, window._anDrillIdx.byMonth[mKey] || []); }
+                            else if (dsIdx === 1) { _anDrill(`Resolved — ${_fmtM(mKey)}`, window._anDrillIdx.byMonthRes[mKey] || []); }
                             else { let all = [...(window._anDrillIdx.byMonth[mKey] || []), ...(window._anDrillIdx.byMonthRes[mKey] || [])]; _anDrill(`Netflow — ${_fmtM(mKey)}`, all); }
                         }
                     }
@@ -8589,8 +8589,8 @@
                 let c = new Chart(cDy, {
                     type: 'line', data: {
                         labels: sD.map(d => { let p = d.split('-'); return p[2] + '/' + p[1]; }), datasets: [
-                            { label: 'Abertos', data: sD.map(d => tD[d].a), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3 },
-                            { label: 'Resolvidos', data: sD.map(d => tD[d].r), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 }
+                            { label: 'Open', data: sD.map(d => tD[d].a), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3 },
+                            { label: 'Resolved', data: sD.map(d => tD[d].r), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 }
                         ]
                     }, options: {
                         responsive: true, maintainAspectRatio: false, legend: { position: 'top' }, scales: { xAxes: [{ gridLines: { display: false }, ticks: { fontSize: 9 } }], yAxes: [{ gridLines: { color: '#f1f5f9' }, ticks: { beginAtZero: true, fontSize: 10 } }] },
@@ -8600,7 +8600,7 @@
                             let dKey = sD[el._index];
                             let dsIdx = el._datasetIndex;
                             let tks = dsIdx === 0 ? (tD[dKey]?.aTks || []) : (tD[dKey]?.rTks || []);
-                            let label = dsIdx === 0 ? 'Abertos' : 'Resolvidos';
+                            let label = dsIdx === 0 ? 'Open' : 'Resolved';
                             let fmtD = dKey.split('-').reverse().join('/');
                             _anDrill(`${label} — ${fmtD}`, tks);
                         }
@@ -8641,7 +8641,7 @@
                 // Determine which view to render
                 let pivotMode = document.getElementById('an-pivot-mode')?.value || 'open';
                 let pivotData = pivotMode === 'close' ? pivotByClose : pivotByOpen;
-                let pivotLabel = pivotMode === 'close' ? 'Resolvidos por Mês de Fechamento' : 'Tickets por Mês de Abertura';
+                let pivotLabel = pivotMode === 'close' ? 'Resolved by Closed Month' : 'Tickets by Opened Month';
 
                 // Determine month columns: use period filter range if set, else all data months
                 let pFrom = document.getElementById('an-period-from')?.value || '';
@@ -8682,11 +8682,11 @@
                 let html = `<div class="flex items-center justify-between mb-2">
                     <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-2 py-1"><i class="fas fa-info-circle mr-1"></i> ${pivotLabel} — ${sortedPM.length} meses</span>
                     <select id="an-pivot-mode" class="form-input text-[10px] py-1 px-2 w-auto font-bold" style="max-width:220px;" onchange="filterAnalystTab()">
-                        <option value="open" ${pivotMode === 'open' ? 'selected' : ''}>📥 Por Mês de Abertura</option>
-                        <option value="close" ${pivotMode === 'close' ? 'selected' : ''}>✅ Por Mês de Fechamento</option>
+                        <option value="open" ${pivotMode === 'open' ? 'selected' : ''}>📥 By Opened Month</option>
+                        <option value="close" ${pivotMode === 'close' ? 'selected' : ''}>✅ By Closed Month</option>
                     </select>
                 </div>`;
-                html += '<table class="compact-table w-full text-[10px]"><thead><tr><th class="text-left px-2 py-1 bg-slate-100 border border-slate-200 font-black text-slate-700 sticky left-0 z-10" style="min-width:140px;">Analista</th>';
+                html += '<table class="compact-table w-full text-[10px]"><thead><tr><th class="text-left px-2 py-1 bg-slate-100 border border-slate-200 font-black text-slate-700 sticky left-0 z-10" style="min-width:140px;">Analyst</th>';
                 sortedPM.forEach(m => html += `<th class="px-2 py-1 bg-slate-100 border border-slate-200 text-center font-bold text-slate-600" style="min-width:60px;">${_fmtM(m)}</th>`);
                 html += '<th class="px-2 py-1 bg-indigo-100 border border-indigo-200 text-center font-black text-indigo-800" style="min-width:60px;">TOTAL</th></tr></thead><tbody>';
                 let colTotals = {};
@@ -8719,10 +8719,10 @@
         // 8. ORQUESTRADOR PRINCIPAL (COM INTEGRAÇÃO PRB REFORMULADO)
         // ==========================================
         function processDashboard() {
-            if (!RawData.incs.length && !RawData.reqs.length) return alert("Erro: Carregue as planilhas do ServiceNow na aba lateral primeiro.");
+            if (!RawData.incs.length && !RawData.reqs.length) return alert("Error: Please load the ServiceNow spreadsheets in the sidebar first.");
 
             let now = new Date();
-            document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extração: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`;
+            document.getElementById('extraction-time').innerHTML = `<i class="fas fa-clock mr-1"></i> Extraction: ${now.toLocaleDateString('en-US')} ${now.toLocaleTimeString('en-US')}`;
             document.getElementById('init-alert').classList.add('hidden-st');
             document.getElementById('loader').classList.remove('hidden-st');
             document.getElementById('report-content').classList.add('hidden-st');
@@ -8776,7 +8776,7 @@
                     if (window.isComparisonActive) {
                         window.ComparisonData.inc = calculateSection(RawData.incs, slaI, "INC", dateToday, false);
                     }
-                    document.getElementById('tab-inc').innerHTML = generateSectionHTML('inc', "SESSÃO INCs (INCIDENTES GERAIS)", C.PRI_D, dI, "INC");
+                    document.getElementById('tab-inc').innerHTML = generateSectionHTML('inc', "INCs SECTION (GENERAL INCIDENTS)", C.PRI_D, dI, "INC");
                 }
 
                 // Processamento de REQs e UAMs
@@ -8794,14 +8794,14 @@
                         if (window.isComparisonActive) {
                             window.ComparisonData.req = calculateSection(rS, slaR, "REQ", dateToday, false);
                         }
-                        document.getElementById('tab-req').innerHTML = generateSectionHTML('req', "SESSÃO REQs (SUPORTE GERAL)", C.PRI_D, dRS, "REQ");
+                        document.getElementById('tab-req').innerHTML = generateSectionHTML('req', "REQs SECTION (GENERAL SUPPORT)", C.PRI_D, dRS, "REQ");
                     }
                     if (rU.length) {
                         dRU = calculateSection(rU, slaR, "REQ", dateMachine, true);
                         if (window.isComparisonActive) {
                             window.ComparisonData.uam = calculateSection(rU, slaR, "REQ", dateToday, false);
                         }
-                        document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "SESSÃO UAMs (ACESSOS)", C.PRI_D, dRU, "REQ");
+                        document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "UAMs SECTION (ACCESS)", C.PRI_D, dRU, "REQ");
                     }
                 }
 
@@ -8826,7 +8826,7 @@
                     document.getElementById('tab-cons').innerHTML = generateConsolidadoHTML(dI || {}, dRS || {}, dRU || {});
                 }
 
-                // Restaurar aba de Tickets Abertos
+                // Restaurar aba de Tickets Open
                 document.getElementById('tab-open').innerHTML = generateOpenTicketsHTML(RawData.incs, rS, rU, slaI, slaR, dateMachine);
 
                 // Aba Analistas — Página Dedicada Completa
@@ -8875,7 +8875,7 @@
                 } else if (RawData.rca && RawData.rca.length || RawData.ptask && RawData.ptask.length) {
                     document.getElementById('tab-prb').innerHTML = generatePRBTab(RawData.rca, RawData.ptask, slaRCA, slaP, dateMachine);
                 } else {
-                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">Nenhum dado de Causa Raiz/PTASK/PRB importado.</h3></div>`;
+                    document.getElementById('tab-prb').innerHTML = `<div class="report-card text-center py-10"><h3 class="text-slate-600 font-bold">No Root Cause/PTASK/PRB data imported.</h3></div>`;
                 }
 
                 let allCombinedData = [...RawData.incs, ...RawData.reqs];
@@ -8925,7 +8925,7 @@
                     });
                 }
 
-                // ── Aba Violações SLA ──────────────────────────────────────────────
+                // ── Aba SLA Breaches ──────────────────────────────────────────────
                 if (dI || dRS || dRU) {
                     document.getElementById('tab-sla').innerHTML = generateSLABreachTab(dI, dRS, dRU, slaI, slaR, dateMachine);
                     requestAnimationFrame(() => {
@@ -8940,7 +8940,7 @@
                                     labels: sd.monthLabels,
                                     datasets: [
                                         {
-                                            type: 'line', label: 'Total Fora SLA',
+                                            type: 'line', label: 'Total SLA Breached',
                                             data: sd.mDataTot,
                                             borderColor: C._SLA, backgroundColor: C._SLAb,
                                             fill: true, borderWidth: 2.5, tension: 0.35,
@@ -8992,7 +8992,7 @@
                                             mLabel += ' (UAM)';
                                         }
 
-                                        openDrilldown(`Fora SLA — ${mLabel}`, vaultKey, 'sla');
+                                        openDrilldown(`SLA Breached — ${mLabel}`, vaultKey, 'sla');
                                     }
                                 }
                             }));
@@ -9068,7 +9068,7 @@
                                             dLabel += ' (UAM)';
                                         }
 
-                                        openDrilldown(`Fora SLA — dia ${dLabel}`, vaultKey, 'sla');
+                                        openDrilldown(`SLA Breached — dia ${dLabel}`, vaultKey, 'sla');
                                     }
                                 }
                             }));
@@ -9093,9 +9093,9 @@
                 });
 
                 requestAnimationFrame(() => {
-                    if (dI) drawChartsAll('inc', dI, 'Resolvidos');
-                    if (dRS) drawChartsAll('req', dRS, 'Encerrados');
-                    if (dRU) drawChartsAll('uam', dRU, 'Encerrados');
+                    if (dI) drawChartsAll('inc', dI, 'Resolved');
+                    if (dRS) drawChartsAll('req', dRS, 'Closed');
+                    if (dRU) drawChartsAll('uam', dRU, 'Closed');
                     if (dI || dRS || dRU) drawConsolidadoCharts(dI, dRS, dRU);
 
                     tabs.forEach(c => {
@@ -9121,7 +9121,7 @@
                         }
 
                         if (row) {
-                            let clDate = safeDate(getCol(row, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolvido', 'Fechado', 'Data de Resolução', 'Data de Encerramento']));
+                            let clDate = safeDate(getCol(row, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                             let stOrig = String(getCol(row, ['State', 'Status', 'Estado', 'RCA Status']) || '').toLowerCase();
                             if (clDate || stOrig.includes('cancel') || stOrig.includes('resolv') || stOrig.includes('clos') || stOrig.includes('complet')) {
                                 toDeleteIds.add(t.id);
@@ -9222,7 +9222,7 @@
             const contentDiv = document.getElementById('rpaEmailContent');
 
             modal.classList.remove('hidden');
-            contentDiv.innerHTML = '<div class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-4xl text-purple-600 mb-4"></i><div class="font-bold text-slate-500">Carregando e-mail...</div></div>';
+            contentDiv.innerHTML = '<div class="p-10 text-center"><i class="fas fa-circle-notch fa-spin text-4xl text-purple-600 mb-4"></i><div class="font-bold text-slate-500">Loading email...</div></div>';
 
             try {
                 // Fetch the actual email content served by Python bridge
