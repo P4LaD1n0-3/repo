@@ -4934,7 +4934,7 @@
             const refMonth = limitDate.getMonth();
             const refYear = limitDate.getFullYear();
 
-            let totalMttr = 0, countRes = 0, inSlaMes = 0, resMes = 0, backlog = 0;
+            let totalMttr = 0, countRes = 0, inSlaMes = 0, resMes = 0, backlog = 0, unassigned = 0;
             let trendD = {}, trendM = {}, analistas = {}, criticals = [], noPrb = [];
             let agingBuckets = {};
 
@@ -5059,6 +5059,7 @@
                     analistas[asg].tks_ab.push(tObj);
 
                     GlobalOpenTickets.push({ tk: tObj.tk, asg: asg });
+                    if (asg === 'Unassigned') unassigned++;
                     bucketsDef.forEach(b => { if (age >= b.min && age <= b.max) { agingBuckets[b.l].count++; agingBuckets[b.l].tks.push(tObj); } });
 
                     let hasPrb = tObj.prb !== "N/A";
@@ -5116,6 +5117,7 @@
                 // Z-A: Chamados mais velhos/críticos no topo
                 crits: criticals.sort((a, b) => (b.age || 0) - (a.age || 0)),
                 noPrb: noPrb.sort((a, b) => (b.age || 0) - (a.age || 0)),
+                unassigned: unassigned,
                 allBacklogTks: allBacklogTks.sort((a, b) => (b.age || 0) - (a.age || 0)),
                 allResolvedTks: allResolvedTks.sort((a, b) => (b.age || 0) - (a.age || 0)),
                 allCanceledTks: allCanceledTks.sort((a, b) => (b.age || 0) - (a.age || 0))
@@ -5164,7 +5166,12 @@
                 // ─────────────────────────────────────────────────────────────────────────
 
                 // Captura Classificações Incorretas: qualquer tipo (INC ou REQ) com status de encerramento anormal
-                if (reason.includes('INCORRECT CLASSIFICATION') && (stOrig.includes('incomplet') || stOrig.includes('cancel') || stOrig.includes('rejeit') || stOrig.includes('reject'))) {
+                // NOVO: Também identifica conversão INC -> REQ se estiver cancelado e tiver RITM nos close notes
+                let closeNotes = String(getCol(r, ['Close notes', 'Close Notes', 'close_notes', 'Closing notes']) || '');
+                let isIncorrectClassif = reason.includes('INCORRECT CLASSIFICATION') && (stOrig.includes('incomplet') || stOrig.includes('cancel') || stOrig.includes('rejeit') || stOrig.includes('reject'));
+                let isIncToReqConversion = isInc && stOrig.includes('cancel') && closeNotes.toUpperCase().includes('RITM');
+
+                if (isIncorrectClassif || isIncToReqConversion) {
                     let op = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
                     let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                     if (!op) return;
@@ -5499,6 +5506,7 @@
 
             let groups = {};
             let countTags = { INC: 0, REQ: 0, UAM: 0 };
+            let unassignedTotal = openTks.filter(t => t.as === 'Unassigned').length;
             openTks.forEach(t => {
                 countTags[t.type] = (countTags[t.type] || 0) + 1;
                 if (!groups[t.gp]) groups[t.gp] = [];
@@ -5533,6 +5541,10 @@
                     <div class="bg-amber-50 border border-amber-100 px-2.5 py-1 rounded shadow-inner flex items-center cursor-pointer hover:bg-amber-100 transition" onclick="filterOpenTickets('UAM')">
                         <span class="text-[9px] font-black text-amber-500 uppercase tracking-tighter mr-2">UAM</span>
                         <span class="text-xs font-black text-amber-800">${countTags.UAM}</span>
+                    </div>
+                    <div class="bg-red-50 border border-red-100 px-2.5 py-1 rounded shadow-inner flex items-center cursor-pointer hover:bg-red-100 transition" onclick="filterOpenTickets('Unassigned')">
+                        <span class="text-[9px] font-black text-red-500 uppercase tracking-tighter mr-2">Unassigned</span>
+                        <span class="text-xs font-black text-red-800">${unassignedTotal}</span>
                     </div>
                     <div class="bg-[var(--primary-dark)] border border-blue-900 px-3 py-1 rounded shadow-lg flex items-center cursor-pointer hover:brightness-110 transition" onclick="filterOpenTickets('')">
                         <span class="text-[9px] font-black text-blue-300 uppercase tracking-wider mr-2">TOTAL</span>
@@ -6358,12 +6370,18 @@
 
             const comp = window.isComparisonActive ? window.ComparisonData.cons : null;
             const globalBacklog = (i.backlog || 0) + (r.backlog || 0) + (u.backlog || 0);
+            const globalUnassigned = (i.unassigned || 0) + (r.unassigned || 0) + (u.unassigned || 0);
+            window.DrilldownVault['cons']['all_unassigned'] = [
+                ...(i.allBacklogTks || []).filter(t => t.as === 'Unassigned'),
+                ...(r.allBacklogTks || []).filter(t => t.as === 'Unassigned'),
+                ...(u.allBacklogTks || []).filter(t => t.as === 'Unassigned')
+            ];
 
             return `
             <div class="report-section-title" style="background-color: ${C.PRI_D};"><i class="fas fa-globe mr-2"></i> CONSOLIDATED ORGANIZATIONAL VIEW (INCs + REQs + UAMs)</div>
 
-            <!-- ── 4 cards backlog lado a lado ── -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+            <!-- ── 5 cards backlog lado a lado ── -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-5">
                 <div class="report-card text-center border-t-4 border-blue-900 clickable-card p-4" style="margin-bottom:0;" onclick="openDrilldown('INC Backlog', 'inc_b', 'cons')">
                     <div class="text-[10px] font-black text-blue-900 uppercase tracking-widest mb-1">Backlog INCs</div>
                     <div class="text-4xl font-black text-slate-700">${i.backlog || 0}</div>
@@ -6383,6 +6401,11 @@
                     <div class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:${C.INFO};">Global Backlog</div>
                     <div class="text-4xl font-black" style="color:${C.INFO};">${globalBacklog}</div>
                     ${comp ? `<div class="mt-2 pt-2 border-t border-slate-100 text-[9px] font-bold text-blue-600 uppercase">Today: ${comp.backlog}</div>` : `<div class="text-[9px] text-slate-400 mt-2 uppercase">INC + REQ + UAM</div>`}
+                </div>
+                <div class="report-card text-center border-t-4 border-red-500 clickable-card p-4" style="margin-bottom:0; background:linear-gradient(135deg,#fff1f2,#fff);" onclick="openDrilldown('Global Unassigned Tickets', 'all_unassigned', 'cons')">
+                    <div class="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Unassigned</div>
+                    <div class="text-4xl font-black text-red-700">${globalUnassigned}</div>
+                    <div class="text-[9px] text-slate-400 mt-2 uppercase">Awaiting attribution</div>
                 </div>
             </div>
 
