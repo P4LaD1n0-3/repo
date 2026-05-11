@@ -7,6 +7,7 @@ import sqlite3
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from critical_sla_logic import analyze_critical_slas, format_email_body
 
 app = Flask(__name__)
 CORS(app)  # Allow requests from local file:// or browser
@@ -16,49 +17,77 @@ IS_WINDOWS = platform.system() == "Windows"
 IS_MAC = platform.system() == "Darwin"
 
 def send_outlook_windows(to, cc, subject, html_body, screenshot_base64=None):
+    """
+    Envia e-mail de forma silenciosa no Windows via Outlook COM.
+    Segue o modelo robusto solicitado pelo usuário.
+    """
     import win32com.client
     try:
+        # Tratamento de segurança para os parâmetros
+        safe_to = str(to) if to else ""
+        safe_cc = str(cc) if cc else ""
+        safe_subject = str(subject) if subject else "Relatório Dashboard - " + datetime.now().strftime('%d/%m/%Y')
+        
+        print(f"--- Preparando envio de E-mail Silencioso via Outlook (Windows) ---")
         outlook = win32com.client.Dispatch("outlook.application")
         mail = outlook.CreateItem(0)
-        mail.To = to
-        mail.CC = cc
-        mail.Subject = subject
-        mail.HTMLBody = html_body
         
+        if safe_to:
+            mail.To = safe_to
+        else:
+            print("⚠️ Aviso: Destinatário vazio. O envio pode falhar.")
+            
+        mail.Subject = safe_subject
+        mail.HTMLBody = html_body
+        mail.Importance = 2 # Normal
+        
+        if safe_cc:
+            mail.CC = safe_cc
+            
         # Handle Screenshot Attachment
         if screenshot_base64:
-            # Save temporary file
             temp_path = os.path.join(os.getcwd(), "temp_screenshot_mail.png")
-            img_data = base64.b64decode(screenshot_base64.split(",")[1])
-            with open(temp_path, "wb") as f:
-                f.write(img_data)
-            
-            # Add attachment
-            mail.Attachments.Add(os.path.abspath(temp_path))
-            # Delete temp file after some time or just overwrite next time
-            # os.remove(temp_path) # wait until send?
+            try:
+                img_data = base64.b64decode(screenshot_base64.split(",")[1])
+                with open(temp_path, "wb") as f:
+                    f.write(img_data)
+                mail.Attachments.Add(os.path.abspath(temp_path))
+            except Exception as e_img:
+                print(f"⚠️ Erro ao anexar screenshot: {e_img}")
 
-        mail.Display() # Open the window for the user
-        # mail.Send()  # Or use mail.Send() for immediate background send
-        return True, "E-mail preparado no Outlook (Windows)."
+        # DISPARO SILENCIOSO
+        mail.Send()
+        print(f"✅ E-mail enviado com sucesso para {safe_to}!")
+        return True, f"E-mail enviado silenciosamente via Outlook (Windows) para {safe_to}."
     except Exception as e:
+        print(f"❌ Erro crítico ao enviar e-mail (Windows): {e}")
         return False, str(e)
 
 def send_outlook_mac(to, cc, subject, html_body):
-    """Fallback for Mac using AppleScript to control Outlook."""
+    """
+    Envia e-mail de forma silenciosa no Mac via AppleScript.
+    """
     try:
-        # Simple AppleScript to create a draft in Outlook for Mac
-        # Note: HTML via AppleScript is limited, usually plain text or rich text conversion
+        safe_to = str(to) if to else ""
+        safe_cc = str(cc) if cc else ""
+        
+        # AppleScript para envio silencioso (usando 'send' em vez de 'open')
         as_script = f'''
         tell application "Microsoft Outlook"
             set newMessage to make new outgoing message with properties {{subject:"{subject}", content:"{html_body}"}}
-            make new recipient at newMessage with properties {{email address:{{address:"{to}"}}}}
-            open newMessage
-        end tell
+            make new recipient at newMessage with properties {{email address:{{address:"{safe_to}"}}}}
         '''
+        
+        if safe_cc:
+            as_script += f'\n            make new recipient at newMessage with properties {{email address:{{address:"{safe_cc}"}}, type:cc recipient}}'
+            
+        as_script += '\n            send newMessage\n        end tell'
+        
         subprocess.run(['osascript', '-e', as_script], check=True)
-        return True, "Draft criado no Outlook for Mac (Nota: HTML limitado em AppleScript)."
+        print(f"✅ E-mail enviado com sucesso (Mac) para {safe_to}!")
+        return True, f"E-mail enviado silenciosamente via Outlook (Mac) para {safe_to}."
     except Exception as e:
+        print(f"❌ Erro crítico ao enviar e-mail (Mac): {e}")
         return False, str(e)
 
 @app.route('/status', methods=['GET'])
@@ -143,7 +172,89 @@ def send_email():
 
     return jsonify({"success": success, "message": msg})
 
+@app.route('/analyze-sla', methods=['POST'])
+def analyze_sla_endpoint():
+    data = request.json or {}
+    config = {
+        'sla_incs': int(data.get('slaIncs', 7)),
+        'sla_reqs': int(data.get('slaReqs', 3)),
+        'sla_ptask': int(data.get('slaPtask', 3)),
+        'sla_rca': int(data.get('slaRca', 5))
+    }
+    
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    inc_path = os.path.join(base_dir, "incident.xlsx")
+    task_path = os.path.join(base_dir, "sc_task.xlsx")
+    
+    # 1. Analyze
+    analysis_results = analyze_critical_slas(inc_path, task_path, config)
+    
+    # 2. Send Emails & Log
+    dispatched = []
+    
+    # Get DB path
+    rpa_dir = os.path.join(os.path.dirname(base_dir), "RPA")
+    db_path = os.path.join(rpa_dir, "tickets_processados.db")
+    if not os.path.exists(rpa_dir): os.makedirs(rpa_dir)
+
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sla_dispatches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                analyst TEXT,
+                tickets TEXT,
+                email_status TEXT,
+                sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        for analyst, tickets in analysis_results.items():
+            subject = f"ALERTA: Chamados Críticos - SLA Próximo do Limite"
+            body = format_email_body(analyst, tickets)
+            
+            # For this automation, we might want a default domain or lookup
+            # Let's assume analyst name is usable or needs a suffix
+            to_email = f"{analyst.replace(' ', '.').lower()}@empresa.com"
+            
+            # Send using existing logic
+            if IS_WINDOWS:
+                success, msg = send_outlook_windows(to_email, "", subject, body)
+            elif IS_MAC:
+                success, msg = send_outlook_mac(to_email, "", subject, body)
+            else:
+                success, msg = False, "OS Not Supported"
+            
+            # Log
+            cursor.execute(
+                "INSERT INTO sla_dispatches (analyst, tickets, email_status) VALUES (?, ?, ?)",
+                (analyst, json.dumps(tickets), "Success" if success else f"Error: {msg}")
+            )
+            dispatched.append({"analyst": analyst, "tickets_count": len(tickets), "status": "Sent" if success else "Failed"})
+    
+    return jsonify({"status": "success", "dispatched": dispatched})
+
+@app.route('/sla-logs', methods=['GET'])
+def get_sla_logs():
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        rpa_dir = os.path.join(os.path.dirname(base_dir), "RPA")
+        db_path = os.path.join(rpa_dir, "tickets_processados.db")
+        
+        if not os.path.exists(db_path):
+            return jsonify({"status": "success", "data": []})
+
+        with sqlite3.connect(db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM sla_dispatches ORDER BY sent_at DESC LIMIT 50")
+            rows = cursor.fetchall()
+            data = [dict(row) for row in rows]
+            return jsonify({"status": "success", "data": data})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
 if __name__ == "__main__":
-    print(f"🚀 Dashboard Email Bridge rodando em http://localhost:5000")
+    print(f"🚀 Dashboard Email Bridge rodando em http://localhost:5001")
     print(f"Detected OS: {platform.system()}")
-    app.run(port=5000, debug=False)
+    app.run(port=5001, debug=False)
