@@ -71,20 +71,23 @@ def send_outlook_mac(to, cc, subject, html_body):
         safe_to = str(to) if to else ""
         safe_cc = str(cc) if cc else ""
         
-        # AppleScript para envio silencioso (usando 'send' em vez de 'open')
+        # AppleScript para envio silencioso usando 'html content' para renderizar formatação
+        # Importante: Protegemos aspas duplas no corpo HTML
+        escaped_body = html_body.replace('"', '\\"')
+        
         as_script = f'''
         tell application "Microsoft Outlook"
-            set newMessage to make new outgoing message with properties {{subject:"{subject}", content:"{html_body}"}}
+            set newMessage to make new outgoing message with properties {{subject:"{subject}", html content:"{escaped_body}"}}
             make new recipient at newMessage with properties {{email address:{{address:"{safe_to}"}}}}
         '''
         
         if safe_cc:
             as_script += f'\n            make new recipient at newMessage with properties {{email address:{{address:"{safe_cc}"}}, type:cc recipient}}'
-            
+        
         as_script += '\n            send newMessage\n        end tell'
         
         subprocess.run(['osascript', '-e', as_script], check=True)
-        print(f"✅ E-mail enviado com sucesso (Mac) para {safe_to}!")
+        print(f"✅ E-mail HTML enviado com sucesso (Mac) para {safe_to}!")
         return True, f"E-mail enviado silenciosamente via Outlook (Mac) para {safe_to}."
     except Exception as e:
         print(f"❌ Erro crítico ao enviar e-mail (Mac): {e}")
@@ -217,8 +220,10 @@ def analyze_sla_endpoint():
             body = format_email_body(analyst_name, tickets)
             
             # Use email from column, or fallback if empty
-            to_email = analyst_email
-            if not to_email or to_email == 'nan':
+            to_email = str(analyst_email).strip()
+            if not to_email or to_email.lower() == 'nan' or '@' not in to_email:
+                # Log do aviso de e-mail não encontrado na planilha
+                print(f"⚠️ Aviso: E-mail para '{analyst_name}' não encontrado ou inválido na coluna 'Email'. Usando fallback.")
                 to_email = f"{analyst_name.replace(' ', '.').lower()}@empresa.com"
             
             # Send using existing logic
