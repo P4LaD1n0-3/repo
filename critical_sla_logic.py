@@ -13,7 +13,7 @@ def analyze_critical_slas(incident_path, sc_task_path, config=None):
         }
     
     now = datetime.now()
-    results = {} # analyst -> [tickets]
+    results = {} # analyst_name -> { 'email': str, 'tickets': [] }
     
     # Process Incidents
     if os.path.exists(incident_path):
@@ -50,6 +50,7 @@ def process_df(df, sla_days, type_label, results, now):
             continue
             
         analyst = str(row['Assigned to']).strip()
+        analyst_email = str(row.get('Email', '')).strip()
         opened_date = row['Opened']
         
         # Calculate SLA
@@ -70,15 +71,11 @@ def process_df(df, sla_days, type_label, results, now):
             reason = f"SLA at {sla_pct:.1f}%"
         
         # Rule 2: Weekend breach
-        # If today is Friday (4), or if remaining hours <= time until Monday morning
-        # Let's simplify: if remaining_hours < 72 and it's Friday/Saturday/Sunday
         weekday = now.weekday()
         if not is_critical:
-            # Time until Monday 8 AM
             days_to_monday = (7 - weekday) % 7
-            if days_to_monday == 0: days_to_monday = 7 # If Monday, look at next Monday? No, usually dispatches happen on Friday.
+            if days_to_monday == 0: days_to_monday = 7
             
-            # If it breaches within the next 72 hours and today is Friday (4)
             if weekday == 4 and remaining_hours < 72:
                 is_critical = True
                 reason = "Will breach over the weekend"
@@ -88,9 +85,16 @@ def process_df(df, sla_days, type_label, results, now):
 
         if is_critical:
             if analyst not in results:
-                results[analyst] = []
+                results[analyst] = {
+                    'email': analyst_email,
+                    'tickets': []
+                }
             
-            results[analyst].append({
+            # Update email if it was empty and now we found it
+            if not results[analyst]['email'] and analyst_email:
+                results[analyst]['email'] = analyst_email
+
+            results[analyst]['tickets'].append({
                 'number': row['Number'],
                 'type': type_label,
                 'subject': row.get('Short description', 'No description'),
@@ -102,24 +106,27 @@ def process_df(df, sla_days, type_label, results, now):
             })
 
 def format_email_body(analyst, tickets):
-    body = f"<h2>Olá {analyst},</h2>"
+    # Fix encoding with meta tag
+    body = "<html><head><meta charset='UTF-8'></head><body>"
+    body += f"<h2>Olá {analyst},</h2>"
     body += "<p>Identificamos chamados críticos sob sua responsabilidade que precisam de atenção imediata:</p>"
-    body += "<table border='1' style='border-collapse: collapse; width: 100%;'>"
+    body += "<table border='1' style='border-collapse: collapse; width: 100%; font-family: sans-serif;'>"
     body += "<tr style='background-color: #f2f2f2;'><th>Ticket</th><th>Assunto</th><th>SLA %</th><th>Restante (h)</th><th>Motivo</th></tr>"
     
     for t in tickets:
-        color = "red" if t['sla_pct'] >= 100 else "orange"
+        color = "red" if t['sla_pct'] >= 100 else "#f59e0b"
         body += f"<tr>"
-        body += f"<td>{t['number']}</td>"
-        body += f"<td>{t['subject']}</td>"
-        body += f"<td style='color: {color}; font-weight: bold;'>{t['sla_pct']}%</td>"
-        body += f"<td>{t['remaining_hours']}h</td>"
-        body += f"<td>{t['reason']}</td>"
+        body += f"<td style='padding: 8px;'>{t['number']}</td>"
+        body += f"<td style='padding: 8px;'>{t['subject']}</td>"
+        body += f"<td style='padding: 8px; color: {color}; font-weight: bold;'>{t['sla_pct']}%</td>"
+        body += f"<td style='padding: 8px;'>{t['remaining_hours']}h</td>"
+        body += f"<td style='padding: 8px;'>{t['reason']}</td>"
         body += "</tr>"
     
     body += "</table>"
     body += "<p>Por favor, verifique o status desses chamados o quanto antes.</p>"
     body += "<br><p><i>Atenciosamente, ITSM Dashboard Automático</i></p>"
+    body += "</body></html>"
     return body
 
 if __name__ == "__main__":
