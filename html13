@@ -2892,30 +2892,15 @@
         };
 
         const renderSlaRemaining = (ms, pctNum) => {
-            const isBreached = ms < 0;
-            const absMs = Math.abs(ms);
-            let totalMins = Math.floor(absMs / 60000);
-            let d = Math.floor(totalMins / 1440);
-            let h = Math.floor((totalMins % 1440) / 60);
-            let m = totalMins % 60;
-            
-            const sign = isBreached ? '-' : '+';
-            const color = isBreached ? '#ef4444' : '#10b981';
-            const bgColor = isBreached ? '#fef2f2' : '#f0fdf4';
-            const borderColor = isBreached ? '#fee2e2' : '#dcfce7';
-            
             const safePct = isNaN(pctNum) ? 0 : Math.min(pctNum, 100);
             const pctText = isNaN(pctNum) ? '0%' : pctNum.toFixed(1).replace('.', ',') + '%';
             const pctColor = pctNum > 100 ? '#ef4444' : (pctNum > 75 ? '#f59e0b' : '#10b981');
 
             return `
-            <div class="flex flex-col items-center justify-center p-2 rounded-xl border shadow-sm bg-white" style="border-color: ${borderColor}; min-width: 100px;">
-                <div style="font-size:13px; font-weight:900; color:${color}; letter-spacing:-0.2px; line-height:1;">${sign}${d}d ${h}h ${m}m</div>
-                <div style="font-size:7px; text-transform:uppercase; font-weight:800; color:${color}; opacity:0.8; margin-top:2px; margin-bottom:5px;">${isBreached ? 'Breached' : 'Remaining'}</div>
-                
-                <div class="w-full bg-slate-100 rounded-full h-3 relative overflow-hidden border border-slate-200">
+            <div class="w-full flex items-center justify-center p-1" style="min-width: 100px;">
+                <div class="w-full bg-slate-100 rounded-full h-4 relative overflow-hidden border border-slate-200 shadow-inner">
                     <div class="h-full absolute left-0 top-0 bottom-0 transition-all" style="width: ${safePct}%; background-color: ${pctColor} !important;"></div>
-                    <div class="absolute inset-0 flex items-center justify-center text-[7.5px] font-black z-10" style="color: ${safePct > 50 ? '#ffffff' : '#475569'}; text-shadow: ${safePct > 50 ? '0 0 2px rgba(0,0,0,0.3)' : 'none'};">${pctText}</div>
+                    <div class="absolute inset-0 flex items-center justify-center text-[8.5px] font-black z-10" style="color: ${safePct > 50 ? '#ffffff' : '#475569'}; text-shadow: ${safePct > 50 ? '0 0 2px rgba(0,0,0,0.3)' : 'none'};">${pctText}</div>
                 </div>
             </div>`;
         };
@@ -5516,7 +5501,7 @@
                     <td data-label="Opened" class="text-center text-slate-500 text-[11px]">${renderDateHtml(t.opStr || '—')}</td>
                     <td data-label="Closed" class="text-center text-slate-500 text-[11px]">${renderDateHtml(t.clStr === 'Open' ? '—' : (t.clStr || '—'))}</td>
                     ${isInc ? `<td data-label="PRB" class="text-center" style="font-weight:${(t.prb && t.prb !== 'N/A') ? 'bold' : 'normal'}; color:${(t.prb && t.prb !== 'N/A') ? 'var(--primary-dark)' : '#94a3b8'}">${t.prb || 'N/A'}</td>` : ''}
-                    <td data-label="SLA Tracking" class="text-right">
+                    <td data-label="SLA %" class="text-right">
                         ${renderSlaRemaining(t.slaRemainingMs, t.pctSlaNum)}
                         ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div class="text-[10px] font-bold mt-1 ${Number(t.idle) > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d idle</div>` : `<div class="text-[10px] text-slate-400 mt-1"><i class="fas fa-user-clock"></i> N/A</div>`}
                     </td>
@@ -5550,7 +5535,7 @@
                             ${createTh("Opened", "8%")}
                             ${createTh("Closed", "8%")}
                             ${isInc ? createTh("PRB", "8%") : ''}
-                            ${createTh("SLA Tracking", "12%", "right")}
+                            ${createTh("SLA %", "12%", "right")}
                         </tr></thead>
                         <tbody>${rows}</tbody>
                     </table>
@@ -5796,7 +5781,7 @@
                         <td data-label="Opened" class="text-center">${renderDateHtml(t.opStr || '—')}</td>
                         <td data-label="Closed" class="text-center">${renderDateHtml(t.clStr === 'Open' ? '—' : (t.clStr || '—'))}</td>
                         <td data-label="Aging" class="text-center font-bold">${renderAgingHtml(t.diffMs)}</td>
-                        <td data-label="SLA Tracking" class="text-center">${renderSlaRemaining(t.slaRemainingMs, t.pctSlaNum)}</td>
+                        <td data-label="SLA %" class="text-center">${renderSlaRemaining(t.slaRemainingMs, t.pctSlaNum)}</td>
                         <td data-label="Status SLA" class="text-center font-black ${stColor} uppercase text-[10px]">${t.stSla}</td>
                     </tr>`;
                 }).join('');
@@ -5822,7 +5807,7 @@
                                     ${createTh("Opened", "8%")}
                                     ${createTh("Closed", "8%")}
                                     ${createTh("Aging", "6%")}
-                                    ${createTh("SLA Tracking (Time & %)", "12%")}
+                                    ${createTh("SLA %", "12%")}
                                     ${createTh("Status", "auto")}
                                 </tr></thead>
                                 <tbody>${rows}</tbody>
@@ -5959,7 +5944,7 @@
                 <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle mr-2"></i> CRITICAL INCIDENTS WITHOUT PRB (${d.noPrb.length})</div>
                 <div class="st-dataframe-container"><table class="st-table">
                 <thead><tr>
-                    ${createTh("Ticket", "12%")} ${createTh("Subject / Info", "auto", "left")} ${createTh("Analyst", "18%")} ${createTh("SLA Tracking", "15%", "right")}
+                    ${createTh("Ticket", "12%")} ${createTh("Subject / Info", "auto", "left")} ${createTh("Analyst", "18%")} ${createTh("SLA %", "15%", "right")}
                 </tr></thead>
                 <tbody>${d.noPrb.map(t => `
                     <tr class="ticket-row" ${buildDataAttrs(t)}>
@@ -5973,7 +5958,7 @@
                             <div class="text-expandable text-[10px] text-slate-500"><strong class="text-slate-600">Info:</strong> ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>
                         </td>
                         <td data-label="Analyst">${t.as}</td>
-                        <td data-label="SLA Tracking" style="text-align: right;">
+                        <td data-label="SLA %" style="text-align: right;">
                             ${renderSlaRemaining(t.slaRemainingMs, t.pctSlaNum)}
                             ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${Number(t.idle) > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d idle</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
                         </td>
@@ -6069,7 +6054,7 @@
                         <thead><tr>
                             ${createTh("Ticket", "10%")} ${createTh("Subject / Info (Expandable)", "auto", "left")} ${createTh("Requester", "15%")}
                             ${createTh("Analyst", "12%")} ${createTh("Group", "12%")} ${createTh("Status", "10%")}
-                            ${createTh("PRB", "8%")} ${createTh("SLA Tracking", "15%", "right")}
+                            ${createTh("PRB", "8%")} ${createTh("SLA %", "15%", "right")}
                         </tr></thead>
                         <tbody>
                             ${d.crits.length ? d.crits.map(t => `
@@ -6089,7 +6074,7 @@
                                     ${t.reason ? `<span class="block text-[9px] text-slate-500 mt-1 truncate max-w-[100px] mx-auto" title="${t.reason}">${t.reason}</span>` : ''}
                                 </td>
                                 <td data-label="PRB" style="font-weight:${t.prb !== 'N/A' ? 'bold' : 'normal'}; color:${t.prb !== 'N/A' ? C.PRI_D : C.GRY}">${t.prb}</td>
-                                <td data-label="SLA Tracking" style="text-align:right;">
+                                <td data-label="SLA %" style="text-align:right;">
                                     ${renderSlaRemaining(t.slaRemainingMs, t.pctSlaNum)}
                                     ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${Number(t.idle) > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d idle</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
                                 </td>
