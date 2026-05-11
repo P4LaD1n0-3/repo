@@ -209,13 +209,17 @@ def analyze_sla_endpoint():
             )
         """)
         
-        for analyst, tickets in analysis_results.items():
-            subject = f"ALERTA: Chamados Críticos - SLA Próximo do Limite"
-            body = format_email_body(analyst, tickets)
+        for analyst_name, data in analysis_results.items():
+            tickets = data['tickets']
+            analyst_email = data['email']
             
-            # For this automation, we might want a default domain or lookup
-            # Let's assume analyst name is usable or needs a suffix
-            to_email = f"{analyst.replace(' ', '.').lower()}@empresa.com"
+            subject = f"ALERTA: Chamados Críticos - SLA Próximo do Limite"
+            body = format_email_body(analyst_name, tickets)
+            
+            # Use email from column, or fallback if empty
+            to_email = analyst_email
+            if not to_email or to_email == 'nan':
+                to_email = f"{analyst_name.replace(' ', '.').lower()}@empresa.com"
             
             # Send using existing logic
             if IS_WINDOWS:
@@ -228,9 +232,9 @@ def analyze_sla_endpoint():
             # Log
             cursor.execute(
                 "INSERT INTO sla_dispatches (analyst, tickets, email_status) VALUES (?, ?, ?)",
-                (analyst, json.dumps(tickets), "Success" if success else f"Error: {msg}")
+                (analyst_name, json.dumps(tickets), "Success" if success else f"Error: {msg}")
             )
-            dispatched.append({"analyst": analyst, "tickets_count": len(tickets), "status": "Sent" if success else "Failed"})
+            dispatched.append({"analyst": analyst_name, "tickets_count": len(tickets), "status": "Sent" if success else "Failed"})
     
     return jsonify({"status": "success", "dispatched": dispatched})
 
