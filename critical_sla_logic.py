@@ -50,7 +50,10 @@ def process_df(df, sla_days, type_label, results, now):
             continue
             
         analyst = str(row['Assigned to']).strip()
-        analyst_email = str(row.get('Email', '')).strip()
+        
+        # Procura coluna de Email de forma robusta (case-insensitive)
+        email_col = next((c for c in df.columns if str(c).lower() == 'email'), None)
+        analyst_email = str(row[email_col]).strip() if email_col and not pd.isna(row[email_col]) else ""
         opened_date = row['Opened']
         
         # Calculate SLA
@@ -106,21 +109,35 @@ def process_df(df, sla_days, type_label, results, now):
             })
 
 def format_email_body(analyst, tickets):
-    # Fix encoding with meta tag
-    body = "<html><head><meta charset='UTF-8'></head><body>"
+    # Fix encoding with meta tag and explicit style
+    body = """
+    <html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th { background-color: #f8f9fa; color: #444; padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
+            td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
+            .critical { color: #dc3545; font-weight: bold; }
+            .warning { color: #fd7e14; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+    """
     body += f"<h2>Olá {analyst},</h2>"
     body += "<p>Identificamos chamados críticos sob sua responsabilidade que precisam de atenção imediata:</p>"
     body += "<table border='1' style='border-collapse: collapse; width: 100%; font-family: sans-serif;'>"
     body += "<tr style='background-color: #f2f2f2;'><th>Ticket</th><th>Assunto</th><th>SLA %</th><th>Restante (h)</th><th>Motivo</th></tr>"
     
     for t in tickets:
-        color = "red" if t['sla_pct'] >= 100 else "#f59e0b"
+        sla_class = "critical" if t['sla_pct'] >= 100 else "warning"
         body += f"<tr>"
-        body += f"<td style='padding: 8px;'>{t['number']}</td>"
-        body += f"<td style='padding: 8px;'>{t['subject']}</td>"
-        body += f"<td style='padding: 8px; color: {color}; font-weight: bold;'>{t['sla_pct']}%</td>"
-        body += f"<td style='padding: 8px;'>{t['remaining_hours']}h</td>"
-        body += f"<td style='padding: 8px;'>{t['reason']}</td>"
+        body += f"<td>{t['number']}</td>"
+        body += f"<td>{t['subject']}</td>"
+        body += f"<td class='{sla_class}'>{t['sla_pct']}%</td>"
+        body += f"<td>{t['remaining_hours']}h</td>"
+        body += f"<td>{t['reason']}</td>"
         body += "</tr>"
     
     body += "</table>"
