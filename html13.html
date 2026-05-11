@@ -2002,6 +2002,9 @@
                 <button class="tab-btn" onclick="switchTab('tab-analysts', this)"
                     style="color:#4c1d95; font-weight:700;"><i class="fas fa-user-tie mr-1"></i>
                     Analysts</button>
+                <button class="tab-btn" onclick="switchTab('tab-sla-dispatches', this)"
+                    style="color: #c2410c; font-weight: 700;"><i class="fas fa-paper-plane mr-1"></i>
+                    SLA Dispatches</button>
                 <button class="tab-btn" onclick="switchTab('tab-todo', this)"
                     style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i
                         class="fas fa-tasks mr-1"></i> TODO</button>
@@ -2044,6 +2047,7 @@
                     <div id="tab-rpa" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-search" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-analysts" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-sla-dispatches" class="animate-fade hidden-st tab-pane"></div>
 
                     <div id="tab-todo" class="animate-fade hidden-st tab-pane">
                         <div class="report-section-title" style="background-color: var(--primary-dark);"><i
@@ -2154,18 +2158,19 @@
                                 <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Idle Time</div>
                                 <div id="modal-idle" class="text-lg font-black text-slate-700">...</div>
                             </div>
-                            <div
-                                class="col-span-2 bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase mb-2">SLA Progress</div>
                                 <div
-                                    class="w-full bg-slate-100 rounded-full h-3 relative overflow-hidden border border-slate-300/50">
-                                    <div id="modal-sla-bar" class="h-full absolute left-0 top-0 bottom-0 transition-all"
-                                        style="width: 0%; background-color: #10b981 !important;"></div>
-                                    <div id="modal-sla-text-modal"
-                                        class="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold z-10"
-                                        style="text-shadow: 0 0 2px rgba(0,0,0,0.8);">0%</div>
+                                    class="col-span-2 bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
+                                    <div class="text-[10px] font-bold text-slate-400 uppercase mb-2">SLA Status & Remaining</div>
+                                    <div id="modal-sla-remaining-box" class="mb-2"></div>
+                                    <div
+                                        class="w-full bg-slate-100 rounded-full h-3 relative overflow-hidden border border-slate-300/50">
+                                        <div id="modal-sla-bar" class="h-full absolute left-0 top-0 bottom-0 transition-all"
+                                            style="width: 0%; background-color: #10b981 !important;"></div>
+                                        <div id="modal-sla-text-modal"
+                                            class="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold z-10"
+                                            style="text-shadow: 0 0 2px rgba(0,0,0,0.8);">0%</div>
+                                    </div>
                                 </div>
-                            </div>
                         </div>
 
                         <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-slate-200">
@@ -2871,14 +2876,48 @@
         };
 
         const renderAgingHtml = ms => {
-            if (ms < 0) ms = 0;
-            let totalMins = Math.floor(ms / 60000);
+            const isNegative = ms < 0;
+            const absMs = Math.abs(ms);
+            let totalMins = Math.floor(absMs / 60000);
             let d = Math.floor(totalMins / 1440);
             let h = Math.floor((totalMins % 1440) / 60);
             let m = totalMins % 60;
-            if (d > 0) return `${d}d<div style="font-size:10px; font-weight:800; margin-top:4px; color:#ef4444;">${h}h ${m}m</div>`;
-            if (h > 0) return `<div style="font-size:10px; font-weight:800; margin-top:4px; color:#ef4444;">${h}h ${m}m</div>`;
-            return `<div style="font-size:10px; font-weight:800; margin-top:4px; color:#ef4444;">${m}m</div>`;
+            
+            const color = isNegative ? '#ef4444' : '#64748b';
+            const sign = isNegative ? '-' : '';
+            
+            if (d > 0) return `<div class="flex flex-col items-center"><span>${sign}${d}d</span><span style="font-size:9px; font-weight:800; color:${color};">${h}h ${m}m</span></div>`;
+            if (h > 0) return `<div style="font-size:10px; font-weight:800; color:${color};">${sign}${h}h ${m}m</div>`;
+            return `<div style="font-size:10px; font-weight:800; color:${color};">${sign}${m}m</div>`;
+        };
+
+        const renderSlaRemaining = (ms, pctNum) => {
+            const isBreached = ms < 0;
+            const absMs = Math.abs(ms);
+            let totalMins = Math.floor(absMs / 60000);
+            let d = Math.floor(totalMins / 1440);
+            let h = Math.floor((totalMins % 1440) / 60);
+            let m = totalMins % 60;
+            
+            const sign = isBreached ? '-' : '+';
+            const color = isBreached ? '#ef4444' : '#10b981';
+            const bgColor = isBreached ? '#fef2f2' : '#f0fdf4';
+            const borderColor = isBreached ? '#fee2e2' : '#dcfce7';
+            
+            const safePct = isNaN(pctNum) ? 0 : Math.min(pctNum, 100);
+            const pctText = isNaN(pctNum) ? '0%' : pctNum.toFixed(1).replace('.', ',') + '%';
+            const pctColor = pctNum > 100 ? '#ef4444' : (pctNum > 75 ? '#f59e0b' : '#10b981');
+
+            return `
+            <div class="flex flex-col items-center justify-center p-2 rounded-xl border shadow-sm bg-white" style="border-color: ${borderColor}; min-width: 100px;">
+                <div style="font-size:13px; font-weight:900; color:${color}; letter-spacing:-0.2px; line-height:1;">${sign}${d}d ${h}h ${m}m</div>
+                <div style="font-size:7px; text-transform:uppercase; font-weight:800; color:${color}; opacity:0.8; margin-top:2px; margin-bottom:5px;">${isBreached ? 'Breached' : 'Remaining'}</div>
+                
+                <div class="w-full bg-slate-100 rounded-full h-3 relative overflow-hidden border border-slate-200">
+                    <div class="h-full absolute left-0 top-0 bottom-0 transition-all" style="width: ${safePct}%; background-color: ${pctColor} !important;"></div>
+                    <div class="absolute inset-0 flex items-center justify-center text-[7.5px] font-black z-10" style="color: ${safePct > 50 ? '#ffffff' : '#475569'}; text-shadow: ${safePct > 50 ? '0 0 2px rgba(0,0,0,0.3)' : 'none'};">${pctText}</div>
+                </div>
+            </div>`;
         };
 
         function removeAccents(str) { return str.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
@@ -4284,7 +4323,7 @@
                     </div>
                     <div class="text-center border-r border-slate-200" style="padding:4px 6px;">
                         <div class="text-[8px] font-black text-slate-400 uppercase leading-none mb-1">Aging (Calendar Days)</div>
-                        <div class="text-[11px] font-black text-red-600">${pAge}</div>
+                        <div class="text-[11px] font-black text-red-600">${renderAgingHtml(g.age * 86400000)}</div>
                     </div>
                     <div class="text-center" style="padding:4px 6px;">
                         <div class="text-[8px] font-black text-slate-400 uppercase leading-none mb-1">Impact (Incidents)</div>
@@ -4512,17 +4551,13 @@
             let isCurrentMonth = (new Date().getFullYear() == refY && (new Date().getMonth() + 1) == refM);
             let refDate = isCurrentMonth ? new Date() : new Date(refY, refM, 0, 23, 59, 59);
 
-            let age = Math.floor((opD && clD) ? ((clD - opD) / 86400000) : (opD ? ((new Date() - opD) / 86400000) : 0));
-            if (age === 0 && ticketData['age'] !== undefined) age = ticketData['age'];
-            if (age === 0 && !opD && window.PrbGroupsCache && window.PrbGroupsCache[cleanTk] && window.PrbGroupsCache[cleanTk].age) {
-                age = window.PrbGroupsCache[cleanTk].age;
-            }
-            if (age < 0) age = 0;
+            let preciseDiffMs = (opD) ? (clD ? (clD - opD) : (refDate - opD)) : 0;
+            if (preciseDiffMs < 0) preciseDiffMs = 0;
+            let ageDays = preciseDiffMs / 86400000;
+
+            document.getElementById('modal-age').innerHTML = renderAgingHtml(preciseDiffMs);
 
             let idle = (!clD || clD > refDate) ? getDaysSilent(ticketData, refDate, asg, opD) : '-';
-            document.getElementById('modal-age').innerText = age + ' days';
-            document.getElementById('modal-age').style.color = age > 10 ? '#ef4444' : '#334155';
-
             let idleEl = document.getElementById('modal-idle');
             if (idle !== '-' && !isNaN(Number(idle))) {
                 idleEl.innerHTML = `${idle} days <i class="fas fa-user-clock text-sm ml-1"></i>`;
@@ -4533,17 +4568,18 @@
             }
 
             let slaConfig = tType === 'INC' ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
-            let pctSla = Math.round((age / slaConfig) * 100);
+            let slaRemMs = (slaConfig * 86400000) - preciseDiffMs;
+            let pctSla = (ageDays / slaConfig) * 100;
+            
             let slaBar = document.getElementById('modal-sla-bar');
             let slaText = document.getElementById('modal-sla-text-modal');
             let safeP = isNaN(pctSla) ? 0 : Math.min(pctSla, 100);
             let slaColor = pctSla > 100 ? '#ef4444' : (pctSla > 75 ? '#f59e0b' : '#10b981');
-            if (isNaN(pctSla)) slaColor = '#94a3b8';
 
+            document.getElementById('modal-sla-remaining-box').innerHTML = renderSlaRemaining(slaRemMs, pctSla);
             slaBar.style.width = safeP + '%';
             slaBar.style.setProperty('background-color', slaColor, 'important');
-            slaText.innerText = isNaN(pctSla) ? '0%' : pctSla + '%';
-            slaText.style.color = '#ffffff';
+            slaText.innerText = isNaN(pctSla) ? '0%' : pctSla.toFixed(1).replace('.', ',') + '%';
 
             let regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(([^)]+)\)/gm;
             let rawC = "";
@@ -5060,7 +5096,8 @@
             let longDesc = String(getCol(r, ['Description', 'description', 'Descrição Completa', 'Descrição', 'Additional details', 'additional_details']) || '').replace(/"/g, '&quot;');
             let reasonVal = String(getCol(r, ['Reason', 'reason', 'REASON', 'Motivo']) || '').toUpperCase();
 
-            let pctSla = slaDays ? ((age / slaDays) * 100).toFixed(2).replace('.', ',') : '0,00';
+            let pctSlaNum = slaDays ? ((age / slaDays) * 100) : 0;
+            let pctSla = pctSlaNum.toFixed(2).replace('.', ',');
 
             return {
                 tk: tk,
@@ -5072,12 +5109,15 @@
                 st: (clOrig ? stOrig : st).toUpperCase(),
                 reason: reasonVal,
                 age: age,
+                ageMs: age * 86400000,
+                slaRemainingMs: slaDays ? (slaDays * 86400000 - (age * 86400000)) : 0,
                 opStr: opOrig ? formatExactDate(opOrig) : '—',
                 clStr: clOrig ? formatExactDate(clOrig) : '—',
                 idle: (!clOrig || clOrig > refDateObj) ? getDaysSilent(r, refDateObj, asg, opOrig) : '-',
                 info: infoFinal,
                 prb: prbVal,
-                pctSla: pctSla
+                pctSla: pctSla,
+                pctSlaNum: pctSlaNum
             };
         }
 
@@ -5141,8 +5181,10 @@
                         isRes = true;
                     }
                 }
-                let age = cl ? Math.floor((cl - opOrig) / 86400000) : Math.floor((limitDate - opOrig) / 86400000);
-                if (age < 0) age = 0;
+                let diffMs = cl ? (cl - opOrig) : (limitDate - opOrig);
+                if (diffMs < 0) diffMs = 0;
+                let age = diffMs / 86400000;
+                let ageInt = Math.floor(age);
 
                 // Para indicadores 'Mensais' ou 'Diários' dependendo do modo
                 let passMonth = isFullMonth ? (opOrig.getMonth() === refMonth && opOrig.getFullYear() === refYear) :
@@ -5215,7 +5257,7 @@
 
                     GlobalOpenTickets.push({ tk: tObj.tk, asg: asg });
                     if (asg === 'Unassigned') unassigned++;
-                    bucketsDef.forEach(b => { if (age >= b.min && age <= b.max) { agingBuckets[b.l].count++; agingBuckets[b.l].tks.push(tObj); } });
+                    bucketsDef.forEach(b => { if (ageInt >= b.min && ageInt <= b.max) { agingBuckets[b.l].count++; agingBuckets[b.l].tks.push(tObj); } });
 
                     let hasPrb = tObj.prb !== "N/A";
                     if (age > slaDays) {
@@ -5337,8 +5379,9 @@
                     let linkedTicket = linkedMatch ? (linkedMatch[1].toUpperCase() + linkedMatch[2]) : null;
 
                     // Cálculo preciso para MTTR (sem Math.floor aqui)
-                    let rawDays = cl ? Math.floor((cl - op) / 86400000) : Math.floor((refDateObj - op) / 86400000);
+                    let rawDays = cl ? (cl - op) : (refDateObj - op);
                     if (rawDays < 0) rawDays = 0;
+                    let rawDaysVal = rawDays / 86400000;
 
                     let daysInt = Math.floor(rawDays);
 
@@ -5350,8 +5393,8 @@
 
                     res.total++;
                     if (linkedTicket) res.link++; else res.noLink++;
-                    res.days += rawDays;
-                    if (daysInt > res.max) res.max = daysInt;
+                    res.days += rawDaysVal;
+                    if (rawDaysVal > res.max) res.max = rawDaysVal;
 
                     // Current Month para os cards: Baseado na data de FECHAMENTO (Performance)
                     // Se não tiver data de fechamento, usa a data de abertura como fallback
@@ -5363,8 +5406,8 @@
                     if (isCurrentMonth) {
                         res.monthTotal++;
                         if (linkedTicket) res.monthLink++; else res.monthNoLink++;
-                        res.monthDays += rawDays;
-                        if (daysInt > res.monthMax) res.monthMax = daysInt;
+                        res.monthDays += rawDaysVal;
+                        if (rawDaysVal > res.monthMax) res.monthMax = rawDaysVal;
                     }
 
                     let mStrKey = dateToCompare.getFullYear() + '-' + String(dateToCompare.getMonth() + 1).padStart(2, '0');
@@ -5380,7 +5423,7 @@
 
                     let tObj = {
                         tk: tk, req: reqName, as: asg, gp: gpName, l: linkedTicket || '⚠️ Erro / Não Vinculado',
-                        rea: reason, st: stOrig.toUpperCase(), d: daysInt, age: daysInt, idle: idle, opStr: formatExactDate(op), opS: formatExactDate(op), clStr: cl ? formatExactDate(cl) : '—',
+                        rea: reason, st: stOrig.toUpperCase(), d: rawDaysVal, age: rawDaysVal, ageMs: rawDays, idle: idle, opStr: formatExactDate(op), opS: formatExactDate(op), clStr: cl ? formatExactDate(cl) : '—',
                         desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição']) || '-').replace(/"/g, '&quot;'),
                         info: closeNotes.replace(/"/g, '&quot;') || 'No closure notes recorded.',
                         reason: reason,
@@ -5473,8 +5516,8 @@
                     <td data-label="Opened" class="text-center text-slate-500 text-[11px]">${renderDateHtml(t.opStr || '—')}</td>
                     <td data-label="Closed" class="text-center text-slate-500 text-[11px]">${renderDateHtml(t.clStr === 'Open' ? '—' : (t.clStr || '—'))}</td>
                     ${isInc ? `<td data-label="PRB" class="text-center" style="font-weight:${(t.prb && t.prb !== 'N/A') ? 'bold' : 'normal'}; color:${(t.prb && t.prb !== 'N/A') ? 'var(--primary-dark)' : '#94a3b8'}">${t.prb || 'N/A'}</td>` : ''}
-                    <td data-label="AGING" class="text-right">
-                        <div class="font-bold text-sm ${t.age > (t.slaConfig || 7) ? 'text-red-500' : 'text-slate-700'}">${renderAgingHtml(t.age * 86400000)}</div>
+                    <td data-label="SLA Tracking" class="text-right">
+                        ${renderSlaRemaining(t.slaRemainingMs, t.pctSlaNum)}
                         ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div class="text-[10px] font-bold mt-1 ${Number(t.idle) > 3 ? 'text-red-500' : 'text-green-500'}"><i class="fas fa-user-clock"></i> ${t.idle}d idle</div>` : `<div class="text-[10px] text-slate-400 mt-1"><i class="fas fa-user-clock"></i> N/A</div>`}
                     </td>
                 </tr>`;
@@ -5507,7 +5550,7 @@
                             ${createTh("Opened", "8%")}
                             ${createTh("Closed", "8%")}
                             ${isInc ? createTh("PRB", "8%") : ''}
-                            ${createTh("AGING", "10%", "right")}
+                            ${createTh("SLA Tracking", "12%", "right")}
                         </tr></thead>
                         <tbody>${rows}</tbody>
                     </table>
@@ -5603,7 +5646,7 @@
                 row.push(t.opStr || "-");
                 row.push(t.clStr === 'Open' ? '—' : (t.clStr || "—"));
                 if (isInc) row.push(t.prb || "N/A");
-                row.push(`${t.age}d`);
+                row.push(`${Math.floor(t.age)}d`);
                 return row;
             });
 
@@ -5631,8 +5674,10 @@
                 if (!op || op.getTime() > refDateObj.getTime()) return;
                 let cl = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                 if (cl && cl.getTime() <= refDateObj.getTime()) return;
-                let age = Math.floor((refDateObj - op) / 86400000);
+                let diffMs = refDateObj - op;
+                let age = Math.floor(diffMs / 86400000);
                 if (age < 0) age = 0;
+                let slaRemainingMs = (slaConfig * 86400000) - diffMs;
                 let tk = (type === 'REQ' || type === 'UAM') ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket']) || '-');
                 let desc = String(getCol(r, ['Short description', 'Descrição Curta', 'Item']) || 'No subject').replace(/"/g, '&quot;');
                 let longDesc = String(getCol(r, ['Description', 'description', 'Descrição Completa', 'Descrição', 'Additional details', 'additional_details']) || '').replace(/"/g, '&quot;');
@@ -5650,10 +5695,10 @@
                 let prbVal = (prbRaw && String(prbRaw).trim() !== "" && String(prbRaw).trim() !== "undefined") ? String(prbRaw).trim() : 'N/A';
 
                 let idle = getDaysSilent(r, refDateObj, asg, op);
-                let pctSlaNum = ((age / slaConfig) * 100);
+                let pctSlaNum = ((diffMs / (slaConfig * 86400000)) * 100);
                 let pctSla = pctSlaNum.toFixed(2).replace('.', ',');
-                let stSla = age > slaConfig ? "Breached" : "On Time";
-                openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: formatExactDate(op), clStr: cl ? formatExactDate(cl) : '—', age, pctSla, pctSlaNum, stSla, slaConfig, idle, info: infoFinal, prb: prbVal });
+                let stSla = diffMs > (slaConfig * 86400000) ? "Breached" : "On Time";
+                openTks.push({ tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: formatExactDate(op), clStr: cl ? formatExactDate(cl) : '—', age, diffMs, slaRemainingMs, pctSla, pctSlaNum, stSla, slaConfig, idle, info: infoFinal, prb: prbVal });
             }
             incs.forEach(r => processRow(r, 'INC', slaI));
             reqs.forEach(r => processRow(r, 'REQ', slaR));
@@ -5750,13 +5795,8 @@
                         </td>
                         <td data-label="Opened" class="text-center">${renderDateHtml(t.opStr || '—')}</td>
                         <td data-label="Closed" class="text-center">${renderDateHtml(t.clStr === 'Open' ? '—' : (t.clStr || '—'))}</td>
-                        <td data-label="Aging (days)" class="text-center font-bold text-base ${t.age > t.slaConfig ? 'text-red-600' : 'text-slate-700'}">${renderAgingHtml(t.age * 86400000)}</td>
-                        <td data-label="% SLA" class="text-center" style="width: 100px;">
-                            <div class="w-full bg-slate-200 rounded-full h-4 relative shadow-inner mx-auto min-w-[70px] overflow-hidden border border-slate-300/50">
-                                <div class="h-full absolute left-0 top-0 bottom-0 transition-all" style="width: ${safePct}%; background-color: ${pctColor} !important;"></div>
-                                <div class="absolute inset-0 flex items-center justify-center text-[9px] font-bold z-10" style="color: ${t.pctSlaNum > 55 ? '#ffffff' : '#1e293b'}; text-shadow: ${t.pctSlaNum > 55 ? '0 0 2px rgba(0,0,0,0.8)' : 'none'};">${pctText}</div>
-                            </div>
-                        </td>
+                        <td data-label="Aging" class="text-center font-bold">${renderAgingHtml(t.diffMs)}</td>
+                        <td data-label="SLA Tracking" class="text-center">${renderSlaRemaining(t.slaRemainingMs, t.pctSlaNum)}</td>
                         <td data-label="Status SLA" class="text-center font-black ${stColor} uppercase text-[10px]">${t.stSla}</td>
                     </tr>`;
                 }).join('');
@@ -5781,8 +5821,8 @@
                                     ${createTh("PRB", "8%")}
                                     ${createTh("Opened", "8%")}
                                     ${createTh("Closed", "8%")}
-                                    ${createTh("Aging", "5%")}
-                                    ${createTh("% SLA", "8%")}
+                                    ${createTh("Aging", "6%")}
+                                    ${createTh("SLA Tracking (Time & %)", "12%")}
                                     ${createTh("Status", "auto")}
                                 </tr></thead>
                                 <tbody>${rows}</tbody>
@@ -5919,7 +5959,7 @@
                 <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle mr-2"></i> CRITICAL INCIDENTS WITHOUT PRB (${d.noPrb.length})</div>
                 <div class="st-dataframe-container"><table class="st-table">
                 <thead><tr>
-                    ${createTh("Ticket", "12%")} ${createTh("Subject / Info", "auto", "left")} ${createTh("Analyst", "18%")} ${createTh("AGING", "15%", "right")}
+                    ${createTh("Ticket", "12%")} ${createTh("Subject / Info", "auto", "left")} ${createTh("Analyst", "18%")} ${createTh("SLA Tracking", "15%", "right")}
                 </tr></thead>
                 <tbody>${d.noPrb.map(t => `
                     <tr class="ticket-row" ${buildDataAttrs(t)}>
@@ -5933,8 +5973,8 @@
                             <div class="text-expandable text-[10px] text-slate-500"><strong class="text-slate-600">Info:</strong> ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>
                         </td>
                         <td data-label="Analyst">${t.as}</td>
-                        <td data-label="AGING" style="text-align: right;">
-                            <div style="color:${C.DAN}; font-weight:bold; font-size:13px;">${renderAgingHtml(t.age * 86400000)}</div>
+                        <td data-label="SLA Tracking" style="text-align: right;">
+                            ${renderSlaRemaining(t.slaRemainingMs, t.pctSlaNum)}
                             ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${Number(t.idle) > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d idle</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
                         </td>
                     </tr>`).join('')}
@@ -6029,7 +6069,7 @@
                         <thead><tr>
                             ${createTh("Ticket", "10%")} ${createTh("Subject / Info (Expandable)", "auto", "left")} ${createTh("Requester", "15%")}
                             ${createTh("Analyst", "12%")} ${createTh("Group", "12%")} ${createTh("Status", "10%")}
-                            ${createTh("PRB", "8%")} ${createTh("AGING", "10%", "right")}
+                            ${createTh("PRB", "8%")} ${createTh("SLA Tracking", "15%", "right")}
                         </tr></thead>
                         <tbody>
                             ${d.crits.length ? d.crits.map(t => `
@@ -6049,8 +6089,8 @@
                                     ${t.reason ? `<span class="block text-[9px] text-slate-500 mt-1 truncate max-w-[100px] mx-auto" title="${t.reason}">${t.reason}</span>` : ''}
                                 </td>
                                 <td data-label="PRB" style="font-weight:${t.prb !== 'N/A' ? 'bold' : 'normal'}; color:${t.prb !== 'N/A' ? C.PRI_D : C.GRY}">${t.prb}</td>
-                                <td data-label="AGING" style="text-align:right;">
-                                    <div style="color:${C.DAN}; font-weight:bold; font-size:13px;">${renderAgingHtml(t.age * 86400000)}</div>
+                                <td data-label="SLA Tracking" style="text-align:right;">
+                                    ${renderSlaRemaining(t.slaRemainingMs, t.pctSlaNum)}
                                     ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${Number(t.idle) > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d idle</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
                                 </td>
                             </tr>`).join('') : `<tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">No critical tickets at this time. Great job team! 🎉</td></tr>`}
@@ -6146,7 +6186,7 @@
                         <span style="font-size:9px; color:#475569; background:#f1f5f9; padding:2px 6px; border-radius:4px; border:1px solid #e2e8f0;">${t.st}</span>
                     </td>
                     <td data-label="Days / Idle" style="text-align:right;">
-                        <div style="color:var(--danger); font-weight:bold; font-size:14px;">${t.d}d total</div>
+                        <div style="color:var(--danger); font-weight:bold; font-size:14px;">${renderAgingHtml(t.ageMs)}</div>
                         ${(t.idle !== '-' && !isNaN(Number(t.idle))) ? `<div style="font-size:10px; font-weight:bold; margin-top:2px; color:${Number(t.idle) > 3 ? '#ef4444' : '#10b981'};"><i class="fas fa-user-clock"></i> ${t.idle}d idle</div>` : `<div style="font-size:10px; color:#94a3b8; margin-top:2px;"><i class="fas fa-user-clock"></i> N/A</div>`}
                     </td>
                 </tr>
@@ -6395,8 +6435,8 @@
                         <span class="text-[9px] text-slate-400">${t.opStr || '-'}</span>
                     </td>
                     <td class="text-right">
-                        <div class="font-black text-base ${ageCls}">${t.age || 0}d</div>
-                        ${(t.idle !== undefined && t.idle !== '-') ? `<div class="text-[9px] font-bold mt-0.5 ${(+t.idle) > 3 ? 'text-red-500' : 'text-green-600'}"><i class="fas fa-user-clock"></i> ${t.idle}d</div>` : ''}
+                        ${renderSlaRemaining(t.slaRemainingMs, t.pctSlaNum)}
+                        ${(t.idle !== undefined && t.idle !== '-') ? `<div class="text-[9px] font-bold mt-1 ${(+t.idle) > 3 ? 'text-red-500' : 'text-green-600'}"><i class="fas fa-user-clock"></i> ${t.idle}d idle</div>` : ''}
                     </td>
                 </tr>`;
             }).join('');
@@ -9798,6 +9838,151 @@
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
         }
+        // ==========================================
+        // SLA DISPATCHES LOGIC
+        // ==========================================
+        async function runSlaAnalysis() {
+            const btn = document.getElementById('btn-run-sla');
+            const status = document.getElementById('sla-analysis-status');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analisando...';
+            status.innerHTML = '<span class="text-blue-600">Iniciando análise crítica de SLA...</span>';
+
+            try {
+                const config = {
+                    slaIncs: document.getElementById('sla-incs').value,
+                    slaReqs: document.getElementById('sla-reqs').value,
+                    slaPtask: document.getElementById('sla-ptask').value,
+                    slaRca: document.getElementById('sla-rca').value
+                };
+
+                const response = await fetch('http://localhost:5001/analyze-sla', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    status.innerHTML = `<span class="text-green-600">Sucesso! ${data.dispatched.length} e-mails preparados/enviados.</span>`;
+                    loadSlaLogs();
+                } else {
+                    throw new Error(data.message || 'Erro desconhecido');
+                }
+            } catch (error) {
+                status.innerHTML = `<span class="text-red-600">Erro: ${error.message} (Certifique-se que o email_bridge.py está rodando na porta 5001)</span>`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play mr-2"></i> Executar Análise e Disparo';
+            }
+        }
+
+        async function loadSlaLogs() {
+            const container = document.getElementById('sla-logs-container');
+            container.innerHTML = '<div class="p-10 text-center"><i class="fas fa-sync fa-spin text-2xl text-slate-400"></i></div>';
+
+            try {
+                const response = await fetch('http://localhost:5001/sla-logs');
+                const data = await response.json();
+
+                if (data.status === 'success' && data.data.length > 0) {
+                    let html = `
+                        <table class="st-table w-full">
+                            <thead>
+                                <tr>
+                                    <th>Analista</th>
+                                    <th>Tickets</th>
+                                    <th>Status E-mail</th>
+                                    <th>Data/Hora</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    data.data.forEach(log => {
+                        const tickets = JSON.parse(log.tickets);
+                        const ticketLinks = tickets.map(t => `<span class="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] mr-1 border border-slate-200">${t.number}</span>`).join('');
+                        
+                        html += `
+                            <tr>
+                                <td class="font-bold">${log.analyst}</td>
+                                <td><div class="flex flex-wrap gap-y-1">${ticketLinks}</div></td>
+                                <td><span class="px-2 py-0.5 rounded text-[10px] font-bold ${log.email_status.includes('Success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${log.email_status}</span></td>
+                                <td class="text-slate-500 text-[11px]">${new Date(log.sent_at).toLocaleString()}</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<div class="p-10 text-center text-slate-400">Nenhum log de disparo encontrado.</div>';
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="p-10 text-center text-red-500">Erro ao carregar logs: ${error.message}</div>`;
+            }
+        }
+
+        function generateSlaDispatchesTabHTML() {
+            return `
+                <div class="report-section-title" style="background-color: #c2410c;">
+                    <i class="fas fa-paper-plane mr-2"></i> CRITICAL SLA ANALYSIS & DISPATCH
+                </div>
+                
+                <div class="grid-2 mb-6">
+                    <div class="report-card">
+                        <div class="report-card-title"><i class="fas fa-bolt mr-2"></i> Ações</div>
+                        <p class="text-xs text-slate-500 mb-4">
+                            Esta função analisa chamados abertos que atingiram 90% do SLA configurado ou que irão estourar durante o final de semana.
+                            Para cada analista com chamados críticos, um e-mail consolidado será preparado no Outlook.
+                        </p>
+                        <div class="flex flex-col gap-3">
+                            <button id="btn-run-sla" onclick="runSlaAnalysis()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center">
+                                <i class="fas fa-play mr-2"></i> Executar Análise e Disparo
+                            </button>
+                            <div id="sla-analysis-status" class="text-center text-xs font-bold min-h-[1.5rem]"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="report-card">
+                        <div class="report-card-title"><i class="fas fa-cog mr-2"></i> SLA Config (Days)</div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">Incidents</label>
+                                <input type="number" id="sla-incs-disp" value="${document.getElementById('sla-incs')?.value || 7}" class="w-full border rounded px-2 py-1 text-sm mt-1" onchange="document.getElementById('sla-incs').value = this.value; saveConfigs();">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase">Requests</label>
+                                <input type="number" id="sla-reqs-disp" value="${document.getElementById('sla-reqs')?.value || 3}" class="w-full border rounded px-2 py-1 text-sm mt-1" onchange="document.getElementById('sla-reqs').value = this.value; saveConfigs();">
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-4 italic">* Valores sincronizados com as configurações gerais do dashboard.</p>
+                    </div>
+                </div>
+
+                <div class="report-card">
+                    <div class="report-card-title flex justify-between items-center">
+                        <span><i class="fas fa-history mr-2"></i> Logs de Disparos Recentes</span>
+                        <button onclick="loadSlaLogs()" class="text-blue-600 hover:text-blue-800 text-xs font-bold"><i class="fas fa-sync mr-1"></i> Atualizar</button>
+                    </div>
+                    <div id="sla-logs-container" class="overflow-x-auto min-h-[200px]">
+                        <!-- Logs injetados aqui -->
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update switchTab to handle the new tab
+        const originalSwitchTab = switchTab;
+        switchTab = function(tabId, el) {
+            originalSwitchTab(tabId, el);
+            if (tabId === 'tab-sla-dispatches') {
+                document.getElementById('tab-sla-dispatches').innerHTML = generateSlaDispatchesTabHTML();
+                loadSlaLogs();
+            }
+        };
+
     </script>
 
     <!-- Modal de Visualização de E-mail RPA -->
