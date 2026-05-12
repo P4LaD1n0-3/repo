@@ -115,34 +115,56 @@ def format_email_body(analyst, tickets):
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; }
-            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-            th { background-color: #f8f9fa; color: #444; padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; }
-            td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
-            .critical { color: #dc3545; font-weight: bold; }
-            .warning { color: #fd7e14; font-weight: bold; }
+            body { font-family: 'Segoe UI', Tahoma, sans-serif; color: #333; line-height: 1.5; }
+            table { border-collapse: collapse; width: 100%; border: 1px solid #e2e8f0; margin-top: 20px; }
+            th { background-color: #001871; color: white; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
+            td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+            tr:nth-child(even) { background-color: #f8fafc; }
+            .sla-bar-bg { background: #e2e8f0; border-radius: 4px; width: 60px; height: 8px; display: inline-block; vertical-align: middle; margin-right: 8px; }
+            .sla-bar-fill { height: 100%; border-radius: 4px; }
+            .pct-text { font-weight: bold; font-size: 11px; }
+            .text-breached { color: #ef4444; }
+            .text-warning { color: #f59e0b; }
+            .text-ok { color: #3b82f6; }
         </style>
     </head>
     <body>
     """
     body += f"<h2>Olá {analyst},</h2>"
     body += "<p>Identificamos chamados críticos sob sua responsabilidade que precisam de atenção imediata:</p>"
-    body += "<table border='1' style='border-collapse: collapse; width: 100%; font-family: sans-serif;'>"
-    body += "<tr style='background-color: #f2f2f2;'><th>Ticket</th><th>Assunto</th><th>SLA %</th><th>Restante (h)</th><th>Motivo</th></tr>"
+    body += "<table>"
+    body += "<thead><tr><th>Ticket</th><th>Assunto</th><th>SLA %</th><th>Restante</th><th>Motivo</th></tr></thead>"
+    body += "<tbody>"
     
     for t in tickets:
-        sla_class = "critical" if t['sla_pct'] >= 100 else "warning"
+        sla_pct = t['sla_pct']
+        # Progress bar color
+        bar_color = "#ef4444" if sla_pct >= 100 else ("#f59e0b" if sla_pct >= 80 else "#3b82f6")
+        text_class = "text-breached" if sla_pct >= 100 else ("text-warning" if sla_pct >= 80 else "text-ok")
+        fill_width = min(100, sla_pct)
+        
+        # Remaining time logic (Hide negatives)
+        rem_h = t['remaining_hours']
+        if rem_h > 0:
+            h = int(rem_h)
+            m = int((rem_h - h) * 60)
+            time_display = f"<b class='text-ok'>{h}h {m}m</b>"
+        else:
+            time_display = "<b class='text-breached'>ESTOURADO</b>"
+            
         body += f"<tr>"
-        body += f"<td>{t['number']}</td>"
+        body += f"<td><b>{t['number']}</b></td>"
         body += f"<td>{t['subject']}</td>"
-        body += f"<td class='{sla_class}'>{t['sla_pct']}%</td>"
-        body += f"<td>{t['remaining_hours']}h</td>"
-        body += f"<td>{t['reason']}</td>"
+        body += f"<td>"
+        body += f"<div class='sla-bar-bg'><div class='sla-bar-fill' style='width:{fill_width}%; background-color:{bar_color};'></div></div>"
+        body += f"<span class='pct-text {text_class}'>{sla_pct}%</span></td>"
+        body += f"<td>{time_display}</td>"
+        body += f"<td style='font-size: 11px; color: #64748b;'>{t['reason']}</td>"
         body += "</tr>"
     
-    body += "</table>"
-    body += "<p>Por favor, verifique o status desses chamados o quanto antes.</p>"
-    body += "<br><p><i>Atenciosamente, ITSM Dashboard Automático</i></p>"
+    body += "</tbody></table>"
+    body += "<p>Por favor, verifique o status desses chamados o quanto antes no sistema.</p>"
+    body += "<br><p><i>Atenciosamente, <b>Equipe ITSM Dashboard</b></i></p>"
     body += "</body></html>"
     return body
 
