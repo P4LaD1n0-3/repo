@@ -212,9 +212,9 @@ def analyze_sla_endpoint():
             )
         """)
         
-        for analyst_name, data in analysis_results.items():
-            tickets = data['tickets']
-            analyst_email = data['email']
+        for analyst_name, res_data in analysis_results.items():
+            tickets = res_data['tickets']
+            analyst_email = res_data['email']
             
             subject = f"ALERTA: Chamados Críticos - SLA Próximo do Limite"
             body = format_email_body(analyst_name, tickets)
@@ -226,11 +226,13 @@ def analyze_sla_endpoint():
                 print(f"⚠️ Aviso: E-mail para '{analyst_name}' não encontrado ou inválido na coluna 'Email'. Usando fallback.")
                 to_email = f"{analyst_name.replace(' ', '.').lower()}@empresa.com"
             
+            cc_email = data.get('emailCc', '')
+            
             # Send using existing logic
             if IS_WINDOWS:
-                success, msg = send_outlook_windows(to_email, "", subject, body)
+                success, msg = send_outlook_windows(to_email, cc_email, subject, body)
             elif IS_MAC:
-                success, msg = send_outlook_mac(to_email, "", subject, body)
+                success, msg = send_outlook_mac(to_email, cc_email, subject, body)
             else:
                 success, msg = False, "OS Not Supported"
             
