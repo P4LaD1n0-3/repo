@@ -606,10 +606,13 @@
             white-space: normal;
             text-align: left;
             height: 65px;
-            min-width: 250px; /* Reduzido de 350px para evitar scroll excessivo */
+            max-width: 100px !important; /* Limitado conforme solicitado */
+            min-width: 100px !important;
             vertical-align: middle;
             padding-top: 5px;
             padding-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         /* Ajuste específico para a coluna solicitada */
