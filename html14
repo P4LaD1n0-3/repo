@@ -533,19 +533,21 @@
            TABELAS DENSAS E HARMONIZADAS - EXTREMAMENTE COMPACTAS
            ========================================================= */
         .st-dataframe-container {
-            overflow-x: auto;
+            overflow-x: auto; /* Restaurado para permitir leitura se necessário */
             max-height: 550px;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
             background: #fff;
+            width: 100%;
         }
 
         .st-table {
             width: 100%;
+            table-layout: auto; /* Deixa o navegador calcular o melhor ajuste */
             border-collapse: separate;
             border-spacing: 0;
-            font-size: 11px;
+            font-size: 11px; /* Retornado para 11px para legibilidade */
             font-family: 'Inter', sans-serif;
         }
 
@@ -574,12 +576,65 @@
         }
 
         .st-table td {
-            padding: 6px;
+            padding: 4px 6px;
             border-bottom: 1px solid #e2e8f0;
             text-align: center;
             vertical-align: middle;
             transition: 0.2s;
-            word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            height: 38px; /* Altura ultra compacta para dados simples */
+        }
+
+        .st-table td[data-label*="Ticket"],
+        .st-table td[data-label*="Number"] {
+            font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+            font-size: 10px;
+            font-weight: 800;
+            min-width: 140px;
+            color: var(--primary-dark);
+            white-space: normal !important; /* Permite que o botão quebre para baixo */
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        /* Colunas de texto longo */
+        .st-table td[data-label*="Subject"], 
+        .st-table td[data-label*="Description"],
+        .st-table td[data-label*="Info"] {
+            white-space: normal;
+            text-align: left;
+            height: 65px;
+            min-width: 250px; /* Reduzido de 350px para evitar scroll excessivo */
+            vertical-align: middle;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+
+        /* Ajuste específico para a coluna solicitada */
+        .st-table td[data-label*="Full Description / Status"] {
+            min-width: 200px !important;
+            max-width: 280px;
+        }
+
+        /* Status badges precisam de espaço para não truncar */
+        .st-table td[data-label="Status"],
+        .st-table td[data-label="State"] {
+            min-width: 120px;
+            white-space: nowrap;
+        }
+
+        /* Ajuste do clamping para caber na nova altura */
+        .st-table td[data-label*="Subject"] .text-expandable {
+            -webkit-line-clamp: 1; /* Reduzido para 1 linha para ganhar espaço vertical */
+            line-clamp: 1;
+            max-height: 18px;
+        }
+
+        .st-table td div {
+            max-height: 100%;
+            overflow: hidden;
         }
 
         .st-table tbody tr {
@@ -2861,19 +2916,19 @@
                 return '';
             }
             
-            let html = '<div class="mt-1.5 flex flex-wrap gap-1 justify-start">';
+            let html = '<div class="mt-1.5 flex flex-wrap gap-1 justify-start overflow-hidden" style="max-height: 22px;">';
             
             if (info && info !== '-' && info !== 'N/A' && info !== 'undefined') {
                 const infoLower = info.toLowerCase();
                 const isSpecial = infoLower.includes('awaiting') || infoLower.includes('vendor') || infoLower.includes('customer') || infoLower.includes('hold') || infoLower.includes('espera');
                 const colorClass = isSpecial ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-slate-100 text-slate-600 border-slate-200';
-                html += `<span class="${colorClass} text-[9px] px-2 py-0.5 rounded-md border font-black uppercase tracking-wider shadow-sm flex items-center">
+                html += `<span class="${colorClass} text-[8px] px-1.5 py-0.5 rounded border font-black uppercase tracking-tighter shadow-sm flex items-center whitespace-nowrap">
                     <i class="fas fa-info-circle mr-1 opacity-70"></i> INFO: ${info}
                 </span>`;
             }
             
             if (reason && reason !== '-' && reason !== 'N/A' && reason !== 'undefined' && reason !== '') {
-                html += `<span class="bg-amber-100 text-amber-800 border-amber-200 text-[9px] px-2 py-0.5 rounded-md border font-black uppercase tracking-wider shadow-sm">
+                html += `<span class="bg-amber-100 text-amber-800 border-amber-200 text-[8px] px-1.5 py-0.5 rounded border font-black uppercase tracking-tighter shadow-sm whitespace-nowrap">
                     <i class="fas fa-tag mr-1 opacity-70"></i> ${reason}
                 </span>`;
             }
