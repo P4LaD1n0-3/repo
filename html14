@@ -739,16 +739,16 @@
             visibility: hidden;
             z-index: 9999;
             pointer-events: none;
-            background: rgba(15, 23, 42, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(8px);
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
             padding: 14px;
             width: max-content;
-            max-width: 340px;
-            color: #f8fafc;
+            max-width: 400px;
+            color: #1e293b;
             font-family: 'Inter', sans-serif;
-            box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.4), 0 15px 15px -5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
             transition: opacity 0.2s ease, visibility 0.2s ease;
         }
 
@@ -2161,15 +2161,7 @@
                                 <div
                                     class="col-span-2 bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
                                     <div class="text-[10px] font-bold text-slate-400 uppercase mb-2">SLA Status & Remaining</div>
-                                    <div id="modal-sla-remaining-box" class="mb-2"></div>
-                                    <div
-                                        class="w-full bg-slate-100 rounded-full h-3 relative overflow-hidden border border-slate-300/50">
-                                        <div id="modal-sla-bar" class="h-full absolute left-0 top-0 bottom-0 transition-all"
-                                            style="width: 0%; background-color: #10b981 !important;"></div>
-                                        <div id="modal-sla-text-modal"
-                                            class="absolute inset-0 flex items-center justify-center text-[8px] text-white font-bold z-10"
-                                            style="text-shadow: 0 0 2px rgba(0,0,0,0.8);">0%</div>
-                                    </div>
+                                    <div id="modal-sla-remaining-box"></div>
                                 </div>
                         </div>
 
@@ -2864,6 +2856,32 @@
             return str;
         };
 
+        const renderInfoTag = (info, reason) => {
+            if ((!info || info === '-' || info === 'N/A') && (!reason || reason === '-' || reason === 'N/A' || reason === '')) {
+                return '';
+            }
+            
+            let html = '<div class="mt-1.5 flex flex-wrap gap-1 justify-start">';
+            
+            if (info && info !== '-' && info !== 'N/A' && info !== 'undefined') {
+                const infoLower = info.toLowerCase();
+                const isSpecial = infoLower.includes('awaiting') || infoLower.includes('vendor') || infoLower.includes('customer') || infoLower.includes('hold') || infoLower.includes('espera');
+                const colorClass = isSpecial ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-slate-100 text-slate-600 border-slate-200';
+                html += `<span class="${colorClass} text-[9px] px-2 py-0.5 rounded-md border font-black uppercase tracking-wider shadow-sm flex items-center">
+                    <i class="fas fa-info-circle mr-1 opacity-70"></i> INFO: ${info}
+                </span>`;
+            }
+            
+            if (reason && reason !== '-' && reason !== 'N/A' && reason !== 'undefined' && reason !== '') {
+                html += `<span class="bg-amber-100 text-amber-800 border-amber-200 text-[9px] px-2 py-0.5 rounded-md border font-black uppercase tracking-wider shadow-sm">
+                    <i class="fas fa-tag mr-1 opacity-70"></i> ${reason}
+                </span>`;
+            }
+            
+            html += '</div>';
+            return html;
+        };
+
         const formatExactAging = ms => {
             if (ms < 0) ms = 0;
             let totalMins = Math.floor(ms / 60000);
@@ -3287,69 +3305,50 @@
         // HOVER TOOLTIP SYSTEM
         // ==========================================
         const tooltip = document.getElementById('global-tooltip');
+        // Hover Tooltip system - Re-enabled and optimized for Subject/Info column
         document.addEventListener('mouseover', e => {
-            const row = e.target.closest('.ticket-row');
-            if (row) {
-                let tk = row.dataset.tk || '-';
-                let st = (row.dataset.st || '').toLowerCase();
-                let desc = row.dataset.desc || 'No subject';
-                let req = row.dataset.req || 'N/A';
-                let asg = row.dataset.as || 'Unassigned';
-                let gp = row.dataset.gp || 'N/A';
-                let op = row.dataset.op || '-';
-                let age = row.dataset.age || '0';
-                let idleVal = row.dataset.idle;
-                let slaPct = row.dataset.pct;
-                let reasonVal = row.dataset.reason || '';
+            const cell = e.target.closest('td[data-label*="Subject"], td[data-label*="Full Description"]');
+            if (cell) {
+                const row = cell.closest('.ticket-row');
+                if (!row) return;
 
-                let bC = '#3b82f6';
-                if (st.includes('resolv') || st.includes('complet')) bC = '#10b981';
-                else if (st.includes('cancel') || st.includes('incomplet')) bC = '#ef4444';
-                else if (st.includes('hold') || st.includes('pend') || st.includes('espera')) bC = '#f59e0b';
+                const tk = row.dataset.tk || '-';
+                const desc = row.dataset.desc || 'No subject';
+                const long = row.dataset.long || '';
+                const info = row.dataset.info || '';
+                const reason = row.dataset.reason || '';
 
-                document.getElementById('tt-tk').innerText = tk;
-                document.getElementById('tt-st').innerText = row.dataset.st || '-';
-                document.getElementById('tt-st').style.backgroundColor = bC;
-                document.getElementById('tt-desc').innerText = desc;
-                document.getElementById('tt-req').innerText = req;
-                document.getElementById('tt-as').innerText = asg;
-                document.getElementById('tt-gp').innerText = gp;
-                document.getElementById('tt-op').innerText = op;
-                document.getElementById('tt-age').innerText = age + ' total days';
-
-                let idleEl = document.getElementById('tt-idle');
-
-                let holdReason = row.dataset.info || '';
-                if (st.includes('hold') || st.includes('espera')) {
-                    idleEl.innerHTML = `<i class="fas fa-pause-circle mr-1 text-amber-400"></i> ${holdReason} ${reasonVal ? `(${reasonVal})` : ''}`;
-                    idleEl.style.color = '#fef3c7';
-                } else if (idleVal && idleVal !== '-' && idleVal !== 'undefined') {
-                    let idNum = parseInt(idleVal);
-                    idleEl.innerHTML = `<i class="fas fa-user-clock mr-1"></i> ${idNum} idle days ${reasonVal ? ` - ${reasonVal}` : ''}`;
-                    idleEl.style.color = idNum > 3 ? '#fca5a5' : '#6ee7b7';
-                } else {
-                    idleEl.innerText = reasonVal ? `Reason: ${reasonVal}` : 'N/A';
-                    idleEl.style.color = '#94a3b8';
-                }
-
-                let bar = document.getElementById('tt-sla-bar');
-                let barText = document.getElementById('tt-sla-text');
-                let barContainer = document.getElementById('tt-sla-container');
-
-                if (slaPct && slaPct !== 'undefined' && slaPct !== '') {
-                    let p = parseFloat(String(slaPct).replace(',', '.'));
-                    let safeP = isNaN(p) ? 0 : Math.min(p, 100);
-                    let color = p > 100 ? '#ef4444' : (p > 75 ? '#f59e0b' : '#10b981');
-                    if (isNaN(p)) color = '#94a3b8';
-
-                    bar.style.width = safeP + '%';
-                    bar.style.setProperty('background-color', color, 'important');
-                    barText.innerText = isNaN(p) ? '0,00%' : slaPct + '%';
-                    barText.style.color = '#ffffff';
-                    barContainer.style.display = 'block';
-                } else {
-                    barContainer.style.display = 'none';
-                }
+                tooltip.innerHTML = `
+                    <div class="tt-header" style="margin-bottom: 10px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                        <div class="tt-title" style="color: #1e40af; font-size: 14px; font-weight: 900;">${tk}</div>
+                        <div class="tt-badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; font-size: 9px;">FULL DETAILS</div>
+                    </div>
+                    <div class="tt-body" style="margin-bottom: 0;">
+                        <div style="color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: 800; margin-bottom: 4px; letter-spacing: 0.5px;">Registered Subject</div>
+                        <div style="font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.4; margin-bottom: 12px;">${desc}</div>
+                        
+                        ${(long && long !== '' && long !== '-' && long !== 'undefined') ? `
+                            <div style="color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: 800; margin-bottom: 4px; letter-spacing: 0.5px;">Extended Description / Details</div>
+                            <div style="font-size: 11px; color: #475569; line-height: 1.5; margin-bottom: 12px; max-height: 400px; overflow-y: auto; padding-right: 8px; border-left: 2px solid #e2e8f0; padding-left: 10px;" class="stylized-scrollbar">${long}</div>
+                        ` : ''}
+                        
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            ${(info && info !== '' && info !== 'undefined') ? `
+                                <div style="padding: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;">
+                                    <div style="color: #0369a1; font-size: 8px; text-transform: uppercase; font-weight: 900; margin-bottom: 2px;">Tag Info</div>
+                                    <div style="font-size: 11px; font-weight: 800; color: #0c4a6e;">${info}</div>
+                                </div>
+                            ` : ''}
+                            
+                            ${(reason && reason !== '' && reason !== 'undefined') ? `
+                                <div style="padding: 10px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;">
+                                    <div style="color: #b45309; font-size: 8px; text-transform: uppercase; font-weight: 900; margin-bottom: 2px;">Hold Reason</div>
+                                    <div style="font-size: 11px; font-weight: 800; color: #78350f;">${reason}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
 
                 tooltip.style.opacity = 1; tooltip.style.visibility = 'visible';
             }
@@ -3363,7 +3362,7 @@
             }
         });
         document.addEventListener('mouseout', e => {
-            if (e.target.closest('.ticket-row')) {
+            if (e.target.closest('td[data-label*="Subject"], td[data-label*="Full Description"]')) {
                 tooltip.style.opacity = 0; tooltip.style.visibility = 'hidden';
             }
         });
@@ -4568,15 +4567,7 @@
             let slaRemMs = (slaConfig * 86400000) - preciseDiffMs;
             let pctSla = (ageDays / slaConfig) * 100;
             
-            let slaBar = document.getElementById('modal-sla-bar');
-            let slaText = document.getElementById('modal-sla-text-modal');
-            let safeP = isNaN(pctSla) ? 0 : Math.min(pctSla, 100);
-            let slaColor = pctSla > 100 ? '#ef4444' : (pctSla > 75 ? '#f59e0b' : '#10b981');
-
             document.getElementById('modal-sla-remaining-box').innerHTML = renderSlaRemaining(slaRemMs, pctSla);
-            slaBar.style.width = safeP + '%';
-            slaBar.style.setProperty('background-color', slaColor, 'important');
-            slaText.innerText = isNaN(pctSla) ? '0%' : pctSla.toFixed(1).replace('.', ',') + '%';
 
             let regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(([^)]+)\)/gm;
             let rawC = "";
@@ -5503,7 +5494,7 @@
                         ${t._typeBadge ? `<div class="mt-1">${t._typeBadge}</div>` : (t.tipo ? `<div class="text-[9px] bg-slate-200 px-1.5 py-0.5 rounded inline-block text-slate-500 mt-1">${t.tipo}</div>` : '')}
                         <button onclick="openTicketDetails('${t.tk}')" class="mt-1 w-full text-center bg-blue-50 border border-blue-200/50 hover:bg-blue-100 rounded py-1 text-[9px] uppercase font-bold transition shadow-sm"><i class="fas fa-search mr-1"></i> Details</button>
                     </td>
-                    <td data-label="Subject / Info" class="text-left w-[350px] max-w-[350px]">
+                    <td data-label="Subject / Info" class="text-left w-[450px] max-w-[450px]">
                         <div class="w-full h-auto max-h-[80px] overflow-y-auto overflow-x-hidden stylized-scrollbar border border-slate-100 bg-slate-50 p-1.5 rounded">
                             <div class="text-xs font-semibold text-slate-800 break-words mb-1">${t.desc}</div>
                             ${(t.longDesc && t.longDesc !== '-') ? `<div class="text-[10px] text-slate-500 italic break-words">${t.longDesc}</div>` : ''}
@@ -5551,7 +5542,7 @@
                     <table class="st-table w-full" id="drilldown-main-table">
                         <thead><tr>
                             ${createTh("Ticket", "10%")}
-                            ${createTh("Subject / Info", "auto", "left")}
+                            ${createTh("Subject / Info", "30%", "left")}
                             ${!isPrbDrill ? createTh("Requester", "12%") : ''}
                             ${createTh("Analyst", "12%")}
                             ${createTh("Group", "10%")}
@@ -5794,7 +5785,7 @@
                         <td data-label="Full Description" class="text-left">
                             <div class="text-expandable font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 2;">${t.desc}</div>
                             ${t.longDesc && t.longDesc !== '-' ? `<div class="text-expandable text-[10px] text-slate-500 mb-1" style="-webkit-line-clamp: 2;">${t.longDesc}</div>` : ''}
-                            ${t.info || t.reason ? `<div class="text-[10px] text-amber-700 font-medium leading-tight mt-1 bg-amber-50 p-1 rounded border border-amber-100"><i class="fas fa-exclamation-circle"></i> <b>Note:</b> ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
+                            ${renderInfoTag(t.info, t.reason)}
                         </td>
                         <td data-label="Requester" class="text-center">${t.req}</td>
                         <td data-label="Analyst" class="text-center font-medium">${t.as}</td>
@@ -5827,7 +5818,7 @@
                             <table class="st-table w-full">
                                 <thead><tr>
                                     ${createTh("Number", "10%")}
-                                    ${createTh("Full Description / Status", "25%", "left")}
+                                    ${createTh("Full Description / Status", "30%", "left")}
                                     ${createTh("Requester", "12%")}
                                     ${createTh("Analyst", "12%")}
                                     ${createTh("Group", "12%")}
@@ -5981,7 +5972,7 @@
                         <td data-label="Subject / Info" style="text-align:left;">
                             <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 1;">${t.desc}</div>
                             ${t.longDesc && t.longDesc !== '-' ? `<div class="text-expandable text-[10px] text-slate-600 mb-1" style="-webkit-line-clamp: 1;">${t.longDesc}</div>` : ''}
-                            <div class="text-expandable text-[10px] text-slate-500"><strong class="text-slate-600">Info:</strong> ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>
+                            ${renderInfoTag(t.info, t.reason)}
                         </td>
                         <td data-label="Analyst">${t.as}</td>
                         <td data-label="Opened" style="text-align: center;">${renderDateHtml(t.opStr)}</td>
@@ -6003,7 +5994,7 @@
                     <div class="report-card-title" style="color:${C.PRI_D}"><i class="fas fa-exclamation-triangle mr-2"></i> CRITICAL INCIDENTS WITHOUT PRB (${d.noPrb.length})</div>
                     <div class="st-dataframe-container"><table class="st-table">
                     <thead><tr>
-                        ${createTh("Ticket", "12%")} ${createTh("Subject / Info", "auto", "left")} ${createTh("Analyst", "16%")} ${createTh("Opened", "10%")} ${createTh("Closed", "10%")} 
+                        ${createTh("Ticket", "12%")} ${createTh("Subject / Info", "30%", "left")} ${createTh("Analyst", "16%")} ${createTh("Opened", "10%")} ${createTh("Closed", "10%")} 
                         ${createTh("Aging", "10%", "center")} ${createTh("STATUS", "10%", "center")} ${createTh("SLA %", "15%", "right")}
                     </tr></thead>
                     <tbody>${noPrbRows}</tbody></table></div>
@@ -6022,7 +6013,7 @@
                         <td data-label="Subject / Info (Expandable)" style="text-align:left;">
                             <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 1;">${t.desc}</div>
                             ${t.longDesc && t.longDesc !== '-' ? `<div class="text-expandable text-[10px] text-slate-600 mb-1" style="-webkit-line-clamp: 1;">${t.longDesc}</div>` : ''}
-                            <div class="text-expandable text-[10px] text-slate-500"><strong class="text-slate-600">Info:</strong> ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>
+                            ${renderInfoTag(t.info, t.reason)}
                         </td>
                         <td data-label="Requester">${t.req}</td> <td data-label="Analyst" class="font-medium">${t.as}</td> <td data-label="Group">${t.gp}</td>
                         <td data-label="Status">
@@ -6133,7 +6124,7 @@
                 <div class="st-dataframe-container">
                     <table class="st-table">
                         <thead><tr>
-                            ${createTh("Ticket", "10%")} ${createTh("Subject / Info (Expandable)", "auto", "left")} ${createTh("Requester", "15%")}
+                            ${createTh("Ticket", "10%")} ${createTh("Subject / Info (Expandable)", "30%", "left")} ${createTh("Requester", "15%")}
                             ${createTh("Analyst", "12%")} ${createTh("Group", "12%")} ${createTh("Status", "10%")} ${createTh("Opened", "10%")} ${createTh("Closed", "10%")}
                             ${typeStr === 'INC' ? createTh("PRB", "8%") : ''} ${createTh("Aging", "10%", "center")}
                             ${createTh("STATUS", "10%", "center")} ${createTh("SLA %", "15%", "right")}
@@ -9942,40 +9933,72 @@
                 const data = await response.json();
 
                 if (data.status === 'success' && data.data.length > 0) {
-                    let html = `
-                        <table class="st-table w-full">
-                            <thead>
-                                <tr>
-                                    <th>Analista</th>
-                                    <th>Tickets</th>
-                                    <th>Status E-mail</th>
-                                    <th>Data/Hora</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
+                    let html = '<div class="flex flex-col gap-2 p-1">';
 
                     data.data.forEach(log => {
-                        const tickets = JSON.parse(log.tickets);
-                        const ticketLinks = tickets.map(t => `<span class="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] mr-1 border border-slate-200">${t.number}</span>`).join('');
+                        let tickets = [];
+                        try { tickets = JSON.parse(log.tickets); } catch(e) {}
+                        
+                        const isSuccess = log.email_status.includes('Success');
+                        const dateStr = new Date(log.sent_at).toLocaleString('pt-BR');
                         
                         html += `
-                            <tr>
-                                <td class="font-bold">${log.analyst}</td>
-                                <td><div class="flex flex-wrap gap-y-1">${ticketLinks}</div></td>
-                                <td><span class="px-2 py-0.5 rounded text-[10px] font-bold ${log.email_status.includes('Success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${log.email_status}</span></td>
-                                <td class="text-slate-500 text-[11px]">${new Date(log.sent_at).toLocaleString()}</td>
-                            </tr>
+                            <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-all hover:border-blue-300 hover:shadow-md">
+                                <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 group" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.chevron-icon').classList.toggle('rotate-180')">
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex items-center justify-center w-10 h-10 rounded-full ${isSuccess ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}">
+                                            <i class="fas ${isSuccess ? 'fa-check' : 'fa-exclamation-triangle'}"></i>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-slate-800 text-sm leading-tight">${log.analyst}</span>
+                                            <span class="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-0.5">${dateStr}</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-6">
+                                        <div class="text-right hidden sm:block">
+                                            <div class="text-[10px] font-black text-slate-500 uppercase tracking-tighter">${tickets.length} TICKETS</div>
+                                            <div class="text-[9px] ${isSuccess ? 'text-emerald-500' : 'text-red-500'} font-extrabold uppercase mt-0.5">${isSuccess ? 'Sent Successfully' : 'Dispatch Failed'}</div>
+                                        </div>
+                                        <i class="fas fa-chevron-down text-slate-300 group-hover:text-blue-500 transition-all chevron-icon"></i>
+                                    </div>
+                                </div>
+                                <div class="hidden border-t border-slate-100 bg-slate-50/30 p-5">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <div class="text-[10px] font-black text-slate-400 uppercase mb-3 flex items-center gap-2">
+                                                <i class="fas fa-ticket-alt"></i> Included Tickets
+                                            </div>
+                                            <div class="flex flex-wrap gap-1.5">
+                                                ${tickets.map(t => `<span class="bg-white border border-slate-200 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold shadow-sm text-slate-700">${t.number}</span>`).join('')}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="text-[10px] font-black text-slate-400 uppercase mb-3 flex items-center gap-2">
+                                                <i class="fas fa-terminal"></i> Status Details / Logs
+                                            </div>
+                                            <div class="text-[11px] text-slate-600 bg-white p-3 rounded-lg border border-slate-200 max-h-[150px] overflow-y-auto stylized-scrollbar font-mono leading-relaxed shadow-inner">
+                                                ${log.email_status}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         `;
                     });
 
-                    html += '</tbody></table>';
+                    html += '</div>';
                     container.innerHTML = html;
                 } else {
-                    container.innerHTML = '<div class="p-10 text-center text-slate-400">Nenhum log de disparo encontrado.</div>';
+                    container.innerHTML = `
+                        <div class="p-16 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                            <i class="fas fa-history text-4xl mb-4 opacity-20"></i>
+                            <div class="text-sm font-bold">Nenhum log de disparo encontrado</div>
+                            <div class="text-[10px] uppercase tracking-widest mt-1">Os logs aparecerão aqui após executar uma análise</div>
+                        </div>
+                    `;
                 }
             } catch (error) {
-                container.innerHTML = `<div class="p-10 text-center text-red-500">Erro ao carregar logs: ${error.message}</div>`;
+                container.innerHTML = `<div class="p-10 text-center text-red-500"><i class="fas fa-exclamation-circle mr-2"></i>Erro ao carregar logs: ${error.message}</div>`;
             }
         }
 
@@ -9994,7 +10017,7 @@
                             Para cada analista com chamados críticos, um e-mail consolidado será preparado no Outlook.
                         </p>
                         <div class="flex flex-col gap-3">
-                            <button id="btn-run-sla" onclick="runSlaAnalysis()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center">
+                            <button type="button" id="btn-run-sla" onclick="event.preventDefault(); runSlaAnalysis()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center">
                                 <i class="fas fa-play mr-2"></i> Executar Análise e Disparo
                             </button>
                             <div id="sla-analysis-status" class="text-center text-xs font-bold min-h-[1.5rem]"></div>
@@ -10039,8 +10062,13 @@
         // Update switchTab to handle the new tab
         const originalSwitchTab = switchTab;
         switchTab = function(tabId, el) {
+            // Verifica se a aba já está visível antes de chamar a função original
+            const isTabActive = !document.getElementById(tabId).classList.contains('hidden-st');
+            
             originalSwitchTab(tabId, el);
-            if (tabId === 'tab-sla-dispatches') {
+            
+            // Só renderiza se for a aba de disparos e se ela não estava ativa (evita reset ao clicar no menu)
+            if (tabId === 'tab-sla-dispatches' && !isTabActive) {
                 document.getElementById('tab-sla-dispatches').innerHTML = generateSlaDispatchesTabHTML();
                 loadSlaLogs();
             }
