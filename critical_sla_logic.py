@@ -102,6 +102,7 @@ def process_df(df, sla_days, type_label, results, now):
                 'type': type_label,
                 'subject': row.get('Short description', 'No description'),
                 'opened': opened_date.strftime('%Y-%m-%d %H:%M'),
+                'aging_days': round(aging_days, 1),
                 'sla_pct': round(sla_pct, 1),
                 'remaining_hours': round(remaining_hours, 1),
                 'reason': reason,
@@ -133,7 +134,7 @@ def format_email_body(analyst, tickets):
     body += f"<h2>Olá {analyst},</h2>"
     body += "<p>Identificamos chamados críticos sob sua responsabilidade que precisam de atenção imediata:</p>"
     body += "<table>"
-    body += "<thead><tr><th>Ticket</th><th>Assunto</th><th>SLA %</th><th>Restante</th><th>Motivo</th></tr></thead>"
+    body += "<thead><tr><th>Ticket</th><th>Assunto</th><th>Aging</th><th>Restante</th><th>Motivo</th></tr></thead>"
     body += "<tbody>"
     
     for t in tickets:
@@ -155,9 +156,7 @@ def format_email_body(analyst, tickets):
         body += f"<tr>"
         body += f"<td><b>{t['number']}</b></td>"
         body += f"<td>{t['subject']}</td>"
-        body += f"<td>"
-        body += f"<div class='sla-bar-bg'><div class='sla-bar-fill' style='width:{fill_width}%; background-color:{bar_color};'></div></div>"
-        body += f"<span class='pct-text {text_class}'>{sla_pct}%</span></td>"
+        body += f"<td><b style='color:#1e293b;'>{t['aging_days']} dias</b></td>"
         body += f"<td>{time_display}</td>"
         body += f"<td style='font-size: 11px; color: #64748b;'>{t['reason']}</td>"
         body += "</tr>"
