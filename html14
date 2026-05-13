@@ -795,12 +795,14 @@
             z-index: 9999;
             pointer-events: none;
             background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
             border: 1px solid #e2e8f0;
             border-radius: 12px;
             padding: 14px;
-            width: max-content;
-            max-width: 400px;
+            width: auto;
+            max-width: 450px;
+            max-height: 350px;
+            overflow: hidden;
             color: #1e293b;
             font-family: 'Inter', sans-serif;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
@@ -3384,7 +3386,7 @@
                         
                         ${(long && long !== '' && long !== '-' && long !== 'undefined') ? `
                             <div style="color: #64748b; font-size: 9px; text-transform: uppercase; font-weight: 800; margin-bottom: 4px; letter-spacing: 0.5px;">Extended Description / Details</div>
-                            <div style="font-size: 11px; color: #475569; line-height: 1.5; margin-bottom: 12px; max-height: 400px; overflow-y: auto; padding-right: 8px; border-left: 2px solid #e2e8f0; padding-left: 10px;" class="stylized-scrollbar">${long}</div>
+                            <div style="font-size: 11px; color: #475569; line-height: 1.5; margin-bottom: 12px; max-height: 100px; overflow-y: auto; padding-right: 8px; border-left: 2px solid #e2e8f0; padding-left: 10px; word-break: break-word;" class="stylized-scrollbar">${long}</div>
                         ` : ''}
                         
                         <div style="display: flex; flex-direction: column; gap: 6px;">
