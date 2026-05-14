@@ -533,7 +533,8 @@
            TABELAS DENSAS E HARMONIZADAS - EXTREMAMENTE COMPACTAS
            ========================================================= */
         .st-dataframe-container {
-            overflow-x: auto; /* Restaurado para permitir leitura se necessário */
+            overflow-x: auto;
+            /* Restaurado para permitir leitura se necessário */
             max-height: 550px;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -544,10 +545,12 @@
 
         .st-table {
             width: 100%;
-            table-layout: auto; /* Deixa o navegador calcular o melhor ajuste */
+            table-layout: auto;
+            /* Deixa o navegador calcular o melhor ajuste */
             border-collapse: separate;
             border-spacing: 0;
-            font-size: 11px; /* Retornado para 11px para legibilidade */
+            font-size: 11px;
+            /* Retornado para 11px para legibilidade */
             font-family: 'Inter', sans-serif;
         }
 
@@ -584,7 +587,8 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            height: 38px; /* Altura ultra compacta para dados simples */
+            height: 38px;
+            /* Altura ultra compacta para dados simples */
         }
 
         .st-table td[data-label*="Ticket"],
@@ -594,25 +598,24 @@
             font-weight: 800;
             min-width: 140px;
             color: var(--primary-dark);
-            white-space: normal !important; /* Permite que o botão quebre para baixo */
+            white-space: normal !important;
+            /* Permite que o botão quebre para baixo */
             vertical-align: middle;
             text-align: center;
         }
 
         /* Colunas de texto longo */
-        .st-table td[data-label*="Subject"], 
+        .st-table td[data-label*="Subject"],
         .st-table td[data-label*="Description"],
         .st-table td[data-label*="Info"] {
             white-space: normal;
             text-align: left;
             height: 65px;
-            max-width: 100px !important; /* Limitado conforme solicitado */
-            min-width: 100px !important;
+            min-width: 250px;
+            /* Reduzido de 350px para evitar scroll excessivo */
             vertical-align: middle;
             padding-top: 5px;
             padding-bottom: 5px;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         /* Ajuste específico para a coluna solicitada */
@@ -630,7 +633,8 @@
 
         /* Ajuste do clamping para caber na nova altura */
         .st-table td[data-label*="Subject"] .text-expandable {
-            -webkit-line-clamp: 1; /* Reduzido para 1 linha para ganhar espaço vertical */
+            -webkit-line-clamp: 1;
+            /* Reduzido para 1 linha para ganhar espaço vertical */
             line-clamp: 1;
             max-height: 18px;
         }
@@ -2218,11 +2222,12 @@
                                 <div class="text-[10px] font-bold text-slate-400 uppercase mb-1">Idle Time</div>
                                 <div id="modal-idle" class="text-lg font-black text-slate-700">...</div>
                             </div>
-                                <div
-                                    class="col-span-2 bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
-                                    <div class="text-[10px] font-bold text-slate-400 uppercase mb-2">SLA Status & Remaining</div>
-                                    <div id="modal-sla-remaining-box"></div>
+                            <div
+                                class="col-span-2 bg-white border border-slate-200 rounded-lg p-3 text-center shadow-sm">
+                                <div class="text-[10px] font-bold text-slate-400 uppercase mb-2">SLA Status & Remaining
                                 </div>
+                                <div id="modal-sla-remaining-box"></div>
+                            </div>
                         </div>
 
                         <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-slate-200">
@@ -2920,9 +2925,9 @@
             if ((!info || info === '-' || info === 'N/A') && (!reason || reason === '-' || reason === 'N/A' || reason === '')) {
                 return '';
             }
-            
+
             let html = '<div class="mt-1.5 flex flex-wrap gap-1 justify-start overflow-hidden" style="max-height: 22px;">';
-            
+
             if (info && info !== '-' && info !== 'N/A' && info !== 'undefined') {
                 const infoLower = info.toLowerCase();
                 const isSpecial = infoLower.includes('awaiting') || infoLower.includes('vendor') || infoLower.includes('customer') || infoLower.includes('hold') || infoLower.includes('espera');
@@ -2931,13 +2936,13 @@
                     <i class="fas fa-info-circle mr-1 opacity-70"></i> INFO: ${info}
                 </span>`;
             }
-            
+
             if (reason && reason !== '-' && reason !== 'N/A' && reason !== 'undefined' && reason !== '') {
                 html += `<span class="bg-amber-100 text-amber-800 border-amber-200 text-[8px] px-1.5 py-0.5 rounded border font-black uppercase tracking-tighter shadow-sm whitespace-nowrap">
                     <i class="fas fa-tag mr-1 opacity-70"></i> ${reason}
                 </span>`;
             }
-            
+
             html += '</div>';
             return html;
         };
@@ -2955,16 +2960,16 @@
 
         const renderAgingHtml = (ms, slaRemainingMs) => {
             if (ms === undefined || ms === null || isNaN(ms)) return `<div class="text-slate-300">N/A</div>`;
-            
+
             // Dias de Aging (Corridos)
             const d = Math.floor(Math.abs(ms) / 86400000);
-            
+
             // Apenas exibe o tempo se ainda não tiver estourado (slaRemainingMs > 0)
             if (slaRemainingMs !== undefined && slaRemainingMs > 0) {
                 let totalMins = Math.floor(slaRemainingMs / 60000);
                 let h = Math.floor(totalMins / 60);
                 let m = totalMins % 60;
-                
+
                 return `
                 <div class="flex flex-col items-center">
                     <span class="text-slate-700 font-black">${d}d</span>
@@ -4626,7 +4631,7 @@
             let slaConfig = tType === 'INC' ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
             let slaRemMs = (slaConfig * 86400000) - preciseDiffMs;
             let pctSla = (ageDays / slaConfig) * 100;
-            
+
             document.getElementById('modal-sla-remaining-box').innerHTML = renderSlaRemaining(slaRemMs, pctSla);
 
             let regex = /^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})(?:\s+-\s+|\s+)([^\(]+)\s+\(([^)]+)\)/gm;
@@ -5509,11 +5514,11 @@
             window.paginationState.drilldown = 1;
             window.paginationState.drilldownTitle = title;
             // Define se deve exibir coluna PRB: Apenas se for INC ou se o título sugerir Incidente
-            window.paginationState.drilldownIsInc = (vaultCat === 'inc' || vaultCat === 'class' || 
-                                                     title.toUpperCase().includes('INC') || 
-                                                     ticketArrayStrKey.toLowerCase().includes('inc') ||
-                                                     ticketArrayStrKey === 'all_b' || 
-                                                     ticketArrayStrKey === 'all_unassigned');
+            window.paginationState.drilldownIsInc = (vaultCat === 'inc' || vaultCat === 'class' ||
+                title.toUpperCase().includes('INC') ||
+                ticketArrayStrKey.toLowerCase().includes('inc') ||
+                ticketArrayStrKey === 'all_b' ||
+                ticketArrayStrKey === 'all_unassigned');
 
             renderDrilldownPage();
 
@@ -9949,7 +9954,7 @@
         async function runSlaAnalysis() {
             const btn = document.getElementById('btn-run-sla');
             const status = document.getElementById('sla-analysis-status');
-            
+
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Analisando...';
             status.innerHTML = '<span class="text-blue-600">Iniciando análise crítica de SLA...</span>';
@@ -9997,11 +10002,11 @@
 
                     data.data.forEach(log => {
                         let tickets = [];
-                        try { tickets = JSON.parse(log.tickets); } catch(e) {}
-                        
+                        try { tickets = JSON.parse(log.tickets); } catch (e) { }
+
                         const isSuccess = log.email_status.includes('Success');
                         const dateStr = new Date(log.sent_at).toLocaleString('pt-BR');
-                        
+
                         html += `
                             <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden transition-all hover:border-blue-300 hover:shadow-md">
                                 <div class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 group" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.chevron-icon').classList.toggle('rotate-180')">
@@ -10121,12 +10126,12 @@
 
         // Update switchTab to handle the new tab
         const originalSwitchTab = switchTab;
-        switchTab = function(tabId, el) {
+        switchTab = function (tabId, el) {
             // Verifica se a aba já está visível antes de chamar a função original
             const isTabActive = !document.getElementById(tabId).classList.contains('hidden-st');
-            
+
             originalSwitchTab(tabId, el);
-            
+
             // Só renderiza se for a aba de disparos e se ela não estava ativa (evita reset ao clicar no menu)
             if (tabId === 'tab-sla-dispatches' && !isTabActive) {
                 document.getElementById('tab-sla-dispatches').innerHTML = generateSlaDispatchesTabHTML();
