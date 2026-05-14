@@ -219,18 +219,14 @@ def process_ticket_emails(
                 sender = getattr(item, 'SenderName', "Desconhecido")
 
             date_str = item_date.strftime("%Y-%m-%d %H:%M:%S")
-            conteudo_analise = f"{subject} {body}"
 
-            # Extrai os tickets (INC ou PRB)
-            # A função extract the full match instead of group. Modification to fix findall issue.
-            # Using finditer ensures we get the full string (e.g. "INC00123") instead of just the capture group ("INC")
-            tickets_encontrados = list(set([match.group(0).upper() for match in tracker.regex_ticket.finditer(conteudo_analise)]))
+            # Extrai os tickets EXCLUSIVAMENTE do assunto (título) conforme solicitado com rigor
+            tickets_encontrados = list(set([match.group(0).upper() for match in tracker.regex_ticket.finditer(subject)]))
             
             if not tickets_encontrados:
-                 # Se não tem ticket, ignoramos para esta lógica.
-                logger.debug(f"Nenhum INC/PRB encontrado em: {subject[:40]}")
+                 # Se não tem ticket no título, ignoramos rigorosamente
+                logger.debug(f"Nenhum INC/PRB encontrado no título: {subject[:40]}")
                 continue
-
 
             # Para cada ticket encontrado no e-mail, criamos um registro.
             for ticket_num in tickets_encontrados:
@@ -301,7 +297,7 @@ if __name__ == "__main__":
     dicionario_resultados = process_ticket_emails(
         days_back=7,  # Busca uma semana atrás
         mail_folder="INBOX",
-        max_results=50
+        max_results=None # Removido o limite para baixar todos os emails corretamente
     )
 
     print("\n" + "="*50)
