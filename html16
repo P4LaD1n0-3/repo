@@ -1476,6 +1476,7 @@
            DARK MODE
            ========================================================= */
         [data-theme="dark"] {
+            color-scheme: dark !important;
             --primary-dark: #93C5FD;
             --primary: #3B82F6;
             --primary-light: #1E3A5F;
@@ -2246,6 +2247,332 @@
         [data-theme="dark"] #extraction-time {
             opacity: 0.9;
         }
+
+        /* ── INICIO DOS AJUSTES DO MODO ESCURO ── */
+
+        /* 1. Ajuste do título Dashboard e ícone na sidebar */
+        [data-theme="dark"] .sidebar-header h2,
+        [data-theme="dark"] .sidebar-header h2.text-\[\#001871\] {
+            color: #93C5FD !important;
+        }
+
+        [data-theme="dark"] .sidebar-header .bg-\[\#001871\],
+        [data-theme="dark"] .sidebar-header div.w-8.h-8 {
+            background-color: #1E3A5F !important;
+        }
+
+        /* 2. Inputs de Data/Mês Globais e botões de período */
+        [data-theme="dark"] input[type="month"],
+        [data-theme="dark"] input[type="date"],
+        [data-theme="dark"] input[type="text"] {
+            background-color: #1E293B !important;
+            border-color: #334155 !important;
+            color: #E2E8F0 !important;
+        }
+
+        [data-theme="dark"] .cons-trend-btn:not(.bg-blue-600) {
+            background-color: #1E293B !important;
+            border-color: #334155 !important;
+            color: #E2E8F0 !important;
+        }
+
+        [data-theme="dark"] .cons-trend-btn.bg-blue-600 {
+            background-color: #2563EB !important;
+            border-color: #3B82F6 !important;
+            color: #FFFFFF !important;
+        }
+
+        /* 3. Sobrescrita de Cores Dinâmicas e inline (Tab PRBs / Accordions) */
+        [data-theme="dark"] [style*="background:white"],
+        [data-theme="dark"] [style*="background: white"],
+        [data-theme="dark"] [style*="background:#fff"],
+        [data-theme="dark"] [style*="background: #fff"],
+        [data-theme="dark"] [style*="background:#fafbff"],
+        [data-theme="dark"] [style*="background: #fafbff"] {
+            background: #1E293B !important;
+            background-color: #1E293B !important;
+        }
+
+        [data-theme="dark"] [style*="background:#fafcff"],
+        [data-theme="dark"] [style*="background: #fafcff"],
+        [data-theme="dark"] [style*="background:#f8fafc"],
+        [data-theme="dark"] [style*="background: #f8fafc"],
+        [data-theme="dark"] [style*="background:#f0f7ff"],
+        [data-theme="dark"] [style*="background: #f0f7ff"] {
+            background: #151F32 !important;
+            background-color: #151F32 !important;
+        }
+
+        [data-theme="dark"] [style*="border:1px solid #f1f5f9"],
+        [data-theme="dark"] [style*="border: 1px solid #f1f5f9"] {
+            border-color: #334155 !important;
+        }
+
+        /* 4. Cores específicas de Accordions e tabelas */
+        [data-theme="dark"] details.chg-acc summary {
+            background: linear-gradient(to right, #1E293B, #151F32) !important;
+            border-color: #334155 !important;
+            color: #E2E8F0 !important;
+        }
+
+        [data-theme="dark"] details.chg-acc summary span[style*="color:#1e40af"],
+        [data-theme="dark"] details.chg-acc summary span[style*="color: #1e40af"] {
+            color: #93C5FD !important;
+        }
+
+        [data-theme="dark"] details.chg-acc summary span[style*="color:#475569"],
+        [data-theme="dark"] details.chg-acc summary span[style*="color: #475569"] {
+            color: #94A3B8 !important;
+        }
+
+        /* Crachás de quantidade dentro dos summaries */
+        [data-theme="dark"] details.chg-acc summary span[style*="background:#dbeafe"] {
+            background-color: #1E3A8A !important;
+            color: #BFDBFE !important;
+        }
+
+        [data-theme="dark"] details.chg-acc summary span[style*="background:#fee2e2"] {
+            background-color: #7F1D1D !important;
+            color: #FCA5A5 !important;
+        }
+
+        [data-theme="dark"] details.chg-acc summary span[style*="background:#ede9fe"] {
+            background-color: #4C1D95 !important;
+            color: #DDD6FE !important;
+        }
+
+        /* Accordion de PRBs com RCA */
+        [data-theme="dark"] details.prb-acc summary {
+            background: #2D1414 !important;
+            border-color: #5C1E1E !important;
+            color: #FCA5A5 !important;
+        }
+
+        [data-theme="dark"] details.prb-acc summary span[style*="color:#b91c1c"],
+        [data-theme="dark"] details.prb-acc summary span[style*="color: #b91c1c"] {
+            color: #F87171 !important;
+        }
+
+        [data-theme="dark"] details.prb-acc summary span[style*="color:#475569"],
+        [data-theme="dark"] details.prb-acc summary span[style*="color: #475569"] {
+            color: #CBD5E1 !important;
+        }
+
+        /* Linhas da tabela de incidentes (INCs) e PTASKs nos summaries mensais */
+        [data-theme="dark"] details.prb-acc tr[style*="background:#fff8f8"],
+        [data-theme="dark"] details.prb-acc tr[style*="background: #fff8f8"] {
+            background-color: #2D1414 !important;
+            border-bottom-color: #4A1515 !important;
+        }
+
+        [data-theme="dark"] details.prb-acc tr[style*="background:#fff8f8"] span.text-red-700 {
+            color: #F87171 !important;
+        }
+
+        [data-theme="dark"] details.prb-acc tr[style*="background:#fff8f8"] span[style*="color:#475569"] {
+            color: #CBD5E1 !important;
+        }
+
+        [data-theme="dark"] details.prb-acc tr[style*="background:#f5f3ff"],
+        [data-theme="dark"] details.prb-acc tr[style*="background: #f5f3ff"] {
+            background-color: #1E1A2E !important;
+            border-bottom-color: #3B1B6B !important;
+        }
+
+        [data-theme="dark"] details.prb-acc tr[style*="background:#f5f3ff"] span.text-indigo-700 {
+            color: #A78BFA !important;
+        }
+
+        [data-theme="dark"] details.prb-acc tr[style*="background:#f5f3ff"] span[style*="color:#475569"] {
+            color: #CBD5E1 !important;
+        }
+
+        [data-theme="dark"] details.prb-acc div[style*="border:1px solid #e2e8f0"] {
+            border-color: #334155 !important;
+        }
+
+        [data-theme="dark"] details.prb-acc tr[style*="background:#f8fafc"] {
+            background-color: #1E293B !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        /* 5. PRB tab (Árvore de Problemas) e badges de RCA */
+        [data-theme="dark"] .prb-accordion-header {
+            background: linear-gradient(to right, #1E293B, #151F32) !important;
+            color: #E2E8F0 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body>div {
+            background-color: #151F32 !important;
+            border-top-color: #334155 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body .bg-slate-50 {
+            background-color: #1E293B !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body .text-slate-700 {
+            color: #CBD5E1 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body .text-slate-500 {
+            color: #94A3B8 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body table {
+            border-color: #334155 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body thead tr {
+            background-color: #1E293B !important;
+            border-bottom-color: #334155 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body thead th {
+            color: #94A3B8 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body tbody tr {
+            border-bottom-color: #334155 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body tbody tr.hover\:bg-blue-50\/50:hover {
+            background-color: #2D3748 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body tbody tr td span[style*="background:#dbeafe"] {
+            background-color: #1E3A8A !important;
+            color: #BFDBFE !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body tbody tr td.text-blue-700 {
+            color: #93C5FD !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body tbody tr td.text-slate-600 {
+            color: #E2E8F0 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body tbody tr td.text-slate-500 {
+            color: #CBD5E1 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body tbody tr.hover\:bg-red-50\/50:hover {
+            background-color: #3A1F1F !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body tbody tr td span[style*="background:#fee2e2"] {
+            background-color: #7F1D1D !important;
+            color: #FCA5A5 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-body tbody tr td.text-red-700 {
+            color: #F87171 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-header span[style*="background:#fee2e2"] {
+            background-color: #7F1D1D !important;
+            color: #FCA5A5 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-header span[style*="background:#dbeafe"] {
+            background-color: #1E3A8A !important;
+            color: #BFDBFE !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-header span[style*="background:#f1f5f9"] {
+            background-color: #1E293B !important;
+            color: #94A3B8 !important;
+            border-color: #334155 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-header span[style*="background:#f8fafc"] {
+            background-color: #1E293B !important;
+            border-color: #334155 !important;
+            color: #CBD5E1 !important;
+        }
+
+        /* RCA status badge colors inside headers */
+        [data-theme="dark"] .prb-accordion-header span[style*="background:#dcfce7"] {
+            background-color: #14532D !important;
+            color: #86EFAC !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-header span[style*="background:#fef9c3"] {
+            background-color: #713F12 !important;
+            color: #FEF08A !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-header span[style*="background:#f1f5f9"] {
+            background-color: #334155 !important;
+            color: #CBD5E1 !important;
+        }
+
+        [data-theme="dark"] .prb-accordion-header span[style*="background:#fef3c7"] {
+            background-color: #78350F !important;
+            color: #FDE68A !important;
+        }
+
+        /* Gradients para headers das seções de PRBs (RCA Pendente / Fechado) */
+        [data-theme="dark"] [style*="background: linear-gradient(to right, #fef2f2, #ffffff)"],
+        [data-theme="dark"] [style*="background:linear-gradient(to right,#fef2f2,#ffffff)"] {
+            background: linear-gradient(to right, #3A1F1F, #1E293B) !important;
+        }
+
+        [data-theme="dark"] [style*="background: linear-gradient(to right, #ecfdf5, #ffffff)"],
+        [data-theme="dark"] [style*="background:linear-gradient(to right,#ecfdf5,#ffffff)"] {
+            background: linear-gradient(to right, #1B3D2B, #1E293B) !important;
+        }
+
+        [data-theme="dark"] [style*="color: #991b1b"],
+        [data-theme="dark"] [style*="color:#991b1b"] {
+            color: #FCA5A5 !important;
+        }
+
+        [data-theme="dark"] [style*="color: #166534"],
+        [data-theme="dark"] [style*="color:#166534"] {
+            color: #86EFAC !important;
+        }
+
+        /* Badges adicionais da tabela de indicadores da aba PRB */
+        [data-theme="dark"] .bg-orange-50 {
+            background-color: #2D1A00 !important;
+            color: #FDE68A !important;
+        }
+
+        [data-theme="dark"] .text-orange-600 {
+            color: #F59E0B !important;
+        }
+
+        [data-theme="dark"] .bg-indigo-50 {
+            background-color: #1E1B4B !important;
+            color: #C7D2FE !important;
+        }
+
+        [data-theme="dark"] .text-indigo-600 {
+            color: #818CF8 !important;
+        }
+
+        [data-theme="dark"] .bg-emerald-50 {
+            background-color: #064E3B !important;
+            color: #A7F3D0 !important;
+        }
+
+        [data-theme="dark"] .text-emerald-600 {
+            color: #34D399 !important;
+        }
+
+        /* Campo de busca da aba PRB */
+        [data-theme="dark"] input[onkeyup*="filterPRBAccordions"] {
+            color: #E2E8F0 !important;
+        }
+
+        [data-theme="dark"] input[onkeyup*="filterPRBAccordions"]::placeholder {
+            color: #64748B !important;
+        }
+
+        /* ── FIM DOS AJUSTES DO MODO ESCURO ── */
     </style>
     <script>
         (function () {
@@ -7419,46 +7746,52 @@
                 && RawData.chgProblems && RawData.chgProblems.length > 0;
 
             if (hasReleaseFiles) {
-                let hier = buildReleaseHierarchy(RawData.chgRelease, RawData.chgProblems, prbData);
+                let hier = buildReleaseHierarchy(RawData.chgRelease, RawData.chgProblems);
                 if (hier && hier.totals.rlse > 0) {
-                    const { rlseMap, monthMap, prbMasterLookup, prbDetailFromFile, prbToIncsLookup, totals } = hier;
-                    const MONTH_NAMES_PT_R = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-
-                    if (!window.DrilldownVault) window.DrilldownVault = { class: {} };
-                    if (!window.DrilldownVault['class']) window.DrilldownVault['class'] = {};
+                    const { rlseMap, monthMap, incByNum, totals } = hier;
+                    const MONTHS_PT = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
                     // ── Visual helpers ─────────────────────────────────────────────
-                    const stBadgeR = (stVal) => {
-                        let v = String(stVal || '').toUpperCase();
-                        if (['RESOLVED','CLOSED','PUBLISHED','COMPLETED','FIXED'].some(s => v.includes(s)))
-                            return `<span style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${stVal}</span>`;
-                        if (v.includes('OPEN') || v.includes('IN PROGRESS') || v.includes('NEW') || v.includes('FIX'))
-                            return `<span style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${stVal}</span>`;
-                        if (v.includes('HOLD') || v.includes('PENDING') || v.includes('AWAITING'))
-                            return `<span style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${stVal}</span>`;
-                        return `<span style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${stVal || '—'}</span>`;
+                    const stBR = (v) => {
+                        let u = String(v || '').toUpperCase();
+                        if (['RESOLVED', 'CLOSED', 'PUBLISHED', 'COMPLETED', 'FIXED'].some(s => u.includes(s)))
+                            return `<span style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${v}</span>`;
+                        if (u.includes('OPEN') || u.includes('IN PROGRESS') || u.includes('NEW'))
+                            return `<span style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${v}</span>`;
+                        if (u.includes('HOLD') || u.includes('PENDING') || u.includes('AWAIT'))
+                            return `<span style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${v}</span>`;
+                        return `<span style="background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${v || '—'}</span>`;
                     };
-                    const prioBadgeR = (p) => {
-                        let v = String(p || '').toUpperCase();
-                        if (v.includes('1') || v.includes('CRITICAL')) return `<span style="font-size:9px;font-weight:900;color:#dc2626;">🔴 ${p}</span>`;
-                        if (v.includes('2') || v.includes('HIGH')) return `<span style="font-size:9px;font-weight:900;color:#ea580c;">🟠 ${p}</span>`;
-                        if (v.includes('3') || v.includes('MEDIUM') || v.includes('MOD')) return `<span style="font-size:9px;font-weight:900;color:#ca8a04;">🟡 ${p}</span>`;
+                    const prioBR = (p) => {
+                        let u = String(p || '').toUpperCase();
+                        if (u.includes('1') || u.includes('CRITICAL')) return `<span style="font-size:9px;font-weight:900;color:#dc2626;">🔴 ${p}</span>`;
+                        if (u.includes('2') || u.includes('HIGH')) return `<span style="font-size:9px;font-weight:900;color:#ea580c;">🟠 ${p}</span>`;
+                        if (u.includes('3') || u.includes('MEDIUM')) return `<span style="font-size:9px;font-weight:900;color:#ca8a04;">🟡 ${p}</span>`;
                         if (p && p !== 'N/A' && p !== '—') return `<span style="font-size:9px;color:#475569;font-weight:700;">${p}</span>`;
                         return `<span style="font-size:9px;color:#cbd5e1;">—</span>`;
                     };
+                    const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
-                    // ── Build INC rows ─────────────────────────────────────────────
-                    const buildIncRows = (incs) => {
-                        if (!incs || !incs.length) return `<div style="text-align:center;padding:10px;color:#94a3b8;font-size:11px;font-style:italic;">Sem incidentes vinculados.</div>`;
-                        let rows = incs.map(inc => {
-                            let iDesc = (inc.desc || '—').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-                            return `<tr style="border-bottom:1px solid #fee2e2;background:#fff8f8;" class="hover:bg-red-50/50 transition-colors">
-                                <td style="padding:5px 8px;white-space:nowrap;"><span onclick="openTicketDetails('${inc.tk}')" class="ticket-id-clickable font-black text-red-700" style="font-size:11px;cursor:pointer;">${inc.tk}</span></td>
+                    // ── INC rows ───────────────────────────────────────────────────
+                    // incNums = string[] from Related Incidents; incByNum = RawData.incs lookup
+                    const buildIncRows = (incNums) => {
+                        if (!incNums || !incNums.length)
+                            return `<div style="text-align:center;padding:10px;color:#94a3b8;font-size:11px;font-style:italic;">Sem incidentes vinculados.</div>`;
+                        let rows = incNums.map(incNum => {
+                            let row = incByNum[incNum];
+                            let iDesc = row ? esc(getCol(row, ['Short description', 'Descrição', 'Assunto']) || '—') : '—';
+                            let iSt = row ? String(getCol(row, ['State', 'Status', 'Estado']) || '').trim() : '';
+                            let iPrio = row ? String(getCol(row, ['Priority', 'Prioridade']) || '').trim() : '';
+                            let iAs = row ? String(getCol(row, ['Assigned to', 'Analista', 'Assignee']) || '—').trim() : '—';
+                            let iOpD = row ? safeDate(getCol(row, ['Opened', 'Data Abertura', 'Created', 'opened_at'])) : null;
+                            let iOpStr = iOpD ? formatExactDate(iOpD).split(' ')[0] : '—';
+                            return `<tr style="border-bottom:1px solid #fee2e2;background:#fff8f8;">
+                                <td style="padding:5px 8px;white-space:nowrap;"><span onclick="openTicketDetails('${incNum}')" class="ticket-id-clickable font-black text-red-700" style="font-size:11px;cursor:pointer;">${incNum}</span></td>
                                 <td style="padding:5px 8px;max-width:0;width:100%;overflow:hidden;"><span style="font-size:10px;color:#475569;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${iDesc}">${iDesc}</span></td>
-                                <td style="padding:5px 8px;white-space:nowrap;">${stBadgeR(inc.st)}</td>
-                                <td style="padding:5px 8px;white-space:nowrap;">${prioBadgeR(inc.priority)}</td>
-                                <td style="padding:5px 8px;white-space:nowrap;font-size:10px;color:#64748b;">${inc.as || '—'}</td>
-                                <td style="padding:5px 8px;white-space:nowrap;font-size:9px;color:#94a3b8;">${inc.opStr && inc.opStr !== '—' ? String(inc.opStr).split(' ')[0] : '—'}</td>
+                                <td style="padding:5px 8px;white-space:nowrap;">${stBR(iSt)}</td>
+                                <td style="padding:5px 8px;white-space:nowrap;">${prioBR(iPrio)}</td>
+                                <td style="padding:5px 8px;white-space:nowrap;font-size:10px;color:#64748b;">${esc(iAs)}</td>
+                                <td style="padding:5px 8px;white-space:nowrap;font-size:9px;color:#94a3b8;">${iOpStr}</td>
                             </tr>`;
                         }).join('');
                         return `<div style="overflow-x:auto;border-radius:4px;border:1px solid #e2e8f0;">
@@ -7476,216 +7809,161 @@
                         </div>`;
                     };
 
-                    // ── Build PRB accordion ────────────────────────────────────────
-                    const buildPrbAccordionR = (prbNum, detailRow) => {
-                        let masterObj = prbMasterLookup[prbNum] || null;
-                        let incs = prbToIncsLookup[prbNum] || [];
-                        let incCount = incs.length;
-
-                        // PRB description: prefer detailRow (change_problems) → masterObj → fallback
-                        let prbDesc = '—';
-                        if (detailRow) prbDesc = String(getCol(detailRow, ['Short description', 'Descrição', 'Assunto', 'description']) || '').trim();
-                        if ((!prbDesc || prbDesc === '—') && masterObj) prbDesc = masterObj.desc || '—';
-                        let prbDescEsc = prbDesc.replace(/"/g,'&quot;').replace(/</g,'&lt;');
-
-                        let prbSt = '—';
-                        if (detailRow) prbSt = String(getCol(detailRow, ['State', 'Status', 'Estado']) || '').trim().toUpperCase();
-                        if ((!prbSt || prbSt === '—') && masterObj) prbSt = masterObj.st || '—';
-
-                        let prbPrio = '—';
-                        if (detailRow) prbPrio = String(getCol(detailRow, ['Priority', 'Prioridade']) || '').trim();
-                        if ((!prbPrio || prbPrio === '—') && masterObj) prbPrio = masterObj.priority || '—';
-
-                        let incCountBadge = incCount > 0
-                            ? `<span style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${incCount} INC${incCount>1?'s':''}</span>`
+                    // ── PRB accordion ──────────────────────────────────────────────
+                    const buildPrbAcc = (prb) => {
+                        let cnt = prb.incNums.length;
+                        let cntBadge = cnt > 0
+                            ? `<span style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${cnt} INC${cnt > 1 ? 's' : ''}</span>`
                             : `<span style="background:#f1f5f9;color:#94a3b8;border:1px solid #e2e8f0;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;white-space:nowrap;">0 INCs</span>`;
-
                         return `<details class="prb-acc" open style="margin-bottom:4px;">
                             <summary style="background:#fff5f5;border:1px solid #fecaca;border-radius:6px;padding:8px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;list-style:none;flex-wrap:wrap;" class="hover:bg-red-50 transition-colors">
                                 <i class="fas fa-bug" style="color:#ef4444;font-size:11px;flex-shrink:0;"></i>
-                                <span onclick="event.stopPropagation();openTicketDetails('${prbNum}')" class="ticket-id-clickable font-black" style="color:#b91c1c;font-size:12px;cursor:pointer;flex-shrink:0;">${prbNum}</span>
-                                <span style="color:#475569;font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;" title="${prbDescEsc}">${prbDesc}</span>
-                                <span style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
-                                    ${stBadgeR(prbSt)}
-                                    ${prioBadgeR(prbPrio)}
-                                    ${incCountBadge}
-                                </span>
+                                <span onclick="event.stopPropagation();openTicketDetails('${prb.prbNum}')" class="ticket-id-clickable font-black" style="color:#b91c1c;font-size:12px;cursor:pointer;flex-shrink:0;">${prb.prbNum}</span>
+                                <span style="color:#475569;font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;" title="${esc(prb.desc)}">${esc(prb.desc) || '—'}</span>
+                                <span style="display:flex;align-items:center;gap:4px;flex-shrink:0;">${stBR(prb.state)} ${prioBR(prb.priority)} ${cntBadge}</span>
                             </summary>
-                            <div style="padding:8px 8px 8px 24px;">${buildIncRows(incs)}</div>
+                            <div style="padding:8px 8px 8px 24px;">${buildIncRows(prb.incNums)}</div>
                         </details>`;
                     };
 
-                    // ── Build CHG section (inside a RLSE) ─────────────────────────
-                    const buildChgSectionR = (chgNum, prbRows) => {
-                        let prbCount = prbRows.length;
-                        let totalIncCount = prbRows.reduce((acc, { prbNum }) => acc + (prbToIncsLookup[prbNum] ? prbToIncsLookup[prbNum].length : 0), 0);
-
+                    // ── CHG accordion ──────────────────────────────────────────────
+                    const buildChgAcc = (chgNum, prbObjs) => {
+                        let totPrb = prbObjs.length;
+                        let totInc = prbObjs.reduce((s, p) => s + p.incNums.length, 0);
                         // Sort PRBs by INC count desc
-                        let sorted = [...prbRows].sort((a,b) => {
-                            let aI = (prbToIncsLookup[a.prbNum] || []).length;
-                            let bI = (prbToIncsLookup[b.prbNum] || []).length;
-                            return bI - aI;
-                        });
-
-                        let prbAccsHtml = sorted.map(({ prbNum, row }) => buildPrbAccordionR(prbNum, row)).join('');
-
+                        let sorted = [...prbObjs].sort((a, b) => b.incNums.length - a.incNums.length);
                         return `<details class="chg-acc" open style="margin-bottom:8px;">
                             <summary style="background:linear-gradient(to right,#f0f4ff,#e8efff);border:1px solid #c7d2fe;border-radius:8px;padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;list-style:none;flex-wrap:wrap;" class="hover:bg-indigo-50/60 transition-colors">
                                 <i class="fas fa-cogs" style="color:#4338ca;font-size:12px;flex-shrink:0;"></i>
-                                <span onclick="event.stopPropagation();" style="background:#e0e7ff;color:#3730a3;border:1px solid #a5b4fc;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;flex-shrink:0;">${chgNum}</span>
+                                <span style="background:#e0e7ff;color:#3730a3;border:1px solid #a5b4fc;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;flex-shrink:0;">${chgNum}</span>
                                 <span style="font-size:11px;color:#374151;flex:1;min-width:0;"></span>
                                 <span style="display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto;">
-                                    <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${prbCount} PRB${prbCount>1?'s':''}</span>
-                                    ${totalIncCount > 0 ? `<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totalIncCount} INC${totalIncCount>1?'s':''}</span>` : ''}
+                                    <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totPrb} PRB${totPrb > 1 ? 's' : ''}</span>
+                                    ${totInc > 0 ? `<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totInc} INC${totInc > 1 ? 's' : ''}</span>` : ''}
                                 </span>
                             </summary>
                             <div style="border:1px solid #c7d2fe;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#f8f9ff;">
-                                ${prbAccsHtml || '<div style="text-align:center;padding:12px;color:#94a3b8;font-size:11px;font-style:italic;">Sem PRBs vinculados.</div>'}
+                                ${sorted.map(buildPrbAcc).join('') || '<div style="text-align:center;padding:12px;color:#94a3b8;font-size:11px;font-style:italic;">Sem PRBs vinculados.</div>'}
                             </div>
                         </details>`;
                     };
 
-                    // ── Build RLSE accordion ───────────────────────────────────────
-                    const buildRlseAccordion = (rlseNum, hidden) => {
+                    // ── RLSE accordion ─────────────────────────────────────────────
+                    const buildRlseAcc = (rlseNum) => {
                         let rlse = rlseMap[rlseNum];
                         let chgKeys = Object.keys(rlse.chgs);
-                        let totalPrbCount = chgKeys.reduce((acc, k) => acc + rlse.chgs[k].length, 0);
-                        let totalIncCount = chgKeys.reduce((acc, k) =>
-                            acc + rlse.chgs[k].reduce((a2, { prbNum }) => a2 + (prbToIncsLookup[prbNum] ? prbToIncsLookup[prbNum].length : 0), 0), 0);
-
+                        let totPrb = chgKeys.reduce((s, k) => s + rlse.chgs[k].length, 0);
+                        let totInc = chgKeys.reduce((s, k) => s + rlse.chgs[k].reduce((s2, p) => s2 + p.incNums.length, 0), 0);
                         let chgBadges = chgKeys.map(c =>
                             `<span style="background:#e0e7ff;color:#3730a3;border:1px solid #a5b4fc;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${c}</span>`
                         ).join(' ');
-
-                        let descEsc = (rlse.desc || '—').replace(/"/g,'&quot;').replace(/</g,'&lt;');
-                        let chgHtml = chgKeys.map(chgNum => buildChgSectionR(chgNum, rlse.chgs[chgNum])).join('');
-
-                        let hiddenAttr = hidden ? 'data-hidden-month="1" style="display:none;"' : '';
-                        return `<details class="rlse-acc" open style="margin-bottom:8px;" ${hiddenAttr}>
+                        return `<details class="rlse-acc" open style="margin-bottom:8px;">
                             <summary style="background:linear-gradient(to right,#f0f9ff,#e0f0ff);border:1px solid #bfdbfe;border-radius:8px;padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;list-style:none;flex-wrap:wrap;" class="hover:bg-blue-50/60 transition-colors">
                                 <i class="fas fa-rocket" style="color:#2563eb;font-size:12px;flex-shrink:0;"></i>
                                 ${rlse.dayStr !== '—' ? `<span style="font-size:13px;font-weight:900;color:#1e40af;flex-shrink:0;">${rlse.dayStr}</span><span style="color:#cbd5e1;font-size:12px;flex-shrink:0;">|</span>` : ''}
                                 <span style="background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;flex-shrink:0;">${rlseNum}</span>
                                 ${chgBadges}
-                                <span style="font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;" title="${descEsc}">— ${rlse.desc || ''}</span>
+                                <span style="font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;" title="${esc(rlse.desc)}">— ${esc(rlse.desc)}</span>
                                 <span style="display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto;">
-                                    <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totalPrbCount} PRB${totalPrbCount>1?'s':''}</span>
-                                    ${totalIncCount > 0 ? `<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totalIncCount} INC${totalIncCount>1?'s':''}</span>` : ''}
+                                    <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totPrb} PRB${totPrb > 1 ? 's' : ''}</span>
+                                    ${totInc > 0 ? `<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totInc} INC${totInc > 1 ? 's' : ''}</span>` : ''}
                                 </span>
                             </summary>
                             <div style="border:1px solid #bfdbfe;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#f8faff;">
-                                ${chgHtml || '<div style="text-align:center;padding:12px;color:#94a3b8;font-size:11px;font-style:italic;">Sem mudanças vinculadas.</div>'}
+                                ${chgKeys.map(k => buildChgAcc(k, rlse.chgs[k])).join('')}
                             </div>
                         </details>`;
                     };
 
-                    // ── Build month section ────────────────────────────────────────
-                    let sortedMonthsR = Object.keys(monthMap).sort((a,b) => b.localeCompare(a));
-                    const MONTHS_TO_SHOW_R = 3;
-                    let visibleMonthsR = sortedMonthsR.slice(0, MONTHS_TO_SHOW_R);
-                    let hiddenMonthsR = sortedMonthsR.slice(MONTHS_TO_SHOW_R);
+                    // ── Month section ──────────────────────────────────────────────
+                    let sortedMo = Object.keys(monthMap).sort((a, b) => b.localeCompare(a));
+                    const SHOW = 3;
+                    let visMo = sortedMo.slice(0, SHOW), hidMo = sortedMo.slice(SHOW);
 
-                    const buildMonthSectionR = (monthKey, rlseNums, hidden) => {
-                        let moLabel = monthKey === '0000-00' ? 'Sem Data Definida'
-                            : (() => { let [yr, mo] = monthKey.split('-'); return `${MONTH_NAMES_PT_R[parseInt(mo)-1]} / ${yr}`; })();
-
-                        let totPrb = rlseNums.reduce((acc, r) => acc + Object.keys(rlseMap[r].chgs).reduce((a2, k) => a2 + rlseMap[r].chgs[k].length, 0), 0);
-                        let totInc = rlseNums.reduce((acc, r) => acc + Object.keys(rlseMap[r].chgs).reduce((a2, k) =>
-                            a2 + rlseMap[r].chgs[k].reduce((a3, { prbNum }) => a3 + (prbToIncsLookup[prbNum] ? prbToIncsLookup[prbNum].length : 0), 0), 0), 0);
-                        let totRlse = rlseNums.length;
-
-                        // Sort RLSEs by created date desc
-                        let sortedRlse = [...rlseNums].sort((a,b) => {
+                    const buildMonthSec = (mk, rlseNums, hidden) => {
+                        let moLabel = mk === '0000-00' ? 'Sem Data Definida'
+                            : (() => { let [yr, mo] = mk.split('-'); return `${MONTHS_PT[parseInt(mo) - 1]} / ${yr}`; })();
+                        let totR = rlseNums.length;
+                        let totP = rlseNums.reduce((s, r) => s + Object.keys(rlseMap[r].chgs).reduce((s2, k) => s2 + rlseMap[r].chgs[k].length, 0), 0);
+                        let totI = rlseNums.reduce((s, r) => s + Object.keys(rlseMap[r].chgs).reduce((s2, k) => s2 + rlseMap[r].chgs[k].reduce((s3, p) => s3 + p.incNums.length, 0), 0), 0);
+                        let sortedR = [...rlseNums].sort((a, b) => {
                             let dA = rlseMap[a].created, dB = rlseMap[b].created;
                             if (!dA && !dB) return 0; if (!dA) return 1; if (!dB) return -1;
                             return dB - dA;
                         });
-
-                        let hiddenDataAttr = hidden ? 'data-hidden-month="1"' : '';
-                        let hiddenStyleAttr = hidden ? 'style="display:none;"' : '';
-
-                        return `<div class="month-section mb-4" data-month="${monthKey}" ${hiddenDataAttr} ${hiddenStyleAttr}>
+                        let dAttr = hidden ? 'data-hidden-month="1"' : '';
+                        let sAttr = hidden ? 'style="display:none;"' : '';
+                        return `<div class="month-section mb-4" data-month="${mk}" ${dAttr} ${sAttr}>
                             <div style="background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:10px 20px;border-radius:10px 10px 0 0;display:flex;align-items:center;gap:12px;">
                                 <i class="fas fa-calendar-alt" style="font-size:15px;opacity:0.8;"></i>
                                 <span style="font-size:14px;font-weight:900;letter-spacing:0.05em;">${moLabel}</span>
                                 <span style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-                                    ${totRlse > 0 ? `<span style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totRlse} Release${totRlse>1?'s':''}</span>` : ''}
-                                    <span style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totPrb} PRB${totPrb>1?'s':''}</span>
-                                    ${totInc > 0 ? `<span style="background:rgba(239,68,68,0.5);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totInc} INC${totInc>1?'s':''}</span>` : ''}
+                                    <span style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totR} Release${totR > 1 ? 's' : ''}</span>
+                                    <span style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totP} PRB${totP > 1 ? 's' : ''}</span>
+                                    ${totI > 0 ? `<span style="background:rgba(239,68,68,0.5);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totI} INC${totI > 1 ? 's' : ''}</span>` : ''}
                                 </span>
                             </div>
                             <div style="border:1px solid #bfdbfe;border-top:none;border-radius:0 0 10px 10px;padding:16px;background:#f0f7ff;">
-                                ${sortedRlse.map(r => buildRlseAccordion(r, false)).join('')}
+                                ${sortedR.map(buildRlseAcc).join('')}
                             </div>
                         </div>`;
                     };
 
-                    // ── KPI cards ─────────────────────────────────────────────────
+                    // ── Assemble ───────────────────────────────────────────────────
                     let releaseHtml = `
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div class="report-card text-center border-t-4 border-sky-500 bg-gradient-to-br from-white to-sky-50/30 p-4 shadow-sm">
-                            <div class="text-[10px] font-black text-sky-600 mb-1 uppercase tracking-widest">Releases (RLSE)</div>
+                        <div class="report-card text-center border-t-4 border-sky-500 p-4 shadow-sm">
+                            <div class="text-[10px] font-black text-sky-600 mb-1 uppercase tracking-widest">Releases</div>
                             <div class="text-4xl font-black text-slate-800">${totals.rlse}</div>
-                            <div class="text-[9px] text-slate-400 mt-2 uppercase">No período</div>
                         </div>
-                        <div class="report-card text-center border-t-4 border-blue-600 bg-gradient-to-br from-white to-blue-50/30 p-4 shadow-sm">
+                        <div class="report-card text-center border-t-4 border-blue-600 p-4 shadow-sm">
                             <div class="text-[10px] font-black text-blue-600 mb-1 uppercase tracking-widest">Changes (CHG)</div>
                             <div class="text-4xl font-black text-slate-800">${totals.chg}</div>
-                            <div class="text-[9px] text-slate-400 mt-2 uppercase">Mudanças com PRBs</div>
                         </div>
-                        <div class="report-card text-center border-t-4 border-red-500 bg-gradient-to-br from-white to-red-50/30 p-4 shadow-sm">
-                            <div class="text-[10px] font-black text-red-600 mb-1 uppercase tracking-widest">Total PRBs</div>
+                        <div class="report-card text-center border-t-4 border-red-500 p-4 shadow-sm">
+                            <div class="text-[10px] font-black text-red-600 mb-1 uppercase tracking-widest">Problemas (PRB)</div>
                             <div class="text-4xl font-black text-slate-800">${totals.prb}</div>
-                            <div class="text-[9px] text-slate-400 mt-2 uppercase">Problemas Mapeados</div>
                         </div>
-                        <div class="report-card text-center border-t-4 border-orange-500 bg-gradient-to-br from-white to-orange-50/30 p-4 shadow-sm">
-                            <div class="text-[10px] font-black text-orange-600 mb-1 uppercase tracking-widest">INCs Vinculados</div>
+                        <div class="report-card text-center border-t-4 border-orange-500 p-4 shadow-sm">
+                            <div class="text-[10px] font-black text-orange-600 mb-1 uppercase tracking-widest">Incidentes (INC)</div>
                             <div class="text-4xl font-black text-slate-800">${totals.inc}</div>
-                            <div class="text-[9px] text-slate-400 mt-2 uppercase">Incidentes por Causa</div>
                         </div>
-                    </div>`;
-
-                    // ── Filter + toggle bar ────────────────────────────────────────
-                    releaseHtml += `
+                    </div>
                     <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-bottom:16px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1px solid #e2e8f0;gap:10px;">
-                        <div style="display:flex;align-items:center;gap:8px;flex:1;max-width:380px;background:#f8fafc;border:1px solid #e2e8f0;padding:6px 12px;border-radius:20px;">
+                        <div style="display:flex;align-items:center;gap:8px;flex:1;max-width:400px;background:#f8fafc;border:1px solid #e2e8f0;padding:6px 12px;border-radius:20px;">
                             <i class="fas fa-search" style="color:#94a3b8;"></i>
                             <input type="text" placeholder="Filtrar por RLSE, CHG, PRB, INC, descrição..." style="width:100%;background:transparent;outline:none;font-size:11px;color:#334155;font-family:inherit;" onkeyup="filterPRBAccordions(this.value)">
-                        </div>
-                        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-                            <span style="background:#0284c7;color:#fff;padding:4px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totals.rlse} RLSEs</span>
-                            <span style="background:#dbeafe;color:#1e40af;padding:4px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totals.chg} CHGs</span>
-                            <span style="background:#fee2e2;color:#b91c1c;padding:4px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totals.inc} INCs</span>
                         </div>
                         <button id="btn-toggle-prb-accordions" onclick="toggleAllPRBAccordions()" style="background:var(--primary-dark);color:#fff;padding:7px 16px;border-radius:20px;font-size:10px;font-weight:900;text-transform:uppercase;cursor:pointer;border:none;" class="hover:brightness-110 transition">
                             <i class="fas fa-compress-alt mr-1"></i> Colapsar Tudo
                         </button>
                     </div>`;
 
-                    // ── Accordion container ────────────────────────────────────────
-                    let accordionHtmlR = visibleMonthsR.map(mk => buildMonthSectionR(mk, monthMap[mk], false)).join('');
-                    accordionHtmlR += hiddenMonthsR.map(mk => buildMonthSectionR(mk, monthMap[mk], true)).join('');
+                    let accHtml = visMo.map(mk => buildMonthSec(mk, monthMap[mk], false)).join('');
+                    accHtml += hidMo.map(mk => buildMonthSec(mk, monthMap[mk], true)).join('');
 
-                    if (hiddenMonthsR.length > 0) {
-                        let hiddenPrbCount = hiddenMonthsR.reduce((acc, mk) => acc + monthMap[mk].reduce((a2, r) =>
-                            a2 + Object.keys(rlseMap[r].chgs).reduce((a3, k) => a3 + rlseMap[r].chgs[k].length, 0), 0), 0);
-                        accordionHtmlR += `<div class="text-center my-4">
+                    if (hidMo.length > 0) {
+                        let hidCnt = hidMo.reduce((s, mk) => s + monthMap[mk].reduce((s2, r) =>
+                            s2 + Object.keys(rlseMap[r].chgs).reduce((s3, k) => s3 + rlseMap[r].chgs[k].length, 0), 0), 0);
+                        accHtml += `<div class="text-center my-4">
                             <button onclick="toggleOlderMonths(this)" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:7px 20px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;" class="hover:bg-slate-200 transition">
-                                <i class="fas fa-history mr-1"></i> Ver ${hiddenMonthsR.length} mês${hiddenMonthsR.length>1?'es':''} anterior${hiddenMonthsR.length>1?'es':''} (${hiddenPrbCount} PRBs)
+                                <i class="fas fa-history mr-1"></i> Ver ${hidMo.length} mês${hidMo.length > 1 ? 'es' : ''} anterior${hidMo.length > 1 ? 'es' : ''} (${hidCnt} PRBs)
                             </button>
                         </div>`;
                     }
 
-                    releaseHtml += `<div id="prb-accordions-container">${accordionHtmlR || '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px;">Nenhum dado com vínculo encontrado.</div>'}</div>`;
+                    releaseHtml += `<div id="prb-accordions-container">${accHtml || '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px;">Nenhum dado com vínculo encontrado.</div>'}</div>`;
                     releaseHtml += `<div style="padding:10px;background:#f8fafc;color:#94a3b8;font-size:9px;text-align:center;font-style:italic;margin-top:16px;border-radius:6px;border:1px solid #f1f5f9;">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Hierarquia: <b>Release (RLSE)</b> → <b>Change (CHG)</b> → <b style="color:#b91c1c;">Problema (PRB)</b> → <b style="color:#ef4444;">Incidente (INC)</b>
-                        &nbsp;|&nbsp; Fontes: <i>change_release.xlsx</i> + <i>change_problems.xlsx</i> + <i>incident.xlsx</i>
-                        &nbsp;|&nbsp; Apenas vínculos explícitos são exibidos
+                        <b>Release</b> → <b>Change (CHG)</b> → <b style="color:#b91c1c;">Problema (PRB)</b> → <b style="color:#ef4444;">Incidente (INC)</b>
+                        &nbsp;|&nbsp; Fontes: <i>change_release.xlsx</i> + <i>change_problems.xlsx</i>
+                        &nbsp;|&nbsp; Apenas vínculos explícitos exibidos
                     </div>`;
 
                     return html + releaseHtml;
                 }
+                // Release files loaded but no RLSE-CHG-PRB links found
+                return html + `<div class="report-card" style="text-align:center;padding:40px;"><p style="color:#94a3b8;font-size:14px;">Nenhum vínculo encontrado entre os arquivos carregados.<br><small>Verifique se os campos <b>Change Trigger Ticket</b> (change_release) e <b>Number/Problem</b> (change_problems) estão preenchidos.</small></p></div>`;
             }
             // ── END RELEASE MODE ─────────────────────────────────────────────────
 
@@ -7738,7 +8016,7 @@
             // ── Visual helpers ──────────────────────────────────────────────────────
             const stBadge = (stVal) => {
                 let v = String(stVal || '').toUpperCase();
-                if (['RESOLVED','CLOSED','PUBLISHED','COMPLETED'].some(s => v.includes(s)))
+                if (['RESOLVED', 'CLOSED', 'PUBLISHED', 'COMPLETED'].some(s => v.includes(s)))
                     return `<span style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${stVal}</span>`;
                 if (v.includes('OPEN') || v.includes('IN PROGRESS') || v.includes('NEW') || v.includes('FIX'))
                     return `<span style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:2px 7px;border-radius:4px;font-size:8.5px;font-weight:800;text-transform:uppercase;">${stVal}</span>`;
@@ -7783,16 +8061,16 @@
             });
 
             // ── Group CHGs by month ──────────────────────────────────────────────
-            const MONTH_NAMES_PT = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+            const MONTH_NAMES_PT = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
             let monthGroups = {};
             Object.entries(chgGroups).forEach(([chgKey, cg]) => {
                 let d = cg.dateObj;
-                let monthKey = d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : '0000-00';
+                let monthKey = d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : '0000-00';
                 if (!monthGroups[monthKey]) monthGroups[monthKey] = [];
                 monthGroups[monthKey].push(chgKey);
             });
 
-            let sortedMonths = Object.keys(monthGroups).sort((a,b) => b.localeCompare(a));
+            let sortedMonths = Object.keys(monthGroups).sort((a, b) => b.localeCompare(a));
             const MONTHS_TO_SHOW = 3;
             let visibleMonths = sortedMonths.slice(0, MONTHS_TO_SHOW);
             let hiddenMonths = sortedMonths.slice(MONTHS_TO_SHOW);
@@ -7812,10 +8090,10 @@
                 let prbRcaSt = master && master.stRca && master.stRca !== '' ? master.stRca : '';
 
                 let incCountBadge = incCount > 0
-                    ? `<span style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${incCount} INC${incCount>1?'s':''}</span>`
+                    ? `<span style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${incCount} INC${incCount > 1 ? 's' : ''}</span>`
                     : '';
                 let ptaskBadge = ptaskCount > 0
-                    ? `<span style="background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:800;white-space:nowrap;">${ptaskCount} PTASK${ptaskCount>1?'s':''}</span>`
+                    ? `<span style="background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:800;white-space:nowrap;">${ptaskCount} PTASK${ptaskCount > 1 ? 's' : ''}</span>`
                     : '';
                 let rcaBadgeHtml = prbRcaSt
                     ? `<span style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;padding:2px 6px;border-radius:4px;font-size:8px;font-weight:800;white-space:nowrap;">RCA: ${prbRcaSt}</span>`
@@ -7886,7 +8164,7 @@
                 let dateLbl = '—';
                 if (cg.dateObj) {
                     let d = cg.dateObj;
-                    dateLbl = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+                    dateLbl = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
                 }
 
                 let rlseHtml = (cg.rlse && cg.rlse !== '—')
@@ -7920,9 +8198,9 @@
                         ${chgHtml}
                         <span style="font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;" title="${descEsc}">${descText}</span>
                         <span style="display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:auto;">
-                            <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${prbCount} PRB${prbCount>1?'s':''}</span>
-                            ${totalIncCount > 0 ? `<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totalIncCount} INC${totalIncCount>1?'s':''}</span>` : ''}
-                            ${totalPtCount > 0 ? `<span style="background:#ede9fe;color:#5b21b6;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totalPtCount} PTASK${totalPtCount>1?'s':''}</span>` : ''}
+                            <span style="background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${prbCount} PRB${prbCount > 1 ? 's' : ''}</span>
+                            ${totalIncCount > 0 ? `<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totalIncCount} INC${totalIncCount > 1 ? 's' : ''}</span>` : ''}
+                            ${totalPtCount > 0 ? `<span style="background:#ede9fe;color:#5b21b6;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:900;white-space:nowrap;">${totalPtCount} PTASK${totalPtCount > 1 ? 's' : ''}</span>` : ''}
                         </span>
                     </summary>
                     <div style="border:1px solid #bfdbfe;border-top:none;border-radius:0 0 8px 8px;padding:12px;background:#fafcff;">
@@ -7934,7 +8212,7 @@
             // ── Build month section HTML ─────────────────────────────────────────
             const buildMonthSection = (monthKey, chgKeys, hidden) => {
                 let moLabel = monthKey === '0000-00' ? 'Sem Data Definida'
-                    : (() => { let [yr, mo] = monthKey.split('-'); return `${MONTH_NAMES_PT[parseInt(mo)-1]} / ${yr}`; })();
+                    : (() => { let [yr, mo] = monthKey.split('-'); return `${MONTH_NAMES_PT[parseInt(mo) - 1]} / ${yr}`; })();
 
                 let totalPrbsInMonth = chgKeys.reduce((acc, k) => acc + chgGroups[k].prbs.length, 0);
                 let totalIncsInMonth = chgKeys.reduce((acc, k) => acc + chgGroups[k].prbs.reduce((a2, pid) => a2 + (prbGroups[pid] ? prbGroups[pid].incs.length : 0), 0), 0);
@@ -7955,9 +8233,9 @@
                         <i class="fas fa-calendar-alt" style="font-size:15px;opacity:0.8;"></i>
                         <span style="font-size:14px;font-weight:900;letter-spacing:0.05em;">${moLabel}</span>
                         <span style="margin-left:auto;display:flex;gap:6px;align-items:center;">
-                            ${totalChgInMonth > 0 ? `<span style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totalChgInMonth} CHG${totalChgInMonth>1?'s':''}</span>` : ''}
-                            <span style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totalPrbsInMonth} PRB${totalPrbsInMonth>1?'s':''}</span>
-                            ${totalIncsInMonth > 0 ? `<span style="background:rgba(239,68,68,0.5);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totalIncsInMonth} INC${totalIncsInMonth>1?'s':''}</span>` : ''}
+                            ${totalChgInMonth > 0 ? `<span style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totalChgInMonth} CHG${totalChgInMonth > 1 ? 's' : ''}</span>` : ''}
+                            <span style="background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totalPrbsInMonth} PRB${totalPrbsInMonth > 1 ? 's' : ''}</span>
+                            ${totalIncsInMonth > 0 ? `<span style="background:rgba(239,68,68,0.5);padding:2px 10px;border-radius:20px;font-size:9px;font-weight:800;">${totalIncsInMonth} INC${totalIncsInMonth > 1 ? 's' : ''}</span>` : ''}
                         </span>
                     </div>
                     <div style="border:1px solid #bfdbfe;border-top:none;border-radius:0 0 10px 10px;padding:16px;background:#f0f7ff;">
@@ -7975,7 +8253,7 @@
                 accordionHtml += `
                 <div class="text-center my-4">
                     <button onclick="toggleOlderMonths(this)" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:7px 20px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;" class="hover:bg-slate-200 transition">
-                        <i class="fas fa-history mr-1"></i> Ver ${hiddenMonths.length} mês${hiddenMonths.length>1?'es':''} anterior${hiddenMonths.length>1?'es':''} (${hiddenPrbCount} PRBs)
+                        <i class="fas fa-history mr-1"></i> Ver ${hiddenMonths.length} mês${hiddenMonths.length > 1 ? 'es' : ''} anterior${hiddenMonths.length > 1 ? 'es' : ''} (${hiddenPrbCount} PRBs)
                     </button>
                 </div>`;
             }
@@ -8171,13 +8449,13 @@
                     }
                     if (!reqVal || reqVal === '') reqVal = 'N/A';
 
-                    let _chgRaw = masterRow ? getCol(masterRow, ['Change request','Change Request','Mudança','change_request','CHG','Related change','Change','Change Request Number']) : null;
+                    let _chgRaw = masterRow ? getCol(masterRow, ['Change request', 'Change Request', 'Mudança', 'change_request', 'CHG', 'Related change', 'Change', 'Change Request Number']) : null;
                     let _chgStr = _chgRaw ? String(_chgRaw).trim() : '';
-                    let _rlseRaw = masterRow ? getCol(masterRow, ['Release','Release number','RLSE','release_number','Release Number','Release #','Release Request']) : null;
+                    let _rlseRaw = masterRow ? getCol(masterRow, ['Release', 'Release number', 'RLSE', 'release_number', 'Release Number', 'Release #', 'Release Request']) : null;
                     let _rlseStr = _rlseRaw ? String(_rlseRaw).trim() : '';
-                    let _chgDescRaw = masterRow ? getCol(masterRow, ['Change Short description','Change description','Change Short Description','Change short desc','Change short description']) : null;
+                    let _chgDescRaw = masterRow ? getCol(masterRow, ['Change Short description', 'Change description', 'Change Short Description', 'Change short desc', 'Change short description']) : null;
                     let _chgDescStr = _chgDescRaw ? String(_chgDescRaw).trim() : '';
-                    let _chgDateRaw = masterRow ? getCol(masterRow, ['Change planned start','Planned start date','Change date','Change Planned Start','change_planned_start','Planned start','Start date','Change start']) : null;
+                    let _chgDateRaw = masterRow ? getCol(masterRow, ['Change planned start', 'Planned start date', 'Change date', 'Change Planned Start', 'change_planned_start', 'Planned start', 'Start date', 'Change start']) : null;
                     let _chgDateD = _chgDateRaw ? safeDate(_chgDateRaw) : null;
 
                     processed.push({
@@ -8329,23 +8607,14 @@
             return processed;
         }
 
-        // Builds the RLSE → CHG → PRB → INC hierarchy from change_release + change_problems files.
-        // Returns null when the required files are not loaded.
-        function buildReleaseHierarchy(chgReleaseData, chgProblemsData, prbProcessed) {
+        // Builds the RLSE → CHG → PRB → INC hierarchy exclusively from
+        // change_release.xlsx + change_problems.xlsx.
+        // INC details are cross-referenced with RawData.incs when loaded.
+        // Only items with explicit links are included — no fallback to problem_rca.
+        function buildReleaseHierarchy(chgReleaseData, chgProblemsData) {
             if (!chgReleaseData || !chgReleaseData.length || !chgProblemsData || !chgProblemsData.length) return null;
 
-            // PRB master and INC lookup from existing processed data
-            let prbMasterLookup = {};
-            let prbToIncsLookup = {};
-            (prbProcessed || []).forEach(t => {
-                if (t.type === 'PRB') prbMasterLookup[t.tk] = t;
-                else if (t.type === 'INC' && t.prb && t.prb !== '—') {
-                    if (!prbToIncsLookup[t.prb]) prbToIncsLookup[t.prb] = [];
-                    prbToIncsLookup[t.prb].push(t);
-                }
-            });
-
-            // INC lookup by number (for Related Incidents cross-reference)
+            // ── Step 1: INC detail lookup (optional; incident.xlsx) ────────────
             let incByNum = {};
             if (RawData && RawData.incs) {
                 RawData.incs.forEach(inc => {
@@ -8354,21 +8623,24 @@
                 });
             }
 
-            // Build CHG → [{ prbNum, row }] map from change_problems.xlsx
-            // Handles both: Number=CHG + Problem=PRB, and any other ordering by scanning values
-            let chgToPrbRows = {};
-            let prbDetailFromFile = {};
+            // ── Step 2: Parse change_problems.xlsx → CHG → [prbObj] ───────────
+            // Columns: Number (CHG), Problem (PRB), State, Short description,
+            //          Priority, Assignment group, Opened, Resolved, Related Incidents, …
+            let chgToPrbs = {}; // chgNum → [prbObj]
             chgProblemsData.forEach(row => {
                 let chgNum = '', prbNum = '';
 
-                // Primary strategy: check named columns
+                // Named-column detection first
                 let numA = String(getCol(row, ['Number', 'Número', 'number']) || '').trim().toUpperCase();
                 let probCol = String(getCol(row, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
-                if (numA.startsWith('CHG') && probCol.startsWith('PRB')) { chgNum = numA; prbNum = probCol; }
-                else if (numA.startsWith('PRB') && probCol.startsWith('CHG')) { chgNum = probCol; prbNum = numA; }
-                else if (numA.startsWith('CHG')) {
+
+                if (numA.startsWith('CHG') && probCol.startsWith('PRB')) {
+                    chgNum = numA; prbNum = probCol;
+                } else if (numA.startsWith('PRB') && probCol.startsWith('CHG')) {
+                    chgNum = probCol; prbNum = numA;
+                } else if (numA.startsWith('CHG')) {
                     chgNum = numA;
-                    // Scan all column values for PRB pattern
+                    // Scan all values for a PRB number
                     for (let c of Object.keys(row)) {
                         let v = String(row[c] || '').trim().toUpperCase();
                         if (v.startsWith('PRB') && v.length > 4) { prbNum = v; break; }
@@ -8382,38 +8654,33 @@
                 }
 
                 if (!chgNum || !prbNum) return;
-                if (!chgToPrbRows[chgNum]) chgToPrbRows[chgNum] = [];
-                if (!chgToPrbRows[chgNum].find(x => x.prbNum === prbNum)) {
-                    chgToPrbRows[chgNum].push({ prbNum, row });
-                }
-                if (!prbDetailFromFile[prbNum]) prbDetailFromFile[prbNum] = row;
-            });
 
-            // Supplement prbToIncsLookup using Related Incidents column from change_problems.xlsx
-            Object.entries(prbDetailFromFile).forEach(([prbNum, row]) => {
+                // Parse Related Incidents → INC numbers only
                 let relRaw = String(getCol(row, ['Related Incidents', 'Incidentes Relacionados', 'related_incidents']) || '');
-                let relNums = relRaw.split(/[,;\|\n\r\s]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC'));
-                relNums.forEach(incNum => {
-                    let incRow = incByNum[incNum];
-                    if (!incRow) return;
-                    if (!prbToIncsLookup[prbNum]) prbToIncsLookup[prbNum] = [];
-                    if (!prbToIncsLookup[prbNum].find(t => t.tk === incNum)) {
-                        let opD = safeDate(getCol(incRow, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
-                        let clD = safeDate(getCol(incRow, ['Resolved', 'Closed', 'closed_at', 'resolved_at']));
-                        prbToIncsLookup[prbNum].push({
-                            tk: incNum, prb: prbNum, type: 'INC',
-                            st: String(getCol(incRow, ['State', 'Status', 'Estado']) || 'Open').toUpperCase(),
-                            desc: String(getCol(incRow, ['Short description', 'Descrição', 'Assunto']) || '—').trim(),
-                            priority: String(getCol(incRow, ['Priority', 'Prioridade']) || 'N/A').trim(),
-                            as: String(getCol(incRow, ['Assigned to', 'Analista', 'Assignee']) || '—').trim(),
-                            gp: String(getCol(incRow, ['Assignment group', 'Grupo', 'Group']) || '—').trim(),
-                            opStr: opD ? formatExactDate(opD) : '—'
-                        });
-                    }
-                });
+                let incNums = relRaw.split(/[,;\|\n\r]+/).map(s => s.trim().toUpperCase()).filter(s => s.startsWith('INC'));
+
+                let prbObj = {
+                    prbNum,
+                    state: String(getCol(row, ['State', 'Status', 'Estado']) || '').trim(),
+                    desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto', 'description']) || '').trim(),
+                    priority: String(getCol(row, ['Priority', 'Prioridade']) || '').trim(),
+                    assignGroup: String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '').trim(),
+                    requester: String(getCol(row, ['Requester', 'Solicitante']) || '').trim(),
+                    caller: String(getCol(row, ['Caller']) || '').trim(),
+                    ci: String(getCol(row, ['Configuration item', 'CI', 'Item de configuracao']) || '').trim(),
+                    opened: String(getCol(row, ['Opened', 'Data Abertura']) || '').trim(),
+                    resolved: String(getCol(row, ['Resolved', 'Resolved at', 'Data Resolução']) || '').trim(),
+                    closed: String(getCol(row, ['Closed', 'Data Fechamento']) || '').trim(),
+                    incNums      // INC numbers from Related Incidents column
+                };
+
+                if (!chgToPrbs[chgNum]) chgToPrbs[chgNum] = [];
+                if (!chgToPrbs[chgNum].find(x => x.prbNum === prbNum)) {
+                    chgToPrbs[chgNum].push(prbObj);
+                }
             });
 
-            // Build RLSE map from change_release.xlsx
+            // ── Step 3: Parse change_release.xlsx → RLSE → CHG ───────────────
             let rlseMap = {};
             chgReleaseData.forEach(row => {
                 let chgNum = String(getCol(row, ['Change Trigger Ticket', 'Change Trigger', 'change_trigger_ticket', 'CHG']) || '').trim().toUpperCase();
@@ -8422,8 +8689,12 @@
                 let created = safeDate(getCol(row, ['Created', 'Criado', 'sys_created_on', 'opened_at', 'Created on']));
 
                 if (!rlseNum) return;
-                let monthKey = created ? `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}` : '0000-00';
-                let dayStr = created ? `${String(created.getDate()).padStart(2, '0')}-${String(created.getMonth() + 1).padStart(2, '0')}` : '—';
+                let monthKey = created
+                    ? `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}`
+                    : '0000-00';
+                let dayStr = created
+                    ? `${String(created.getDate()).padStart(2, '0')}-${String(created.getMonth() + 1).padStart(2, '0')}`
+                    : '—';
 
                 if (!rlseMap[rlseNum]) {
                     rlseMap[rlseNum] = { number: rlseNum, desc, created, monthKey, dayStr, chgs: {} };
@@ -8431,41 +8702,40 @@
                     if (!rlseMap[rlseNum].desc && desc) rlseMap[rlseNum].desc = desc;
                 }
 
-                // Attach CHG only if it has PRBs in change_problems
-                if (chgNum.startsWith('CHG') && chgToPrbRows[chgNum]) {
+                // Only attach CHG if it has PRBs in change_problems
+                if (chgNum.startsWith('CHG') && chgToPrbs[chgNum]) {
                     if (!rlseMap[rlseNum].chgs[chgNum]) {
-                        rlseMap[rlseNum].chgs[chgNum] = chgToPrbRows[chgNum];
+                        rlseMap[rlseNum].chgs[chgNum] = chgToPrbs[chgNum];
                     }
                 }
             });
 
-            // Drop RLSEs with no linked CHGs/PRBs
+            // Drop RLSEs with no linked CHGs
             Object.keys(rlseMap).forEach(k => {
                 if (Object.keys(rlseMap[k].chgs).length === 0) delete rlseMap[k];
             });
 
-            // Group RLSEs by month
+            // ── Step 4: Group by month ────────────────────────────────────────
             let monthMap = {};
             Object.entries(rlseMap).forEach(([rlseNum, rlse]) => {
                 if (!monthMap[rlse.monthKey]) monthMap[rlse.monthKey] = [];
                 monthMap[rlse.monthKey].push(rlseNum);
             });
 
-            // Compute totals
+            // ── Step 5: Totals ────────────────────────────────────────────────
             let chgSet = new Set(), prbSet = new Set(), incSet = new Set();
             Object.values(rlseMap).forEach(rlse => {
-                Object.entries(rlse.chgs).forEach(([chgNum, prbRows]) => {
+                Object.entries(rlse.chgs).forEach(([chgNum, prbObjs]) => {
                     chgSet.add(chgNum);
-                    prbRows.forEach(({ prbNum }) => {
-                        prbSet.add(prbNum);
-                        (prbToIncsLookup[prbNum] || []).forEach(inc => incSet.add(inc.tk));
+                    prbObjs.forEach(prb => {
+                        prbSet.add(prb.prbNum);
+                        prb.incNums.forEach(n => incSet.add(n));
                     });
                 });
             });
 
             return {
-                rlseMap, monthMap,
-                prbMasterLookup, prbDetailFromFile, prbToIncsLookup,
+                rlseMap, monthMap, incByNum,
                 totals: { rlse: Object.keys(rlseMap).length, chg: chgSet.size, prb: prbSet.size, inc: incSet.size }
             };
         }
