@@ -3563,7 +3563,7 @@
                     if (entry.kind !== 'file' || !entry.name.endsWith('.xlsx')) continue;
 
                     let nameLower = entry.name.toLowerCase();
-                    if (nameLower.includes('inc') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('ptask') || nameLower.includes('prb') || nameLower.includes('change_release') || nameLower.includes('change_problem')) {
+                    if (nameLower.includes('inc') || nameLower.includes('sc_task') || nameLower.includes('req') || nameLower.includes('rca') || nameLower.includes('ptask') || nameLower.includes('prb') || nameLower.includes('change_release') || nameLower.includes('change_problem') || nameLower.includes('release_chg') || nameLower.includes('change_inc')) {
                         const file = await entry.getFile();
                         totalFound++;
 
@@ -3686,8 +3686,8 @@
             // Detecção por nome de arquivo — ordem importa: mais específico primeiro
             let assigned = false;
             if (cleanJson.length > 0) {
-                if (nameLower.includes('change_release')) { RawData.chgRelease = cleanJson; assigned = true; }
-                else if (nameLower.includes('change_problem')) { RawData.chgProblems = cleanJson; assigned = true; }
+                if (nameLower.includes('change_release') || nameLower.includes('release_chg')) { RawData.chgRelease = cleanJson; assigned = true; }
+                else if (nameLower.includes('change_problem') || nameLower.includes('change_inc')) { RawData.chgProblems = cleanJson; assigned = true; }
                 else if (nameLower.includes('ptask')) { RawData.ptask = cleanJson; assigned = true; }
                 else if (nameLower.includes('rca')) { RawData.rca = cleanJson; assigned = true; }
                 else if (nameLower.includes('sc_task') || nameLower.includes('sctask')) { RawData.reqs = cleanJson; assigned = true; }
@@ -8633,6 +8633,12 @@
                 // Named-column detection first
                 let numA = String(getCol(row, ['Number', 'Número', 'number']) || '').trim().toUpperCase();
                 let probCol = String(getCol(row, ['Problem', 'Problema', 'problem_id']) || '').trim().toUpperCase();
+                
+                // Tratar colunas duplicadas que o sheet_to_json converte para Number_1, etc.
+                if (!numA.startsWith('CHG') && !numA.startsWith('PRB')) {
+                    let numB = String(getCol(row, ['Number_1', 'Number_2']) || '').trim().toUpperCase();
+                    if (numB.startsWith('CHG') || numB.startsWith('PRB')) numA = numB;
+                }
 
                 if (numA.startsWith('CHG') && probCol.startsWith('PRB')) {
                     chgNum = numA; prbNum = probCol;
@@ -8683,12 +8689,20 @@
             // ── Step 3: Parse change_release.xlsx → RLSE → CHG ───────────────
             let rlseMap = {};
             chgReleaseData.forEach(row => {
-                let chgNum = String(getCol(row, ['Change Trigger Ticket', 'Change Trigger', 'change_trigger_ticket', 'CHG']) || '').trim().toUpperCase();
-                let rlseNum = String(getCol(row, ['Number', 'Número', 'number']) || '').trim().toUpperCase();
+                let colA = String(getCol(row, ['Change Trigger Ticket', 'Change Trigger', 'change_trigger_ticket']) || '').trim().toUpperCase();
+                let colB = String(getCol(row, ['Number', 'Número', 'number']) || '').trim().toUpperCase();
+                
+                let rlseNum = '', chgNum = '';
+                if (colA.startsWith('RLSE')) rlseNum = colA;
+                else if (colB.startsWith('RLSE')) rlseNum = colB;
+                
+                if (colB.startsWith('CHG')) chgNum = colB;
+                else if (colA.startsWith('CHG')) chgNum = colA;
+
                 let desc = String(getCol(row, ['Short description', 'Description', 'Descrição', 'short_description']) || '').trim();
                 let created = safeDate(getCol(row, ['Created', 'Criado', 'sys_created_on', 'opened_at', 'Created on']));
 
-                if (!rlseNum) return;
+                if (!rlseNum || !chgNum) return;
                 let monthKey = created
                     ? `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}`
                     : '0000-00';
