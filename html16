@@ -3700,9 +3700,9 @@
             if (!assigned && cleanJson.length > 0) {
                 const cols = Object.keys(cleanJson[0]).map(k => k.toLowerCase());
                 const hasCol = (...names) => names.some(n => cols.some(c => c.includes(n)));
-                if (hasCol('caller', 'priority') && hasCol('incident', 'inc')) { RawData.incs = cleanJson; assigned = true; }
-                else if (hasCol('caller', 'priority') && !RawData.incs.length) { RawData.incs = cleanJson; assigned = true; }
-                else if (hasCol('request item', 'ritm', 'sc_task', 'requester') && !RawData.reqs.length) { RawData.reqs = cleanJson; assigned = true; }
+                if (hasCol('caller', 'priority', 'requested for', 'created by') && hasCol('incident', 'inc')) { RawData.incs = cleanJson; assigned = true; }
+                else if (hasCol('caller', 'priority', 'requested for', 'created by') && !RawData.incs.length) { RawData.incs = cleanJson; assigned = true; }
+                else if (hasCol('request item', 'ritm', 'sc_task', 'requester', 'requested for') && !RawData.reqs.length) { RawData.reqs = cleanJson; assigned = true; }
                 else if (hasCol('rca status', 'rca due') && !RawData.rca.length) { RawData.rca = cleanJson; assigned = true; }
                 else if (hasCol('ptask', 'problem task') && !RawData.ptask.length) { RawData.ptask = cleanJson; assigned = true; }
                 else if (hasCol('problem', 'prb') && !RawData.prb.length) { RawData.prb = cleanJson; assigned = true; }
@@ -4461,7 +4461,7 @@
 
         const ITIL_STANDARD_HEADERS = {
             'PRB / Problema': ['Problem', 'PRB', 'Problema', 'problem_id'],
-            'Solicitante': ['Requester', 'Caller', 'Solicitante', 'u_caller'],
+            'Solicitante': ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller'],
             'Analista Resp.': ['Assigned to', 'Analista', 'assigned_to'],
             'Grupo Resp.': ['Assignment group', 'Grupo', 'assignment_group'],
             'Estado do Ticket': ['State', 'Status', 'RCA Status', 'Estado'],
@@ -5442,7 +5442,7 @@
             }
 
             // Caller/Solicitante: leitura direta do campo 'Caller' com fallback e filtro de 'undefined'
-            let req = getCol(ticketData, ['Caller', 'Requester', 'Solicitante']);
+            let req = getCol(ticketData, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']);
             if (!req || req === '' || req === 'undefined') req = 'N/A';
             let asg = getCol(ticketData, ['Assigned to', 'Analyst', 'Analista']);
             if (!asg || asg === '' || asg === 'undefined') asg = 'Unassigned';
@@ -5820,7 +5820,7 @@
                             tk: tk,
                             desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição', 'Assunto', 'description', 'Breve descrição', 'Item']) || '-').replace(/"/g, '&quot;'),
                             longDesc: String(getCol(r, ['Description', 'Descrição Completa', 'Additional details']) || '-').replace(/"/g, '&quot;'),
-                            req: getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
+                            req: getCol(r, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || 'N/A',
                             asg: asg,
                             gp: getCol(r, ['Assignment group', 'Grupo', 'Group', 'assignment_group', 'Grupo de atribuição']) || '-',
                             st: stOrig,
@@ -6041,7 +6041,7 @@
                 tk: tk,
                 desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Item', 'Problem', 'Problema']) || '-').replace(/"/g, '&quot;'),
                 longDesc: longDesc,
-                req: getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
+                req: getCol(r, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || 'N/A',
                 as: asg,
                 gp: getCol(r, ['Assignment group', 'Grupo']) || '-',
                 st: (clOrig ? stOrig : st).toUpperCase(),
@@ -6289,7 +6289,7 @@
                                 desc: String(getCol(r, ['Short description', 'Descrição Curta', 'Descrição']) || '-').replace(/"/g, '&quot;'),
                                 as: getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'N/A',
                                 gp: getCol(r, ['Assignment group', 'Grupo']) || 'N/A',
-                                req: getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
+                                req: getCol(r, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || 'N/A',
                                 info: String(getCol(r, ['Close notes', 'Close Notes', 'On hold reason', 'Additional comments', 'Comentários']) || '-').replace(/"/g, '&quot;'),
                                 age: tinyAge, d: tinyAge, idle: '-',
                                 opStr: formatExactDate(opAll)
@@ -6325,7 +6325,7 @@
                     let daysInt = Math.floor(rawDays);
 
                     let asg = getCol(r, ['Assigned to', 'Analista']) || 'N/A';
-                    let reqName = getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A';
+                    let reqName = getCol(r, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || 'N/A';
                     let gpName = getCol(r, ['Assignment group', 'Grupo']) || 'N/A';
 
                     let idle = (!cl || cl.getTime() > refDateObj.getTime()) ? getDaysSilent(r, refDateObj, asg, op) : '-';
@@ -6635,7 +6635,7 @@
                 let desc = String(getCol(r, ['Short description', 'Descrição Curta', 'Item']) || 'No subject').replace(/"/g, '&quot;');
                 let longDesc = String(getCol(r, ['Description', 'description', 'Descrição Completa', 'Descrição', 'Additional details', 'additional_details']) || '').replace(/"/g, '&quot;');
                 let reasonVal = String(getCol(r, ['Reason', 'reason', 'REASON', 'Motivo']) || '').toUpperCase();
-                let req = getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A';
+                let req = getCol(r, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || 'N/A';
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Unassigned';
                 let gp = getCol(r, ['Assignment group', 'Grupo']) || 'No Group';
                 let st = getCol(r, ['State', 'Status', 'Estado']) || 'Open';
@@ -8443,9 +8443,9 @@
                     }
                     if (!descVal || descVal === '') descVal = '—';
 
-                    let reqVal = masterRow ? String(getCol(masterRow, ['Caller', 'Requester', 'Solicitante']) || '').trim() : '';
+                    let reqVal = masterRow ? String(getCol(masterRow, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || '').trim() : '';
                     if ((!reqVal || reqVal === '—' || reqVal === 'N/A' || reqVal === '') && linkedIncs.length > 0) {
-                        reqVal = String(getCol(linkedIncs[0], ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim();
+                        reqVal = String(getCol(linkedIncs[0], ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || 'N/A').trim();
                     }
                     if (!reqVal || reqVal === '') reqVal = 'N/A';
 
@@ -8500,7 +8500,7 @@
                     let gpInc = String(getCol(inc, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim();
 
                     // Caller / Solicitante: campo exato "Caller" do index.xlsx
-                    let caller = String(getCol(inc, ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim();
+                    let caller = String(getCol(inc, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || 'N/A').trim();
 
                     // Priority: campo exato "Priority" do index.xlsx
                     let priority = String(getCol(inc, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim();
@@ -8551,7 +8551,7 @@
                         stRca: '',
                         gp: String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '—').trim(),
                         as: String(getCol(row, ['Assigned to', 'Analista', 'Assignee', 'assigned_to']) || '—').trim(),
-                        req: String(getCol(row, ['Caller', 'Requester', 'Solicitante']) || 'N/A').trim(),
+                        req: String(getCol(row, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || 'N/A').trim(),
                         priority: String(getCol(row, ['Priority', 'Prioridade', 'priority']) || 'N/A').trim(),
                         desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto']) || '—').trim(),
                         ci: String(getCol(row, ['Configuration item', 'CI', 'Item de configuracao']) || '—').trim(),
@@ -8665,8 +8665,8 @@
                     desc: String(getCol(row, ['Short description', 'Descrição', 'Assunto', 'description']) || '').trim(),
                     priority: String(getCol(row, ['Priority', 'Prioridade']) || '').trim(),
                     assignGroup: String(getCol(row, ['Assignment group', 'Grupo', 'Group', 'assignment_group']) || '').trim(),
-                    requester: String(getCol(row, ['Requester', 'Solicitante']) || '').trim(),
-                    caller: String(getCol(row, ['Caller']) || '').trim(),
+                    requester: String(getCol(row, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || '').trim(),
+                    caller: String(getCol(row, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || '').trim(),
                     ci: String(getCol(row, ['Configuration item', 'CI', 'Item de configuracao']) || '').trim(),
                     opened: String(getCol(row, ['Opened', 'Data Abertura']) || '').trim(),
                     resolved: String(getCol(row, ['Resolved', 'Resolved at', 'Data Resolução']) || '').trim(),
@@ -8857,7 +8857,7 @@
                         return {
                             tk: getCol(inc, ['Number', 'Ticket', 'Número']) || '-',
                             desc: String(getCol(inc, ['Short description', 'Descrição']) || '-'),
-                            req: getCol(inc, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
+                            req: getCol(inc, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || 'N/A',
                             as: getCol(inc, ['Assigned to', 'Analista', 'Assignee']) || '-',
                             gp: getCol(inc, ['Assignment group', 'Grupo']) || '-',
                             st: String(getCol(inc, ['State', 'Status', 'Estado']) || '').toUpperCase(),
@@ -8876,7 +8876,7 @@
                     tk: tk,
                     prb: tk,
                     desc: descClean,
-                    req: getCol(r, ['Requester', 'Caller', 'Solicitante']) || 'N/A',
+                    req: getCol(r, ['Requested for', 'Requested', 'Requester', 'Caller', 'Solicitante', 'Created by', 'u_caller']) || 'N/A',
                     as: asg,
                     gp: gp,
                     st: stOrig || '—',
