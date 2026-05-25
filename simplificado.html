@@ -7,6 +7,8 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - ITSM Analytics System</title>
+    <!-- Evita o erro de favicon.ico 404 (Not Found) no console -->
+    <link rel="icon" href="data:,">
 
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
@@ -603,6 +605,64 @@
             padding: 8px 6px;
             font-weight: 800;
             font-size: 10.5px;
+        }
+
+        /* Sticky Columns for Number and Short Description */
+        .st-table th[data-col="Number"], 
+        .st-table th[data-col="Ticket"],
+        .st-table th[data-col="Ticket Original"] {
+            position: sticky !important;
+            left: 0;
+            z-index: 20 !important;
+            min-width: 140px;
+            max-width: 140px;
+            background-color: var(--primary-dark);
+        }
+
+        .st-table td[data-label="Number"],
+        .st-table td[data-label="Ticket"],
+        .st-table td[data-label="Ticket Original"] {
+            position: sticky !important;
+            left: 0;
+            z-index: 5 !important;
+            background: white;
+            min-width: 140px;
+            max-width: 140px;
+            border-right: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        .st-table th[data-col="Short description"],
+        .st-table th[data-col="Short Description"],
+        .st-table th[data-col="Full Description"] {
+            position: sticky !important;
+            left: 140px;
+            z-index: 20 !important;
+            min-width: 250px;
+            max-width: 250px;
+            background-color: var(--primary-dark);
+        }
+
+        .st-table td[data-label="Short description"],
+        .st-table td[data-label="Short Description"],
+        .st-table td[data-label="Full Description"] {
+            position: sticky !important;
+            left: 140px;
+            z-index: 5 !important;
+            background: white;
+            min-width: 250px;
+            max-width: 250px;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        [data-theme="dark"] .st-table td[data-label="Number"],
+        [data-theme="dark"] .st-table td[data-label="Ticket"],
+        [data-theme="dark"] .st-table td[data-label="Ticket Original"],
+        [data-theme="dark"] .st-table td[data-label="Short description"],
+        [data-theme="dark"] .st-table td[data-label="Short Description"],
+        [data-theme="dark"] .st-table td[data-label="Full Description"] {
+            background: #1e293b !important;
+            border-right: 1px solid #334155 !important;
         }
 
         /* FILTRO AVANÇADO DROPDOWN */
@@ -1514,6 +1574,10 @@
         [data-theme="dark"] .sidebar-header {
             background: #1E293B;
             border-bottom-color: #334155;
+        }
+
+        [data-theme="dark"] .sidebar-header h2 {
+            color: #93C5FD !important;
         }
 
         [data-theme="dark"] .top-header {
@@ -2562,6 +2626,7 @@
                         onchange="importBackupJSON(event)">
                 </div>
             </div>
+            <!-- Static SLA sidebar -->
             <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                 <label class="form-label mb-2">SLA Configuration (Days)</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -2642,14 +2707,10 @@
                     INCs</button>
                 <button class="tab-btn" onclick="switchTab('tab-req', this)"><i class="fas fa-tools mr-1"></i>
                     REQs</button>
-                <button class="tab-btn" onclick="switchTab('tab-uam', this)"><i class="fas fa-key mr-1"></i>
-                    UAMs</button>
                 <button class="tab-btn" onclick="switchTab('tab-cons', this)"><i class="fas fa-globe mr-1"></i>
                     Consolidated</button>
-
-                <button class="tab-btn" onclick="switchTab('tab-todo', this)"
-                    style="margin-left: auto; color: var(--primary-dark); font-weight: 900;"><i
-                        class="fas fa-tasks mr-1"></i> TODO</button>
+                <button class="tab-btn" onclick="switchTab('tab-kpi', this)"><i class="fas fa-chart-line mr-1"></i>
+                    KPI</button>
             </div>
         </div>
 
@@ -2681,69 +2742,9 @@
                     <div id="tab-open" class="animate-fade tab-pane"></div>
                     <div id="tab-inc" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-req" class="animate-fade hidden-st tab-pane"></div>
-                    <div id="tab-uam" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-cons" class="animate-fade hidden-st tab-pane"></div>
+                    <div id="tab-kpi" class="animate-fade hidden-st tab-pane"></div>
                     <div id="tab-search" class="animate-fade hidden-st tab-pane"></div>
-
-                    <div id="tab-todo" class="animate-fade hidden-st tab-pane">
-                        <div class="report-section-title" style="background-color: var(--primary-dark);"><i
-                                class="fas fa-clipboard-check mr-2"></i>
-                            TODO PLANNER - Task Manager</div>
-                        <div class="grid-2" style="grid-template-columns: 1fr 2fr;">
-                            <div class="report-card">
-                                <div class="report-card-title"><i class="fas fa-plus"></i> New Task</div>
-                                <div style="display:flex; flex-direction:column; gap:15px;">
-                                    <div>
-                                        <label class="form-label">Responsible
-                                            Analyst</label>
-                                        <select id="todo-analyst" class="form-input" onchange="updateTicketsDropdown()">
-                                            <option value="">Select an
-                                                analyst...</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="form-label">Link
-                                            Open Tickets</label>
-                                        <select id="todo-tickets" class="form-input" multiple style="height: 100px;">
-                                            <option value="" disabled>
-                                                Select an analyst first...</option>
-                                        </select>
-                                        <div class="text-[10px] text-slate-500 mt-1">Hold CTRL to select
-                                            multiple tickets.</div>
-                                    </div>
-                                    <div>
-                                        <label class="form-label">Description /
-                                            First Action</label>
-                                        <textarea id="todo-desc" class="form-input" rows="3"
-                                            placeholder="Ex: Analyst notified via Teams..."></textarea>
-                                    </div>
-                                    <button class="btn-process" style="background: var(--primary-dark);"
-                                        onclick="addTodo()">Create
-                                        Task</button>
-                                </div>
-                            </div>
-                            <div class="report-card">
-                                <div class="report-card-title flex justify-between items-center">
-                                    <div class="flex items-center"><i class="fas fa-list mr-1"></i> Your Active Tasks
-                                        (<span id="todo-count">0</span>)</div>
-                                    <div class="flex gap-2">
-                                        <button onclick="openExportConfigModal()" title="Configure Report"
-                                            class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 min-w-[32px] py-1.5 rounded shadow-sm border border-slate-200 transition"><i
-                                                class="fas fa-cog"></i></button>
-                                        <button onclick="exportTodosToPDF()" title="Save Planning as PDF"
-                                            class="text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded shadow-sm transition"><i
-                                                class="fas fa-file-pdf mr-1"></i> Save PDF</button>
-
-                                        <button onclick="openEmailModal()" title="Export TODO Planner and Send by Email"
-                                            class="text-[10px] bg-[var(--primary-dark)] hover:bg-blue-900 text-white px-2.5 py-1.5 rounded shadow-sm transition"><i
-                                                class="fas fa-envelope mr-1"></i> Send Daily</button>
-                                    </div>
-                                </div>
-                                <div id="todo-list" style="overflow-y:auto; max-height:500px; padding-right:10px;">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -2996,7 +2997,6 @@
         function closeConfigModal() { document.getElementById('config-modal').classList.add('hidden-st'); }
         function dismissUpdateModal() { document.getElementById('update-alert-modal').classList.add('translate-x-[120%]'); }
 
-        // --- PERSISTÊNCIA (localStorage) ---
         function saveConfigs() {
             const config = {
                 slaIncs: document.getElementById('sla-incs').value,
@@ -4109,7 +4109,7 @@
 
         function createTh(label, width = "auto", align = "center") {
             // Força alinhamento central em todos os cabeçalhos
-            return `<th style="width:${width}; text-align:center !important;" onclick="sortTable(this)">
+            return `<th data-col="${label}" style="width:${width}; text-align:center !important;" onclick="sortTable(this)">
                         <div class="flex justify-center items-center gap-1.5 w-full">
                             <span style="white-space: nowrap;">${label}</span> 
                             <div class="flex items-center gap-1 flex-shrink-0">
@@ -5859,11 +5859,11 @@
 
         function renderFullRow(t) {
             return `
-                <td data-label="Number" class="font-bold text-[var(--primary-dark)] text-center py-2" style="white-space:nowrap; border-right: 1px solid #e2e8f0; position:sticky; left:0; background:white; z-index:1;">
+                <td data-label="Number" class="font-bold text-[var(--primary-dark)] text-center py-2">
                     ${t.tk}
                     <button onclick="openTicketDetails('${t.tk}')" class="block w-full mt-1.5 bg-blue-50 border border-blue-200/50 p-1 rounded text-[9px] uppercase hover:bg-blue-100 transition shadow-sm"><i class="fas fa-history"></i></button>
                 </td>
-                <td data-label="Short description"><div class="text-expandable" style="-webkit-line-clamp: 2; width: 200px;" title="${t.desc}">${t.desc}</div></td>
+                <td data-label="Short description"><div class="text-expandable w-full" style="-webkit-line-clamp: 2;" title="${t.desc}">${t.desc}</div></td>
                 <td data-label="Configuration item"><div class="truncate max-w-[150px]" title="${t.c_ci}">${t.c_ci}</div></td>
                 <td data-label="Priority" class="text-center">${t.c_pri}</td>
                 <td data-label="On hold reason"><div class="truncate max-w-[150px]" title="${t.c_holdReason}">${t.c_holdReason}</div></td>
@@ -8708,7 +8708,8 @@
         }
 
         // Chamar na inicialização
-        initializeRpaGlobalData();
+        // Para evitar o erro "ERR_CONNECTION_REFUSED" no console, só chame essa função quando a API estiver no ar.
+        // initializeRpaGlobalData();
 
         async function fetchRPALogs() {
             try {
@@ -10165,7 +10166,10 @@
                         if (window.isComparisonActive) {
                             window.ComparisonData.uam = calculateSection(rU, slaR, "REQ", dateToday, false);
                         }
-                        document.getElementById('tab-uam').innerHTML = generateSectionHTML('uam', "UAMs SECTION (ACCESS)", C.PRI_D, dRU, "REQ");
+                        let elUam = document.getElementById('tab-uam');
+                        if (elUam) {
+                            elUam.innerHTML = generateSectionHTML('uam', "UAMs SECTION (ACCESS)", C.PRI_D, dRU, "REQ");
+                        }
                     }
                 }
 
@@ -10466,7 +10470,6 @@
                 requestAnimationFrame(() => {
                     if (dI) drawChartsAll('inc', dI, 'Resolved');
                     if (dRS) drawChartsAll('req', dRS, 'Closed');
-                    if (dRU) drawChartsAll('uam', dRU, 'Closed');
                     if (dI || dRS || dRU) drawConsolidadoCharts(dI, dRS, dRU);
 
                     tabs.forEach(c => {
@@ -10507,6 +10510,11 @@
 
                     populateTodoAnalystDropdown();
                     renderTodos();
+
+                    // Initialize KPI tab on first load
+                    if (document.getElementById('tab-kpi').innerHTML.trim() === '') {
+                        renderKPITab();
+                    }
 
                     switchTab('tab-open', document.querySelector('.tab-btn[onclick*="tab-open"]'));
                     if (document.getElementById("globalSearch").value.trim() !== "") {
@@ -10801,6 +10809,323 @@
             }
         };
 
+        // ============================================================
+        // DYNAMIC KPI TRACKER
+        // ============================================================
+        let kpiRulesCount = 0;
+
+        function renderKPITab() {
+            let kpiTab = document.getElementById('tab-kpi');
+            kpiTab.innerHTML = `
+                <div class="report-section-title" style="background-color: var(--primary-dark);">
+                    <i class="fas fa-chart-line mr-2"></i> MULTI-COLUMN KPI TRACKER
+                </div>
+                
+                <div class="flex flex-col gap-6 mb-6">
+                    <!-- Config Section (Top) -->
+                    <div class="report-card border-t-4 border-blue-500 shadow-sm">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                            <div class="report-card-title text-blue-800 m-0 border-0 pb-0"><i class="fas fa-cogs mr-2"></i> Advanced Rule Engine</div>
+                            <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-6 rounded shadow transition text-sm flex items-center gap-2" onclick="runDynamicKPI()">
+                                <i class="fas fa-play"></i> Run Track
+                            </button>
+                        </div>
+                        
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <label class="form-label m-0 text-slate-700">Sequential Mapping Rules</label>
+                                <div class="text-[10px] text-slate-500">Rules are evaluated from top to bottom. The first rule that matches a ticket will define its SLA limit.</div>
+                            </div>
+                            <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1 px-3 rounded shadow-sm transition text-xs flex items-center gap-1 border border-slate-300" onclick="addKPIRule()">
+                                <i class="fas fa-plus"></i> Add Rule
+                            </button>
+                        </div>
+                        
+                        <div id="kpi-rules-container" class="space-y-2 mt-3 max-h-[300px] overflow-y-auto pr-2 custom-scroll">
+                            <!-- Rules will be injected here -->
+                        </div>
+                        
+                        <div class="mt-4 pt-4 border-t border-slate-100 flex items-center gap-4 bg-slate-50 p-3 rounded border border-slate-200">
+                            <div class="flex-1">
+                                <label class="form-label mb-0 text-slate-700">Default Fallback Limit</label>
+                                <div class="text-[10px] text-slate-500 leading-tight">Applied to any ticket that doesn't match any of the rules above.</div>
+                            </div>
+                            <div class="w-32">
+                                <div class="relative">
+                                    <input type="number" id="kpi-default-hours" value="72" class="form-input w-full text-sm font-bold pr-8">
+                                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">h</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Section (Bottom) -->
+                    <div class="report-card border-t-4 border-slate-800 shadow-sm min-h-[400px]" id="kpi-results-container">
+                        <div class="flex items-center justify-center h-full min-h-[300px] text-slate-400 font-bold flex-col gap-4">
+                            <i class="fas fa-chart-pie text-6xl text-slate-200"></i>
+                            <span>Configure your multi-column rules and click "Run Track" to view dynamic KPI results.</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add some initial default rules
+            document.getElementById('kpi-rules-container').innerHTML = '';
+            kpiRulesCount = 0;
+            addKPIRule('Priority', '1 - Critical', 4);
+            addKPIRule('Priority', '2 - High', 8);
+            addKPIRule('Priority', '3 - Moderate', 24);
+            addKPIRule('Ticket Type', 'RCA', 24);
+            addKPIRule('Assignment group', 'Network Support', 48);
+        }
+
+        function addKPIRule(col = '', val = '', hours = '') {
+            const container = document.getElementById('kpi-rules-container');
+            const id = kpiRulesCount++;
+            
+            const ruleDiv = document.createElement('div');
+            ruleDiv.className = 'flex items-center gap-3 bg-white p-2 rounded border border-slate-200 animate-fade shadow-sm hover:border-blue-300 transition';
+            ruleDiv.id = `kpi-rule-${id}`;
+            
+            ruleDiv.innerHTML = `
+                <div class="flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-600 rounded-full text-[10px] font-black kpi-rule-num">
+                    ${id + 1}
+                </div>
+                <div class="flex-1 grid grid-cols-2 gap-3">
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase tracking-widest">IF</span>
+                        <input type="text" class="form-input w-full text-xs kpi-rule-col pl-9" placeholder="Column (e.g. Priority)" value="${col}">
+                    </div>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 uppercase tracking-widest">==</span>
+                        <input type="text" class="form-input w-full text-xs kpi-rule-val pl-9" placeholder="Value (e.g. 1 - Critical)" value="${val}">
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest"><i class="fas fa-arrow-right"></i> SLA</span>
+                    <div class="w-24 relative">
+                        <input type="number" class="form-input w-full text-xs pr-8 font-bold text-blue-700 kpi-rule-hrs" placeholder="Hours" value="${hours}">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">h</span>
+                    </div>
+                </div>
+                <button class="w-8 h-8 flex items-center justify-center rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition cursor-pointer border border-red-200 shadow-sm" onclick="document.getElementById('kpi-rule-${id}').remove(); updateRuleNumbers();" title="Remove Rule">
+                    <i class="fas fa-trash-alt text-xs"></i>
+                </button>
+            `;
+            
+            container.appendChild(ruleDiv);
+            updateRuleNumbers();
+        }
+
+        function updateRuleNumbers() {
+            const rules = document.getElementById('kpi-rules-container').children;
+            for(let i = 0; i < rules.length; i++) {
+                rules[i].querySelector('.kpi-rule-num').innerText = i + 1;
+            }
+        }
+
+        function runDynamicKPI() {
+            const defaultHours = parseFloat(document.getElementById('kpi-default-hours').value) || 72;
+            
+            // Build mapping from dynamic inputs
+            let rules = [];
+            const ruleCols = document.querySelectorAll('.kpi-rule-col');
+            const ruleVals = document.querySelectorAll('.kpi-rule-val');
+            const ruleHrs = document.querySelectorAll('.kpi-rule-hrs');
+            
+            for (let i = 0; i < ruleCols.length; i++) {
+                let col = ruleCols[i].value.trim();
+                let val = ruleVals[i].value.trim();
+                let hours = parseFloat(ruleHrs[i].value);
+                if (col && val && !isNaN(hours)) {
+                    rules.push({ col: col, val: val.toLowerCase(), hours: hours, rawVal: val });
+                }
+            }
+
+            if (rules.length === 0) {
+                if(!confirm("You have not defined any rules. All tickets will use the default limit. Proceed?")) return;
+            }
+
+            const allTickets = [...(RawData.incs || []), ...(RawData.reqs || []), ...(RawData.uams || [])];
+            
+            if (allTickets.length === 0) {
+                alert("No tickets loaded. Please load the data files first.");
+                return;
+            }
+
+            const refDateInput = document.getElementById('ref-date').value;
+            const now = new Date();
+            let dateMachine;
+            if (refDateInput) {
+                const [refY, refM] = refDateInput.split('-');
+                if (now.getFullYear() == refY && (now.getMonth() + 1) == refM) dateMachine = now;
+                else dateMachine = new Date(refY, refM, 0, 23, 59, 59);
+            } else {
+                dateMachine = now;
+            }
+
+            let breachedCount = 0;
+            let inSlaCount = 0;
+            let trackedTickets = [];
+
+            let breakdown = {};
+
+            allTickets.forEach(r => {
+                let opOrig = safeDate(getCol(r, ['Opened', 'Data Abertura', 'Created', 'opened_at']));
+                let clOrig = safeDate(getCol(r, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
+                
+                if (!opOrig || opOrig.getTime() > dateMachine.getTime()) return; 
+                if (clOrig && clOrig.getTime() > dateMachine.getTime()) clOrig = null; 
+                
+                let diffMs = clOrig ? (clOrig - opOrig) : (dateMachine - opOrig);
+                if (diffMs < 0) diffMs = 0;
+                let ageHours = diffMs / 3600000;
+
+                // Evaluate rules sequentially
+                let matchedRuleStr = 'Default Limit';
+                let limitHours = defaultHours;
+                
+                for (let rule of rules) {
+                    let ticketVal = String(getCol(r, [rule.col]) || '').trim().toLowerCase();
+                    if (ticketVal === rule.val) {
+                        limitHours = rule.hours;
+                        matchedRuleStr = `${rule.col} = ${rule.rawVal}`;
+                        break; // Stop evaluating at first match
+                    }
+                }
+
+                let isBreached = ageHours > limitHours;
+                let tkStr = getCol(r, ['Number', 'Ticket', 'RITM', 'Request Item']) || '-';
+                let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Unassigned';
+
+                let tObj = {
+                    tk: tkStr,
+                    matchedRuleStr: matchedRuleStr,
+                    ageHours: ageHours,
+                    limitHours: limitHours,
+                    remainingHours: limitHours - ageHours,
+                    opStr: formatExactDate(opOrig),
+                    clStr: clOrig ? formatExactDate(clOrig) : 'Open',
+                    asg: asg
+                };
+
+                if (isBreached) {
+                    breachedCount++;
+                } else {
+                    inSlaCount++;
+                }
+                
+                trackedTickets.push(tObj);
+
+                if (!breakdown[matchedRuleStr]) breakdown[matchedRuleStr] = { inSla: 0, outSla: 0, limit: limitHours };
+                if (isBreached) breakdown[matchedRuleStr].outSla++;
+                else breakdown[matchedRuleStr].inSla++;
+            });
+
+            let totalResolvedOrTracked = breachedCount + inSlaCount;
+            let breachPct = totalResolvedOrTracked > 0 ? ((breachedCount / totalResolvedOrTracked) * 100).toFixed(1) : 0;
+
+            let breakdownHtml = Object.keys(breakdown).sort((a,b) => {
+                if (a === 'Default Limit') return 1;
+                if (b === 'Default Limit') return -1;
+                return a.localeCompare(b);
+            }).map(k => {
+                let b = breakdown[k];
+                let tot = b.inSla + b.outSla;
+                let pct = tot > 0 ? ((b.outSla / tot) * 100).toFixed(1) : 0;
+                return `
+                    <div class="flex flex-col gap-1 p-3 bg-white border border-slate-200 rounded shadow-sm hover:shadow-md transition">
+                        <div class="flex justify-between items-center">
+                            <div class="text-[11px] font-bold text-slate-800 truncate pr-2" title="${k}">${k}</div>
+                            <div class="text-[10px] font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${b.limit}h Limit</div>
+                        </div>
+                        <div class="flex justify-between items-end mt-2 mb-1">
+                            <div class="text-[10px] font-bold text-slate-500">${tot} tickets</div>
+                            <div class="text-[11px] font-black ${pct > 0 ? 'text-red-600' : 'text-emerald-600'}">${b.outSla} Breached (${pct}%)</div>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2.5 flex overflow-hidden">
+                            <div class="bg-blue-500 h-2.5 transition-all duration-500" style="width: ${(b.inSla / tot) * 100}%"></div>
+                            <div class="bg-red-500 h-2.5 transition-all duration-500" style="width: ${(b.outSla / tot) * 100}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            let tableRows = trackedTickets.sort((a,b) => a.remainingHours - b.remainingHours).slice(0, 50).map(t => {
+                let remClass = t.remainingHours < 0 ? 'text-red-600' : (t.remainingHours < 4 ? 'text-orange-500' : 'text-emerald-600');
+                let remText = t.remainingHours >= 0 ? `${t.remainingHours.toFixed(1)}h left` : `<span class="animate-pulse">⚠️</span> ${Math.abs(t.remainingHours).toFixed(1)}h passed`;
+                return `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100 last:border-0">
+                        <td class="p-3 text-[11px] font-black text-blue-700 whitespace-nowrap cursor-pointer hover:underline" onclick="openTicketDetails('${t.tk}')">${t.tk}</td>
+                        <td class="p-3 text-[10px] text-slate-700 font-bold whitespace-nowrap"><span class="bg-slate-100 border border-slate-200 rounded px-2 py-1">${t.matchedRuleStr}</span></td>
+                        <td class="p-3 text-[11px] text-slate-600 truncate max-w-[150px]">${t.asg}</td>
+                        <td class="p-3 text-[11px] text-slate-500">${t.opStr}</td>
+                        <td class="p-3 text-[11px] text-slate-500">${t.clStr}</td>
+                        <td class="p-3 text-[11px] font-black ${remClass} text-right">${remText}</td>
+                        <td class="p-3 text-[11px] font-bold text-slate-400 text-right">${t.limitHours}h</td>
+                    </tr>
+                `;
+            }).join('');
+
+            let resultsHtml = `
+                <div class="flex justify-between items-center border-b border-slate-200 pb-3 mb-5">
+                    <div class="report-card-title text-slate-800 m-0 border-0 pb-0"><i class="fas fa-poll mr-2"></i> Multi-Column Tracking Results</div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-5 text-center shadow-sm relative overflow-hidden">
+                        <i class="fas fa-ticket-alt absolute -right-4 -bottom-4 text-6xl text-slate-200 opacity-50"></i>
+                        <div class="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 relative z-10">Total Tracked</div>
+                        <div class="text-4xl font-black text-slate-800 relative z-10">${totalResolvedOrTracked}</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-lg p-5 text-center shadow-sm relative overflow-hidden">
+                        <i class="fas fa-fire absolute -right-4 -bottom-4 text-6xl text-red-200 opacity-50"></i>
+                        <div class="text-[11px] font-black text-red-500 uppercase tracking-widest mb-2 relative z-10">SLA Breaches</div>
+                        <div class="text-4xl font-black text-red-700 relative z-10">${breachedCount}</div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-5 text-center shadow-sm relative overflow-hidden">
+                        <i class="fas fa-percent absolute -right-4 -bottom-4 text-6xl ${breachPct > 15 ? 'text-red-100' : 'text-blue-50'} opacity-50"></i>
+                        <div class="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 relative z-10">Breach Rate</div>
+                        <div class="text-4xl font-black ${breachPct > 15 ? 'text-red-600' : 'text-blue-600'} relative z-10">${breachPct}%</div>
+                    </div>
+                </div>
+
+                <!-- Full width Breakdown -->
+                <div class="mb-8 p-4 bg-slate-50 border border-slate-200 rounded shadow-inner">
+                    <h4 class="text-[12px] font-black text-slate-700 uppercase tracking-widest mb-4 flex items-center"><i class="fas fa-layer-group text-blue-500 mr-2 text-lg"></i> Breakdown by Matched Rule</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        ${breakdownHtml || '<div class="col-span-full text-center text-slate-400 text-sm py-8 bg-white rounded border border-slate-200 border-dashed">No data available</div>'}
+                    </div>
+                </div>
+
+                <!-- Full width Table -->
+                <div>
+                    <h4 class="text-[12px] font-black text-slate-700 uppercase tracking-widest mb-4 flex items-center"><i class="fas fa-list text-red-500 mr-2 text-lg"></i> Top Critical Tickets (max 50)</h4>
+                    <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[800px]">
+                                <thead class="bg-slate-100 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-600">
+                                    <tr>
+                                        <th class="p-3 font-black">Ticket</th>
+                                        <th class="p-3 font-black">Matched Rule</th>
+                                        <th class="p-3 font-black">Analyst</th>
+                                        <th class="p-3 font-black">Opened</th>
+                                        <th class="p-3 font-black">Resolved</th>
+                                        <th class="p-3 font-black text-right">Remaining SLA</th>
+                                        <th class="p-3 font-black text-right">Limit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tableRows || '<tr><td colspan="7" class="text-center text-slate-400 text-xs py-8 font-bold">No tickets found.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('kpi-results-container').innerHTML = resultsHtml;
+        }
     </script>
 
     <!-- Modal de Visualização de E-mail RPA -->
