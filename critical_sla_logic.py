@@ -56,13 +56,41 @@ def process_df(df, sla_days, type_label, results, now):
         analyst_email = str(row[email_col]).strip() if email_col and not pd.isna(row[email_col]) else ""
         opened_date = row['Opened']
         
+        # Identify Priority
+        priority_col = next((c for c in df.columns if str(c).lower() == 'priority'), None)
+        priority_val = str(row[priority_col]).lower() if priority_col and not pd.isna(row[priority_col]) else ""
+        
+        p = 4 # Default priority
+        if '1' in priority_val or 'p1' in priority_val or 'critical' in priority_val:
+            p = 1
+        elif '2' in priority_val or 'p2' in priority_val or 'high' in priority_val:
+            p = 2
+        elif '3' in priority_val or 'p3' in priority_val or 'moderate' in priority_val:
+            p = 3
+        elif '4' in priority_val or 'p4' in priority_val or 'low' in priority_val:
+            p = 4
+            
+        # Determine SLA Hours based on Priority and Type
+        total_sla_hours = sla_days * 24 # Fallback
+        
+        if type_label == "INC":
+            if p == 1:
+                total_sla_hours = 4
+            elif p == 2:
+                total_sla_hours = 8
+            elif p == 3:
+                total_sla_hours = 5 * 24
+            elif p == 4:
+                total_sla_hours = 7 * 24
+        elif type_label in ["TASK", "REQ", "RITM"]:
+            if p == 1:
+                total_sla_hours = 10 * 24
+            
         # Calculate SLA
         aging_days = (now - opened_date).total_seconds() / (24 * 3600)
-        sla_pct = (aging_days / sla_days) * 100
-        
-        # Calculate Remaining Hours
-        total_sla_hours = sla_days * 24
         used_hours = aging_days * 24
+        
+        sla_pct = (used_hours / total_sla_hours) * 100 if total_sla_hours > 0 else 100
         remaining_hours = total_sla_hours - used_hours
         
         is_critical = False
