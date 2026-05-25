@@ -40,8 +40,8 @@ def process_df(df, sla_days, type_label, results, now):
     # Ensure dates are datetime
     df['Opened'] = pd.to_datetime(df['Opened'], errors='coerce')
     
-    # Filter only open tickets (State != Closed/Resolved)
-    closed_states = ['Closed', 'Resolved', 'Closed Complete', 'Closed Incomplete']
+    # Filter only open tickets (State != Closed/Resolved/Canceled)
+    closed_states = ['Closed', 'Resolved', 'Closed Complete', 'Closed Incomplete', 'Canceled', 'Cancelled']
     if 'State' in df.columns:
         df = df[~df['State'].isin(closed_states)]
     
@@ -56,8 +56,8 @@ def process_df(df, sla_days, type_label, results, now):
         analyst_email = str(row[email_col]).strip() if email_col and not pd.isna(row[email_col]) else ""
         opened_date = row['Opened']
         
-        # Identify Priority
-        priority_col = next((c for c in df.columns if str(c).lower() == 'priority'), None)
+        # Identify Priority or Impact
+        priority_col = next((c for c in df.columns if str(c).lower() in ['priority', 'impact']), None)
         priority_val = str(row[priority_col]).lower() if priority_col and not pd.isna(row[priority_col]) else ""
         
         p = 4 # Default priority
