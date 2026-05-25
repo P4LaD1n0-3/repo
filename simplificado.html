@@ -2628,21 +2628,21 @@
             </div>
             <!-- Static SLA sidebar -->
             <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
-                <label class="form-label mb-2">SLA Configuration (Days)</label>
+                <label class="form-label mb-2">SLA Configuration (Hours)</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <div><span style="font-size:9px; font-weight:700; color:#64748b; text-transform:uppercase;">INC /
-                            Geral</span><input type="number" id="sla-incs" value="7" class="form-input mt-1"
+                            Geral</span><input type="number" id="sla-incs" value="168" class="form-input mt-1"
                             onchange="saveConfigs()"></div>
                     <div><span style="font-size:9px; font-weight:700; color:#64748b; text-transform:uppercase;">REQ /
-                            UAM</span><input type="number" id="sla-reqs" value="10" class="form-input mt-1"
+                            UAM</span><input type="number" id="sla-reqs" value="240" class="form-input mt-1"
                             onchange="saveConfigs()"></div>
                     <div><span
                             style="font-size:9px; font-weight:700; color:#64748b; text-transform:uppercase;">PTASK</span><input
-                            type="number" id="sla-ptask" value="10" class="form-input mt-1" onchange="saveConfigs()">
+                            type="number" id="sla-ptask" value="240" class="form-input mt-1" onchange="saveConfigs()">
                     </div>
                     <div><span
                             style="font-size:9px; font-weight:700; color:#64748b; text-transform:uppercase;">RCA</span><input
-                            type="number" id="sla-rca" value="10" class="form-input mt-1" onchange="saveConfigs()">
+                            type="number" id="sla-rca" value="240" class="form-input mt-1" onchange="saveConfigs()">
                     </div>
                 </div>
             </div>
@@ -4471,7 +4471,7 @@
                             opD = safeDate(getCol(rec, ['Opened', 'opened_at', 'Data Abertura', 'Created']));
                             clD = safeDate(getCol(rec, ['Resolved', 'Closed', 'Resolved at', 'Data Fechamento', 'closed_at', 'resolved_at', 'Resolved', 'Closed', 'Data de Resolução', 'Data de Encerramento']));
                             let isInc = (ticketToUse.toUpperCase().startsWith('INC'));
-                            slaConfig = isInc ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
+                            slaConfig = isInc ? (parseInt(document.getElementById('sla-incs').value) || 168) : (parseInt(document.getElementById('sla-reqs').value) || 240);
                         }
                     }
 
@@ -4734,7 +4734,7 @@
                                 if (isNaN(age) || age < 0) age = 0;
                             }
                             let isInc = (tName.toUpperCase().startsWith('INC'));
-                            let slaConfig = isInc ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
+                            let slaConfig = isInc ? (parseInt(document.getElementById('sla-incs').value) || 168) : (parseInt(document.getElementById('sla-reqs').value) || 240);
                             pctSla = (isNaN(age) || isNaN(slaConfig) || slaConfig === 0) ? 0 : Math.min(Math.round((age / slaConfig) * 100), 100);
                         }
                     }
@@ -5317,9 +5317,10 @@
                 idleEl.style.color = '#94a3b8';
             }
 
-            let slaConfig = tType === 'INC' ? (parseInt(document.getElementById('sla-incs').value) || 7) : (parseInt(document.getElementById('sla-reqs').value) || 10);
-            let slaRemMs = (slaConfig * 86400000) - preciseDiffMs;
-            let pctSla = (ageDays / slaConfig) * 100;
+            let slaConfig = tType === 'INC' ? (parseInt(document.getElementById('sla-incs').value) || 168) : (parseInt(document.getElementById('sla-reqs').value) || 240);
+            let slaRemMs = (slaConfig * 3600000) - preciseDiffMs;
+            let ageHours = preciseDiffMs / 3600000;
+            let pctSla = (ageHours / slaConfig) * 100;
 
             document.getElementById('modal-sla-remaining-box').innerHTML = renderSlaRemaining(slaRemMs, pctSla);
 
@@ -5900,7 +5901,7 @@
             return `data-tk="${t.tk}" data-desc="${t.desc}" data-req="${t.req || ''}" data-as="${t.as}" data-gp="${t.gp}" data-st="${t.st}" data-rca="${t.stRca || ''}" data-has-inc="${hasInc}" data-age="${t.age !== undefined ? t.age : (t.d || 0)}" data-op="${t.opStr || t.opS || '-'}" data-info="${t.info || ''}" data-reason="${t.reason || ''}" data-idle="${t.idle !== undefined ? t.idle : '-'}" data-pct="${t.pctSla !== undefined ? t.pctSla : ''}"`;
         }
 
-        function buildTicketObject(r, refDateObj, asg, opOrig, clOrig, stOrig, st, age, typeStr, slaDays) {
+        function buildTicketObject(r, refDateObj, asg, opOrig, clOrig, stOrig, st, age, typeStr, slaHours) {
             let tk = (typeStr === 'REQ' || typeStr === 'UAM') ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'number', 'Ticket', 'Problem', 'Task']) || '-');
 
             let prbRaw = getCol(r, ['Problem', 'PRB', 'Problema', 'problem_id']);
@@ -5916,7 +5917,8 @@
             let longDesc = String(getCol(r, ['Description', 'description', 'Descrição Completa', 'Descrição', 'Additional details', 'additional_details']) || '').replace(/"/g, '&quot;');
             let reasonVal = String(getCol(r, ['Reason', 'reason', 'REASON', 'Motivo']) || '').toUpperCase();
 
-            let pctSlaNum = slaDays ? ((age / slaDays) * 100) : 0;
+            let ageHours = age * 24;
+            let pctSlaNum = slaHours ? ((ageHours / slaHours) * 100) : 0;
             let pctSla = pctSlaNum.toFixed(2).replace('.', ',');
 
             return populateFullFields({
@@ -5931,7 +5933,7 @@
                 age: age,
                 ageMs: age * 86400000,
                 diffMs: age * 86400000,
-                slaRemainingMs: slaDays ? (slaDays * 86400000 - (age * 86400000)) : 0,
+                slaRemainingMs: slaHours ? (slaHours * 3600000 - (age * 86400000)) : 0,
                 opStr: opOrig ? formatExactDate(opOrig) : '—',
                 clStr: clOrig ? formatExactDate(clOrig) : '—',
                 idle: (!clOrig || clOrig > refDateObj) ? getDaysSilent(r, refDateObj, asg, opOrig) : '-',
@@ -5942,7 +5944,7 @@
             }, r);
         }
 
-        function calculateSection(data, slaDays, type, refDateObj, isFullMonth = true) {
+        function calculateSection(data, slaHours, type, refDateObj, isFullMonth = true) {
             const limitDate = new Date(refDateObj);
             const limitTime = limitDate.getTime();
 
@@ -5963,7 +5965,7 @@
                 ? [{ l: "1-3 dias", min: 0, max: 3 }, { l: "3-5 dias", min: 4, max: 5 }, { l: "5-7 dias", min: 6, max: 7 }, { l: "7-10 dias", min: 8, max: 10 }, { l: "10 dias +", min: 11, max: 19 }, { l: "20 dias +", min: 20, max: 29 }, { l: "30 dias +", min: 30, max: 9999 }]
                 : [{ l: "1-3 dias", min: 0, max: 3 }, { l: "4-7 dias", min: 4, max: 7 }, { l: "7+ dias", min: 8, max: 9999 }];
 
-            bucketsDef.forEach(b => agingBuckets[b.l] = { count: 0, color: b.min > slaDays ? '#D50000' : '#1E3A8A', tks: [] });
+            bucketsDef.forEach(b => agingBuckets[b.l] = { count: 0, color: (b.min * 24) > slaHours ? '#D50000' : '#1E3A8A', tks: [] });
 
             // Inicializa trendD
             let maxDay = isFullMonth ? limitDate.getDate() : 1;
@@ -6016,7 +6018,7 @@
                 if (!trendM[mKey]) trendM[mKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
 
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Unassigned';
-                let tObj = buildTicketObject(r, limitDate, asg, opOrig, clOrig, stOrig, st, age, type, slaDays);
+                let tObj = buildTicketObject(r, limitDate, asg, opOrig, clOrig, stOrig, st, age, type, slaHours);
 
                 trendM[mKey].a++;
                 trendM[mKey].tks_a.push(tObj);
@@ -6037,11 +6039,11 @@
                     if (!trendM[mcKey]) trendM[mcKey] = { a: 0, r: 0, c: 0, inSla: 0, tks_a: [], tks_r: [], tks_c: [] };
                     trendM[mcKey].r++;
                     trendM[mcKey].tks_r.push(tObj);
-                    if (age <= slaDays) trendM[mcKey].inSla++;
+                    if ((age * 24) <= slaHours) trendM[mcKey].inSla++;
 
                     if (cPass) {
                         resMes++;
-                        if (age <= slaDays) inSlaMes++;
+                        if ((age * 24) <= slaHours) inSlaMes++;
                         allResolvedTks.push(tObj);
 
                         let dcKey = `${cY}-${cM}-${cD}`;
@@ -6081,7 +6083,7 @@
                     bucketsDef.forEach(b => { if (ageInt >= b.min && ageInt <= b.max) { agingBuckets[b.l].count++; agingBuckets[b.l].tks.push(tObj); } });
 
                     let hasPrb = tObj.prb !== "N/A";
-                    if (age > slaDays) {
+                    if ((age * 24) > slaHours) {
                         criticals.push(tObj);
                         if (!isReq && !hasPrb) noPrb.push(tObj);
                     }
@@ -6121,7 +6123,7 @@
             let inSlaTot = 0, outSlaTot = 0;
             let tksInSlaTot = [], tksOutSlaTot = [];
             bucketsDef.forEach(b => {
-                if (b.min > slaDays) { outSlaTot += agingBuckets[b.l].count; tksOutSlaTot = tksOutSlaTot.concat(agingBuckets[b.l].tks); }
+                if ((b.min * 24) > slaHours) { outSlaTot += agingBuckets[b.l].count; tksOutSlaTot = tksOutSlaTot.concat(agingBuckets[b.l].tks); }
                 else { inSlaTot += agingBuckets[b.l].count; tksInSlaTot = tksInSlaTot.concat(agingBuckets[b.l].tks); }
             });
 
@@ -6512,7 +6514,7 @@
                 let diffMs = refDateObj - op;
                 let age = Math.floor(diffMs / 86400000);
                 if (age < 0) age = 0;
-                let slaRemainingMs = (slaConfig * 86400000) - diffMs;
+                let slaRemainingMs = (slaConfig * 3600000) - diffMs;
                 let tk = (type === 'REQ' || type === 'UAM') ? (getCol(r, ['RITM', 'Request Item', 'Item de solicitação', 'Number', 'Ticket']) || '-') : (getCol(r, ['Number', 'Ticket']) || '-');
                 let desc = String(getCol(r, ['Short description', 'Descrição Curta', 'Item']) || 'No subject').replace(/"/g, '&quot;');
                 let longDesc = String(getCol(r, ['Description', 'description', 'Descrição Completa', 'Descrição', 'Additional details', 'additional_details']) || '').replace(/"/g, '&quot;');
@@ -6530,9 +6532,9 @@
                 let prbVal = (prbRaw && String(prbRaw).trim() !== "" && String(prbRaw).trim() !== "undefined") ? String(prbRaw).trim() : 'N/A';
 
                 let idle = getDaysSilent(r, refDateObj, asg, op);
-                let pctSlaNum = ((diffMs / (slaConfig * 86400000)) * 100);
+                let pctSlaNum = ((diffMs / (slaConfig * 3600000)) * 100);
                 let pctSla = pctSlaNum.toFixed(2).replace('.', ',');
-                let stSla = diffMs > (slaConfig * 86400000) ? "Breached" : "On Time";
+                let stSla = diffMs > (slaConfig * 3600000) ? "Breached" : "On Time";
                 let tObj = { tk, type, desc, longDesc, req, as: asg, gp, st: st.toUpperCase(), reason: reasonVal, opStr: formatExactDate(op), clStr: cl ? formatExactDate(cl) : '—', age, diffMs, slaRemainingMs, pctSla, pctSlaNum, stSla, slaConfig, idle, info: infoFinal, prb: prbVal };
                 openTks.push(populateFullFields(tObj, r));
             }
@@ -8235,7 +8237,7 @@
 
                 // Contagem de Tickets Associados em Incs
                 let associatedIncs = [];
-                const slaIncs = parseInt(document.getElementById('sla-incs')?.value) || 7;
+                const slaIncs = parseInt(document.getElementById('sla-incs')?.value) || 168;
                 const tkNormalized = tk.trim().toUpperCase();
 
                 // 1. Extração direta da coluna 'Related Incidents' da extração de PRB
@@ -8332,7 +8334,7 @@
                 };
 
                 // Calculate SLA % for the hover tooltip (assuming 10 days for PRBs as default)
-                const slaP = parseInt(document.getElementById('sla-rca')?.value) || 10;
+                const slaP = parseInt(document.getElementById('sla-rca')?.value) || 240;
                 prbObj.pctSla = ((age / slaP) * 100).toFixed(2).replace('.', ',');
 
                 allPrbs.push(prbObj);
@@ -10103,10 +10105,10 @@
             activeTableFilters = {};
 
             setTimeout(() => {
-                const slaI = parseInt(document.getElementById('sla-incs').value) || 7;
-                const slaR = parseInt(document.getElementById('sla-reqs').value) || 10;
-                const slaP = parseInt(document.getElementById('sla-ptask').value) || 10;
-                const slaRCA = parseInt(document.getElementById('sla-rca').value) || 10;
+                const slaI = parseInt(document.getElementById('sla-incs').value) || 168;
+                const slaR = parseInt(document.getElementById('sla-reqs').value) || 240;
+                const slaP = parseInt(document.getElementById('sla-ptask').value) || 240;
+                const slaRCA = parseInt(document.getElementById('sla-rca').value) || 240;
                 const refDateInput = document.getElementById('ref-date').value;
                 const now = new Date();
                 let dateMachine;
@@ -10769,7 +10771,7 @@
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label class="text-[10px] font-bold text-slate-400 uppercase">Incidents</label>
-                                <input type="number" id="sla-incs-disp" value="${document.getElementById('sla-incs')?.value || 7}" class="w-full border rounded px-2 py-1 text-sm mt-1" onchange="document.getElementById('sla-incs').value = this.value; saveConfigs();">
+                                <input type="number" id="sla-incs-disp" value="${document.getElementById('sla-incs')?.value || 168}" class="w-full border rounded px-2 py-1 text-sm mt-1" onchange="document.getElementById('sla-incs').value = this.value; saveConfigs();">
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold text-slate-400 uppercase">Requests</label>
