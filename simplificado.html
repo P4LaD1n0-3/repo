@@ -3454,7 +3454,9 @@
             const totalPages = Math.ceil(totalItems / PAGE_SIZE);
             if (totalPages <= 1) return '';
 
-            const changeFn = type === 'search' ? 'changeSearchPage' : 'changeDrilldownPage';
+            let changeFn = 'changeDrilldownPage';
+            if (type === 'search') changeFn = 'changeSearchPage';
+            else if (type === 'kpi') changeFn = 'changePage_kpi';
 
             return `
             <div class="pagination-container">
@@ -3988,13 +3990,25 @@
             drop.style.top = dTop + 'px';
             drop.style.left = dLeft + 'px';
 
+            let searchDiv = document.createElement('div');
+            searchDiv.className = 'mb-2 pb-2 border-b border-slate-200';
+            searchDiv.innerHTML = `<input type="text" class="w-full text-xs py-1.5 px-2 border border-slate-300 rounded shadow-inner outline-none focus:border-blue-500" placeholder="Buscar opção..." onkeyup="
+                let v = this.value.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+                let lbls = this.closest('.custom-filter-dropdown').querySelector('.filter-items-container').querySelectorAll('label');
+                lbls.forEach(l => {
+                    let text = l.innerText.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+                    l.style.display = text.includes(v) ? 'flex' : 'none';
+                });
+            ">`;
+            drop.appendChild(searchDiv);
+
             let selectAll = document.createElement('label');
             selectAll.className = 'font-bold cursor-pointer hover:bg-slate-100 p-1 flex items-center gap-2 border-b border-slate-200 pb-2 mb-2 text-xs text-slate-800';
             selectAll.innerHTML = `<input type="checkbox" class="filter-all w-4 h-4" checked> (Selecionar Tudo)`;
             drop.appendChild(selectAll);
 
             let itemsDiv = document.createElement('div');
-            itemsDiv.className = 'max-h-48 overflow-y-auto flex flex-col gap-1 pr-1';
+            itemsDiv.className = 'filter-items-container max-h-48 overflow-y-auto flex flex-col gap-1 pr-1';
 
             valsArr.forEach(val => {
                 let lbl = document.createElement('label');
@@ -10818,7 +10832,52 @@
 
         function renderKPITab() {
             let kpiTab = document.getElementById('tab-kpi');
-            kpiTab.innerHTML = `
+            
+            let backlogCount = 0;
+            let unassignedCount = 0;
+            let prbCount = 0;
+            let breachedCount = 0;
+            
+            if (window.DrilldownVault && window.DrilldownVault['cons']) {
+                backlogCount = (window.DrilldownVault['cons']['all_b'] || []).length;
+                unassignedCount = (window.DrilldownVault['cons']['all_unassigned'] || []).length;
+            }
+            if (window.DrilldownVault && window.DrilldownVault['sla']) {
+                breachedCount = (window.DrilldownVault['sla']['bl_all'] || []).length;
+            }
+            if (window.DrilldownVault && window.DrilldownVault['class']) {
+                prbCount = (window.DrilldownVault['class']['kpi_prbs'] || []).length;
+            }
+
+            let essentialKPIsHTML = `
+                <div class="report-section-title" style="background-color: var(--primary-dark); margin-bottom: 20px;">
+                    <i class="fas fa-star mr-2"></i> KPIs ESSENCIAIS (ITSM)
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="report-card text-center border-t-4 border-amber-500 bg-gradient-to-br from-white to-amber-50/30 p-4 shadow-sm cursor-pointer hover:shadow-md transition" onclick="if(window.DrilldownVault && window.DrilldownVault['cons']) openDrilldown('Total Backlog', 'all_b', 'cons')">
+                        <div class="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Volume de Backlog</div>
+                        <div class="text-3xl font-black text-slate-800">${backlogCount}</div>
+                        <div class="text-[10px] font-bold text-slate-400 mt-1">Tickets ativos pendentes</div>
+                    </div>
+                    <div class="report-card text-center border-t-4 border-red-500 bg-gradient-to-br from-white to-red-50/20 p-4 shadow-sm cursor-pointer hover:shadow-md transition" onclick="if(window.DrilldownVault && window.DrilldownVault['sla']) openDrilldown('Violações de SLA (Backlog)', 'bl_all', 'sla')">
+                        <div class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">SLA Estourado</div>
+                        <div class="text-3xl font-black text-slate-800">${breachedCount}</div>
+                        <div class="text-[10px] font-bold text-slate-400 mt-1">Tickets ativos fora do prazo</div>
+                    </div>
+                    <div class="report-card text-center border-t-4 border-purple-500 bg-gradient-to-br from-white to-purple-50/20 p-4 shadow-sm cursor-pointer hover:shadow-md transition" onclick="if(window.DrilldownVault && window.DrilldownVault['cons']) openDrilldown('Sem Atribuição', 'all_unassigned', 'cons')">
+                        <div class="text-[10px] font-black text-purple-500 uppercase tracking-widest mb-1">Sem Atribuição</div>
+                        <div class="text-3xl font-black text-slate-800">${unassignedCount}</div>
+                        <div class="text-[10px] font-bold text-slate-400 mt-1">Fila de espera para triagem</div>
+                    </div>
+                    <div class="report-card text-center border-t-4 border-blue-500 bg-gradient-to-br from-white to-blue-50/20 p-4 shadow-sm cursor-pointer hover:shadow-md transition" onclick="if(window.DrilldownVault && window.DrilldownVault['class']) openDrilldown('Problemas Mapeados', 'kpi_prbs', 'class')">
+                        <div class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Gestão de Problemas</div>
+                        <div class="text-3xl font-black text-slate-800">${prbCount}</div>
+                        <div class="text-[10px] font-bold text-slate-400 mt-1">PRBs mapeados nos tickets</div>
+                    </div>
+                </div>
+            `;
+
+            kpiTab.innerHTML = essentialKPIsHTML + `
                 <div class="report-section-title" style="background-color: var(--primary-dark);">
                     <i class="fas fa-chart-line mr-2"></i> MULTI-COLUMN KPI TRACKER
                 </div>
@@ -10847,13 +10906,18 @@
                             <!-- Rules will be injected here -->
                         </div>
                         
-                        <div class="mt-4 pt-4 border-t border-slate-100 flex items-center gap-4 bg-slate-50 p-3 rounded border border-slate-200">
-                            <div class="flex-1">
-                                <label class="form-label mb-0 text-slate-700">Default Fallback Limit</label>
-                                <div class="text-[10px] text-slate-500 leading-tight">Applied to any ticket that doesn't match any of the rules above.</div>
+                        <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center gap-4 bg-slate-50 p-3 rounded border border-slate-200">
+                            <div class="flex-1 w-full border-b sm:border-b-0 sm:border-r border-slate-200 pb-3 sm:pb-0 sm:pr-4">
+                                <label class="form-label mb-0 text-slate-700">Colunas Extras na Tabela</label>
+                                <div class="text-[10px] text-slate-500 leading-tight">Separadas por vírgula (Ex: Category, Priority)</div>
+                                <input type="text" id="kpi-extra-cols" class="form-input w-full text-xs mt-1 border-slate-300" placeholder="Nomes exatos das colunas...">
                             </div>
-                            <div class="w-32">
-                                <div class="relative">
+                            <div class="flex-1 w-full flex items-center gap-4">
+                                <div class="flex-1">
+                                    <label class="form-label mb-0 text-slate-700">Default Fallback Limit</label>
+                                    <div class="text-[10px] text-slate-500 leading-tight">Applied to any ticket that doesn't match rules.</div>
+                                </div>
+                                <div class="w-32 relative">
                                     <input type="number" id="kpi-default-hours" value="72" class="form-input w-full text-sm font-bold pr-8">
                                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">h</span>
                                 </div>
@@ -10928,6 +10992,8 @@
 
         function runDynamicKPI() {
             const defaultHours = parseFloat(document.getElementById('kpi-default-hours').value) || 72;
+            const extraColsInput = document.getElementById('kpi-extra-cols') ? document.getElementById('kpi-extra-cols').value : '';
+            window.kpiActiveExtraCols = extraColsInput.split(',').map(s => s.trim()).filter(s => s.length > 0);
             
             // Build mapping from dynamic inputs
             let rules = [];
@@ -11000,6 +11066,11 @@
                 let tkStr = getCol(r, ['Number', 'Ticket', 'RITM', 'Request Item']) || '-';
                 let asg = getCol(r, ['Assigned to', 'Analista', 'Assignee']) || 'Unassigned';
 
+                let extras = [];
+                window.kpiActiveExtraCols.forEach(c => {
+                    extras.push(getCol(r, [c]) || '-');
+                });
+
                 let tObj = {
                     tk: tkStr,
                     matchedRuleStr: matchedRuleStr,
@@ -11008,7 +11079,8 @@
                     remainingHours: limitHours - ageHours,
                     opStr: formatExactDate(opOrig),
                     clStr: clOrig ? formatExactDate(clOrig) : 'Open',
-                    asg: asg
+                    asg: asg,
+                    extras: extras
                 };
 
                 if (isBreached) {
@@ -11053,80 +11125,242 @@
                 `;
             }).join('');
 
-            let tableRows = trackedTickets.sort((a,b) => a.remainingHours - b.remainingHours).slice(0, 50).map(t => {
-                let remClass = t.remainingHours < 0 ? 'text-red-600' : (t.remainingHours < 4 ? 'text-orange-500' : 'text-emerald-600');
-                let remText = t.remainingHours >= 0 ? `${t.remainingHours.toFixed(1)}h left` : `<span class="animate-pulse">⚠️</span> ${Math.abs(t.remainingHours).toFixed(1)}h passed`;
-                return `
-                    <tr class="hover:bg-slate-50 transition border-b border-slate-100 last:border-0">
-                        <td class="p-3 text-[11px] font-black text-blue-700 whitespace-nowrap cursor-pointer hover:underline" onclick="openTicketDetails('${t.tk}')">${t.tk}</td>
-                        <td class="p-3 text-[10px] text-slate-700 font-bold whitespace-nowrap"><span class="bg-slate-100 border border-slate-200 rounded px-2 py-1">${t.matchedRuleStr}</span></td>
-                        <td class="p-3 text-[11px] text-slate-600 truncate max-w-[150px]">${t.asg}</td>
-                        <td class="p-3 text-[11px] text-slate-500">${t.opStr}</td>
-                        <td class="p-3 text-[11px] text-slate-500">${t.clStr}</td>
-                        <td class="p-3 text-[11px] font-black ${remClass} text-right">${remText}</td>
-                        <td class="p-3 text-[11px] font-bold text-slate-400 text-right">${t.limitHours}h</td>
-                    </tr>
-                `;
-            }).join('');
+            window.paginationState.kpiData = trackedTickets.sort((a,b) => a.remainingHours - b.remainingHours);
+            window.paginationState.kpiFilteredData = window.paginationState.kpiData;
+            window.paginationState.kpi = 1;
+
+            window.renderKPITableBody = function() {
+                let p = window.paginationState.kpi || 1;
+                let data = window.paginationState.kpiFilteredData || [];
+                let limit = 50;
+                let start = (p - 1) * limit;
+                let end = start + limit;
+                let pageData = data.slice(start, end);
+
+                let rows = pageData.map(t => {
+                    let remClass = t.remainingHours < 0 ? 'text-red-600' : (t.remainingHours < 4 ? 'text-orange-500' : 'text-emerald-600');
+                    let remText = t.remainingHours >= 0 ? `${t.remainingHours.toFixed(1)}h restantes` : `<span class="animate-pulse">⚠️</span> ${Math.abs(t.remainingHours).toFixed(1)}h estourado`;
+                    
+                    let limitH = t.limitHours > 0 ? t.limitHours : 1;
+                    let elapsed = limitH - t.remainingHours;
+                    let pctElapsed = (elapsed / limitH) * 100;
+                    let pctForBar = Math.min(Math.max(pctElapsed, 0), 100);
+                    let barColor = pctForBar < 50 ? 'bg-emerald-500' : (pctForBar < 80 ? 'bg-orange-500' : 'bg-red-500');
+                    let pctText = pctElapsed.toFixed(1) + '%';
+                    
+                    let progressBar = `
+                        <div class="relative w-full bg-slate-200 rounded-full h-4 overflow-hidden dark:bg-slate-700 shadow-inner border border-slate-300 dark:border-slate-600">
+                            <div class="${barColor} h-full transition-all duration-500" style="width: ${pctForBar}%"></div>
+                            <div class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] tracking-wide">
+                                ${pctText}
+                            </div>
+                        </div>
+                    `;
+
+                    let extraTds = '';
+                    if (t.extras) {
+                        t.extras.forEach(val => {
+                            extraTds += `<td class="p-3 text-[11px] text-slate-600 truncate max-w-[150px]">${val}</td>`;
+                        });
+                    }
+
+                    return `
+                        <tr class="hover:bg-slate-50 transition border-b border-slate-100 last:border-0">
+                            <td class="p-3 text-[11px] font-black text-blue-700 whitespace-nowrap cursor-pointer hover:underline" onclick="openTicketDetails('${t.tk}')">${t.tk}</td>
+                            <td class="p-3 text-[10px] text-slate-700 font-bold whitespace-nowrap"><span class="bg-slate-100 border border-slate-200 rounded px-2 py-1">${t.matchedRuleStr}</span></td>
+                            <td class="p-3 text-[11px] text-slate-600 truncate max-w-[150px]">${t.asg}</td>
+                            ${extraTds}
+                            <td class="p-3 text-[11px] text-slate-500">${t.opStr}</td>
+                            <td class="p-3 text-[11px] text-slate-500">${t.clStr}</td>
+                            <td class="p-3 text-[11px] min-w-[120px]" data-sort-val="${pctElapsed}">${progressBar}</td>
+                            <td class="p-3 text-[11px] font-black ${remClass} text-right" data-sort-val="${t.remainingHours}">${remText}</td>
+                            <td class="p-3 text-[11px] font-bold text-slate-400 text-right">${t.limitHours}h</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                if (pageData.length === 0) {
+                    rows = '<tr><td colspan="8" class="text-center text-slate-400 text-xs py-8 font-bold">Nenhum ticket encontrado.</td></tr>';
+                }
+
+                let tbody = document.getElementById('kpi-tbody');
+                if (tbody) tbody.innerHTML = rows;
+
+                let pagContainer = document.getElementById('kpi-pagination');
+                if (pagContainer) pagContainer.innerHTML = renderPaginationControls('kpi', data.length, p);
+            };
+
+            window.changePage_kpi = function(p) {
+                window.paginationState.kpi = p;
+                window.renderKPITableBody();
+            };
+
+            window.sortKPITable = function(th) {
+                const colName = th.getAttribute('data-col');
+                const isAsc = th.dataset.dir !== 'asc';
+                
+                // Clear all other th dir
+                const allTh = th.closest('tr').querySelectorAll('th');
+                allTh.forEach(t => {
+                    if (t !== th) {
+                        delete t.dataset.dir;
+                        let icon = t.querySelector('.fa-sort, .fa-sort-up, .fa-sort-down');
+                        if (icon) icon.className = 'fas fa-sort opacity-30 text-[10px]';
+                    }
+                });
+
+                th.dataset.dir = isAsc ? 'asc' : 'desc';
+                let icon = th.querySelector('.fa-sort, .fa-sort-up, .fa-sort-down');
+                if (icon) icon.className = isAsc ? 'fas fa-sort-up text-blue-500 text-[10px]' : 'fas fa-sort-down text-blue-500 text-[10px]';
+
+                window.paginationState.kpiFilteredData.sort((a, b) => {
+                    let valA, valB;
+                    if (colName === 'Ticket') { valA = a.tk; valB = b.tk; }
+                    else if (colName === 'Regra') { valA = a.matchedRuleStr; valB = b.matchedRuleStr; }
+                    else if (colName === 'Analista') { valA = a.asg; valB = b.asg; }
+                    else if (colName === 'Aberto') { valA = a.opStr; valB = b.opStr; }
+                    else if (colName === 'Resolvido') { valA = a.clStr; valB = b.clStr; }
+                    else if (colName === 'Pct. Real Decorrido') { 
+                        let limitA = a.limitHours > 0 ? a.limitHours : 1;
+                        valA = ((limitA - a.remainingHours) / limitA) * 100;
+                        let limitB = b.limitHours > 0 ? b.limitHours : 1;
+                        valB = ((limitB - b.remainingHours) / limitB) * 100;
+                    }
+                    else if (colName === 'SLA Restante') { valA = a.remainingHours; valB = b.remainingHours; }
+                    else if (colName === 'Limite') { valA = a.limitHours; valB = b.limitHours; }
+                    else {
+                        const exIdx = window.kpiActiveExtraCols ? window.kpiActiveExtraCols.indexOf(colName) : -1;
+                        if (exIdx >= 0) {
+                            valA = a.extras[exIdx];
+                            valB = b.extras[exIdx];
+                        }
+                    }
+
+                    const parseDate = (dStr) => {
+                        if (!dStr || dStr === 'Open' || dStr === '-') return isAsc ? 99999999999999 : -99999999999999;
+                        let match = String(dStr).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+                        if (match) return new Date(match[3], match[2]-1, match[1]).getTime();
+                        return 0;
+                    };
+
+                    if (colName === 'Aberto' || colName === 'Resolvido') {
+                        valA = parseDate(valA);
+                        valB = parseDate(valB);
+                    }
+
+                    if (typeof valA === 'string') valA = valA.toLowerCase();
+                    if (typeof valB === 'string') valB = valB.toLowerCase();
+
+                    if (valA < valB) return isAsc ? -1 : 1;
+                    if (valA > valB) return isAsc ? 1 : -1;
+                    return 0;
+                });
+
+                window.paginationState.kpi = 1;
+                window.renderKPITableBody();
+            };
+
+            window.filterKPITable = function(term) {
+                const cleanTerm = term.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+                if (!cleanTerm) {
+                    window.paginationState.kpiFilteredData = window.paginationState.kpiData;
+                } else {
+                    window.paginationState.kpiFilteredData = window.paginationState.kpiData.filter(t => {
+                        return String(t.tk).toUpperCase().includes(cleanTerm) ||
+                               String(t.asg).toUpperCase().includes(cleanTerm) ||
+                               String(t.matchedRuleStr).toUpperCase().includes(cleanTerm);
+                    });
+                }
+                window.paginationState.kpi = 1;
+                window.renderKPITableBody();
+            };
 
             let resultsHtml = `
                 <div class="flex justify-between items-center border-b border-slate-200 pb-3 mb-5">
-                    <div class="report-card-title text-slate-800 m-0 border-0 pb-0"><i class="fas fa-poll mr-2"></i> Multi-Column Tracking Results</div>
+                    <div class="report-card-title text-slate-800 m-0 border-0 pb-0"><i class="fas fa-poll mr-2"></i> Resultados do Rastreamento Multi-Coluna</div>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-lg p-5 text-center shadow-sm relative overflow-hidden">
                         <i class="fas fa-ticket-alt absolute -right-4 -bottom-4 text-6xl text-slate-200 opacity-50"></i>
-                        <div class="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 relative z-10">Total Tracked</div>
+                        <div class="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 relative z-10">Total Rastreado</div>
                         <div class="text-4xl font-black text-slate-800 relative z-10">${totalResolvedOrTracked}</div>
                     </div>
                     <div class="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-lg p-5 text-center shadow-sm relative overflow-hidden">
                         <i class="fas fa-fire absolute -right-4 -bottom-4 text-6xl text-red-200 opacity-50"></i>
-                        <div class="text-[11px] font-black text-red-500 uppercase tracking-widest mb-2 relative z-10">SLA Breaches</div>
+                        <div class="text-[11px] font-black text-red-500 uppercase tracking-widest mb-2 relative z-10">Violações de SLA</div>
                         <div class="text-4xl font-black text-red-700 relative z-10">${breachedCount}</div>
                     </div>
                     <div class="bg-white border border-slate-200 rounded-lg p-5 text-center shadow-sm relative overflow-hidden">
                         <i class="fas fa-percent absolute -right-4 -bottom-4 text-6xl ${breachPct > 15 ? 'text-red-100' : 'text-blue-50'} opacity-50"></i>
-                        <div class="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 relative z-10">Breach Rate</div>
+                        <div class="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 relative z-10">Taxa de Violação</div>
                         <div class="text-4xl font-black ${breachPct > 15 ? 'text-red-600' : 'text-blue-600'} relative z-10">${breachPct}%</div>
                     </div>
                 </div>
 
                 <!-- Full width Breakdown -->
                 <div class="mb-8 p-4 bg-slate-50 border border-slate-200 rounded shadow-inner">
-                    <h4 class="text-[12px] font-black text-slate-700 uppercase tracking-widest mb-4 flex items-center"><i class="fas fa-layer-group text-blue-500 mr-2 text-lg"></i> Breakdown by Matched Rule</h4>
+                    <h4 class="text-[12px] font-black text-slate-700 uppercase tracking-widest mb-4 flex items-center"><i class="fas fa-layer-group text-blue-500 mr-2 text-lg"></i> Detalhamento por Regra Correspondente</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        ${breakdownHtml || '<div class="col-span-full text-center text-slate-400 text-sm py-8 bg-white rounded border border-slate-200 border-dashed">No data available</div>'}
+                        ${breakdownHtml || '<div class="col-span-full text-center text-slate-400 text-sm py-8 bg-white rounded border border-slate-200 border-dashed">Sem dados disponíveis</div>'}
                     </div>
                 </div>
 
                 <!-- Full width Table -->
                 <div>
-                    <h4 class="text-[12px] font-black text-slate-700 uppercase tracking-widest mb-4 flex items-center"><i class="fas fa-list text-red-500 mr-2 text-lg"></i> Top Critical Tickets (max 50)</h4>
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-[12px] font-black text-slate-700 uppercase tracking-widest flex items-center m-0"><i class="fas fa-list text-red-500 mr-2 text-lg"></i> Detalhamento de Tickets Críticos</h4>
+                        <div class="flex items-center gap-2 w-full lg:w-auto flex-1 max-w-sm bg-slate-50 border border-slate-200 px-3 py-2 rounded-full focus-within:border-blue-500 focus-within:bg-white transition-all shadow-inner">
+                            <i class="fas fa-search text-slate-400 text-sm"></i>
+                            <input type="text" placeholder="Filtrar por ticket, analista, regra..." class="w-full bg-transparent outline-none text-[11px] font-inter text-slate-700" onkeyup="window.filterKPITable(this.value)">
+                        </div>
+                    </div>
                     <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                         <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse min-w-[800px]">
+                            <table id="kpi-results-table" class="w-full text-left border-collapse min-w-[800px]">
                                 <thead class="bg-slate-100 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-600">
                                     <tr>
-                                        <th class="p-3 font-black">Ticket</th>
-                                        <th class="p-3 font-black">Matched Rule</th>
-                                        <th class="p-3 font-black">Analyst</th>
-                                        <th class="p-3 font-black">Opened</th>
-                                        <th class="p-3 font-black">Resolved</th>
-                                        <th class="p-3 font-black text-right">Remaining SLA</th>
-                                        <th class="p-3 font-black text-right">Limit</th>
+                                        <th data-col="Ticket" class="p-3 font-black cursor-pointer hover:bg-slate-200 transition" onclick="window.sortKPITable(this)">
+                                            <div class="flex justify-start items-center gap-1.5 w-full"><span>Ticket</span> <div class="flex items-center gap-1 flex-shrink-0"><i class="fas fa-sort opacity-30 text-[10px]"></i> <i class="fas fa-filter text-slate-400 hover:text-blue-600 opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-slate-300" onclick="openFilter(event, this)" title="Filter Coluna"></i></div></div>
+                                        </th>
+                                        <th data-col="Regra" class="p-3 font-black cursor-pointer hover:bg-slate-200 transition" onclick="window.sortKPITable(this)">
+                                            <div class="flex justify-start items-center gap-1.5 w-full"><span>Regra</span> <div class="flex items-center gap-1 flex-shrink-0"><i class="fas fa-sort opacity-30 text-[10px]"></i> <i class="fas fa-filter text-slate-400 hover:text-blue-600 opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-slate-300" onclick="openFilter(event, this)" title="Filter Coluna"></i></div></div>
+                                        </th>
+                                        <th data-col="Analista" class="p-3 font-black cursor-pointer hover:bg-slate-200 transition" onclick="window.sortKPITable(this)">
+                                            <div class="flex justify-start items-center gap-1.5 w-full"><span>Analista</span> <div class="flex items-center gap-1 flex-shrink-0"><i class="fas fa-sort opacity-30 text-[10px]"></i> <i class="fas fa-filter text-slate-400 hover:text-blue-600 opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-slate-300" onclick="openFilter(event, this)" title="Filter Coluna"></i></div></div>
+                                        </th>
+                                        ${window.kpiActiveExtraCols ? window.kpiActiveExtraCols.map(col => `
+                                        <th data-col="${col.replace(/"/g, '&quot;')}" class="p-3 font-black cursor-pointer hover:bg-slate-200 transition" onclick="window.sortKPITable(this)">
+                                            <div class="flex justify-start items-center gap-1.5 w-full"><span>${col}</span> <div class="flex items-center gap-1 flex-shrink-0"><i class="fas fa-sort opacity-30 text-[10px]"></i> <i class="fas fa-filter text-slate-400 hover:text-blue-600 opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-slate-300" onclick="openFilter(event, this)" title="Filter Coluna"></i></div></div>
+                                        </th>`).join('') : ''}
+                                        <th data-col="Aberto" class="p-3 font-black cursor-pointer hover:bg-slate-200 transition" onclick="window.sortKPITable(this)">
+                                            <div class="flex justify-start items-center gap-1.5 w-full"><span>Aberto</span> <div class="flex items-center gap-1 flex-shrink-0"><i class="fas fa-sort opacity-30 text-[10px]"></i> <i class="fas fa-filter text-slate-400 hover:text-blue-600 opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-slate-300" onclick="openFilter(event, this)" title="Filter Coluna"></i></div></div>
+                                        </th>
+                                        <th data-col="Resolvido" class="p-3 font-black cursor-pointer hover:bg-slate-200 transition" onclick="window.sortKPITable(this)">
+                                            <div class="flex justify-start items-center gap-1.5 w-full"><span>Resolvido</span> <div class="flex items-center gap-1 flex-shrink-0"><i class="fas fa-sort opacity-30 text-[10px]"></i> <i class="fas fa-filter text-slate-400 hover:text-blue-600 opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-slate-300" onclick="openFilter(event, this)" title="Filter Coluna"></i></div></div>
+                                        </th>
+                                        <th data-col="Pct. Real Decorrido" class="p-3 font-black cursor-pointer hover:bg-slate-200 transition" onclick="window.sortKPITable(this)">
+                                            <div class="flex justify-start items-center gap-1.5 w-full"><span>Pct. Real Decorrido</span> <div class="flex items-center gap-1 flex-shrink-0"><i class="fas fa-sort opacity-30 text-[10px]"></i> <i class="fas fa-filter text-slate-400 hover:text-blue-600 opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-slate-300" onclick="openFilter(event, this)" title="Filter Coluna"></i></div></div>
+                                        </th>
+                                        <th data-col="SLA Restante" class="p-3 font-black cursor-pointer hover:bg-slate-200 transition" onclick="window.sortKPITable(this)">
+                                            <div class="flex justify-end items-center gap-1.5 w-full"><span>SLA Restante</span> <div class="flex items-center gap-1 flex-shrink-0"><i class="fas fa-sort opacity-30 text-[10px]"></i> <i class="fas fa-filter text-slate-400 hover:text-blue-600 opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-slate-300" onclick="openFilter(event, this)" title="Filter Coluna"></i></div></div>
+                                        </th>
+                                        <th data-col="Limite" class="p-3 font-black cursor-pointer hover:bg-slate-200 transition" onclick="window.sortKPITable(this)">
+                                            <div class="flex justify-end items-center gap-1.5 w-full"><span>Limite</span> <div class="flex items-center gap-1 flex-shrink-0"><i class="fas fa-sort opacity-30 text-[10px]"></i> <i class="fas fa-filter text-slate-400 hover:text-blue-600 opacity-50 hover:opacity-100 transition p-1 rounded hover:bg-slate-300" onclick="openFilter(event, this)" title="Filter Coluna"></i></div></div>
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    ${tableRows || '<tr><td colspan="7" class="text-center text-slate-400 text-xs py-8 font-bold">No tickets found.</td></tr>'}
+                                <tbody id="kpi-tbody">
                                 </tbody>
                             </table>
                         </div>
+                        <div id="kpi-pagination" class="p-4 bg-slate-50 border-t border-slate-200"></div>
                     </div>
                 </div>
             `;
 
             document.getElementById('kpi-results-container').innerHTML = resultsHtml;
+            window.renderKPITableBody();
         }
     </script>
 
