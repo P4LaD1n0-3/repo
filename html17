@@ -10214,7 +10214,7 @@
                     idle: '-',
                     tipo: t.ticketType,
                     _typeBadge: `<span style="background:${typeBg};color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;">${t.ticketType}</span>`,
-                    info: `<span style="color:${stColor};font-weight:bold;">${stLabel}</span> (SLA: ${Math.round(t.pctSlaNum)}%)`
+                    info: `<span style="color:${stColor};font-weight:bold;">${stLabel}</span> (SLA: ${t.pctSlaNum.toFixed(2)}%)`
                 };
             };
 
@@ -10305,7 +10305,7 @@
             let resolved = resolvedTks.length;
             let resolvedOnTime = resolvedTks.filter(t => !t.isBreached).length;
             let resolvedBreached = resolvedTks.filter(t => t.isBreached).length;
-            let pctSlaCompliance = resolved ? Math.round((resolvedOnTime / resolved) * 100) : 0;
+            let pctSlaCompliance = resolved ? ((resolvedOnTime / resolved) * 100).toFixed(2) : "0.00";
             
             let open = parsed.filter(t => !t.isRes && !t.isCan).length;
             let canceled = parsed.filter(t => t.isCan).length;
@@ -10313,7 +10313,7 @@
             let avgMttr = mttrArr.length ? (mttrArr.reduce((a, b) => a + b, 0) / mttrArr.length) : 0;
             let ageArr = parsed.filter(t => t.age !== null && !t.isRes && !t.isCan).map(t => t.age);
             let avgAge = ageArr.length ? (ageArr.reduce((a, b) => a + b, 0) / ageArr.length) : 0;
-            let pctRes = total ? Math.round((resolved / total) * 100) : 0;
+            let pctRes = total ? ((resolved / total) * 100).toFixed(2) : "0.00";
             let netflow = resolved - (total - resolved - canceled);
 
             let kE = document.getElementById('an-kpis');
@@ -10322,12 +10322,12 @@
                 kE.innerHTML = `
                 <div class="report-card text-center border-t-4 border-slate-500 p-4 mb-0"><div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Tickets</div><div class="text-3xl font-black text-slate-700">${total}</div></div>
                 <div class="report-card text-center border-t-4 border-emerald-500 p-4 mb-0"><div class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Resolved</div><div class="text-3xl font-black text-slate-700">${resolved}</div></div>
-                <div class="report-card text-center border-t-4 border-blue-500 p-4 mb-0"><div class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">SLA Compliance</div><div class="text-3xl font-black ${pctSlaCompliance >= 90 ? 'text-emerald-500' : (pctSlaCompliance >= 75 ? 'text-amber-500' : 'text-red-500')}">${pctSlaCompliance}%</div></div>
+                <div class="report-card text-center border-t-4 border-blue-500 p-4 mb-0"><div class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">SLA Compliance</div><div class="text-3xl font-black ${parseFloat(pctSlaCompliance) >= 90 ? 'text-emerald-500' : (parseFloat(pctSlaCompliance) >= 75 ? 'text-amber-500' : 'text-red-500')}">${pctSlaCompliance}%</div></div>
                 <div class="report-card text-center border-t-4 border-red-500 p-4 mb-0"><div class="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Breached (Closed)</div><div class="text-3xl font-black text-red-500">${resolvedBreached}</div></div>
                 <div class="report-card text-center border-t-4 border-purple-500 p-4 mb-0"><div class="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1">Taxa Resolução</div><div class="text-3xl font-black text-slate-700">${pctRes}%</div></div>
                 <div class="report-card text-center border-t-4 border-blue-500 p-4 mb-0"><div class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Backlog Ativo</div><div class="text-3xl font-black text-slate-700">${open}</div></div>
-                <div class="report-card text-center border-t-4 border-amber-500 p-4 mb-0"><div class="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">MTTR Médio</div><div class="text-2xl font-black text-slate-700 flex items-center justify-center h-[36px]">${avgMttr.toFixed(1)}h</div></div>
-                <div class="report-card text-center border-t-4 border-orange-500 p-4 mb-0"><div class="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">Avg Aging (Open)</div><div class="text-2xl font-black text-slate-700 flex items-center justify-center h-[36px]">${avgAge.toFixed(1)}d</div></div>
+                <div class="report-card text-center border-t-4 border-amber-500 p-4 mb-0"><div class="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">MTTR Médio</div><div class="text-2xl font-black text-slate-700 flex items-center justify-center h-[36px]">${avgMttr.toFixed(2)}h</div></div>
+                <div class="report-card text-center border-t-4 border-orange-500 p-4 mb-0"><div class="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">Avg Aging (Open)</div><div class="text-2xl font-black text-slate-700 flex items-center justify-center h-[36px]">${avgAge.toFixed(2)}d</div></div>
                 <div class="report-card text-center border-t-4 border-rose-400 p-4 mb-0"><div class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">Cancelados</div><div class="text-3xl font-black text-slate-700">${canceled}</div></div>
                 <div class="report-card text-center border-t-4 p-4 mb-0" style="border-color:${netflow >= 0 ? '#10b981' : '#ef4444'};"><div class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:${netflow >= 0 ? '#10b981' : '#ef4444'};">Netflow Global</div><div class="text-3xl font-black flex items-center justify-center h-[36px]" style="color:${netflow >= 0 ? '#10b981' : '#ef4444'};">${netflow >= 0 ? '+' : ''}${netflow}</div></div>`;
             }
@@ -10355,10 +10355,10 @@
                     
                     let teamRes = allData.filter(t => t.isRes);
                     let teamSlaOnTime = teamRes.filter(t => !t.isBreached).length;
-                    let teamSlaPct = teamRes.length ? Math.round((teamSlaOnTime / teamRes.length) * 100) : 0;
+                    let teamSlaPct = teamRes.length ? ((teamSlaOnTime / teamRes.length) * 100).toFixed(2) : "0.00";
                     let teamMttrArr = allData.filter(t => t.mttrH !== null).map(t => t.mttrH);
                     let teamAvgMttr = teamMttrArr.length ? (teamMttrArr.reduce((a,b)=>a+b,0)/teamMttrArr.length) : 0;
-                    let teamResRate = allData.length ? Math.round((teamRes.length / allData.length) * 100) : 0;
+                    let teamResRate = allData.length ? ((teamRes.length / allData.length) * 100).toFixed(2) : "0.00";
                     // unique analysts count for avg volume
                     let analystsSet = new Set(teamRes.map(t => t.asg));
                     let teamAvgVol = analystsSet.size ? Math.round(teamRes.length / analystsSet.size) : 0;
@@ -10369,14 +10369,15 @@
                     let indUam = resolvedTks.filter(t => t.ticketType === 'UAM').length;
                     
                     // Smart Text Generator
-                    let mttrDiff = teamAvgMttr > 0 ? Math.round(((teamAvgMttr - avgMttr) / teamAvgMttr) * 100) : 0;
-                    let mttrText = mttrDiff > 0 ? `<span class="text-emerald-600 font-bold">${mttrDiff}% mais rápido</span>` : (mttrDiff < 0 ? `<span class="text-red-500 font-bold">${Math.abs(mttrDiff)}% mais lento</span>` : "na média");
+                    let mttrDiff = teamAvgMttr > 0 ? (((teamAvgMttr - avgMttr) / teamAvgMttr) * 100).toFixed(2) : "0.00";
+                    let mttrDiffNum = parseFloat(mttrDiff);
+                    let mttrText = mttrDiffNum > 0 ? `<span class="text-emerald-600 font-bold">${mttrDiff}% mais rápido</span>` : (mttrDiffNum < 0 ? `<span class="text-red-500 font-bold">${Math.abs(mttrDiffNum).toFixed(2)}% mais lento</span>` : "na média");
                     let volText = resolved > teamAvgVol ? `<span class="text-indigo-600 font-bold">acima da média do time (${teamAvgVol})</span>` : "abaixo da média de volume";
-                    let slaText = pctSlaCompliance >= 95 ? "impecável" : (pctSlaCompliance >= teamSlaPct ? "acima da média da equipe" : "abaixo da meta, exigindo atenção");
+                    let slaText = parseFloat(pctSlaCompliance) >= 95 ? "impecável" : (parseFloat(pctSlaCompliance) >= parseFloat(teamSlaPct) ? "acima da média da equipe" : "abaixo da meta, exigindo atenção");
                     
                     let smartText = `<div class="text-[13px] text-slate-600 leading-relaxed">
                         Neste período, <b>${uFilter}</b> resolveu <b>${resolved} chamados</b>, ficando ${volText}.<br>
-                        O tempo médio de resolução (MTTR) foi de <b>${avgMttr.toFixed(1)}h</b>, sendo ${mttrText} que a média global do time.<br>
+                        O tempo médio de resolução (MTTR) foi de <b>${avgMttr.toFixed(2)}h</b>, sendo ${mttrText} que a média global do time.<br>
                         A qualidade de SLA foi de <b>${pctSlaCompliance}%</b>, o que é considerado <b>${slaText}</b>.
                     </div>`;
 
@@ -10418,7 +10419,7 @@
                                 datasets: [
                                     {
                                         label: uFilter,
-                                        data: [pctSlaCompliance, normIndMttr, normIndVol, pctRes],
+                                        data: [parseFloat(pctSlaCompliance), normIndMttr, normIndVol, parseFloat(pctRes)],
                                         backgroundColor: 'rgba(79, 70, 229, 0.2)',
                                         borderColor: 'rgba(79, 70, 229, 1)',
                                         pointBackgroundColor: 'rgba(79, 70, 229, 1)',
@@ -10427,7 +10428,7 @@
                                     },
                                     {
                                         label: 'Média da Equipe',
-                                        data: [teamSlaPct, normTeamMttr, normTeamVol, teamResRate],
+                                        data: [parseFloat(teamSlaPct), normTeamMttr, normTeamVol, parseFloat(teamResRate)],
                                         backgroundColor: 'rgba(148, 163, 184, 0.2)',
                                         borderColor: 'rgba(148, 163, 184, 1)',
                                         pointBackgroundColor: 'rgba(148, 163, 184, 1)',
@@ -10776,12 +10777,13 @@
                         if (v > 0) {
                             onTime = tks.filter(t => !t.isBreached).length;
                         }
-                        let pct = v > 0 ? Math.round((onTime / v) * 100) : null;
+                        let pct = v > 0 ? ((onTime / v) * 100).toFixed(2) : null;
                         
                         let bg = '';
                         if (v > 0) {
-                            if (pct >= 90) bg = 'background:#ecfdf5;color:#065f46;';
-                            else if (pct >= 75) bg = 'background:#fffbeb;color:#92400e;';
+                            let pctNum = parseFloat(pct);
+                            if (pctNum >= 90) bg = 'background:#ecfdf5;color:#065f46;';
+                            else if (pctNum >= 75) bg = 'background:#fffbeb;color:#92400e;';
                             else bg = 'background:#fef2f2;color:#991b1b;font-weight:bold;';
                         }
                         
