@@ -665,6 +665,46 @@
             border-right: 1px solid #334155 !important;
         }
 
+        /* Sticky Column for Month (Throughput Table) */
+        .st-table th[data-col="Month"] {
+            position: sticky !important;
+            left: 0;
+            z-index: 20 !important;
+            min-width: 110px;
+            max-width: 110px;
+            background-color: var(--primary-dark);
+        }
+
+        .st-table td[data-label="Month"] {
+            position: sticky !important;
+            left: 0;
+            z-index: 5 !important;
+            background: white;
+            min-width: 110px;
+            max-width: 110px;
+            border-right: 1px solid #e2e8f0;
+        }
+
+        .st-table tfoot th[data-label="TOTALS:"] {
+            position: sticky !important;
+            left: 0;
+            z-index: 20 !important;
+            min-width: 110px;
+            max-width: 110px;
+            background-color: var(--gray-light);
+            border-right: 1px solid #e2e8f0;
+        }
+
+        [data-theme="dark"] .st-table td[data-label="Month"] {
+            background: #1e293b !important;
+            border-right: 1px solid #334155 !important;
+        }
+
+        [data-theme="dark"] .st-table tfoot th[data-label="TOTALS:"] {
+            background: #0f172a !important;
+            border-right: 1px solid #334155 !important;
+        }
+
         /* FILTRO AVANÇADO DROPDOWN */
         .custom-filter-dropdown {
             position: fixed;
@@ -10074,8 +10114,10 @@
                 age = clD && !isNaN(clD) && clD.getTime() > 0 ? Math.floor(Math.max(0, ((clD - opD) / 86400000))) : Math.floor(Math.max(0, ((new Date() - opD) / 86400000)));
             }
             let mttrH = null;
+            let mttrD = null;
             if (isRes && opD && clD && !isNaN(opD) && !isNaN(clD) && opD.getTime() > 0 && clD.getTime() > 0) {
                 mttrH = Math.max(0, (clD - opD) / 3600000);
+                mttrD = Math.max(0, (clD - opD) / 86400000);
             }
             let opM = opD && !isNaN(opD) && opD.getTime() > 0 ? opD.getFullYear() + '-' + String(opD.getMonth() + 1).padStart(2, '0') : null;
             let clM = clD && !isNaN(clD) && clD.getTime() > 0 ? clD.getFullYear() + '-' + String(clD.getMonth() + 1).padStart(2, '0') : null;
@@ -10083,7 +10125,22 @@
             let desc = getCol(tk, ['Short description', 'Breve descrição', 'Assunto']) || '';
             let tkUp = tkId.toUpperCase();
             let ticketType = tkUp.startsWith('INC') ? 'INC' : tkUp.startsWith('RITM') || tkUp.startsWith('REQ') || tkUp.startsWith('SCTASK') ? 'REQ' : tkUp.startsWith('UAM') ? 'UAM' : 'TICKET';
-            return { asg, gp, st, opD, clD, isRes, isCan, age, mttrH, opM, clM, tkId, desc, ticketType, raw: tk };
+
+            let slaI = parseInt(document.getElementById('sla-incs')?.value) || 7;
+            let slaR = parseInt(document.getElementById('sla-req')?.value) || 15;
+            let targetSla = ticketType === 'INC' ? slaI : slaR;
+
+            let isBreached = false;
+            let pctSlaNum = 0;
+            if (isRes && mttrD !== null) {
+                isBreached = mttrD > targetSla;
+                pctSlaNum = targetSla ? (mttrD / targetSla) * 100 : 0;
+            } else if (!isRes && age !== null) {
+                isBreached = age > targetSla;
+                pctSlaNum = targetSla ? (age / targetSla) * 100 : 0;
+            }
+
+            return { asg, gp, st, opD, clD, isRes, isCan, age, mttrH, mttrD, opM, clM, tkId, desc, ticketType, isBreached, pctSlaNum, raw: tk };
         }
 
         function _fmtM(k) { let [y, m] = k.split('-'); return new Date(+y, +m - 1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' }).toUpperCase().replace('.', ''); }
@@ -10142,6 +10199,8 @@
             // Drilldown helpers for pivot
             window._pivotMapTk = function (t) {
                 let typeBg = t.ticketType === 'INC' ? '#ef4444' : t.ticketType === 'REQ' ? '#3b82f6' : t.ticketType === 'UAM' ? '#8b5cf6' : '#64748b';
+                let stColor = t.isBreached ? '#ef4444' : '#10b981';
+                let stLabel = t.isBreached ? 'Breached' : 'On Time';
                 return {
                     tk: t.tkId,
                     desc: t.desc,
@@ -10151,10 +10210,11 @@
                     gp: t.gp,
                     req: '-',
                     opStr: t.opD ? formatExactDate(t.opD) : '-',
-                    age: t.age !== null ? t.age : 0,
+                    age: t.mttrD !== null ? Math.round(t.mttrD) : (t.age !== null ? t.age : 0),
                     idle: '-',
                     tipo: t.ticketType,
-                    _typeBadge: `<span style="background:${typeBg};color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;">${t.ticketType}</span>`
+                    _typeBadge: `<span style="background:${typeBg};color:#fff;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;">${t.ticketType}</span>`,
+                    info: `<span style="color:${stColor};font-weight:bold;">${stLabel}</span> (SLA: ${Math.round(t.pctSlaNum)}%)`
                 };
             };
 
@@ -10199,7 +10259,8 @@
                 </div>
                 <div id="an-period-badge" class="mt-3 text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 rounded px-3 py-1.5 font-bold hidden-st"><i class="fas fa-info-circle mr-1"></i> <span id="an-period-label"></span></div>
             </div>
-            <div id="an-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5"></div>
+            <div id="an-kpis" class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5"></div>
+            <div id="an-individual-insights" class="hidden-st mb-5"></div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
                 <div class="report-card mb-0 col-span-1 lg:col-span-2" style="height:420px;">
                     <div class="report-card-title mb-1" style="color:#312e81;"><i class="fas fa-chart-area mr-2 text-indigo-600"></i> MONTHLY TREND — OPENED vs RESOLVED (Self-Comparison)</div>
@@ -10240,7 +10301,12 @@
             if (window._anCharts) window._anCharts.forEach(c => c.destroy());
             window._anCharts = [];
             let total = parsed.length;
-            let resolved = parsed.filter(t => t.isRes).length;
+            let resolvedTks = parsed.filter(t => t.isRes);
+            let resolved = resolvedTks.length;
+            let resolvedOnTime = resolvedTks.filter(t => !t.isBreached).length;
+            let resolvedBreached = resolvedTks.filter(t => t.isBreached).length;
+            let pctSlaCompliance = resolved ? Math.round((resolvedOnTime / resolved) * 100) : 0;
+            
             let open = parsed.filter(t => !t.isRes && !t.isCan).length;
             let canceled = parsed.filter(t => t.isCan).length;
             let mttrArr = parsed.filter(t => t.mttrH !== null).map(t => t.mttrH);
@@ -10251,15 +10317,168 @@
             let netflow = resolved - (total - resolved - canceled);
 
             let kE = document.getElementById('an-kpis');
-            if (kE) kE.innerHTML = `
+            if (kE) {
+                kE.className = "grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5";
+                kE.innerHTML = `
                 <div class="report-card text-center border-t-4 border-slate-500 p-4 mb-0"><div class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Tickets</div><div class="text-3xl font-black text-slate-700">${total}</div></div>
                 <div class="report-card text-center border-t-4 border-emerald-500 p-4 mb-0"><div class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Resolved</div><div class="text-3xl font-black text-slate-700">${resolved}</div></div>
-                <div class="report-card text-center border-t-4 border-blue-500 p-4 mb-0"><div class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Backlog Ativo</div><div class="text-3xl font-black text-slate-700">${open}</div></div>
+                <div class="report-card text-center border-t-4 border-blue-500 p-4 mb-0"><div class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">SLA Compliance</div><div class="text-3xl font-black ${pctSlaCompliance >= 90 ? 'text-emerald-500' : (pctSlaCompliance >= 75 ? 'text-amber-500' : 'text-red-500')}">${pctSlaCompliance}%</div></div>
+                <div class="report-card text-center border-t-4 border-red-500 p-4 mb-0"><div class="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Breached (Closed)</div><div class="text-3xl font-black text-red-500">${resolvedBreached}</div></div>
                 <div class="report-card text-center border-t-4 border-purple-500 p-4 mb-0"><div class="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-1">Taxa Resolução</div><div class="text-3xl font-black text-slate-700">${pctRes}%</div></div>
-                <div class="report-card text-center border-t-4 border-amber-500 p-4 mb-0"><div class="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">MTTR Médio</div><div class="text-2xl font-black text-slate-700">${avgMttr.toFixed(1)}h</div></div>
-                <div class="report-card text-center border-t-4 border-red-500 p-4 mb-0"><div class="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1">Average Aging (Open)</div><div class="text-2xl font-black text-slate-700">${avgAge.toFixed(1)}d</div></div>
+                <div class="report-card text-center border-t-4 border-blue-500 p-4 mb-0"><div class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Backlog Ativo</div><div class="text-3xl font-black text-slate-700">${open}</div></div>
+                <div class="report-card text-center border-t-4 border-amber-500 p-4 mb-0"><div class="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">MTTR Médio</div><div class="text-2xl font-black text-slate-700 flex items-center justify-center h-[36px]">${avgMttr.toFixed(1)}h</div></div>
+                <div class="report-card text-center border-t-4 border-orange-500 p-4 mb-0"><div class="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">Avg Aging (Open)</div><div class="text-2xl font-black text-slate-700 flex items-center justify-center h-[36px]">${avgAge.toFixed(1)}d</div></div>
                 <div class="report-card text-center border-t-4 border-rose-400 p-4 mb-0"><div class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">Cancelados</div><div class="text-3xl font-black text-slate-700">${canceled}</div></div>
-                <div class="report-card text-center border-t-4 p-4 mb-0" style="border-color:${netflow >= 0 ? '#10b981' : '#ef4444'};"><div class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:${netflow >= 0 ? '#10b981' : '#ef4444'};">Netflow Global</div><div class="text-3xl font-black" style="color:${netflow >= 0 ? '#10b981' : '#ef4444'};">${netflow >= 0 ? '+' : ''}${netflow}</div></div>`;
+                <div class="report-card text-center border-t-4 p-4 mb-0" style="border-color:${netflow >= 0 ? '#10b981' : '#ef4444'};"><div class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:${netflow >= 0 ? '#10b981' : '#ef4444'};">Netflow Global</div><div class="text-3xl font-black flex items-center justify-center h-[36px]" style="color:${netflow >= 0 ? '#10b981' : '#ef4444'};">${netflow >= 0 ? '+' : ''}${netflow}</div></div>`;
+            }
+
+            // ── Individual Insights (Render only if a specific analyst is selected) ──
+            let indCont = document.getElementById('an-individual-insights');
+            let uFilter = document.getElementById('an-filter-user')?.value;
+            if (indCont) {
+                if (uFilter && parsed.length > 0) {
+                    // Calculate Team Global Averages
+                    let allData = window.AnalystsFullData.map(_ap);
+                    // If a period is selected, filter team data to that period
+                    let pFrom = document.getElementById('an-period-from')?.value;
+                    let pTo = document.getElementById('an-period-to')?.value;
+                    if (pFrom || pTo) {
+                        let fD = pFrom ? new Date(pFrom + '-01T00:00:00') : null;
+                        let tD = pTo ? new Date(pTo + '-01T00:00:00') : null;
+                        if (tD) { tD.setMonth(tD.getMonth() + 1); tD.setDate(0); tD.setHours(23, 59, 59, 999); }
+                        allData = allData.filter(t => {
+                            if (fD && t.opD && t.opD < fD) return false;
+                            if (tD && t.opD && t.opD > tD) return false;
+                            return true;
+                        });
+                    }
+                    
+                    let teamRes = allData.filter(t => t.isRes);
+                    let teamSlaOnTime = teamRes.filter(t => !t.isBreached).length;
+                    let teamSlaPct = teamRes.length ? Math.round((teamSlaOnTime / teamRes.length) * 100) : 0;
+                    let teamMttrArr = allData.filter(t => t.mttrH !== null).map(t => t.mttrH);
+                    let teamAvgMttr = teamMttrArr.length ? (teamMttrArr.reduce((a,b)=>a+b,0)/teamMttrArr.length) : 0;
+                    let teamResRate = allData.length ? Math.round((teamRes.length / allData.length) * 100) : 0;
+                    // unique analysts count for avg volume
+                    let analystsSet = new Set(teamRes.map(t => t.asg));
+                    let teamAvgVol = analystsSet.size ? Math.round(teamRes.length / analystsSet.size) : 0;
+                    
+                    // Individual Workload
+                    let indInc = resolvedTks.filter(t => t.ticketType === 'INC').length;
+                    let indReq = resolvedTks.filter(t => t.ticketType === 'REQ').length;
+                    let indUam = resolvedTks.filter(t => t.ticketType === 'UAM').length;
+                    
+                    // Smart Text Generator
+                    let mttrDiff = teamAvgMttr > 0 ? Math.round(((teamAvgMttr - avgMttr) / teamAvgMttr) * 100) : 0;
+                    let mttrText = mttrDiff > 0 ? `<span class="text-emerald-600 font-bold">${mttrDiff}% mais rápido</span>` : (mttrDiff < 0 ? `<span class="text-red-500 font-bold">${Math.abs(mttrDiff)}% mais lento</span>` : "na média");
+                    let volText = resolved > teamAvgVol ? `<span class="text-indigo-600 font-bold">acima da média do time (${teamAvgVol})</span>` : "abaixo da média de volume";
+                    let slaText = pctSlaCompliance >= 95 ? "impecável" : (pctSlaCompliance >= teamSlaPct ? "acima da média da equipe" : "abaixo da meta, exigindo atenção");
+                    
+                    let smartText = `<div class="text-[13px] text-slate-600 leading-relaxed">
+                        Neste período, <b>${uFilter}</b> resolveu <b>${resolved} chamados</b>, ficando ${volText}.<br>
+                        O tempo médio de resolução (MTTR) foi de <b>${avgMttr.toFixed(1)}h</b>, sendo ${mttrText} que a média global do time.<br>
+                        A qualidade de SLA foi de <b>${pctSlaCompliance}%</b>, o que é considerado <b>${slaText}</b>.
+                    </div>`;
+
+                    indCont.innerHTML = `
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            <div class="report-card mb-0 flex flex-col">
+                                <div class="report-card-title text-indigo-700"><i class="fas fa-robot mr-2"></i> AI Performance Insight</div>
+                                <div class="p-4 bg-indigo-50/50 rounded-lg flex-1 border border-indigo-100 flex items-center shadow-inner">
+                                    ${smartText}
+                                </div>
+                            </div>
+                            <div class="report-card mb-0" style="height:320px;">
+                                <div class="report-card-title text-slate-700"><i class="fas fa-spider mr-2"></i> Competência (Indivíduo x Equipe)</div>
+                                <div style="height:calc(100% - 30px);"><canvas id="an-c-radar"></canvas></div>
+                            </div>
+                            <div class="report-card mb-0" style="height:320px;">
+                                <div class="report-card-title text-slate-700"><i class="fas fa-chart-pie mr-2"></i> Distribuição (Workload)</div>
+                                <div style="height:calc(100% - 30px);"><canvas id="an-c-workload"></canvas></div>
+                            </div>
+                        </div>
+                    `;
+                    indCont.classList.remove('hidden-st');
+                    
+                    // Render Charts
+                    let ctxRadar = document.getElementById('an-c-radar');
+                    if (ctxRadar) {
+                        // Normalize metrics for Radar (0 to 100 scale roughly)
+                        // MTTR: inverted so higher is better. e.g. Max 48h.
+                        let normIndMttr = Math.max(0, 100 - (avgMttr / 24 * 100)); 
+                        let normTeamMttr = Math.max(0, 100 - (teamAvgMttr / 24 * 100));
+                        let maxVol = Math.max(resolved, teamAvgVol, 1);
+                        let normIndVol = (resolved / maxVol) * 100;
+                        let normTeamVol = (teamAvgVol / maxVol) * 100;
+                        
+                        let c = new Chart(ctxRadar, {
+                            type: 'radar',
+                            data: {
+                                labels: ['SLA %', 'Velocidade', 'Volume', 'Resolução %'],
+                                datasets: [
+                                    {
+                                        label: uFilter,
+                                        data: [pctSlaCompliance, normIndMttr, normIndVol, pctRes],
+                                        backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                                        borderColor: 'rgba(79, 70, 229, 1)',
+                                        pointBackgroundColor: 'rgba(79, 70, 229, 1)',
+                                        pointHoverBorderColor: 'rgba(79, 70, 229, 1)',
+                                        borderWidth: 2
+                                    },
+                                    {
+                                        label: 'Média da Equipe',
+                                        data: [teamSlaPct, normTeamMttr, normTeamVol, teamResRate],
+                                        backgroundColor: 'rgba(148, 163, 184, 0.2)',
+                                        borderColor: 'rgba(148, 163, 184, 1)',
+                                        pointBackgroundColor: 'rgba(148, 163, 184, 1)',
+                                        pointHoverBorderColor: 'rgba(148, 163, 184, 1)',
+                                        borderWidth: 1,
+                                        borderDash: [5, 5]
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                scale: { ticks: { beginAtZero: true, max: 100, display: false }, pointLabels: { fontSize: 10 } },
+                                legend: { position: 'bottom', labels: { boxWidth: 12, fontSize: 10 } },
+                                tooltips: {
+                                    callbacks: {
+                                        label: function(item, data) {
+                                            let dsLabel = data.datasets[item.datasetIndex].label || '';
+                                            let val = Math.round(item.yLabel);
+                                            return dsLabel + ': ' + val + (item.index === 1 || item.index === 2 ? ' pts' : '%');
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                        window._anCharts.push(c);
+                    }
+                    
+                    let ctxW = document.getElementById('an-c-workload');
+                    if (ctxW) {
+                        let c = new Chart(ctxW, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Incidentes', 'Requisições', 'Acessos'],
+                                datasets: [{
+                                    data: [indInc, indReq, indUam],
+                                    backgroundColor: ['#ef4444', '#3b82f6', '#8b5cf6'],
+                                    datalabels: { color: '#ffffff', font: { weight: 'bold', size: 11 }, formatter: (v, ctx) => { let sum = ctx.dataset.data.reduce((a,b)=>a+b,0); return sum > 0 && v > 0 ? Math.round(v/sum*100)+'%' : ''; } }
+                                }]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                legend: { position: 'bottom', labels: { boxWidth: 12, fontSize: 10 } },
+                            }
+                        });
+                        window._anCharts.push(c);
+                    }
+                } else {
+                    indCont.innerHTML = '';
+                    indCont.classList.add('hidden-st');
+                }
+            }
 
             // ── Build drilldown indexes ──
             window._anDrillIdx = { byMonth: {}, byMonthRes: {}, byAnalyst: {}, byStatus: {}, byAgingBucket: {}, byDay: {}, byDayRes: {} };
@@ -10308,14 +10527,43 @@
 
             // ── 2. Bar: Top 10 por resolução ──
             let aC = {};
-            parsed.filter(t => t.isRes).forEach(t => { aC[t.asg] = (aC[t.asg] || 0) + 1; });
-            let sA = Object.entries(aC).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            parsed.filter(t => t.isRes).forEach(t => { 
+                if(!aC[t.asg]) aC[t.asg] = { total: 0, onTime: 0, breached: 0 };
+                aC[t.asg].total++;
+                if (t.isBreached) aC[t.asg].breached++;
+                else aC[t.asg].onTime++;
+            });
+            let sA = Object.entries(aC).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
             let sANames = sA.map(x => x[0]);
             let cBar = document.getElementById('an-c-bar');
             if (cBar && sA.length) {
                 let c = new Chart(cBar, {
-                    type: 'horizontalBar', data: { labels: sA.map(x => { let p = x[0].split(' '); return p.length > 1 ? p[0] + ' ' + p[1][0] + '.' : p[0]; }), datasets: [{ data: sA.map(x => x[1]), backgroundColor: ['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#7c3aed', '#a78bfa', '#c4b5fd', '#6366f1', '#818cf8'], borderRadius: 3, datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 } } }] }, options: {
-                        responsive: true, maintainAspectRatio: false, legend: { display: false }, scales: { xAxes: [{ gridLines: { color: _dmG() }, ticks: { beginAtZero: true, fontSize: 10 } }], yAxes: [{ gridLines: { display: false }, ticks: { fontSize: 10 } }] },
+                    type: 'horizontalBar', 
+                    data: { 
+                        labels: sA.map(x => { let p = x[0].split(' '); return p.length > 1 ? p[0] + ' ' + p[1][0] + '.' : p[0]; }), 
+                        datasets: [
+                            { 
+                                label: 'On Time',
+                                data: sA.map(x => x[1].onTime), 
+                                backgroundColor: '#10b981', 
+                                datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' } 
+                            },
+                            {
+                                label: 'Breached',
+                                data: sA.map(x => x[1].breached),
+                                backgroundColor: '#ef4444',
+                                datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
+                            }
+                        ] 
+                    }, 
+                    options: {
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }, 
+                        scales: { 
+                            xAxes: [{ stacked: true, gridLines: { color: _dmG() }, ticks: { beginAtZero: true, fontSize: 10 } }], 
+                            yAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontSize: 10 } }] 
+                        },
                         onClick: function (evt) {
                             let el = this.getElementAtEvent(evt)[0];
                             if (!el) return;
@@ -10523,11 +10771,27 @@
                         let v = tks.length;
                         rowTotal += v;
                         colTotals[m] = (colTotals[m] || 0) + v;
-                        let bg = v === 0 ? '' : v <= 5 ? 'background:#ecfdf5;' : v <= 15 ? 'background:#fef3c7;' : 'background:#fee2e2;font-weight:bold;';
+                        
+                        let onTime = 0;
                         if (v > 0) {
-                            html += `<td class="text-center px-2 py-1 border border-slate-200 cursor-pointer hover:bg-indigo-100 transition" style="${bg}" onclick="openPivotDrilldown('${an.replace(/'/g, "\\'")}','${m}')">${v}</td>`;
+                            onTime = tks.filter(t => !t.isBreached).length;
+                        }
+                        let pct = v > 0 ? Math.round((onTime / v) * 100) : null;
+                        
+                        let bg = '';
+                        if (v > 0) {
+                            if (pct >= 90) bg = 'background:#ecfdf5;color:#065f46;';
+                            else if (pct >= 75) bg = 'background:#fffbeb;color:#92400e;';
+                            else bg = 'background:#fef2f2;color:#991b1b;font-weight:bold;';
+                        }
+                        
+                        if (v > 0) {
+                            html += `<td class="text-center px-1 py-1 border border-slate-200 cursor-pointer hover:brightness-95 transition" style="${bg}" onclick="openPivotDrilldown('${an.replace(/'/g, "\\'")}','${m}')">
+                                <div class="font-bold">${v}</div>
+                                <div class="text-[8px] opacity-75 mt-0.5 leading-none">${pct}%</div>
+                            </td>`;
                         } else {
-                            html += `<td class="text-center px-2 py-1 border border-slate-200 text-slate-300" style="${bg}">-</td>`;
+                            html += `<td class="text-center px-2 py-1 border border-slate-200 text-slate-300">-</td>`;
                         }
                     });
                     colTotals['_T'] = (colTotals['_T'] || 0) + rowTotal;
