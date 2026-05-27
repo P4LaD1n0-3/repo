@@ -10261,8 +10261,8 @@
             </div>
             <div id="an-kpis" class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5"></div>
             <div id="an-individual-insights" class="hidden-st mb-5"></div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-                <div class="report-card mb-0 col-span-1 lg:col-span-2" style="height:420px;">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+                <div class="report-card mb-0 col-span-1 lg:col-span-3" style="height:420px;">
                     <div class="report-card-title mb-1" style="color:#312e81;"><i class="fas fa-chart-area mr-2 text-indigo-600"></i> MONTHLY TREND — OPENED vs RESOLVED (Self-Comparison)</div>
                     <div style="font-size:10px;color:#94a3b8;line-height:1.6;margin-bottom:8px;">
                         <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:3px;background:#1e3a8a;border-radius:2px;"></span> Área = Recebidos</span>
@@ -10270,25 +10270,25 @@
                     </div>
                     <div style="height:calc(100% - 60px);"><canvas id="an-c-trend"></canvas></div>
                 </div>
-                <div class="report-card mb-0" style="height:350px;">
-                    <div class="report-card-title"><i class="fas fa-chart-bar mr-2"></i> Top 10 Analistas por Volume Resolvido</div>
+                <div class="report-card mb-0 col-span-1 lg:col-span-2" style="height:350px;">
+                    <div class="report-card-title"><i class="fas fa-chart-bar mr-2"></i> Top 10 Analistas (Vigentes vs Resolvidos SLA)</div>
                     <div style="height:calc(100% - 30px);"><canvas id="an-c-bar"></canvas></div>
                 </div>
-                <div class="report-card mb-0" style="height:350px;">
+                <div class="report-card mb-0 col-span-1" style="height:350px;">
                     <div class="report-card-title"><i class="fas fa-chart-pie mr-2"></i> Distribuição por Status</div>
                     <div style="height:calc(100% - 30px);"><canvas id="an-c-status"></canvas></div>
                 </div>
-                <div class="report-card mb-0 col-span-1 lg:col-span-2" style="height:380px;">
+                <div class="report-card mb-0 col-span-1 lg:col-span-3" style="height:380px;">
                     <div class="report-card-title" style="color:#312e81;"><i class="fas fa-exchange-alt mr-2 text-indigo-600"></i> MONTHLY NETFLOW — Balance (Opened − Resolved)</div>
                     <div style="height:calc(100% - 30px);"><canvas id="an-c-netflow"></canvas></div>
                 </div>
-                <div class="report-card mb-0" style="height:380px;">
+                <div class="report-card mb-0 col-span-1" style="height:380px;">
                     <div class="report-card-title"><i class="fas fa-hourglass-half mr-2"></i> AGING CHART — Distribuição de Envelhecimento</div>
                     <div style="height:calc(100% - 30px);"><canvas id="an-c-aging"></canvas></div>
                 </div>
-                <div class="report-card mb-0" style="height:380px;">
-                    <div class="report-card-title"><i class="fas fa-chart-line mr-2"></i> Daily Movement (Last 30 Days)</div>
-                    <div style="height:calc(100% - 30px);"><canvas id="an-c-daily"></canvas></div>
+                <div class="report-card mb-0 col-span-1 lg:col-span-2" style="height:380px;">
+                    <div class="report-card-title text-indigo-700"><i class="fas fa-chart-line mr-2"></i> SLA Compliance Trend (Last 30 Days)</div>
+                    <div style="height:calc(100% - 30px);"><canvas id="an-c-sla-trend"></canvas></div>
                 </div>
             </div>
             <div class="report-card mb-5">
@@ -10526,15 +10526,22 @@
                 window._anCharts.push(c);
             }
 
-            // ── 2. Bar: Top 10 por resolução ──
+            // ── 2. Bar: Top 10 por volume (Vigentes vs Resolvidos SLA) ──
             let aC = {};
-            parsed.filter(t => t.isRes).forEach(t => { 
-                if(!aC[t.asg]) aC[t.asg] = { total: 0, onTime: 0, breached: 0 };
+            let tksByAnalyst = {};
+            parsed.forEach(t => { 
+                if(!aC[t.asg]) { aC[t.asg] = { total: 0, open: 0, res: 0, onTime: 0, breached: 0 }; tksByAnalyst[t.asg] = []; }
                 aC[t.asg].total++;
-                if (t.isBreached) aC[t.asg].breached++;
-                else aC[t.asg].onTime++;
+                tksByAnalyst[t.asg].push(t);
+                if (t.isRes) {
+                    aC[t.asg].res++;
+                    if (t.isBreached) aC[t.asg].breached++;
+                    else aC[t.asg].onTime++;
+                } else if (!t.isCan) {
+                    aC[t.asg].open++;
+                }
             });
-            let sA = Object.entries(aC).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
+            let sA = Object.entries(aC).sort((a, b) => (b[1].res + b[1].open) - (a[1].res + a[1].open)).slice(0, 10);
             let sANames = sA.map(x => x[0]);
             let cBar = document.getElementById('an-c-bar');
             if (cBar && sA.length) {
@@ -10544,16 +10551,40 @@
                         labels: sA.map(x => { let p = x[0].split(' '); return p.length > 1 ? p[0] + ' ' + p[1][0] + '.' : p[0]; }), 
                         datasets: [
                             { 
-                                label: 'On Time',
+                                label: 'Vigentes (Open)',
+                                data: sA.map(x => x[1].open), 
+                                backgroundColor: '#3b82f6', 
+                                datalabels: { 
+                                    color: '#ffffff', font: { weight: 'bold', size: 10 }, 
+                                    formatter: (v, ctx) => {
+                                        let tot = sA[ctx.dataIndex][1].res + sA[ctx.dataIndex][1].open;
+                                        return v > 0 ? `${v} (${((v/tot)*100).toFixed(0)}%)` : '';
+                                    } 
+                                } 
+                            },
+                            { 
+                                label: 'Encerrado (No Prazo)',
                                 data: sA.map(x => x[1].onTime), 
                                 backgroundColor: '#10b981', 
-                                datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' } 
+                                datalabels: { 
+                                    color: '#ffffff', font: { weight: 'bold', size: 10 }, 
+                                    formatter: (v, ctx) => {
+                                        let res = sA[ctx.dataIndex][1].res;
+                                        return v > 0 ? `${v} (${((v/res)*100).toFixed(0)}%)` : '';
+                                    } 
+                                } 
                             },
                             {
-                                label: 'Breached',
+                                label: 'Encerrado (Fora do Prazo)',
                                 data: sA.map(x => x[1].breached),
                                 backgroundColor: '#ef4444',
-                                datalabels: { color: '#ffffff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
+                                datalabels: { 
+                                    color: '#ffffff', font: { weight: 'bold', size: 10 }, 
+                                    formatter: (v, ctx) => {
+                                        let res = sA[ctx.dataIndex][1].res;
+                                        return v > 0 ? `${v} (${((v/res)*100).toFixed(0)}%)` : '';
+                                    } 
+                                }
                             }
                         ] 
                     }, 
@@ -10565,11 +10596,30 @@
                             xAxes: [{ stacked: true, gridLines: { color: _dmG() }, ticks: { beginAtZero: true, fontSize: 10 } }], 
                             yAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontSize: 10 } }] 
                         },
+                        tooltips: {
+                            callbacks: {
+                                label: function(item, data) {
+                                    let dsLabel = data.datasets[item.datasetIndex].label || '';
+                                    let val = item.xLabel;
+                                    let analyst = sA[item.index];
+                                    let tot = analyst[1].res + analyst[1].open;
+                                    let res = analyst[1].res;
+                                    if (dsLabel.includes('Vigentes')) {
+                                        return `${dsLabel}: ${val} (${((val/tot)*100).toFixed(0)}% da carga total)`;
+                                    } else if (dsLabel.includes('No Prazo')) {
+                                        return `${dsLabel}: ${val} (${((res/tot)*100).toFixed(0)}% Encerrados, ${((val/res)*100).toFixed(0)}% no SLA)`;
+                                    } else {
+                                        return `${dsLabel}: ${val} (${((val/res)*100).toFixed(0)}% do SLA Perdido)`;
+                                    }
+                                }
+                            }
+                        },
                         onClick: function (evt) {
                             let el = this.getElementAtEvent(evt)[0];
                             if (!el) return;
                             let name = sANames[el._index];
-                            _anDrill(`Resolved por ${name}`, window._anDrillIdx.byAnalyst[name] || []);
+                            let tks = tksByAnalyst[name] || [];
+                            _anDrill(`Tickets por ${name}`, tks);
                         }
                     }
                 });
@@ -10651,32 +10701,59 @@
                 window._anCharts.push(c);
             }
 
-            // ── 6. Daily (últimos 30 dias) ──
+            // ── 6. SLA Trend (últimos 30 dias) ──
             let tD = {};
             parsed.forEach(t => {
-                if (t.opD && !isNaN(t.opD) && t.opD.getTime() > 0) { let d = t.opD.toISOString().split('T')[0]; if (!tD[d]) tD[d] = { a: 0, r: 0, aTks: [], rTks: [] }; tD[d].a++; tD[d].aTks.push(t); }
-                if (t.isRes && t.clD && !isNaN(t.clD) && t.clD.getTime() > 0) { let d = t.clD.toISOString().split('T')[0]; if (!tD[d]) tD[d] = { a: 0, r: 0, aTks: [], rTks: [] }; tD[d].r++; tD[d].rTks.push(t); }
+                if (t.isRes && t.clD && !isNaN(t.clD) && t.clD.getTime() > 0) { 
+                    let d = t.clD.toISOString().split('T')[0]; 
+                    if (!tD[d]) tD[d] = { res: 0, onTime: 0, breached: 0, tks: [] }; 
+                    tD[d].res++; 
+                    if (t.isBreached) tD[d].breached++; else tD[d].onTime++;
+                    tD[d].tks.push(t); 
+                }
             });
             let sD = Object.keys(tD).sort().slice(-30);
-            let cDy = document.getElementById('an-c-daily');
+            let cDy = document.getElementById('an-c-sla-trend');
             if (cDy && sD.length) {
                 let c = new Chart(cDy, {
-                    type: 'line', data: {
+                    type: 'bar', data: {
                         labels: sD.map(d => { let p = d.split('-'); return p[2] + '/' + p[1]; }), datasets: [
-                            { label: 'Open', data: sD.map(d => tD[d].a), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3 },
-                            { label: 'Resolved', data: sD.map(d => tD[d].r), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3 }
+                            { 
+                                type: 'line', 
+                                label: 'SLA Compliance (%)', 
+                                data: sD.map(d => tD[d].res > 0 ? Math.round((tD[d].onTime / tD[d].res) * 100) : null), 
+                                borderColor: '#4f46e5', backgroundColor: 'transparent', 
+                                borderWidth: 3, pointBackgroundColor: '#4f46e5', pointRadius: 4, 
+                                yAxisID: 'y-axis-pct', z: 10 
+                            },
+                            { label: 'On Time', data: sD.map(d => tD[d].onTime), backgroundColor: '#22c55e', stack: 'Stack 0', yAxisID: 'y-axis-vol' },
+                            { label: 'Breached', data: sD.map(d => tD[d].breached), backgroundColor: '#ef4444', stack: 'Stack 0', yAxisID: 'y-axis-vol' }
                         ]
                     }, options: {
-                        responsive: true, maintainAspectRatio: false, legend: { position: 'top' }, scales: { xAxes: [{ gridLines: { display: false }, ticks: { fontSize: 9 } }], yAxes: [{ gridLines: { color: _dmG() }, ticks: { beginAtZero: true, fontSize: 10 } }] },
+                        responsive: true, maintainAspectRatio: false, legend: { position: 'top' }, 
+                        scales: { 
+                            xAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontSize: 9 } }], 
+                            yAxes: [
+                                { id: 'y-axis-vol', position: 'left', stacked: true, gridLines: { color: _dmG() }, ticks: { beginAtZero: true, fontSize: 10 } },
+                                { id: 'y-axis-pct', position: 'right', gridLines: { display: false }, ticks: { beginAtZero: true, max: 100, fontSize: 10, callback: function(value) { return value + '%'; } } }
+                            ] 
+                        },
+                        tooltips: {
+                            callbacks: {
+                                label: function(tooltipItem, data) {
+                                    let label = data.datasets[tooltipItem.datasetIndex].label || '';
+                                    if (label === 'SLA Compliance (%)') return label + ': ' + tooltipItem.yLabel + '%';
+                                    return label + ': ' + tooltipItem.yLabel;
+                                }
+                            }
+                        },
                         onClick: function (evt) {
                             let el = this.getElementAtEvent(evt)[0];
                             if (!el) return;
                             let dKey = sD[el._index];
-                            let dsIdx = el._datasetIndex;
-                            let tks = dsIdx === 0 ? (tD[dKey]?.aTks || []) : (tD[dKey]?.rTks || []);
-                            let label = dsIdx === 0 ? 'Open' : 'Resolved';
+                            let tks = tD[dKey]?.tks || [];
                             let fmtD = dKey.split('-').reverse().join('/');
-                            _anDrill(`${label} — ${fmtD}`, tks);
+                            _anDrill(`Resolved — ${fmtD}`, tks);
                         }
                     }
                 });
