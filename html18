@@ -6111,7 +6111,7 @@
                         <div class="w-full h-auto max-h-[80px] overflow-y-auto overflow-x-hidden stylized-scrollbar border border-slate-100 bg-slate-50 p-1.5 rounded">
                             <div class="text-xs font-semibold text-slate-800 break-words mb-1">${t.desc}</div>
                             ${(t.longDesc && t.longDesc !== '-') ? `<div class="text-[10px] text-slate-500 italic break-words">${t.longDesc}</div>` : ''}
-                            ${(t.info || t.reason) ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 break-words whitespace-normal">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
+                            ${(t.info || t.reason) ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 block max-w-[165px] truncate" title="${t.info} ${t.reason ? `(${t.reason})` : ''}">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
                         </div>
                     </td>
                     <td data-label="Requester" class="text-center">${t.req}</td>
@@ -6205,7 +6205,7 @@
 
         function buildDataAttrs(t) {
             let hasInc = (t.related_incidents_raw && t.related_incidents_raw !== '—' && t.related_incidents_raw !== '') ? 'true' : 'false';
-            return `data-tk="${stripHtmlAndEscape(t.tk)}" data-desc="${stripHtmlAndEscape(t.desc)}" data-req="${stripHtmlAndEscape(t.req)}" data-as="${stripHtmlAndEscape(t.as)}" data-gp="${stripHtmlAndEscape(t.gp)}" data-st="${stripHtmlAndEscape(t.st)}" data-rca="${stripHtmlAndEscape(t.stRca)}" data-has-inc="${hasInc}" data-age="${t.age !== undefined ? t.age : (t.d || 0)}" data-op="${stripHtmlAndEscape(t.opStr || t.opS || '-')}" data-info="${stripHtmlAndEscape(t.info)}" data-reason="${stripHtmlAndEscape(t.reason)}" data-idle="${t.idle !== undefined ? t.idle : '-'}" data-pct="${stripHtmlAndEscape(t.pctSla !== undefined ? t.pctSla : '')}"`;
+            return `data-tk="${stripHtmlAndEscape(t.tk)}" data-type="${stripHtmlAndEscape(t.type || '')}" data-desc="${stripHtmlAndEscape(t.desc)}" data-req="${stripHtmlAndEscape(t.req)}" data-as="${stripHtmlAndEscape(t.as)}" data-gp="${stripHtmlAndEscape(t.gp)}" data-st="${stripHtmlAndEscape(t.st)}" data-rca="${stripHtmlAndEscape(t.stRca)}" data-has-inc="${hasInc}" data-age="${t.age !== undefined ? t.age : (t.d || 0)}" data-op="${stripHtmlAndEscape(t.opStr || t.opS || '-')}" data-info="${stripHtmlAndEscape(t.info)}" data-reason="${stripHtmlAndEscape(t.reason)}" data-idle="${t.idle !== undefined ? t.idle : '-'}" data-pct="${stripHtmlAndEscape(t.pctSla !== undefined ? t.pctSla : '')}"`;
         }
 
         function buildTicketObject(r, refDateObj, asg, opOrig, clOrig, stOrig, st, age, typeStr, slaDays) {
@@ -6640,7 +6640,7 @@
                         <div class="w-full h-auto max-h-[80px] overflow-y-auto overflow-x-hidden stylized-scrollbar border border-slate-100 bg-slate-50 p-1.5 rounded">
                             <div class="text-xs font-semibold text-slate-800 break-words mb-1">${t.desc}</div>
                             ${(t.longDesc && t.longDesc !== '-') ? `<div class="text-[10px] text-slate-500 italic break-words">${t.longDesc}</div>` : ''}
-                            ${t.info || t.reason ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 break-words whitespace-normal">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
+                            ${t.info || t.reason ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 block max-w-[165px] truncate" title="${t.info} ${t.reason ? `(${t.reason})` : ''}">⚠️ ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
                         </div>
                     </td>
                     ${!isPrbDrill ? `<td data-label="Requester" class="text-center">${t.req || 'N/A'}</td>` : ''}
@@ -6877,28 +6877,28 @@
                 <div class="flex flex-wrap items-center gap-2 justify-center py-1">
                     <div class="bg-blue-50 border border-blue-100 px-2.5 py-1 rounded shadow-inner flex items-center cursor-pointer hover:bg-blue-100 transition" onclick="filterOpenTickets('INC')">
                         <span class="text-[9px] font-black text-blue-400 uppercase tracking-tighter mr-2">INC</span>
-                        <span class="text-xs font-black text-blue-800">${countTags.INC}</span>
+                        <span id="flt-inc-cnt" class="text-xs font-black text-blue-800">${countTags.INC}</span>
                     </div>
                     <div class="bg-purple-50 border border-purple-100 px-2.5 py-1 rounded shadow-inner flex items-center cursor-pointer hover:bg-purple-100 transition" onclick="filterOpenTickets('REQ')">
                         <span class="text-[9px] font-black text-purple-400 uppercase tracking-tighter mr-2">REQ</span>
-                        <span class="text-xs font-black text-purple-800">${countTags.REQ}</span>
+                        <span id="flt-req-cnt" class="text-xs font-black text-purple-800">${countTags.REQ}</span>
                     </div>
                     <div class="bg-amber-50 border border-amber-100 px-2.5 py-1 rounded shadow-inner flex items-center cursor-pointer hover:bg-amber-100 transition" onclick="filterOpenTickets('UAM')">
                         <span class="text-[9px] font-black text-amber-500 uppercase tracking-tighter mr-2">UAM</span>
-                        <span class="text-xs font-black text-amber-800">${countTags.UAM}</span>
+                        <span id="flt-uam-cnt" class="text-xs font-black text-amber-800">${countTags.UAM}</span>
                     </div>
                     <div class="bg-red-50 border border-red-100 px-2.5 py-1 rounded shadow-inner flex items-center cursor-pointer hover:bg-red-100 transition" onclick="filterOpenTickets('Unassigned')">
                         <span class="text-[9px] font-black text-red-500 uppercase tracking-tighter mr-2">Unassigned</span>
-                        <span class="text-xs font-black text-red-800">${unassignedTotal}</span>
+                        <span id="flt-unassigned-cnt" class="text-xs font-black text-red-800">${unassignedTotal}</span>
                     </div>
                     <div class="bg-[var(--primary-dark)] border border-blue-900 px-3 py-1 rounded shadow-lg flex items-center cursor-pointer hover:brightness-110 transition" onclick="filterOpenTickets('')">
                         <span class="text-[9px] font-black text-blue-300 uppercase tracking-wider mr-2">TOTAL</span>
-                        <span class="text-xs font-black text-white">${openTks.length}</span>
+                        <span id="flt-total-cnt" class="text-xs font-black text-white">${openTks.length}</span>
                     </div>
                 </div>
 
                 <div class="flex items-center gap-3 w-full lg:w-auto justify-end">
-                    <div class="text-[10px] font-bold text-slate-500 hidden xl:block uppercase tracking-tight"><i class="fas fa-layer-group mr-1 text-blue-600"></i> ${Object.keys(groups).length} Groups</div>
+                    <div id="flt-groups-cnt" class="text-[10px] font-bold text-slate-500 hidden xl:block uppercase tracking-tight"><i class="fas fa-layer-group mr-1 text-blue-600"></i> ${Object.keys(groups).length} Groups</div>
                     <button id="btn-toggle-accordions" onclick="toggleAllAccordions()" class="bg-[var(--primary-dark)] text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-md hover:bg-blue-900 transition flex items-center justify-center gap-2"><i class="fas fa-compress-alt"></i> Collapse All</button>
                 </div>
             </div>
@@ -6952,7 +6952,7 @@
                     <summary class="bg-slate-50 border-b border-slate-200 text-slate-800 font-bold text-sm p-4 hover:bg-blue-50 transition">
                         <div class="flex justify-between w-full pr-4 items-center">
                             <span class="flex items-center"><i class="fas fa-users mr-2 text-[var(--primary-dark)] opacity-70"></i> ${gp}</span>
-                            <span class="bg-[var(--primary-dark)] text-white px-2.5 py-0.5 rounded-full text-xs shadow-sm">${tks.length} ticket${tks.length !== 1 ? 's' : ''}</span>
+                            <span class="acc-tk-count bg-[var(--primary-dark)] text-white px-2.5 py-0.5 rounded-full text-xs shadow-sm">${tks.length} ticket${tks.length !== 1 ? 's' : ''}</span>
                         </div>
                     </summary>
                     <div class="acc-content p-0">
@@ -6987,27 +6987,52 @@
                 input.value = term;
             }
             const cleanTerm = term.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+            
+            let totalINC = 0, totalREQ = 0, totalUAM = 0, totalUnassigned = 0, totalTk = 0;
+            let visibleGroups = 0;
+
             document.querySelectorAll('#tab-open details.saas-accordion').forEach(acc => {
                 let hasVisibleRow = false;
                 const rows = acc.querySelectorAll('tbody tr');
+                let groupVisibleCount = 0;
 
                 rows.forEach(tr => {
                     const text = tr.innerText.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
                     if (text.includes(cleanTerm)) {
                         tr.style.display = '';
                         hasVisibleRow = true;
+                        groupVisibleCount++;
+                        
+                        const tType = tr.getAttribute('data-type');
+                        const tAs = tr.getAttribute('data-as');
+                        if (tType === 'INC') totalINC++;
+                        if (tType === 'REQ') totalREQ++;
+                        if (tType === 'UAM') totalUAM++;
+                        if (tAs === 'Unassigned' || tAs === '') totalUnassigned++;
+                        totalTk++;
                     } else {
                         tr.style.display = 'none';
                     }
                 });
 
+                const countBadge = acc.querySelector('.acc-tk-count');
+                if (countBadge) countBadge.innerText = groupVisibleCount + (groupVisibleCount === 1 ? ' ticket' : ' tickets');
+
                 if (hasVisibleRow) {
                     acc.style.display = '';
                     if (cleanTerm.length > 0) acc.setAttribute('open', '');
+                    visibleGroups++;
                 } else {
                     acc.style.display = 'none';
                 }
             });
+
+            const elInc = document.getElementById('flt-inc-cnt'); if (elInc) elInc.innerText = totalINC;
+            const elReq = document.getElementById('flt-req-cnt'); if (elReq) elReq.innerText = totalREQ;
+            const elUam = document.getElementById('flt-uam-cnt'); if (elUam) elUam.innerText = totalUAM;
+            const elUn = document.getElementById('flt-unassigned-cnt'); if (elUn) elUn.innerText = totalUnassigned;
+            const elTot = document.getElementById('flt-total-cnt'); if (elTot) elTot.innerText = totalTk;
+            const elGrp = document.getElementById('flt-groups-cnt'); if (elGrp) elGrp.innerHTML = `<i class="fas fa-layer-group mr-1 text-blue-600"></i> ${visibleGroups} Groups`;
         };
 
         window.filterPRBAccordions = function (term) {
@@ -7137,7 +7162,7 @@
                         <td data-label="Subject / Info" style="text-align:left;">
                             <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 1;">${t.desc}</div>
                             ${t.longDesc && t.longDesc !== '-' ? `<div class="text-expandable text-[10px] text-slate-600 mb-1" style="-webkit-line-clamp: 1;">${t.longDesc}</div>` : ''}
-                            ${(t.info || t.reason) ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 break-words whitespace-normal"><i class="fas fa-exclamation-circle mr-1"></i> Note: ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
+                            ${(t.info || t.reason) ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 block max-w-[165px] truncate" title="Note: ${t.info} ${t.reason ? `(${t.reason})` : ''}"><i class="fas fa-exclamation-circle mr-1"></i> Note: ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
                         </td>
                         <td data-label="Analyst">${t.as}</td>
                         <td data-label="Opened" style="text-align: center;">${renderDateHtml(t.opStr)}</td>
@@ -7178,7 +7203,7 @@
                         <td data-label="Subject / Info (Expandable)" style="text-align:left;">
                             <div class="text-expandable text-xs font-semibold text-slate-800 mb-1" style="-webkit-line-clamp: 1;">${t.desc}</div>
                             ${t.longDesc && t.longDesc !== '-' ? `<div class="text-expandable text-[10px] text-slate-600 mb-1" style="-webkit-line-clamp: 1;">${t.longDesc}</div>` : ''}
-                            ${(t.info || t.reason) ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 break-words whitespace-normal"><i class="fas fa-exclamation-circle mr-1"></i> Note: ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
+                            ${(t.info || t.reason) ? `<div class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5 mt-1 block max-w-[165px] truncate" title="Note: ${t.info} ${t.reason ? `(${t.reason})` : ''}"><i class="fas fa-exclamation-circle mr-1"></i> Note: ${t.info} ${t.reason ? `(${t.reason})` : ''}</div>` : ''}
                         </td>
                         <td data-label="Requester">${t.req}</td> <td data-label="Analyst" class="font-medium">${t.as}</td> <td data-label="Group">${t.gp}</td>
                         <td data-label="Status">
@@ -7822,6 +7847,13 @@
                 ${buildProdCard("UAM", u, "#60a5fa", window.ComparisonData.uam)}
             </div>
 
+
+            <!-- NOVO GRAFICO: ACTIVE TICKETS BY ANALYST (AGORA O PRINCIPAL) -->
+            <div class="report-card h-[450px] mb-5">
+                <div class="report-card-title text-blue-800"><i class="fas fa-users mr-2"></i>ACTIVE TICKETS BY ANALYST (CONSOLIDATED)</div>
+                <div class="chart-full-width"><canvas id="c-cons-analysts"></canvas></div>
+            </div>
+
             <!-- ── Gráfico de Tendências Comparativas (logo após os cards) ── -->
             <div class="report-card mb-5" style="height:520px;">
                 <div class="flex flex-wrap items-start justify-between gap-3 mb-3">
@@ -7831,9 +7863,9 @@
                             COMPARATIVE TRENDS — INC × REQ × UAM
                         </div>
                         <div style="font-size:10px; color:#94a3b8; line-height:1.6;">
-                            <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:3px;background:#1e3a8a;border-radius:2px;"></span> Area = Opened</span>
-                            <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dashed #22c55e;"></span> Dashed = Resolved</span>
-                            <span style="color:#0f172a;font-weight:700;">Dashed above area → backlog falling ↓ &nbsp;|&nbsp; Area above → backlog rising ↑</span>
+                            <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:3px;background:#1e3a8a;border-radius:2px;"></span> Area = Cumulative Opened</span>
+                            <span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;"><span style="display:inline-block;width:16px;height:0;border-top:2px dashed #22c55e;"></span> Dashed = Cumulative Resolved</span>
+                            <span style="color:#0f172a;font-weight:700;">The gap between Area and Dashed is the exact Active Backlog (CFD)</span>
                         </div>
                     </div>
                     <!-- Filtros de período -->
@@ -7843,6 +7875,8 @@
                         <button onclick="filterConsTrend(6,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">6 months</button>
                         <button onclick="filterConsTrend(12,this)" class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-slate-300 bg-white hover:bg-blue-50 hover:border-blue-400 hover:text-blue-700 transition">12 months</button>
                         <button onclick="filterConsTrend(0,this)"  class="cons-trend-btn text-[10px] font-bold px-3 py-1 rounded border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 transition">All</button>
+                        <span class="text-slate-300 mx-1">|</span>
+                        <button onclick="toggleConsTrendAll()" class="text-[10px] font-bold px-3 py-1 rounded border border-purple-400 bg-purple-50 text-purple-700 hover:bg-purple-100 transition"><i class="fas fa-eye-slash mr-1"></i> Toggle Series</button>
                         <span class="text-slate-300 mx-1">|</span>
                         <input type="month" id="cons-trend-from" class="text-[10px] border border-slate-200 rounded px-2 py-1 focus:outline-none focus:border-blue-400" placeholder="From" onchange="filterConsTrendRange()">
                         <span class="text-[10px] text-slate-400">to</span>
@@ -9894,63 +9928,86 @@
                 };
 
                 const _buildTrendDatasets = (keys) => {
-                    const cg = (src, field) => keys.map(k => src.trendM[k]?.[field] || 0);
+                    const buildCumul = (src) => {
+                        let cumulA = [];
+                        let cumulR = [];
+                        let runningA = 0;
+                        let runningR = 0;
+                        keys.forEach((k, idx) => {
+                            let tm = src.trendM[k] || { a: 0, r: 0, c: 0, b: 0 };
+                            if (idx === 0) {
+                                let backlogM0 = (tm.b || 0) - (tm.a || 0) + (tm.r || 0) + (tm.c || 0);
+                                runningA = backlogM0 + (tm.a || 0);
+                                runningR = (tm.r || 0) + (tm.c || 0);
+                            } else {
+                                runningA += (tm.a || 0);
+                                runningR += (tm.r || 0) + (tm.c || 0);
+                            }
+                            cumulA.push(runningA);
+                            cumulR.push(runningR);
+                        });
+                        return { cumulA, cumulR };
+                    };
 
-                    const totA = keys.map(k => (i.trendM[k]?.a || 0) + (r.trendM[k]?.a || 0) + (u.trendM[k]?.a || 0));
-                    const totR = keys.map(k => (i.trendM[k]?.r || 0) + (r.trendM[k]?.r || 0) + (u.trendM[k]?.r || 0));
+                    const dataI = buildCumul(i);
+                    const dataR = buildCumul(r);
+                    const dataU = buildCumul(u);
+
+                    const totA = dataI.cumulA.map((v, idx) => v + dataR.cumulA[idx] + dataU.cumulA[idx]);
+                    const totR = dataI.cumulR.map((v, idx) => v + dataR.cumulR[idx] + dataU.cumulR[idx]);
 
                     return [
                         {
-                            label: 'TODOS — Open', data: totA,
+                            label: 'TODOS — Cumulative Open', data: totA,
                             borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.15)',
                             fill: true, borderWidth: 3, pointRadius: 5, pointHoverRadius: 8,
                             pointBackgroundColor: 'rgba(30,58,138,1)',
                             datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'TODOS — Closed', data: totR,
+                            label: 'TODOS — Cumulative Closed', data: totR,
                             borderColor: 'rgba(22,163,74,0.95)', backgroundColor: 'rgba(22,163,74,0.06)',
                             fill: false, borderWidth: 3, pointRadius: 5, pointHoverRadius: 8, borderDash: [8, 4],
                             pointBackgroundColor: 'rgba(22,163,74,1)',
                             datalabels: { align: 'bottom', color: '#15803d', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'INC — Open', data: cg(i, 'a'),
+                            label: 'INC — Cumulative Open', data: dataI.cumulA,
                             borderColor: 'rgba(30,58,138,1)', backgroundColor: 'rgba(30,58,138,0.13)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(30,58,138,1)',
                             datalabels: { align: 'top', color: '#1e3a8a', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'INC — Resolved', data: cg(i, 'r'),
+                            label: 'INC — Cumulative Resolved', data: dataI.cumulR,
                             borderColor: 'rgba(34,197,94,0.9)', backgroundColor: 'rgba(34,197,94,0.04)',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(34,197,94,1)',
                             datalabels: { align: 'bottom', color: '#16a34a', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'REQ — Open', data: cg(r, 'a'),
+                            label: 'REQ — Cumulative Open', data: dataR.cumulA,
                             borderColor: 'rgba(37,99,235,1)', backgroundColor: 'rgba(37,99,235,0.11)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(37,99,235,1)',
                             datalabels: { align: 'top', color: '#1d4ed8', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'REQ — Resolved', data: cg(r, 'r'),
+                            label: 'REQ — Cumulative Resolved', data: dataR.cumulR,
                             borderColor: 'rgba(16,185,129,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(16,185,129,1)',
                             datalabels: { align: 'bottom', color: '#059669', font: { size: 9 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'UAM — Open', data: cg(u, 'a'),
+                            label: 'UAM — Cumulative Open', data: dataU.cumulA,
                             borderColor: 'rgba(124,58,237,1)', backgroundColor: 'rgba(124,58,237,0.10)',
                             fill: true, borderWidth: 2.5, pointRadius: 4, pointHoverRadius: 6,
                             pointBackgroundColor: 'rgba(124,58,237,1)',
                             datalabels: { align: 'top', color: '#7c3aed', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : '' }
                         },
                         {
-                            label: 'UAM — Resolved', data: cg(u, 'r'),
+                            label: 'UAM — Cumulative Resolved', data: dataU.cumulR,
                             borderColor: 'rgba(192,132,252,0.9)', backgroundColor: 'transparent',
                             fill: false, borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, borderDash: [7, 4],
                             pointBackgroundColor: 'rgba(192,132,252,1)',
@@ -9998,14 +10055,14 @@
                             const lbl = _fmtTrendLbl(mKey);
                             let tks = [], dTitle = '';
                             const srcMap = [
-                                [null, 'a', `TODOS Open — ${lbl}`],
-                                [null, 'r', `TODOS Closed — ${lbl}`],
-                                [i, 'a', `INC Open — ${lbl}`],
-                                [i, 'r', `INC Resolved — ${lbl}`],
-                                [r, 'a', `REQ Open — ${lbl}`],
-                                [r, 'r', `REQ Resolved — ${lbl}`],
-                                [u, 'a', `UAM Open — ${lbl}`],
-                                [u, 'r', `UAM Resolved — ${lbl}`]
+                                [null, 'a', `TODOS Opened in ${lbl}`],
+                                [null, 'r', `TODOS Closed in ${lbl}`],
+                                [i, 'a', `INC Opened in ${lbl}`],
+                                [i, 'r', `INC Resolved in ${lbl}`],
+                                [r, 'a', `REQ Opened in ${lbl}`],
+                                [r, 'r', `REQ Resolved in ${lbl}`],
+                                [u, 'a', `UAM Opened in ${lbl}`],
+                                [u, 'r', `UAM Resolved in ${lbl}`]
                             ];
                             const entry = srcMap[dsIdx];
                             if (!entry) return;
@@ -10081,8 +10138,79 @@
                     window.filterConsTrend(0, allBtn);
                 };
 
+                window.toggleConsTrendAll = function () {
+                    const chart = window._consTrendChart;
+                    if (!chart) return;
+                    let anyVisible = false;
+                    for (let j = 0; j < chart.data.datasets.length; j++) {
+                        let meta = chart.getDatasetMeta(j);
+                        if (meta.hidden === false || meta.hidden === null) {
+                            anyVisible = true; break;
+                        }
+                    }
+                    chart.data.datasets.forEach((ds, j) => {
+                        chart.getDatasetMeta(j).hidden = anyVisible;
+                    });
+                    chart.update();
+                };
+
             }
             // ────────────────────────────────────────────────────────────────────
+
+            // ── Gráfico 4: Chamados Vigentes por Analista (Consolidado) ──────────────
+            const allTksCons = [
+                ...(i.allBacklogTks || []).map(t => ({...t, _type: 'INC'})), 
+                ...(r.allBacklogTks || []).map(t => ({...t, _type: 'REQ'})), 
+                ...(u.allBacklogTks || []).map(t => ({...t, _type: 'UAM'}))
+            ];
+            const analystMap = {};
+            allTksCons.forEach(t => {
+                let as = t.as || 'Unassigned';
+                if (!analystMap[as]) analystMap[as] = { INC: 0, REQ: 0, UAM: 0, total: 0 };
+                analystMap[as][t._type]++;
+                analystMap[as].total++;
+            });
+            const analystLabels = Object.keys(analystMap).sort((a, b) => analystMap[b].total - analystMap[a].total);
+            const incData = analystLabels.map(as => analystMap[as].INC);
+            const reqData = analystLabels.map(as => analystMap[as].REQ);
+            const uamData = analystLabels.map(as => analystMap[as].UAM);
+
+            const cnvAnalysts = document.getElementById('c-cons-analysts');
+            if (cnvAnalysts && analystLabels.length > 0) {
+                let instance = new Chart(cnvAnalysts, {
+                    type: 'horizontalBar',
+                    data: {
+                        labels: analystLabels,
+                        datasets: [
+                            { label: 'INC', data: incData, backgroundColor: '#ef4444', stack: 'st' },
+                            { label: 'REQ', data: reqData, backgroundColor: '#3b82f6', stack: 'st' },
+                            { label: 'UAM', data: uamData, backgroundColor: '#8b5cf6', stack: 'st' }
+                        ]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        legend: { position: 'bottom', labels: { padding: 18, usePointStyle: true, fontSize: 11 } },
+                        scales: {
+                            xAxes: [{ stacked: true, gridLines: { display: true, color: _dmG() }, ticks: { beginAtZero: true, fontColor: _dmF() } }],
+                            yAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontColor: _dmF(), fontSize: 11 } }]
+                        },
+                        tooltips: { mode: 'index', intersect: false },
+                        onClick: function (evt, activeElements) {
+                            const activePoint = this.getElementAtEvent(evt)[0];
+                            if (activePoint) {
+                                let idx = activePoint._index;
+                                let asg = analystLabels[idx];
+                                let dsIdx = activePoint._datasetIndex;
+                                let typeFilter = dsIdx === 0 ? 'INC' : (dsIdx === 1 ? 'REQ' : (dsIdx === 2 ? 'UAM' : null));
+                                let filtered = allTksCons.filter(t => t.as === asg && (!typeFilter || t._type === typeFilter));
+                                window.DrilldownVault['cons']['temp'] = filtered;
+                                openDrilldown(`Tickets Open: ${asg} ${typeFilter ? '('+typeFilter+')' : ''}`, 'temp', 'cons');
+                            }
+                        }
+                    }
+                });
+                window.chartInstances.push(instance);
+            }
         }
 
         // ==========================================
