@@ -3011,7 +3011,7 @@
             <div style="margin-top: auto; padding-bottom: 10px;">
                 <button class="btn-process" onclick="openPrefilterModal()"><i class="fas fa-filter mr-2"></i> Generate
                     Report</button>
-                <div class="text-[9px] text-slate-400 mt-2 text-center font-bold tracking-widest">VERSÃO 110.1</div>
+                <div id="app-version-display" class="text-[9px] text-slate-400 mt-2 text-center font-bold tracking-widest">VERSÃO 110.1</div>
             </div>
         </div>
     </aside>
@@ -11832,6 +11832,18 @@
 
         // --- INICIALIZAÇÃO GERAL (Persistência) ---
         document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                let fname = window.location.pathname.split('/').pop();
+                if (fname) {
+                    fname = decodeURIComponent(fname).replace(/\.html$/i, '');
+                    const vDisp = document.getElementById('app-version-display');
+                    if (vDisp) {
+                        let text = fname.toUpperCase();
+                        if (!text.startsWith('VERS')) text = 'VERSÃO ' + text;
+                        vDisp.innerText = text;
+                    }
+                }
+            } catch (e) {}
             // console.log("[INIT] Inicializando Painel com Persistência...");
 
             // 1. Carrega Configurações (SLA, Email) do localStorage
