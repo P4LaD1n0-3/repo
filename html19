@@ -6448,6 +6448,7 @@
                 unassigned: unassigned,
                 allBacklogTks: allBacklogTks.sort((a, b) => (b.age || 0) - (a.age || 0)),
                 allResolvedTks: allResolvedTks.sort((a, b) => (b.age || 0) - (a.age || 0)),
+                allTks: data,
                 allCanceledTks: allCanceledTks.sort((a, b) => (b.age || 0) - (a.age || 0))
             };
         }
@@ -6675,7 +6676,7 @@
                         class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700 shadow-sm"
                         onkeyup="filterModalTable(this.value)">
                 </div>
-                <button onclick="exportDrilldownPdf()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md transition-all flex items-center justify-center shrink-0">
+                <button onclick="exportDrilldownPdf()" class="text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md transition-all flex items-center justify-center shrink-0 hover:opacity-90" style="background-color: var(--primary);">
                     <i class="fas fa-file-pdf mr-2"></i> Download PDF
                 </button>
             </div>`;
@@ -6773,9 +6774,9 @@
             doc.text(`Total filtered and exported: ${filteredData.length} tickets | Date: ${new Date().toLocaleString('en-US')}`, 148, 22, { align: 'center' });
 
             let head = [];
-            if (!isPrbDrill && isInc) head = [["Ticket", "Subject", "Requester", "Analyst", "Group", "Status", "Opened", "Closed", "PRB", "SLA %", "AGING"]];
-            else if (!isPrbDrill && !isInc) head = [["Ticket", "Subject", "Requester", "Analyst", "Group", "Status", "Opened", "Closed", "SLA %", "AGING"]];
-            else head = [["Ticket", "Subject", "Analyst", "Group", "Status", "Opened", "Closed", "SLA %", "AGING"]];
+            if (!isPrbDrill && isInc) head = [["Ticket", "Subject", "Requester", "Analyst", "Group", "Status", "Opened", "Closed", "PRB", "AGING", "STATUS", "SLA %"]];
+            else if (!isPrbDrill && !isInc) head = [["Ticket", "Subject", "Requester", "Analyst", "Group", "Status", "Opened", "Closed", "AGING", "STATUS", "SLA %"]];
+            else head = [["Ticket", "Subject", "Analyst", "Group", "Status", "Opened", "Closed", "AGING", "STATUS", "SLA %"]];
 
             let body = filteredData.map(t => {
                 let infoClean = t.info ? t.info.replace(/&quot;/g, '"') : "";
@@ -6792,8 +6793,25 @@
                 row.push(t.opStr || "-");
                 row.push(t.clStr === 'Open' ? '—' : (t.clStr || "—"));
                 if (isInc) row.push(t.prb || "N/A");
+                
+                let diffMs = t.diffMs !== undefined ? t.diffMs : (t.age * 86400000) || 0;
+                let dStr = `${Math.floor(Math.abs(diffMs) / 86400000)}d`;
+                let timeStr = "";
+                if (t.slaRemainingMs !== undefined && t.slaRemainingMs > 0) {
+                    let totalMins = Math.floor(t.slaRemainingMs / 60000);
+                    let h = Math.floor(totalMins / 60);
+                    let m = totalMins % 60;
+                    timeStr = `\n${h}h ${m}m`;
+                }
+                let idleStr = "";
+                if (t.idle !== undefined && t.idle !== '-' && !isNaN(Number(t.idle))) {
+                    idleStr = `\n${t.idle}d idle`;
+                }
+                row.push(`${dStr}${timeStr}${idleStr}`);
+                
+                row.push(t.pctSlaNum > 100 ? 'BREACHED' : 'ON TIME');
                 row.push(`${t.pctSla || 0}%`);
-                row.push(`${Math.floor(t.age)}d`);
+                
                 return row;
             });
 
@@ -7499,7 +7517,7 @@
 
                     <div class="report-card text-center border-t-4 border-amber-500 justify-center bg-gradient-to-br from-white to-amber-50/30 p-6" style="margin-bottom:0;">
                         <div class="text-xs font-black text-amber-600 mb-3 uppercase tracking-widest">Maximum Delay</div>
-                        <div class="text-5xl font-black text-slate-800">${d.monthMax} <span class="text-lg text-slate-400">Days</span></div>
+                        <div class="text-5xl font-black text-slate-800">${Number(d.monthMax || 0).toLocaleString('pt-BR', {maximumFractionDigits: 2})} <span class="text-lg text-slate-400">Days</span></div>
                         <div class="text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-tighter">Longest response time in the month</div>
                     </div>
                 </div>
@@ -10007,10 +10025,17 @@
                             if (!entry) return;
 
                             if (entry[1] === 'b') {
-                                alert('Drilldown for historical backlog is not available in trends. To view currently active tickets in detail, please use the "OPEN TICKETS" tab.');
-                                return;
-                            }
-                            if (entry[0] === null) {
+                                const filterBacklog = (arr) => arr.filter(t => t.opStr && t.opStr <= mKey && (t.clStr === 'Open' || t.clStr > mKey));
+                                if (entry[0] === null) {
+                                    tks = [
+                                        ...filterBacklog(i.allTks || []),
+                                        ...filterBacklog(r.allTks || []),
+                                        ...filterBacklog(u.allTks || [])
+                                    ];
+                                } else {
+                                    tks = filterBacklog(entry[0].allTks || []);
+                                }
+                            } else if (entry[0] === null) {
                                 const tksKey = entry[1] === 'a' ? 'tks_a' : 'tks_r';
                                 tks = [
                                     ...(i.trendM[mKey]?.[tksKey] || []),
