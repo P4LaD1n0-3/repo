@@ -626,7 +626,7 @@
             background: white;
             min-width: 140px;
             max-width: 140px;
-            border-right: 1px solid #e2e8f0;
+            border-right: none; /* Removed for light mode */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -652,7 +652,7 @@
             background: white;
             min-width: 250px;
             max-width: 250px;
-            border-right: 1px solid #e2e8f0;
+            border-right: none; /* Removed for light mode */
         }
 
         [data-theme="dark"] .st-table td[data-label="Number"],
@@ -682,7 +682,7 @@
             background: white;
             min-width: 110px;
             max-width: 110px;
-            border-right: 1px solid #e2e8f0;
+            border-right: none; /* Removed for light mode */
         }
 
         .st-table tfoot th[data-label="TOTALS:"] {
@@ -692,7 +692,7 @@
             min-width: 110px;
             max-width: 110px;
             background-color: var(--gray-light);
-            border-right: 1px solid #e2e8f0;
+            border-right: none; /* Removed for light mode */
         }
 
         [data-theme="dark"] .st-table td[data-label="Month"] {
@@ -3527,7 +3527,7 @@
         function _applyChartTheme(dark) {
             if (typeof Chart === 'undefined') return;
             // Chart.js 2.x API
-            Chart.defaults.global.defaultFontColor = dark ? '#94A3B8' : '#64748B';
+            Chart.defaults.global.defaultFontColor = dark ? '#ffffff' : '#64748B';
             Chart.defaults.global.defaultFontSize = 11;
         }
 
@@ -6174,21 +6174,22 @@
             SUC: "#00C853", DAN: "#D50000", ORG: "#FF8C00",
             GRY_D: "#334155", GRY_L: "#F8FAFC", INFO: "#0284C7",
             // ── rgba chart palette ─────────────────────────────────────────────
-            _A: 'rgba(30,58,138,0.82)', _Ab: 'rgba(30,58,138,0.11)',
-            _R: 'rgba(5,150,105,0.82)', _Rb: 'rgba(5,150,105,0.10)',
-            _Cc: 'rgba(220,38,38,0.72)', _Cb: 'rgba(220,38,38,0.08)',
+            _A: '#93c5fd', _Ab: 'rgba(147,197,253,0.3)',
+            _R: '#c4b5fd', _Rb: 'rgba(196,181,253,0.3)',
+            _Cc: '#67e8f9', _Cb: 'rgba(103,232,249,0.3)',
             _B: 'rgba(2,132,199,1)', _Bb: 'rgba(2,132,199,0.08)',
-            _INC: 'rgba(30,58,138,0.82)', _INCb: 'rgba(30,58,138,0.11)',
-            _REQ: 'rgba(37,99,235,0.82)', _REQb: 'rgba(37,99,235,0.10)',
-            _UAM: 'rgba(124,58,237,0.82)', _UAMb: 'rgba(124,58,237,0.09)',
+            _INC: '#93c5fd', _INCb: 'rgba(147,197,253,0.3)',
+            _REQ: '#c4b5fd', _REQb: 'rgba(196,181,253,0.3)',
+            _UAM: '#67e8f9', _UAMb: 'rgba(103,232,249,0.3)',
             _SLA: 'rgba(127,29,29,0.92)', _SLAb: 'rgba(127,29,29,0.08)'
         };
         // ── Dark-mode-aware chart color helpers (read at chart-creation time) ──
-        function _dmG() { return document.documentElement.getAttribute('data-theme') === 'dark' ? '#334155' : '#f1f5f9'; }
-        function _dmF() { return document.documentElement.getAttribute('data-theme') === 'dark' ? '#94A3B8' : '#64748b'; }
-        function _dmF2() { return document.documentElement.getAttribute('data-theme') === 'dark' ? '#94A3B8' : '#334155'; }
-        function _dmZ() { return document.documentElement.getAttribute('data-theme') === 'dark' ? '#475569' : '#e2e8f0'; }
-        function _dlC(def) { return function(ctx) { return document.documentElement.getAttribute('data-theme') === 'dark' ? '#ffffff' : def; }; }
+        function _isDark() { return document.documentElement.getAttribute('data-theme') === 'dark' || localStorage.getItem('itsm-theme') === 'dark'; }
+        function _dmG() { return _isDark() ? '#475569' : '#e2e8f0'; }
+        function _dmF() { return _isDark() ? '#ffffff' : '#64748b'; }
+        function _dmF2() { return _isDark() ? '#ffffff' : '#334155'; }
+        function _dmZ() { return _isDark() ? '#475569' : '#e2e8f0'; }
+        function _dlC(def) { return function(ctx) { return _isDark() ? '#ffffff' : def; }; }
 
         // ── Chart.js global defaults ──────────────────────────────────────────
         if (typeof Chart !== 'undefined') {
@@ -9711,9 +9712,9 @@
                         labels: labels,
                         datasets: [
                             {
-                                type: 'line', label: 'Backlog Acumulado',
+                                type: keys.length === 1 ? 'bar' : 'line', label: 'Backlog Acumulado',
                                 data: keys.map(k => tData[k].b),
-                                borderColor: C._B, backgroundColor: C._Bb,
+                                borderColor: keys.length === 1 ? 'transparent' : C._B, backgroundColor: keys.length === 1 ? C._B : C._Bb,
                                 fill: true, borderWidth: 2.5, tension: 0.35,
                                 pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: C._B,
                                 yAxisID: 'y1',
@@ -9724,21 +9725,21 @@
                                 data: keys.map(k => tData[k].a),
                                 backgroundColor: C._A, borderWidth: 0, barPercentage: 0.72,
                                 yAxisID: 'y1',
-                                datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
+                                datalabels: { color: '#1e293b', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : "" }
                             },
                             {
                                 type: 'bar', label: lblRes,
                                 data: keys.map(k => tData[k].r),
                                 backgroundColor: C._R, borderWidth: 0, barPercentage: 0.72,
                                 yAxisID: 'y1', stack: 'st',
-                                datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
+                                datalabels: { color: '#1e293b', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : "" }
                             },
                             {
                                 type: 'bar', label: 'Cancelados',
                                 data: keys.map(k => tData[k].c),
                                 backgroundColor: C._Cc, borderWidth: 0, barPercentage: 0.72,
                                 yAxisID: 'y1', stack: 'st',
-                                datalabels: { color: '#fff', font: { size: 9 }, formatter: v => v > 0 ? v : "" }
+                                datalabels: { color: '#1e293b', font: { size: 11 }, formatter: v => v > 0 ? v : "" }
                             }
                         ]
                     },
@@ -9785,12 +9786,12 @@
                 },
                 options: {
                     maintainAspectRatio: false,
-                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16, fontSize: 11 } },
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16, fontSize: 11, fontColor: _dmF2() } },
                     scales: {
                         xAxes: [{ stacked: true, gridLines: { color: _dmG(), drawBorder: false }, ticks: { beginAtZero: true, fontSize: 10, fontColor: _dmF() } }],
                         yAxes: [{ stacked: true, gridLines: { display: false }, ticks: { fontSize: 10, fontColor: _dmF2() } }]
                     },
-                    plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" } },
+                    plugins: { datalabels: { color: '#1e293b', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : "" } },
                     tooltips: { mode: 'index', intersect: false },
                     onClick: function (evt, activeElements) {
                         const activePoint = this.getElementAtEvent(evt)[0];
@@ -9836,14 +9837,14 @@
                 type: 'doughnut',
                 data: {
                     labels: ['SLA Cumprido (On Time)', 'SLA Estourado (Fora)'],
-                    datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: [C._R, C._Cc], borderWidth: 3, borderColor: '#fff', hoverBorderWidth: 0 }]
+                    datasets: [{ data: [d.inSlaTot, d.outSlaTot], backgroundColor: ['#86efac', '#fca5a5'], borderWidth: 3, borderColor: '#fff', hoverBorderWidth: 0 }]
                 },
                 options: {
                     cutoutPercentage: 70, maintainAspectRatio: false,
                     legend: { position: 'right', labels: { usePointStyle: true, padding: 16, fontSize: 11, fontColor: _dmF2() } },
                     plugins: {
                         datalabels: {
-                            color: '#fff', font: { weight: 'bold', size: 13 },
+                            color: '#1e293b', font: { weight: 'bold', size: 13 },
                             formatter: (val, ctx) => {
                                 let sum = 0; ctx.chart.data.datasets[0].data.forEach(x => sum += x);
                                 return sum && val > 0 ? ((val / sum) * 100).toFixed(1).replace('.', ',') + '%' : "";
@@ -9905,9 +9906,9 @@
                         labels: labels,
                         datasets: [
                             {
-                                type: 'line', label: 'Backlog Global',
+                                type: keys.length === 1 ? 'bar' : 'line', label: 'Backlog Global',
                                 data: keys.map(k => tData[k].b),
-                                borderColor: C._B, backgroundColor: C._Bb,
+                                borderColor: keys.length === 1 ? 'transparent' : C._B, backgroundColor: keys.length === 1 ? C._B : C._Bb,
                                 fill: true, borderWidth: 2.5, tension: 0.35,
                                 pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: C._B,
                                 yAxisID: 'y1',
@@ -9918,21 +9919,21 @@
                                 data: keys.map(k => tData[k].a),
                                 backgroundColor: C._A, borderWidth: 0, barPercentage: 0.72,
                                 yAxisID: 'y1',
-                                datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
+                                datalabels: { color: '#1e293b', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : "" }
                             },
                             {
                                 type: 'bar', label: 'Resolved/Closed',
                                 data: keys.map(k => tData[k].r),
                                 backgroundColor: C._R, borderWidth: 0, barPercentage: 0.72,
                                 yAxisID: 'y1', stack: 'st',
-                                datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: v => v > 0 ? v : "" }
+                                datalabels: { color: '#1e293b', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : "" }
                             },
                             {
                                 type: 'bar', label: 'Cancelados',
                                 data: keys.map(k => tData[k].c),
                                 backgroundColor: C._Cc, borderWidth: 0, barPercentage: 0.72,
                                 yAxisID: 'y1', stack: 'st',
-                                datalabels: { color: '#fff', font: { size: 9 }, formatter: v => v > 0 ? v : "" }
+                                datalabels: { color: '#1e293b', font: { size: 11 }, formatter: v => v > 0 ? v : "" }
                             }
                         ]
                     },
@@ -11638,17 +11639,17 @@
                                         {
                                             label: 'INC', data: sd.mDataInc,
                                             backgroundColor: C._INC, borderWidth: 0, barPercentage: 0.72, stack: 'st',
-                                            datalabels: { color: '#fff', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? v : '' }
+                                            datalabels: { color: '#1e293b', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
                                         },
                                         {
                                             label: 'REQ', data: sd.mDataReq,
                                             backgroundColor: C._REQ, borderWidth: 0, barPercentage: 0.72, stack: 'st',
-                                            datalabels: { color: '#fff', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? v : '' }
+                                            datalabels: { color: '#1e293b', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
                                         },
                                         {
                                             label: 'UAM', data: sd.mDataUam,
                                             backgroundColor: C._UAM, borderWidth: 0, barPercentage: 0.72, stack: 'st',
-                                            datalabels: { color: '#fff', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? v : '' }
+                                            datalabels: { color: '#1e293b', font: { weight: 'bold', size: 11 }, formatter: v => v > 0 ? v : '' }
                                         }
                                     ]
                                 },
