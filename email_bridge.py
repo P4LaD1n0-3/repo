@@ -206,7 +206,12 @@ def analyze_sla_endpoint():
     task_path = os.path.join(base_dir, "sc_task.xlsx")
     
     # 1. Analyze
-    analysis_results = analyze_critical_slas(inc_path, task_path, config)
+    try:
+        analysis_results = analyze_critical_slas(inc_path, task_path, config)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": f"Erro interno ao processar planilhas: {str(e)}"})
     
     # 2. Send Emails & Log
     dispatched = []
