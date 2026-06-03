@@ -4,6 +4,8 @@ import base64
 import platform
 import subprocess
 import sqlite3
+import math
+import re
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -15,6 +17,19 @@ CORS(app)  # Allow requests from local file:// or browser
 # Detect OS
 IS_WINDOWS = platform.system() == "Windows"
 IS_MAC = platform.system() == "Darwin"
+
+def sanitize_for_json(data):
+    """
+    Remove recursivamente valores float('nan') que quebram o JSON no frontend,
+    substituindo-os por None (que se torna 'null' no JSON).
+    """
+    if isinstance(data, dict):
+        return {k: sanitize_for_json(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [sanitize_for_json(v) for v in data]
+    elif isinstance(data, float) and math.isnan(data):
+        return None
+    return data
 
 def send_outlook_windows(to, cc, subject, html_body, screenshot_base64=None):
     """
@@ -138,6 +153,7 @@ def get_rpa_logs():
                 
             rows = cursor.fetchall()
             data = [dict(row) for row in rows]
+            data = sanitize_for_json(data)
             return jsonify({"status": "success", "data": data})
 
     except Exception as e:
@@ -216,6 +232,9 @@ def analyze_sla_endpoint():
             tickets = res_data['tickets']
             analyst_email = res_data['email']
             
+            # Sanitiza os dados para evitar problemas de NaN no JSON
+            sanitized_tickets = sanitize_for_json(tickets)
+            
             subject = f"ALERTA: Chamados Críticos - SLA Próximo do Limite"
             body = format_email_body(analyst_name, tickets)
             
@@ -239,7 +258,7 @@ def analyze_sla_endpoint():
             # Log
             cursor.execute(
                 "INSERT INTO sla_dispatches (analyst, tickets, email_status) VALUES (?, ?, ?)",
-                (analyst_name, json.dumps(tickets), "Success" if success else f"Error: {msg}")
+                (analyst_name, json.dumps(sanitized_tickets), "Success" if success else f"Error: {msg}")
             )
             dispatched.append({"analyst": analyst_name, "tickets_count": len(tickets), "status": "Sent" if success else "Failed"})
     
@@ -260,8 +279,13 @@ def get_sla_logs():
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM sla_dispatches ORDER BY sent_at DESC LIMIT 50")
             rows = cursor.fetchall()
-            data = [dict(row) for row in rows]
-            return jsonify({"status": "success", "data": data})
+            data = []
+            for row in rows:
+                r_dict = dict(row)
+                if r_dict.get('tickets') and isinstance(r_dict['tickets'], str):
+                    r_dict['tickets'] = re.sub(r':\s*NaN', ': null', r_dict['tickets'])
+                data.append(r_dict)
+            return jsonify({"status": "success", "data": sanitize_for_json(data)})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
