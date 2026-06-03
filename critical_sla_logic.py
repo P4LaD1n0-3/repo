@@ -17,19 +17,13 @@ def analyze_critical_slas(incident_path, sc_task_path, config=None):
     
     # Process Incidents
     if os.path.exists(incident_path):
-        try:
-            df_inc = pd.read_excel(incident_path)
-            process_df(df_inc, config['sla_incs'], "INC", results, now)
-        except Exception as e:
-            print(f"Error processing incidents: {e}")
+        df_inc = pd.read_excel(incident_path)
+        process_df(df_inc, config['sla_incs'], "INC", results, now)
 
     # Process Tasks
     if os.path.exists(sc_task_path):
-        try:
-            df_task = pd.read_excel(sc_task_path)
-            process_df(df_task, config['sla_reqs'], "TASK", results, now)
-        except Exception as e:
-            print(f"Error processing tasks: {e}")
+        df_task = pd.read_excel(sc_task_path)
+        process_df(df_task, config['sla_reqs'], "TASK", results, now)
             
     return results
 
