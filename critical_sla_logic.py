@@ -28,7 +28,12 @@ def analyze_critical_slas(incident_path, sc_task_path, config=None):
     return results
 
 def process_df(df, sla_days, type_label, results, now):
+    print(f"\\n--- INICIANDO PROCESSAMENTO: {type_label} ---")
+    print(f"[{type_label}] Total de linhas originais: {len(df)}")
+    
     if 'Opened' not in df.columns or 'Assigned to' not in df.columns:
+        print(f"[{type_label}] ❌ ERRO: Colunas 'Opened' ou 'Assigned to' não encontradas!")
+        print(f"[{type_label}] Colunas disponíveis: {df.columns.tolist()}")
         return
 
     # Ensure dates are datetime
@@ -39,8 +44,15 @@ def process_df(df, sla_days, type_label, results, now):
     if 'State' in df.columns:
         df = df[~df['State'].isin(closed_states)]
     
+    print(f"[{type_label}] Total de linhas após remover status fechado/cancelado: {len(df)}")
+    
+    skipped_null = 0
+    not_critical = 0
+    critical_found = 0
+    
     for _, row in df.iterrows():
         if pd.isna(row['Opened']) or pd.isna(row['Assigned to']):
+            skipped_null += 1
             continue
             
         analyst = str(row['Assigned to']).strip()
@@ -109,6 +121,7 @@ def process_df(df, sla_days, type_label, results, now):
                 reason = "Will breach over the weekend"
 
         if is_critical:
+            critical_found += 1
             if analyst not in results:
                 results[analyst] = {
                     'email': analyst_email,
@@ -130,6 +143,11 @@ def process_df(df, sla_days, type_label, results, now):
                 'reason': reason,
                 'group': row.get('Assignment group', 'N/A')
             })
+        else:
+            not_critical += 1
+
+    print(f"[{type_label}] RESULTADO: {skipped_null} ignorados (Sem Opened/Assigned), {not_critical} não críticos, {critical_found} críticos encontrados.")
+    print(f"--- FIM PROCESSAMENTO: {type_label} ---\\n")
 
 def format_email_body(analyst, tickets):
     # Fix encoding with meta tag and explicit style
