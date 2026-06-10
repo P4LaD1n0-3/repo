@@ -12018,53 +12018,67 @@
                 const data = await response.json();
 
                 if (data.status === 'success' && data.data.length > 0) {
-                    let html = '';
-                    data.data.forEach(log => {
-                        const tickets = JSON.parse(log.tickets || '[]');
-                        const ticketLinks = tickets.map(t => `<span class="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] mr-1 border border-blue-100 font-bold">${t.number}</span>`).join('');
+                    const rows = data.data.map(log => {
+                        const sla = parseFloat(log.sla_pct) || 0;
+                        const slaColor = sla >= 100 ? 'color:#ef4444;font-weight:800'
+                            : sla >= 90 ? 'color:#f59e0b;font-weight:800'
+                            : 'color:#3b82f6;font-weight:700';
 
-                        const emailStatus = log.email_status || '';
-                        const isSuccess = emailStatus.includes('Success');
-                        const statusColor = isSuccess ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200';
-                        const statusIcon = isSuccess ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-exclamation-circle"></i>';
-                        const statusText = isSuccess ? 'Sucesso' : 'Falha';
-                        const safeStatus = emailStatus.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const isSuccess = (log.email_status || '').includes('Success');
+                        const statusBadge = isSuccess
+                            ? '<span style="background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:800"><i class="fas fa-check mr-1"></i>Enviado</span>'
+                            : '<span style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:800"><i class="fas fa-times mr-1"></i>Falha</span>';
 
-                        html += `
-                            <details class="saas-accordion mb-2">
-                                <summary class="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b-0 hover:bg-slate-50/50 transition">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-sm shrink-0 border border-slate-200">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                        <div>
-                                            <div class="font-bold text-slate-700 text-[11px]">${log.analyst}</div>
-                                            <div class="text-[9px] text-slate-400"><i class="fas fa-clock mr-1"></i>${new Date(log.sent_at).toLocaleString()}</div>
-                                        </div>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-bold border border-slate-200 shadow-sm">${tickets.length} tickets</span>
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border shadow-sm ${statusColor}">${statusIcon} ${statusText}</span>
-                                    </div>
-                                </summary>
-                                <div class="acc-content text-xs text-slate-600">
-                                    <div class="mb-3">
-                                        <div class="font-bold text-[9px] text-slate-400 uppercase mb-1">Tickets Notificados:</div>
-                                        <div class="flex flex-wrap gap-y-1">${ticketLinks}</div>
-                                    </div>
-                                    <div>
-                                        <div class="font-bold text-[9px] text-slate-400 uppercase mb-1">Status Detalhado / Retorno:</div>
-                                        <div class="bg-slate-50 p-2 rounded border border-slate-200 font-mono text-[10px] overflow-x-auto whitespace-pre-wrap max-h-40 overflow-y-auto stylized-scrollbar text-slate-500 shadow-inner">
-                                            ${safeStatus}
-                                        </div>
-                                    </div>
-                                </div>
-                            </details>
-                        `;
-                    });
+                        const rem = parseFloat(log.remaining_hours) || 0;
+                        const remDisplay = rem > 0
+                            ? `${Math.floor(rem)}h ${Math.round((rem % 1) * 60)}m`
+                            : '<span style="color:#ef4444;font-weight:800">ESTOURADO</span>';
 
-                    html += '';
-                    container.innerHTML = html;
+                        const typeIcon = (log.type || '').toUpperCase() === 'INC'
+                            ? '<i class="fas fa-bolt" style="color:#ef4444;margin-right:3px"></i>'
+                            : '<i class="fas fa-tasks" style="color:#3b82f6;margin-right:3px"></i>';
+
+                        const safeSubject = (log.subject || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        const safeAnalyst = (log.analyst || '—').replace(/</g, '&lt;');
+                        const safeGroup   = (log.assignment_group || '').replace(/</g, '&lt;');
+                        const safeReason  = (log.reason || '—').replace(/</g, '&lt;');
+                        const sentAt = log.sent_at ? new Date(log.sent_at).toLocaleString('pt-BR') : '—';
+
+                        return `<tr class="hover:bg-slate-50 border-b border-slate-100">
+                            <td style="font-weight:700;font-size:11px;text-align:center;white-space:nowrap">${typeIcon}${log.ticket_number || 'N/A'}</td>
+                            <td style="font-size:11px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${safeSubject}">${safeSubject}</td>
+                            <td style="font-size:10px;text-align:center;color:#475569">${safeAnalyst}</td>
+                            <td style="font-size:11px;text-align:center;${slaColor}">${sla.toFixed(1)}%</td>
+                            <td style="font-size:10px;text-align:center;color:#64748b">${(parseFloat(log.aging_days) || 0).toFixed(1)}d</td>
+                            <td style="font-size:10px;text-align:center">${remDisplay}</td>
+                            <td style="font-size:10px;color:#64748b;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${safeReason}">${safeReason}</td>
+                            <td style="font-size:10px;text-align:center;color:#94a3b8" title="${safeGroup}">${safeGroup || '—'}</td>
+                            <td style="text-align:center">${statusBadge}</td>
+                            <td style="font-size:9px;text-align:center;color:#94a3b8;white-space:nowrap">${sentAt}</td>
+                        </tr>`;
+                    }).join('');
+
+                    container.innerHTML = `
+                        <div style="font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:8px">
+                            ${data.data.length} tickets registrados
+                        </div>
+                        <div class="st-dataframe-container">
+                            <table class="st-table w-full">
+                                <thead><tr>
+                                    ${createTh('Ticket', '8%', 'center')}
+                                    ${createTh('Assunto', 'auto', 'left')}
+                                    ${createTh('Analista', '13%', 'center')}
+                                    ${createTh('SLA%', '6%', 'center')}
+                                    ${createTh('Aging', '5%', 'center')}
+                                    ${createTh('Restante', '7%', 'center')}
+                                    ${createTh('Motivo', '12%', 'center')}
+                                    ${createTh('Grupo', '10%', 'center')}
+                                    ${createTh('Status', '7%', 'center')}
+                                    ${createTh('Enviado em', '11%', 'center')}
+                                </tr></thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>`;
                 } else {
                     container.innerHTML = '<div class="p-10 text-center text-slate-400">Nenhum log de disparo encontrado.</div>';
                 }
