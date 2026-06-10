@@ -81,29 +81,49 @@ def send_outlook_windows(to, cc, subject, html_body, screenshot_base64=None):
 def send_outlook_mac(to, cc, subject, html_body):
     """
     Envia e-mail de forma silenciosa no Mac via AppleScript.
+    O HTML é gravado em arquivo temporário para evitar quebras de linha
+    que invalideriam a string literal do AppleScript.
     """
+    import tempfile
     try:
         safe_to = str(to) if to else ""
         safe_cc = str(cc) if cc else ""
-        
-        # AppleScript para envio silencioso usando 'html content' para renderizar formatação
-        # Importante: Protegemos aspas duplas no corpo HTML
-        escaped_body = html_body.replace('"', '\\"')
-        
+        safe_subject = str(subject).replace('"', '\\"') if subject else "Relatório Dashboard"
+
+        # Gravar o HTML em arquivo temporário — evita problemas de newline no AppleScript
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', encoding='utf-8', delete=False) as tmp:
+            tmp.write(html_body)
+            tmp_path = tmp.name
+
+        posix_path = tmp_path.replace('\\', '/')
+
         as_script = f'''
+        set htmlFile to POSIX file "{posix_path}"
+        set htmlContent to read htmlFile as «class utf8»
         tell application "Microsoft Outlook"
-            set newMessage to make new outgoing message with properties {{subject:"{subject}", html content:"{escaped_body}"}}
+            set newMessage to make new outgoing message with properties {{subject:"{safe_subject}", html content:htmlContent}}
             make new recipient at newMessage with properties {{email address:{{address:"{safe_to}"}}}}
         '''
-        
+
         if safe_cc:
             as_script += f'\n            make new recipient at newMessage with properties {{email address:{{address:"{safe_cc}"}}, type:cc recipient}}'
-        
+
         as_script += '\n            send newMessage\n        end tell'
-        
-        subprocess.run(['osascript', '-e', as_script], check=True)
+
+        subprocess.run(['osascript', '-e', as_script], check=True, capture_output=True)
+
+        # Limpar arquivo temporário
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+
         print(f"✅ E-mail HTML enviado com sucesso (Mac) para {safe_to}!")
         return True, f"E-mail enviado silenciosamente via Outlook (Mac) para {safe_to}."
+    except subprocess.CalledProcessError as e:
+        err = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
+        print(f"❌ Erro AppleScript ao enviar e-mail (Mac): {err}")
+        return False, err
     except Exception as e:
         print(f"❌ Erro crítico ao enviar e-mail (Mac): {e}")
         return False, str(e)
@@ -191,6 +211,25 @@ def send_email():
 
     return jsonify({"success": success, "message": msg})
 
+def find_excel_by_pattern(base_dir, patterns):
+    """
+    Descobre o primeiro arquivo .xlsx cujo nome contém um dos padrões.
+    Testa os padrões em ordem de especificidade (mais específico primeiro),
+    para que 'incident.xlsx' seja preferido sobre 'change_inc.xlsx'.
+    Espelha a lógica de detecção de arquivo do index.html.
+    """
+    try:
+        files = [f for f in os.listdir(base_dir) if f.lower().endswith('.xlsx')]
+    except OSError:
+        return None
+
+    for pat in patterns:  # padrão mais específico tem prioridade
+        for fname in files:
+            if pat in fname.lower():
+                return os.path.join(base_dir, fname)
+    return None
+
+
 @app.route('/analyze-sla', methods=['POST'])
 def analyze_sla_endpoint():
     data = request.json or {}
@@ -200,10 +239,20 @@ def analyze_sla_endpoint():
         'sla_ptask': int(data.get('slaPtask', 3)),
         'sla_rca': int(data.get('slaRca', 5))
     }
-    
+
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    inc_path = os.path.join(base_dir, "incident.xlsx")
-    task_path = os.path.join(base_dir, "sc_task.xlsx")
+
+    # Auto-descoberta de arquivos pelo padrão de nome — igual ao index.html
+    # Exclui padrões mais específicos para evitar falsos positivos (ptask, rca)
+    inc_path = find_excel_by_pattern(base_dir, ['incident', 'inc']) or find_excel_by_pattern(
+        os.path.dirname(base_dir), ['incident', 'inc']
+    )
+    task_path = find_excel_by_pattern(base_dir, ['sc_task', 'sctask']) or find_excel_by_pattern(
+        os.path.dirname(base_dir), ['sc_task', 'sctask']
+    )
+
+    print(f"[SLA] Arquivo INC detectado: {inc_path}")
+    print(f"[SLA] Arquivo TASK detectado: {task_path}")
     
     # 1. Analyze
     try:
