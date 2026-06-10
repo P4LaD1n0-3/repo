@@ -311,3 +311,4 @@ if __name__ == "__main__":
             print(f"[{ticket}]: {len(lista_emails)} e-mail(s) associado(s).")
             for i, email_obj in enumerate(lista_emails, 1):
                 print(f"  {i}. Em: {email_obj.date} | Remetente: {email_obj.sender} | Assunto: {email_obj.subject[:50]}...")
+ 
