@@ -255,4 +255,3 @@ if __name__ == "__main__":
     task_p = "sc_task.xlsx"
     res = analyze_critical_slas(inc_p, task_p)
     print(json.dumps(res, indent=2, default=str))
-
