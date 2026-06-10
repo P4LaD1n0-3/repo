@@ -80,44 +80,40 @@ def send_outlook_windows(to, cc, subject, html_body, screenshot_base64=None):
 
 def send_outlook_mac(to, cc, subject, html_body):
     """
-    Envia e-mail de forma silenciosa no Mac via AppleScript.
-    O HTML é gravado em arquivo temporário para evitar quebras de linha
-    que invalideriam a string literal do AppleScript.
+    Envia e-mail via AppleScript (Outlook Mac).
+    Usa a propriedade 'content' do Outlook, que aceita HTML.
+    HTML é compactado em linha única para evitar problemas no literal de string do AppleScript.
     """
-    import tempfile
     try:
-        safe_to = str(to) if to else ""
-        safe_cc = str(cc) if cc else ""
-        safe_subject = str(subject).replace('"', '\\"') if subject else "Relatório Dashboard"
+        safe_to  = str(to).strip() if to else ""
+        safe_cc  = str(cc).strip() if cc else ""
+        safe_subj = (str(subject) if subject else "Relatório Dashboard") \
+            .replace('\\', '\\\\').replace('"', '\\"')
 
-        # Gravar o HTML em arquivo temporário — evita problemas de newline no AppleScript
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', encoding='utf-8', delete=False) as tmp:
-            tmp.write(html_body)
-            tmp_path = tmp.name
+        # Compactar HTML em linha única + escapar para string AppleScript
+        compact = html_body.replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+        compact = compact.replace('\\', '\\\\').replace('"', '\\"')
 
-        posix_path = tmp_path.replace('\\', '/')
+        safe_to_esc = safe_to.replace('\\', '\\\\').replace('"', '\\"')
 
-        as_script = f'''
-        set htmlFile to POSIX file "{posix_path}"
-        set htmlContent to read htmlFile as «class utf8»
-        tell application "Microsoft Outlook"
-            set newMessage to make new outgoing message with properties {{subject:"{safe_subject}", html content:htmlContent}}
-            make new recipient at newMessage with properties {{email address:{{address:"{safe_to}"}}}}
-        '''
+        as_script = (
+            'tell application "Microsoft Outlook"\n'
+            f'    set newMsg to make new outgoing message with properties'
+            f' {{subject:"{safe_subj}", content:"{compact}"}}\n'
+            f'    make new to recipient at newMsg with properties'
+            f' {{email address:{{address:"{safe_to_esc}"}}}}\n'
+        )
 
         if safe_cc:
-            as_script += f'\n            make new recipient at newMessage with properties {{email address:{{address:"{safe_cc}"}}, type:cc recipient}}'
+            safe_cc_esc = safe_cc.replace('\\', '\\\\').replace('"', '\\"')
+            as_script += (
+                f'    make new cc recipient at newMsg with properties'
+                f' {{email address:{{address:"{safe_cc_esc}"}}}}\n'
+            )
 
-        as_script += '\n            send newMessage\n        end tell'
+        as_script += '    send newMsg\nend tell'
 
         subprocess.run(['osascript', '-e', as_script], check=True, capture_output=True)
-
-        # Limpar arquivo temporário
-        try:
-            os.remove(tmp_path)
-        except OSError:
-            pass
-
         print(f"✅ E-mail HTML enviado com sucesso (Mac) para {safe_to}!")
         return True, f"E-mail enviado silenciosamente via Outlook (Mac) para {safe_to}."
     except subprocess.CalledProcessError as e:
