@@ -5,7 +5,6 @@ import platform
 import subprocess
 import sqlite3
 import math
-import re
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -151,21 +150,19 @@ def get_rpa_logs():
             if ticket_filter:
                 terms = [t.strip() for t in ticket_filter.split(',') if t.strip()]
                 if terms:
-                    # Construir query dinâmica para suportar múltiplos termos com LIKE (__contains__)
                     query = "SELECT * FROM processados WHERE "
                     conditions = []
                     params = []
                     for term in terms:
                         conditions.append("(ticket_number LIKE ? OR assunto LIKE ?)")
                         params.extend([f"%{term}%", f"%{term}%"])
-                    
                     query += " OR ".join(conditions)
-                    query += " ORDER BY data_processamento DESC LIMIT 100"
+                    query += " ORDER BY data_processamento DESC"
                     cursor.execute(query, params)
                 else:
-                    cursor.execute("SELECT * FROM processados ORDER BY data_processamento DESC LIMIT 100")
+                    cursor.execute("SELECT * FROM processados ORDER BY data_processamento DESC")
             else:
-                cursor.execute("SELECT * FROM processados ORDER BY data_processamento DESC LIMIT 100")
+                cursor.execute("SELECT * FROM processados ORDER BY data_processamento DESC")
                 
             rows = cursor.fetchall()
             data = [dict(row) for row in rows]
@@ -298,6 +295,7 @@ def analyze_sla_endpoint():
 
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
+        # Legacy table (kept for backward compat)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS sla_dispatches (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -307,39 +305,76 @@ def analyze_sla_endpoint():
                 sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+        # Per-ticket table — one row per ticket for full subject/detail visibility
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sla_ticket_dispatches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_number TEXT,
+                subject TEXT,
+                type TEXT,
+                analyst TEXT,
+                analyst_email TEXT,
+                aging_days REAL,
+                sla_pct REAL,
+                remaining_hours REAL,
+                reason TEXT,
+                assignment_group TEXT,
+                email_status TEXT,
+                sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         for analyst_name, res_data in analysis_results.items():
             tickets = res_data['tickets']
             analyst_email = res_data['email']
-            
-            # Sanitiza os dados para evitar problemas de NaN no JSON
+
             sanitized_tickets = sanitize_for_json(tickets)
-            
+
             subject = f"ALERTA: Chamados Críticos - SLA Próximo do Limite"
             body = format_email_body(analyst_name, tickets)
-            
-            # Use email from column, or fallback if empty
+
             to_email = str(analyst_email).strip()
             if not to_email or to_email.lower() == 'nan' or '@' not in to_email:
-                # Log do aviso de e-mail não encontrado na planilha
                 print(f"⚠️ Aviso: E-mail para '{analyst_name}' não encontrado ou inválido na coluna 'Email'. Usando fallback.")
                 to_email = f"{analyst_name.replace(' ', '.').lower()}@empresa.com"
-            
+
             cc_email = data.get('emailCc', '')
-            
-            # Send using existing logic
+
             if IS_WINDOWS:
                 success, msg = send_outlook_windows(to_email, cc_email, subject, body)
             elif IS_MAC:
                 success, msg = send_outlook_mac(to_email, cc_email, subject, body)
             else:
                 success, msg = False, "OS Not Supported"
-            
-            # Log
+
+            email_status_str = "Success" if success else f"Error: {msg}"
+
+            # Legacy insert (per analyst)
             cursor.execute(
                 "INSERT INTO sla_dispatches (analyst, tickets, email_status) VALUES (?, ?, ?)",
-                (analyst_name, json.dumps(sanitized_tickets), "Success" if success else f"Error: {msg}")
+                (analyst_name, json.dumps(sanitized_tickets), email_status_str)
             )
+            # Per-ticket insert
+            for t in sanitized_tickets:
+                cursor.execute(
+                    """INSERT INTO sla_ticket_dispatches
+                       (ticket_number, subject, type, analyst, analyst_email,
+                        aging_days, sla_pct, remaining_hours, reason, assignment_group, email_status)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        t.get('number', 'N/A'),
+                        t.get('subject', ''),
+                        t.get('type', ''),
+                        analyst_name,
+                        to_email,
+                        t.get('aging_days'),
+                        t.get('sla_pct'),
+                        t.get('remaining_hours'),
+                        t.get('reason', ''),
+                        t.get('group', ''),
+                        email_status_str
+                    )
+                )
             dispatched.append({"analyst": analyst_name, "tickets_count": len(tickets), "status": "Sent" if success else "Failed"})
     
     return jsonify({"status": "success", "dispatched": dispatched})
@@ -357,14 +392,15 @@ def get_sla_logs():
         with sqlite3.connect(db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM sla_dispatches ORDER BY sent_at DESC LIMIT 50")
+            # Prefer per-ticket table; fall back to legacy if it doesn't exist yet
+            try:
+                cursor.execute(
+                    "SELECT * FROM sla_ticket_dispatches ORDER BY sent_at DESC"
+                )
+            except Exception:
+                cursor.execute("SELECT * FROM sla_dispatches ORDER BY sent_at DESC")
             rows = cursor.fetchall()
-            data = []
-            for row in rows:
-                r_dict = dict(row)
-                if r_dict.get('tickets') and isinstance(r_dict['tickets'], str):
-                    r_dict['tickets'] = re.sub(r':\s*NaN', ': null', r_dict['tickets'])
-                data.append(r_dict)
+            data = [dict(row) for row in rows]
             return jsonify({"status": "success", "data": sanitize_for_json(data)})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
