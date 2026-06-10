@@ -78,8 +78,12 @@ def process_df(df, sla_days, type_label, results, now):
     group_col    = find_col(df, GROUP_ALIASES)
     state_col    = find_col(df, STATE_ALIASES)
 
-    # Ensure dates are datetime
-    df[opened_col] = pd.to_datetime(df[opened_col], errors='coerce')
+    # Ensure dates are datetime — strip timezone so arithmetic with tz-naive `now` works
+    # (browser sends ISO-8601 strings with "Z"/offset; Excel files are usually tz-naive)
+    _series = pd.to_datetime(df[opened_col], errors='coerce')
+    if _series.dt.tz is not None:
+        _series = _series.dt.tz_convert(None)
+    df[opened_col] = _series
 
     # Filter only open tickets
     closed_states = ['closed', 'resolved', 'closed complete', 'closed incomplete', 'canceled', 'cancelled',
