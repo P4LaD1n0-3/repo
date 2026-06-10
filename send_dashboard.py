@@ -1,209 +1,166 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+Dashboard Emailer Automation
+Downloads ticket data, reads the local dashboard, and sends it via Outlook.
+"""
 
 import os
-import requests
-import pandas as pd
-import win32com.client
+import sys
+import platform
+import subprocess
+import urllib.request
+from datetime import datetime
 from dotenv import load_dotenv
 
-# ============================================================================
-# CONFIGURATIONS & ENVIRONMENT VARIABLES
-# ============================================================================
-load_dotenv()
+# Path configuration
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DASHBOARD_PATH = os.path.join(BASE_DIR, "index.html")
+ENV_PATH = os.path.join(os.path.dirname(BASE_DIR), ".env")
 
-EMAIL_SUBJECT = os.getenv("titulo", "ServiceNow Integrated Report")
-EMAIL_TO = os.getenv("destinatario", "")
-EMAIL_CC = os.getenv("copia", "")
-EMAIL_IMPORTANCE = os.getenv("importance", 2)
-MY_OWN_EMAIL = os.getenv("meu_email", "").strip().lower()
-
-DOWNLOAD_DIR = "path_temp"
-HTML_REPORT_PATH = "index_v1.2.html"
-
-# URLs de exportação do ServiceNow (Substituir pelos links reais)
-FILES_TO_DOWNLOAD = {
-    "incident.xls": "URL_FOR_INCIDENT_XLS",
-    "problem_rca.xls": "URL_FOR_PROBLEM_RCA_XLS",
-    "sc_task.xls": "URL_FOR_SC_TASK_XLS"
+# Ticket Files Configuration (Names as used in the project)
+TICKET_FILES = {
+    "URL_INCIDENT": "incident.xlsx",
+    "URL_PROBLEM": "problem_rca.xlsx",
+    "URL_TASK": "sc_task.xlsx"
 }
 
-# ============================================================================
-# UTILITIES
-# ============================================================================
-def ensure_dir(path: str):
-    if not os.path.exists(path):
-        os.makedirs(path, exist_ok=True)
-        print(f"Directory created: {path}")
+def log(msg):
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
-def download_file(url: str, dest_path: str) -> bool:
-    print(f"Downloading {dest_path}...")
+def download_file(url, target_name):
+    """Downloads a file from a URL to the local directory."""
+    target_path = os.path.join(BASE_DIR, target_name)
     try:
-        response = requests.get(url, stream=True, timeout=30) # Adicionar auth=() se necessário
-        response.raise_for_status()
-        with open(dest_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        print(f"Successfully downloaded: {dest_path}")
-        return True
+        log(f"Baixando {target_name} de {url[:40]}...")
+        # Use a User-Agent to avoid blocks from some servers (like ServiceNow)
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response, open(target_path, 'wb') as out_file:
+            data = response.read()
+            out_file.write(data)
+        log(f"✓ {target_name} baixado com sucesso.")
+        return target_path
     except Exception as e:
-        print(f"Error downloading {url}: {e}")
-        return False
+        log(f"❌ Erro ao baixar {target_name}: {e}")
+        return None
 
-# ============================================================================
-# EXCEL PARSING & EMAIL SCANNING LOGIC
-# ============================================================================
-def extract_tickets_from_excel(file_paths: list) -> set:
-    """Varre todas as colunas de identificação e retorna um set com os números dos tickets (SCTASK, RITM)."""
-    ticket_list = set()
-    print("\n--- Scanning Excel Files for Tickets ---")
-    
-    for file in file_paths:
-        if not os.path.exists(file):
-            continue
-        try:
-            df = pd.read_excel(file)
-            # Tenta encontrar a coluna principal de tickets
-            col_candidates = ["Number", "Número", "Ticket", "ID"]
-            target_col = next((c for c in col_candidates if c in df.columns), None)
-            
-            if target_col:
-                tickets = df[target_col].dropna().astype(str).str.strip().tolist()
-                for t in tickets:
-                    if t.startswith("SCTASK") or t.startswith("RITM"):
-                        ticket_list.add(t)
-            print(f"Extracted tickets from {os.path.basename(file)}")
-        except Exception as e:
-            print(f"Failed to read {file}: {e}")
-            
-    return ticket_list
-
-def scan_outlook_for_third_party_emails(tickets_to_search: set) -> dict:
-    """Varre o Outlook buscando interações sobre SCTASK e RITM, excluindo o próprio e-mail rigorosamente."""
-    print("\n--- Scanning Outlook for Third-Party Interactions ---")
-    if not MY_OWN_EMAIL:
-        print("WARNING: 'meu_email' not set in .env. Self-exclusion will not work properly.")
-        
-    outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace("MAPI")
-    inbox = outlook.GetDefaultFolder(6) # 6 = Inbox
-    messages = inbox.Items
-    messages.Sort("[ReceivedTime]", True) # Do mais recente para o mais antigo
-
-    found_interactions = {ticket: [] for ticket in tickets_to_search}
-    scan_limit = 500 # Limita aos últimos 500 e-mails para performance
-    count = 0
-
-    for msg in messages:
-        if count >= scan_limit:
-            break
-        try:
-            # Tratamento para extrair o e-mail real do remetente
-            if msg.SenderEmailType == "EX":
-                sender_email = msg.Sender.GetExchangeUser().PrimarySmtpAddress.lower()
-            else:
-                sender_email = msg.SenderEmailAddress.lower()
-                
-            # EXCLUSÃO RIGOROSA: Pula qualquer e-mail enviado por mim
-            if MY_OWN_EMAIL in sender_email:
-                continue
-
-            subject = str(msg.Subject)
-            body = str(msg.Body)
-            
-            # Verifica apenas se tem relação com os tickets mapeados
-            for ticket in tickets_to_search:
-                if ticket in subject or ticket in body:
-                    found_interactions[ticket].append({
-                        "Sender": sender_email,
-                        "ReceivedTime": msg.ReceivedTime.strftime("%Y-%m-%d %H:%M:%S"),
-                        "Subject": subject
-                    })
-            count += 1
-        except Exception:
-            # Ignora convites de calendário ou mensagens corrompidas
-            continue
-
-    # Remove tickets sem interações do log final
-    filtered_interactions = {k: v for k, v in found_interactions.items() if v}
-    print(f"Found third-party interactions for {len(filtered_interactions)} tickets.")
-    return filtered_interactions
-
-# ============================================================================
-# MAILER
-# ============================================================================
-def send_final_report(attachments: list, interactions: dict):
-    print("\n--- Preparing to Send Email ---")
+def send_outlook_windows(to, cc, subject, html_body, attachments):
+    """Sends email via Outlook COM interface on Windows."""
     try:
-        outlook = win32com.client.Dispatch("Outlook.Application")
+        import win32com.client
+        outlook = win32com.client.Dispatch("outlook.application")
         mail = outlook.CreateItem(0)
-        mail.To = EMAIL_TO
-        if EMAIL_CC:
-            mail.CC = EMAIL_CC
-        mail.Subject = EMAIL_SUBJECT
+        mail.To = to
+        mail.CC = cc
+        mail.Subject = subject
+        mail.HTMLBody = html_body
         
+        # Priority mapping (1=Low, 2=Normal, 3=High)
         try:
-            mail.Importance = int(EMAIL_IMPORTANCE)
-        except (ValueError, TypeError):
+            importance = int(os.getenv("importance", 2))
+            mail.Importance = importance
+        except:
             mail.Importance = 2
 
-        # Monta o corpo do e-mail com o sumário das interações de terceiros
-        html_body = "<h3>Relatório Consolidado de Tickets</h3>"
-        html_body += "<p>Segue em anexo o dashboard mais recente (index_v1.2.html) e as bases brutas atualizadas.</p>"
+        for path in attachments:
+            if path and os.path.exists(path):
+                mail.Attachments.Add(os.path.abspath(path))
         
-        if interactions:
-            html_body += "<h4>Últimas Interações de Terceiros (SCTASK/RITM):</h4><ul>"
-            for ticket, logs in interactions.items():
-                html_body += f"<li><b>{ticket}</b>: {len(logs)} e-mail(s) recebido(s) de terceiros. Último remetente: {logs[0]['Sender']}</li>"
-            html_body += "</ul>"
-            
-        mail.HTMLBody = html_body
-
-        attached_count = 0
-        for file_path in attachments:
-            if os.path.exists(file_path):
-                abs_path = os.path.abspath(file_path)
-                mail.Attachments.Add(abs_path)
-                attached_count += 1
-
         mail.Send()
-        print(f"Success! Email sent with {attached_count} attachments.")
-        
+        return True, "E-mail enviado com sucesso via Outlook (Windows)."
     except Exception as e:
-        print(f"Critical error sending email: {e}")
+        return False, f"Erro no Windows/Outlook: {e}"
 
-# ============================================================================
-# MAIN ORCHESTRATOR
-# ============================================================================
+def send_outlook_mac(to, cc, subject, html_body, attachments):
+    """Fallback for Mac using AppleScript to control Outlook."""
+    try:
+        # Note: HTML via AppleScript is challenging. 
+        # For Mac, we often create a draft or use a specialized library.
+        # This implementation creates a draft with attachments and the HTML body as plain text fallback
+        # or simplified rich text if possible.
+        
+        attachment_scripts = []
+        for path in attachments:
+            if path and os.path.exists(path):
+                abs_path = os.path.abspath(path)
+                attachment_scripts.append(f'make new attachment with properties {{file name:"{abs_path}"}} at end of attachments')
+
+        attachments_str = "\n            ".join(attachment_scripts)
+        
+        # Simplified AppleScript for Mac Outlook
+        as_script = f'''
+        tell application "Microsoft Outlook"
+            set newMessage to make new outgoing message with properties {{subject:"{subject}", content:"{html_body}"}}
+            tell newMessage
+                make new recipient at end of recipients with properties {{email address:{{address:"{to}"}}}}
+                {f'make new recipient at end of cc recipients with properties {{email address:{{address:"{cc}"}}}}' if cc else ""}
+                {attachments_str}
+            end tell
+            send newMessage
+        end tell
+        '''
+        subprocess.run(['osascript', '-e', as_script], check=True)
+        return True, "Mensagem enviada via Outlook for Mac."
+    except Exception as e:
+        return False, f"Erro no Mac/Outlook: {e}"
+
 def main():
-    ensure_dir(DOWNLOAD_DIR)
-    downloaded_files = []
-
-    # 1. Download
-    for filename, url in FILES_TO_DOWNLOAD.items():
-        file_path = os.path.join(DOWNLOAD_DIR, filename)
-        if download_file(url, file_path):
-            downloaded_files.append(file_path)
-
-    # 2. Varredura no Excel (Apenas se baixou arquivos)
-    tickets_to_search = extract_tickets_from_excel(downloaded_files)
-
-    # 3. Varredura rigorosa no Outlook
-    interactions_log = {}
-    if tickets_to_search:
-        interactions_log = scan_outlook_for_third_party_emails(tickets_to_search)
-
-    # 4. Anexa o HTML principal
-    if os.path.exists(HTML_REPORT_PATH):
-        downloaded_files.append(HTML_REPORT_PATH)
-        print(f"Included dashboard HTML: {HTML_REPORT_PATH}")
+    # 1. Load Configuration
+    if os.path.exists(ENV_PATH):
+        load_dotenv(ENV_PATH)
+        log("Arquivo .env carregado.")
     else:
-        print(f"Warning: Dashboard HTML '{HTML_REPORT_PATH}' not found in current directory.")
+        log("⚠️ Arquivo .env não encontrado no diretório raiz.")
 
-    # 5. Disparo do E-mail
-    if downloaded_files:
-        send_final_report(downloaded_files, interactions_log)
+    # 2. Download Ticket Files
+    downloaded_paths = []
+    for env_key, file_name in TICKET_FILES.items():
+        url = os.getenv(env_key)
+        if url:
+            path = download_file(url, file_name)
+            if path:
+                downloaded_paths.append(path)
+        else:
+            log(f"⚠️ URL não definida para {env_key} no .env. Pulando download.")
+            # Verify if local file exists to attach anyway
+            local_path = os.path.join(BASE_DIR, file_name)
+            if os.path.exists(local_path):
+                downloaded_paths.append(local_path)
+
+    # 3. Read Dashboard HTML
+    if not os.path.exists(DASHBOARD_PATH):
+        log("❌ Dashboard index.html não encontrado. Encerrando.")
+        return
+
+    with open(DASHBOARD_PATH, 'r', encoding='utf-8') as f:
+        html_body = f.read()
+    log("✓ Dashbord HTML lido com sucesso.")
+
+    # 4. Prepare Email Metadata
+    to = os.getenv("destinatario", "")
+    cc = os.getenv("copia", "")
+    subject_prefix = os.getenv("titulo", "Dashboard ITSM Report")
+    subject = f"{subject_prefix} - {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+
+    if not to:
+        log("❌ Variável 'destinatario' não definida no .env. E-mail não enviado.")
+        return
+
+    # 5. Delivery
+    system = platform.system()
+    log(f"Iniciando envio no sistema: {system}")
+    
+    if system == "Windows":
+        success, msg = send_outlook_windows(to, cc, subject, html_body, downloaded_paths)
+    elif system == "Darwin": # Mac
+        success, msg = send_outlook_mac(to, cc, subject, html_body, downloaded_paths)
     else:
-        print("Abortando: Nenhum arquivo disponível para envio.")
+        success, msg = False, f"Sistema {system} não suportado para disparos automáticos de Outlook."
+
+    if success:
+        log(f"✨ {msg}")
+    else:
+        log(f"🚨 {msg}")
 
 if __name__ == "__main__":
     main()
