@@ -11971,12 +11971,21 @@
             status.innerHTML = '<span class="text-blue-600">Iniciando análise crítica de SLA...</span>';
 
             try {
+                const incRows  = (typeof RawData !== 'undefined' && RawData.incs)  ? RawData.incs  : [];
+                const reqRows  = (typeof RawData !== 'undefined' && RawData.reqs)  ? RawData.reqs  : [];
+
+                if (incRows.length === 0 && reqRows.length === 0) {
+                    throw new Error('Nenhum arquivo carregado no dashboard. Carregue incident.xlsx e sc_task.xlsx antes de executar.');
+                }
+
                 const config = {
-                    slaIncs: document.getElementById('sla-incs').value,
-                    slaReqs: document.getElementById('sla-reqs').value,
+                    slaIncs:  document.getElementById('sla-incs').value,
+                    slaReqs:  document.getElementById('sla-reqs').value,
                     slaPtask: document.getElementById('sla-ptask').value,
-                    slaRca: document.getElementById('sla-rca').value,
-                    emailCc: document.getElementById('email-cc').value
+                    slaRca:   document.getElementById('sla-rca').value,
+                    emailCc:  document.getElementById('email-cc').value,
+                    incData:  incRows,
+                    reqData:  reqRows
                 };
 
                 const response = await fetch('http://localhost:5001/analyze-sla', {
