@@ -9,7 +9,7 @@ import re
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from critical_sla_logic import analyze_critical_slas, format_email_body
+from critical_sla_logic import format_email_body
 
 app = Flask(__name__)
 CORS(app)  # Allow requests from local file:// or browser
@@ -228,6 +228,9 @@ def find_excel_by_pattern(base_dir, patterns):
 
 @app.route('/analyze-sla', methods=['POST'])
 def analyze_sla_endpoint():
+    import pandas as pd
+    from critical_sla_logic import process_df
+
     data = request.json or {}
     config = {
         'sla_incs': int(data.get('slaIncs', 7)),
@@ -237,26 +240,53 @@ def analyze_sla_endpoint():
     }
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
+    now = __import__('datetime').datetime.now()
+    results = {}
 
-    # Auto-descoberta de arquivos pelo padrão de nome — igual ao index.html
-    # Exclui padrões mais específicos para evitar falsos positivos (ptask, rca)
-    inc_path = find_excel_by_pattern(base_dir, ['incident', 'inc']) or find_excel_by_pattern(
-        os.path.dirname(base_dir), ['incident', 'inc']
-    )
-    task_path = find_excel_by_pattern(base_dir, ['sc_task', 'sctask']) or find_excel_by_pattern(
-        os.path.dirname(base_dir), ['sc_task', 'sctask']
-    )
+    # Prioridade 1: dados enviados pelo browser (RawData já carregado no dashboard)
+    inc_rows = data.get('incData')
+    req_rows = data.get('reqData')
 
-    print(f"[SLA] Arquivo INC detectado: {inc_path}")
-    print(f"[SLA] Arquivo TASK detectado: {task_path}")
-    
-    # 1. Analyze
-    try:
-        analysis_results = analyze_critical_slas(inc_path, task_path, config)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"status": "error", "message": f"Erro interno ao processar planilhas: {str(e)}"})
+    if inc_rows:
+        print(f"[SLA] Usando dados do browser: {len(inc_rows)} linhas INC")
+        df_inc = pd.DataFrame(inc_rows)
+        process_df(df_inc, config['sla_incs'], "INC", results, now)
+    else:
+        inc_path = (
+            find_excel_by_pattern(base_dir, ['incident', 'inc']) or
+            find_excel_by_pattern(os.path.dirname(base_dir), ['incident', 'inc'])
+        )
+        print(f"[SLA] Fallback arquivo INC: {inc_path}")
+        if inc_path:
+            df_inc = pd.read_excel(inc_path)
+            process_df(df_inc, config['sla_incs'], "INC", results, now)
+        else:
+            print("[SLA] ❌ INC: nenhum dado recebido e nenhum arquivo encontrado.")
+
+    if req_rows:
+        print(f"[SLA] Usando dados do browser: {len(req_rows)} linhas TASK/REQ")
+        df_req = pd.DataFrame(req_rows)
+        process_df(df_req, config['sla_reqs'], "TASK", results, now)
+    else:
+        task_path = (
+            find_excel_by_pattern(base_dir, ['sc_task', 'sctask']) or
+            find_excel_by_pattern(os.path.dirname(base_dir), ['sc_task', 'sctask'])
+        )
+        print(f"[SLA] Fallback arquivo TASK: {task_path}")
+        if task_path:
+            df_task = pd.read_excel(task_path)
+            process_df(df_task, config['sla_reqs'], "TASK", results, now)
+        else:
+            print("[SLA] ❌ TASK: nenhum dado recebido e nenhum arquivo encontrado.")
+
+    analysis_results = results
+
+    # Checar se encontrou algo
+    if not analysis_results:
+        return jsonify({
+            "status": "error",
+            "message": "Nenhum chamado crítico encontrado. Verifique se os arquivos foram carregados no dashboard (arraste incident.xlsx e sc_task.xlsx) e tente novamente."
+        })
     
     # 2. Send Emails & Log
     dispatched = []
